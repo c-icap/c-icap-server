@@ -34,17 +34,18 @@ struct ci_magics_db{
      DECLARE_ARRAY(magics,struct ci_magic)
 };
 
-#define ci_magic_types_num(db) (db->types_num)
-#define ci_magic_groups_num(db)(db->groups_num)
-#define ci_data_type_name(db,i)(db->types[i].name)
-#define ci_data_type_group(db,i)(db->types[i].group)
-#define ci_data_type_descr(db,i)(db->types[i].descr)
-#define ci_data_group_name(db,i)(db->groups[i].name)
+#define ci_magic_types_num(db) (db!=NULL?db->types_num:0)
+#define ci_magic_groups_num(db)(db!=NULL?db->groups_num:0)
+#define ci_data_type_name(db,i)(db!=NULL?db->types[i].name:NULL)
+#define ci_data_type_group(db,i)(db!=NULL?db->types[i].group:-1)
+#define ci_data_type_descr(db,i)(db!=NULL?db->types[i].descr:NULL)
+#define ci_data_group_name(db,i)(db!=NULL?db->groups[i].name:NULL)
 
 enum {CI_ASCII_DATA,CI_ISO8859_DATA,CI_XASCII_DATA,CI_UTF_DATA,CI_HTML_DATA,CI_BIN_DATA};
 enum {CI_TEXT_DATA,CI_OCTET_DATA};
 
 CI_DECLARE_FUNC(struct ci_magics_db) *ci_magics_db_build(char *filename);
+CI_DECLARE_FUNC(int) ci_magics_db_file_add(struct ci_magics_db *db,char *filename);
 CI_DECLARE_FUNC(int) ci_get_data_type_id(struct ci_magics_db *db,char *name);
 CI_DECLARE_FUNC(int) ci_get_data_group_id(struct ci_magics_db *db,char *group);
 

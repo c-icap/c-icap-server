@@ -63,6 +63,10 @@ int main(int argc,char **argv){
      __vlog_error=vlog_server; /*set c-icap library  log function*/
 #endif
      
+     if(!(CONF.MAGIC_DB=ci_magics_db_build(CONF.magics_file))){
+	  ci_debug_printf(1,"Can not load magic file %s!!!\n",CONF.magics_file);
+     }
+     
      init_conf_tables();
      init_modules();
      config(argc,argv);

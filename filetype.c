@@ -204,28 +204,11 @@ int read_record(FILE *f,struct ci_magic_record *record){
 
 struct ci_magics_db *ci_magics_db_init(){
      struct ci_magics_db *db;
+     int i;
      db=malloc(sizeof(struct ci_magics_db));
      types_init(db);
      groups_init(db);
      magics_init(db);
-
-     return db;
-}
-
-void ci_magics_db_release(struct ci_magics_db *db){
-     free(db->types);
-     free(db->groups);
-     free(db->magics);
-     free(db);
-}
-
-struct ci_magics_db *ci_magics_db_build(char *filename){
-     int i,type,group,ret;
-     struct ci_magic_record record;
-     struct ci_magics_db *db;
-     FILE *f;
-     
-     db=ci_magics_db_init();
 
      i=0;/*Copy predefined types*/
      while(predefined_types[i].name[0]!='\0'){
@@ -238,10 +221,27 @@ struct ci_magics_db *ci_magics_db_build(char *filename){
 	  groups_add(db,predefined_groups[i].name,predefined_groups[i].descr);
 	  i++;
      }
+
+
+     return db;
+}
+
+void ci_magics_db_release(struct ci_magics_db *db){
+     free(db->types);
+     free(db->groups);
+     free(db->magics);
+     free(db);
+}
+
+
+int ci_magics_db_file_add(struct ci_magics_db *db,char *filename){
+     int type,group,ret;
+     struct ci_magic_record record;
+     FILE *f;
+
      if((f=fopen(filename,"r+"))==NULL){
 	  ci_debug_printf(1,"Error opening magic file: %s\n",filename);
-	  ci_magics_db_release(db);
-	  return NULL;
+	  return 0;
      }
      while((ret=read_record(f,&record))>=0){
 	  if(!ret)
@@ -258,10 +258,21 @@ struct ci_magics_db *ci_magics_db_build(char *filename){
      fclose(f);
      if(ret<-1){/*An error occured .....*/
 	  ci_debug_printf(1,"Error reading magic file (%d)\n",ret);
-	  ci_magics_db_release(db);
-	  return NULL;
+	  return 0;
      }
      ci_debug_printf(3,"In database magics:%d, types:%d, groups:%d\n",db->magics_num,db->types_num,db->groups_num);
+     return 1;
+
+
+}
+
+
+struct ci_magics_db *ci_magics_db_build(char *filename){
+     struct ci_magics_db *db;
+
+     
+     if((db=ci_magics_db_init())!=NULL)
+	  ci_magics_db_file_add(db,filename);
      return db;
 }
 

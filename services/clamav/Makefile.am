@@ -7,3 +7,4 @@ srv_clamav_la_CFLAGS=  -I../../include/ @clamavinc@
 srv_clamav_la_LDFLAGS= -no-undefined -module -avoid-version
 srv_clamav_la_SOURCES = srv_clamav.c srv_clamav_vir.c
 
+EXTRA_DIST = srv_clamav.h 

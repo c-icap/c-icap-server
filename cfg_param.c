@@ -270,12 +270,12 @@ int Load_Module(char *directive,char **argv,void *setdata){
 int LoadMagicFile(char *directive,char **argv,void *setdata){
      char *db_file;
      if(argv==NULL || argv[0]==NULL){
-	  db_file=CONF.magics_file;
+	  return 0;
      }
-     else
-	  db_file=argv[0];
-     if(!(CONF.MAGIC_DB=ci_magics_db_build(db_file))){
-	  ci_debug_printf(1,"Canot load magic file %s!!!\n",db_file);
+
+     db_file=argv[0];
+     if(!ci_magics_db_file_add(CONF.MAGIC_DB,db_file)){
+	  ci_debug_printf(1,"Can not load magic file %s!!!\n",db_file);
 	  return 0;
      }
      

@@ -1,5 +1,5 @@
 
-CONFIGDIR=@configdir@
+CONFIGDIR=@sysconfdir@
 PKGLIBDIR=@pkglibdir@
 MODULESDIR=$(pkglibdir)/
 SERVICESDIR=$(pkglibdir)/
@@ -56,7 +56,7 @@ INCS = access.h body.h cfg_param.h c-icap.h ci_threads.h debug.h header.h log.h 
 ALL_INCS=$(INCS:%.h=include/%.h)
 
 pkginclude_HEADERS = $(ALL_INCS)
-sysconf_DATA = c-icap.conf
+sysconf_DATA = c-icap.conf c-icap.magic
 
 EXTRA_DIST= RECONF INSTALL.txt config-w32.h makefile.w32 c-icap.conf c_icap_dll.mak c-icap.conf.in c-icap.magic  c_icap.mak c_icap.def contrib/get_file.pl \
              winnt_server.c  os/win32/dll_entry.c os/win32/makefile.w32 os/win32/net_io.c os/win32/proc_mutex.c\

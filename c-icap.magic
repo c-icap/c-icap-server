@@ -33,7 +33,7 @@
 #STREAM
 0:\000\000\001\263:MPEG:STREAM:MPEG video stream
 0:\000\000\001\272:MPEG:STREAM:
-0:RIFF:RIFF:STREAM:RIFF video/autdio stream
+0:RIFF:RIFF:STREAM:RIFF video/audio stream
 0:OggS:OGG:STREAM:Ogg Stream
 0:ID3:MP3:STREAM:MP3 audio stream
 0:\377\373\220:MP3:STREAM:MP3 audio stream
