@@ -1,0 +1,20 @@
+
+!include <win32.mak>
+
+
+UTILS_OBJS=shared_mem.obj proc_mutex.obj net_io.obj threads.obj utilfunc.obj
+
+
+all: dll_entry.obj utils.lib
+
+.c.obj:
+	$(cc) -I..\..\include -I..\..\ $(cdebug) $(cflags) $(cvarsmt) -I. -DUNICODE $*.c
+#	$(cc) -I..\..\include -I..\..\ $(cdebug) $(cflags) $(cvarsdll) -I. -DUNICODE $*.c
+
+
+utils.lib: $(UTILS_OBJS)
+		$(link) /LIB  $(linkdebug) -out:$*.lib $** $(EXTRA_LIBS)
+
+
+clean:
+	del *.obj *.exe *.lib

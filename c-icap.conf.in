@@ -1,0 +1,57 @@
+#
+# This file contains the default settings for c-icap
+#
+
+
+PidFile /var/run/c-icap.pid
+Timeout 300
+KeepAlive On
+MaxKeepAliveRequests 100
+# set KeepAliveTimeout to -1 for no timeout
+KeepAliveTimeout 600  
+StartServers 3
+MaxServers 10
+MinSpareThreads     10
+MaxSpareThreads     20
+ThreadsPerChild     10
+MaxRequestsPerChild  0
+
+
+Port 1344 
+User wwwrun
+Group nobody
+
+
+#ServerAdmin you@your.address # Not implemented yet
+#ServerName localhost:1344 # Not implemented yet
+
+TmpDir /var/tmp
+Max_mem_object 131072
+
+ServerLog @prefix@/var/log/server.log
+AccessLog @prefix@/var/log/access.log
+#DebugLevel 3
+
+ModulesDir @prefix@/lib/c_icap
+Module logger sys_logger.so
+Module perl_handler perl_handler.so
+
+sys_logger.Prefix "Tsants' C-ICAP:"
+sys_logger.Facility local1
+
+#Logger sys_logger
+Logger file_logger
+
+
+ServicesDir @prefix@/lib/c_icap
+Service echo_module srv_echo.so
+Service squard_module srv_sguard.so
+Service antivirus_module srv_clamav.so
+
+
+# Antivirus module settings
+# ScanFileTypes must be one of: unknown_text unknown_data msexe data tar gz zip bz rar msszdd msole2 mscab mschm screnc graphics html mail
+antivirus.ScanFileTypes msexe data tar gz zip bz rar msszdd msole2 mscab mschm screnc
+antivirus.SendPercentData 5
+
+
