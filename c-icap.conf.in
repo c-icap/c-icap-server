@@ -25,6 +25,11 @@ Group nobody
 #ServerAdmin you@your.address # Not implemented yet
 #ServerName localhost:1344 # Not implemented yet
 
+# LoadMagicFile must be specified in order to use internal filetype recognizer.
+# Currently used by srv_clamav module. Edit this file if you want to add more filetypes.
+# /etc/magic is a good source to get info about varius file types.
+LoadMagicFile c-icap.magic
+
 TmpDir /var/tmp
 MaxMemObject 131072
 
@@ -47,18 +52,18 @@ Logger file_logger
 #Module access_controller  my_acl.so
 
 ## This parameter needed to specify the order of used acl controllers
-## If not specified access control will not be used
+## If not specified access control will be disabled
 #AclControllers default_acl
 
 ## An example of acl lists for default_acl controller.
-## Instead of acl and icap_access someone can use
-## the directives  default_acl.acl and default_acl.icap_access 
+## acl and icap_access  are aliases for default_acl.acl and default_acl.icap_access 
 #acl localnet_options src 192.168.1.0/255.255.255.0 type options
 #acl localnet_respmod src 192.168.1.0/255.255.255.0 type respmod
 #acl localnet src 192.168.1.0/255.255.255.0
 ##Use the folllowing to demand use of username ......
 ##acl localnet src 192.168.1.0/255.255.255.0 user *
 #acl externalnet src 0.0.0.0/0.0.0.0
+#acl barbarian src 192.168.1.5
 
 ##An example to specify access to server
 #icap_access deny barbarian
@@ -70,13 +75,20 @@ Logger file_logger
 #icap_access  http_auth localnet
 #icap_access deny externalnet
 
+#Also you can specify which hosts to log or not.
+# Comment out the folowing two lines to log only the external net
+#icap_access nolog localnet
+#icap_access log externalnet
+
+
+
 ##An example for authentication methods ....
 ## To load an extarnal authentication method module named my_authmethod.so  use:
 #Module auth_method my_authmethod.so
 
 ##The following parameter needed to specify the order of authenticators for
 ##specific authentication method. file_basic is a buildin authenticator
-##for buildin basic authentication method......
+##for buildin basic authentication method (Not implemented yet......) ......
 #AuthMethod basic file_basic 
 
 
@@ -86,9 +98,30 @@ Service squard_module srv_sguard.so
 Service antivirus_module srv_clamav.so
 
 
-# srv_clamav-antivirus module settings
-# ScanFileTypes must be one of: unknown_text unknown_data msexe data tar gz zip bz rar msszdd msole2 mscab mschm screnc graphics html mail
-srv_clamav.ScanFileTypes msexe data tar gz zip bz rar msszdd msole2 mscab mschm screnc
+# Antivirus module settings
+# For allowed file types or groups of file types look at  c-icap.magic
+srv_clamav.ScanFileTypes TEXT DATA EXECUTABLE ARCHIVE GIF JPEG MSOFFICE
+#The percentage of data to sent if the downloaded file exceeds the StartSendPercentDataAfter size
 srv_clamav.SendPercentData 5
+srv_clamav.StartSendPercentDataAfter 2M
 
+# The Maximum object to be scanned.
+srv_clamav.MaxObjectSize  5M
+#The directory which clamav library will use as temporary.
+#srv_clamav.ClamAvTmpDir /var/tmp
+#Sets the maximum number of files in archive.)i Set it to 0 to disable it
+srv_clamav.ClamAvMaxFilesInArchive 0
+#Sets the maximal archived file size. Set it to 0 to disable it.
+srv_clamav.ClamAvMaxFileSizeInArchive 100M
+#The maximal recursion level.Set it to 0 to disable it.
+srv_clamav.ClamAvMaxRecLevel 5
 
+# And here the viralator-like mode.
+# where to save documents
+srv_clamav.VirSaveDir /srv/www/htdocs/downloads/
+# from where the documents can be retrieved (you can find the get_file.pl script in contrib dir)
+srv_clamav.VirHTTPServer  "http://fortune/cgi-bin/get_file.pl?usename=%f&remove=1&file="
+# The refresh  rate....
+srv_clamav.VirUpdateTime   15
+# For which filetypes the "virelator like mode" will be used.
+srv_clamav.VirScanFileTypes ARCHIVE EXECUTABLE

@@ -41,6 +41,7 @@ struct  service_module{
      char *mod_options_body;
 
      int (*mod_init_service)(service_module_t *this,struct icap_server_conf *server_conf);
+     int (*mod_post_init_service)(service_module_t *this,struct icap_server_conf *server_conf);
      void (*mod_close_service)(service_module_t *this);
      void *(*mod_init_request_data)(service_module_t *this,struct request *);
      void (*mod_release_request_data)(void *module_data);

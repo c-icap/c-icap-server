@@ -61,6 +61,7 @@ static struct conf_entry acl_conf_variables[]={
 access_control_module_t default_acl={
      "default_acl",
      default_acl_init,
+     NULL,/*post_init*/
      default_release_authenticator,
      default_acl_client_access,
      default_acl_request_access,
@@ -548,7 +549,7 @@ int acl_add(char *directive,char **argv,void *setdata){
 	       }
 	  }
 	  else if(strcmp(argv[i],"srvip")==0){ /*has the form ip */
-	       if(!(res=ci_inet_aton(argv[i+1],&client_address))){
+	       if(!(res=ci_inet_aton(argv[i+1],&server_address))){
 		    ci_debug_printf(1,"Invalid server ip address %s. Disabling %s acl spec \n",argv[i+1],name);
 		    return 0;
 	       }

@@ -42,6 +42,7 @@ CI_DECLARE_DATA service_handler_module_t module={
      "perl_handler",
      ".pl,.pm,.plx",
      init_perl_handler,
+     NULL,/*post_init ....*/
      load_perl_module,
      NULL 
 };

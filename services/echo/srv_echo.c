@@ -49,6 +49,7 @@ CI_DECLARE_MOD_DATA service_module_t service={
      echo_options, /*Extra options headers*/
      NULL,/* Options body*/
      echo_init_service, /*init_service.*/
+     NULL,/*post_init_service*/
      NULL,/*close_service*/
      echo_init_request_data,/*init_request_data. */
      (void (*)(void *))ci_free_membuf, /*release request data*/
@@ -63,22 +64,10 @@ CI_DECLARE_MOD_DATA service_module_t service={
 
 int echo_init_service(service_module_t *serv,struct icap_server_conf *server_conf){
      printf("Initialization of echo module......\n");
-     printf("Clamav  init before register server config:\n\t Debug level:%d, Debug_stdout:%d, body_max_mem:%d,tmpdir:%s\n",
-                  CI_DEBUG_LEVEL,
-                  CI_DEBUG_STDOUT,
-                  CI_BODY_MAX_MEM,
-                  CI_TMPDIR );
 }
 
 
 void *echo_init_request_data(service_module_t *serv,request_t *req){
-
-     printf("Clamav server config:\n\t Debug level:%d, Debug_stdout:%d, body_max_mem:%d,tmpdir:%s\n",
-                  CI_DEBUG_LEVEL,
-                  CI_DEBUG_STDOUT,
-                  CI_BODY_MAX_MEM,
-                  CI_TMPDIR );
-
 
      if(ci_req_hasbody(req))
 	  return ci_new_membuf();

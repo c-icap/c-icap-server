@@ -46,8 +46,10 @@ service_module_t *load_c_module(char *service_file);
 service_handler_module_t c_service_handler={
      "C_handler",
      ".so,.sa,.a",
-     NULL,
-     load_c_module
+     NULL,/*init*/
+     NULL,/*post_init*/
+     load_c_module,
+     NULL /*config table ....*/
 };
 
 

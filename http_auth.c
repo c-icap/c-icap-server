@@ -76,7 +76,8 @@ void basic_release_auth_data( struct http_basic_auth_data *data);
 
 http_auth_method_t basic_auth={
      "basic",
-     NULL,
+     NULL, /*init*/
+     NULL, /*post_init*/
      NULL,
      (void *(*)(char *,char **))basic_create_auth_data,
      (void (*)(void *))basic_release_auth_data, 
@@ -123,6 +124,7 @@ authenticator_module_t file_basic={
      "file_basic",                             /* char *name;*/
      "basic",                                  /*char *method;*/
      NULL,                                     /* int (*init_authenticator)();*/
+     NULL,                                     /* int (*post_init_authenticator)();*/
      NULL,                                     /*  void (*close_authenticator)();*/
      (int (*)(void *)) file_basic_athenticate, /* int (*authenticate)(void *data);*/
      NULL                                      /* struct conf_entry *conf_table; */

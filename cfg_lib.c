@@ -19,7 +19,7 @@ int setInt(char *directive,char **argv,void *setdata){
      errno=0;
      val=strtoll(argv[0],&end,10);
 
-     if((val==0 && errno!=0) || val<0)
+     if((val==0 && errno!=0))
            return 0;
 
      *((int*)setdata)=val;

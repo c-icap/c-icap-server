@@ -50,7 +50,8 @@ CI_DECLARE_MOD_DATA service_module_t service={
      ICAP_REQMOD,
      sguard_options,
      NULL,/* Options body*/
-     sguard_init_service, /* Init_service*/
+     sguard_init_service, /* init_service*/
+     NULL,/*post_init_service*/
      NULL, /*close_Service*/
      sguard_init_request_data,/* init_request_data*/
      (void (*)(void *))ci_free_membuf, /*Release request data*/

@@ -111,6 +111,7 @@ CI_DECLARE_MOD_DATA service_module_t service={
      srvclamav_options, /*Extra options headers*/
      NULL,/* Options body*/
      srvclamav_init_service, /*init_service.*/
+     NULL,/*post_init_service.*/
      srvclamav_close_service,/*close_service*/
      srvclamav_init_request_data,/*init_request_data. */
      srvclamav_release_request_data, /*release request data*/
@@ -123,16 +124,9 @@ CI_DECLARE_MOD_DATA service_module_t service={
 };
 
 
-extern struct ci_magics_db *MAGIC_DB;
 
 int srvclamav_init_service(service_module_t *this,struct icap_server_conf *server_conf){
      int ret,no=0,i;
-
-     ci_debug_printf(1,"Clamav  init before register server config:\n\t Debug leven:%d, Debug_stdout:%d, body_max_mem:%d,tmpdir:%s\n",
-		  CI_DEBUG_LEVEL,
-		  CI_DEBUG_STDOUT,
-		  CI_BODY_MAX_MEM,
-		  CI_TMPDIR );
 
      magic_db=server_conf->MAGIC_DB;
      
@@ -155,7 +149,7 @@ int srvclamav_init_service(service_module_t *this,struct icap_server_conf *serve
      }
      
      memset(&limits, 0, sizeof(struct cl_limits));
-     limits.maxfiles = 1000; /* max files */
+     limits.maxfiles = 0/*1000*/; /* max files */
      limits.maxfilesize = 100 * 1048576; /* maximal archived file size == 100 Mb */
      limits.maxreclevel = 5; /* maximal recursion level */
      limits.maxratio = 200; /* maximal compression ratio */

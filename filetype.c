@@ -8,9 +8,9 @@
 
 
 struct ci_data_type predefined_types[]={
-     {"ASCCI","ASCII text file",CI_TEXT_DATA},
+     {"ASCII","ASCII text file",CI_TEXT_DATA},
      {"ISO-8859","ISO-8859 text file",CI_TEXT_DATA},
-     {"EXT-ASCCI","Extended ASCCI (Mac,IBM PC etc.)",CI_TEXT_DATA},
+     {"EXT-ASCII","Extended ASCII (Mac,IBM PC etc.)",CI_TEXT_DATA},
      {"UTF","Unicode text file ",CI_TEXT_DATA},
      {"HTML","HTML text",CI_TEXT_DATA},
      {"BINARY","Unknown data",CI_OCTET_DATA},
