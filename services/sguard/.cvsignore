@@ -1,4 +1,5 @@
 blacklists
+.deps
 Makefile
 Makefile.in
 sg
