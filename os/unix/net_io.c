@@ -232,8 +232,6 @@ int ci_hard_close(int fd){
 }
 
 
-
-
 /*
 int readline(int fd,char *buf){
      int i=0,readed=0;

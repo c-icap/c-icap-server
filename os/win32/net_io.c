@@ -261,12 +261,3 @@ int ci_hard_close(ci_socket fd){
 
 
 
-
-/*Library functions ......*/
-
-int ci_inet_aton(const char *cp, struct in_addr *addr){
-     addr->s_addr=inet_addr(cp);
-     if(addr->s_addr==INADDR_NONE && strcmp(cp,"255.255.255.255")!=0)
-	  return 0; /*INADDR_NONE is 0xffffffff =255.255.255.255 which is a valid address */
-     return 1;
-}

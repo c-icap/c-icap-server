@@ -137,7 +137,8 @@ void endof_data_vir_mode(av_req_data_t *data,request_t *req){
 
 
 char *srvclamav_compute_name(request_t *req){
-     char *str,*filename,*last_delim,namelen;
+     char *str,*filename,*last_delim;
+     int namelen;
      if(filename=ci_req_respmod_get_header(req,"Location")){
 	  if((str=strrchr(filename,'/'))){
 	       filename=str+1;
@@ -175,6 +176,9 @@ char *srvclamav_compute_name(request_t *req){
      
      last_delim=str;
      namelen=last_delim-filename;
+     if(namelen >= CI_FILENAME_LEN)
+         namelen=CI_FILENAME_LEN-1;
+
      str=malloc(namelen*sizeof(char)+1);
      strncpy(str,filename,namelen);
      str[namelen]='\0';

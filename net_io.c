@@ -47,4 +47,12 @@ char *ci_addrtohost(struct in_addr *addr, char *hname, int maxhostlen)
      return hname;
 }
 
+#ifndef HAVE_INET_ATON
+int ci_inet_aton(const char *cp, struct in_addr *addr){
+     addr->s_addr=inet_addr(cp);
+     if(addr->s_addr==0xffffffff && strcmp(cp,"255.255.255.255")!=0)
+          return 0; /*0xffffffff =255.255.255.255 which is a valid address */
+     return 1;
+}
+#endif
 

@@ -444,7 +444,7 @@ void generate_error_page(av_req_data_t *data,request_t *req){
      ci_req_respmod_add_header(req,"Content-Language: en");
 
 
-     error_page==ci_new_sized_membuf(new_size);
+     error_page=ci_new_sized_membuf(new_size);
      ((av_req_data_t *)data)->error_page=error_page;
      
      ci_write_membuf(error_page,error_message,strlen(error_message),0);

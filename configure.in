@@ -117,6 +117,10 @@ AC_TYPE_SIZE_T
 
 # Checks for library functions.
 #AC_FUNC_VPRINTF
+AC_CHECK_FUNCS(inet_aton,
+AC_DEFINE(HAVE_INET_ATON,1,[Define HAVE_INET_ATON if inet_aton exists])
+)
+
 AC_CHECK_FUNCS(mmap munmap,
 AC_DEFINE(HAVE_POSIX_MAPPED_FILES,1,[Define HAVE_POSIX_MAPPED_FILES if mmap and munmap exists])
 )

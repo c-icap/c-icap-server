@@ -59,10 +59,10 @@ typedef struct ci_connection{
 
 
 
-#ifdef _WIN32
-CI_DECLARE_FUNC(int) ci_inet_aton(const char *cp, struct in_addr *inp);
+#ifdef HAVE_INET_ATON
+#define ci_inet_aton inet_aton
 #else
-#define ci_inet_aton inet_aton 
+CI_DECLARE_FUNC(int) ci_inet_aton(const char *cp, struct in_addr *inp);
 #endif
 
 CI_DECLARE_FUNC(void) ci_addrtoip(struct sockaddr_in *addr, char *ip,int ip_strlen);
