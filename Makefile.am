@@ -17,12 +17,16 @@ UTIL_SOURCES=os/unix/net_io.c os/unix/proc_mutex.c os/unix/shared_mem.c os/unix/
 
 if ISCYGWIN
   libicapapi_la_SOURCES= cfg_param.c net_io.c header.c body.c log.c service.c \
-                          module.c base64.c simple_api.c $(UTIL_SOURCES)
-  c_icap_SOURCES = aserver.c request.c debug.c proc_threads_queues.c access.c  mpmt_server.c  
+                         module.c base64.c simple_api.c \
+                         http_auth.c $(UTIL_SOURCES)
+  c_icap_SOURCES = aserver.c request.c debug.c proc_threads_queues.c \
+                   access.c  mpmt_server.c  
 else
 
-  libicapapi_la_SOURCES=  header.c body.c base64.c simple_api.c $(UTIL_SOURCES)
-  c_icap_SOURCES = aserver.c request.c debug.c cfg_param.c net_io.c proc_threads_queues.c \
+  libicapapi_la_SOURCES=  header.c body.c base64.c simple_api.c \
+                          http_auth.c $(UTIL_SOURCES)
+  c_icap_SOURCES = aserver.c request.c debug.c cfg_param.c net_io.c \
+                   proc_threads_queues.c \
                    access.c log.c service.c module.c  mpmt_server.c  
 endif
 

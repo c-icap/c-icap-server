@@ -31,6 +31,7 @@ extern char *RUN_USER;
 extern char *RUN_GROUP;
 extern int DAEMON_MODE;
 
+void init_conf_tables();
 int config(int,char **);
 int start_server(ci_socket fd);
 int store_pid(char *pidfile);
@@ -52,6 +53,7 @@ void run_as_daemon(){
 int main(int argc,char **argv){
      ci_socket s;
 
+     init_conf_tables();
      init_modules();
      config(argc,argv);
 

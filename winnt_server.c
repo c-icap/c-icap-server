@@ -136,26 +136,32 @@ int thread_main(server_decl_t *srv){
                                           //moved into the get_from_queue 
 	       continue; 
 	  }
-	  ci_thread_mutex_lock(&counters_mtx);
-	  (child_data->freeservers)--;
-	  (child_data->usedservers)++;
-	  ci_thread_mutex_unlock(&counters_mtx);
-
 
 	  if(ret<0){ //An error has occured
 	       debug_printf(1,"Error getting from connections queue\n");
 	       break;
 	  }
 
-/*	  icap_addrtohost(&(con.claddr.sin_addr),clientname, CI_MAXHOSTNAMELEN);
-	  debug_printf(1,"Client name: %s server %d\n",clientname,srv->srv_id);
-*/
 	  icap_netio_init(con.fd);
 
+	  ret=1;
 	  if(srv->current_req==NULL)
 	       srv->current_req=newrequest(&con);
 	  else
-	       recycle_request(srv->current_req,&con);
+	       ret=recycle_request(srv->current_req,&con);
+	  
+	  if(srv->current_req==NULL || ret==0){
+	       ci_addrtohost(&(con.claddr.sin_addr),clientname, CI_MAXHOSTNAMELEN);
+	       debug_printf(1,"Request from %s denied...\n",clientname);
+	       hard_close_connection((&con));
+	       continue;/*The request rejected. Log an error and continue ...*/
+	  }
+
+
+	  ci_thread_mutex_lock(&counters_mtx);
+	  (child_data->freeservers)--;
+	  (child_data->usedservers)++;
+	  ci_thread_mutex_unlock(&counters_mtx);
 
 	  do{
 	       if((request_status=process_request(srv->current_req))<0){
@@ -626,7 +632,7 @@ int wait_achild_to_die(){
 	  ci_thread_mutex_unlock(&control_process_mtx);
 	  ret=WaitForMultipleObjects(count,child_handles,TRUE,INFINITE);
 	  if(ret==WAIT_TIMEOUT){
-	       debug_printf(1,"What the hell happens here! No Timeout exists!!!!!!");
+	       debug_printf(1,"What !@#$%^&!!!!! No Timeout exists!!!!!!");
 	       continue;
 	  }
 	  if(ret==WAIT_FAILED){
@@ -659,7 +665,7 @@ int check_for_died_child(DWORD msecs){
 	       break;
      }
      if(count==0){
-	  debug_printf(1,"What the hell no childs! waiting for a while.....\n!");
+	  debug_printf(1,"Oups no childs! waiting for a while.....\n!");
 	  Sleep(1000);
 	  return 0;
      }

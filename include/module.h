@@ -32,7 +32,7 @@ enum module_type{
      UNKNOWN,
      SERVICE_HANDLER, 
      LOGGER,
-     AUTH,
+     ACCESS_CONTROLLER,
 };
 
 typedef struct  service_handler_module{
@@ -55,13 +55,16 @@ typedef struct  logger_module{
      struct conf_entry *conf_table;
 } logger_module_t;
 
-typedef struct  auth_module{
+typedef struct  access_control_module{
      char *name;
-     int (*init_authenticator)();
-     int (*auth_client)(struct sockaddr_in *client_address, struct sockaddr_in *server_address);
-     int (*auth_request)(/*I do not now yet.......*/);
+     int (*init_access_controller)();
+     void (*release_access_controller)();
+     int (*client_access)(struct sockaddr_in *client_address, struct sockaddr_in *server_address);
+     int (*request_access)(char *dec_user,char *service, struct sockaddr_in *client_address, 
+			                                 struct sockaddr_in *server_address);
+     int (*auth_access)(char *dec_user,char *service,struct sockaddr_in *client_address, struct sockaddr_in *server_address);
      struct conf_entry *conf_table;
-} auth_module_t;
+} access_control_module_t;
 
 
 
@@ -69,7 +72,7 @@ CI_DECLARE_FUNC(int) init_modules();
 void * register_module(char *module_file,char *type);
 
 logger_module_t *find_logger(char *name);
-auth_module_t *find_authenticator(char *name);
+access_control_module_t *find_access_controller(char *name);
 service_handler_module_t *find_servicehandler(char *name);
 service_handler_module_t *find_servicehandler_by_ext(char *extension);
 

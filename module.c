@@ -46,14 +46,14 @@ static struct modules_list service_handlers;
 service_handler_module_t *default_service_handler;
 
 static struct modules_list loggers;
-static struct modules_list authenticators;
+static struct modules_list access_controllers;
 
 static struct modules_list *modules_lists_table[]={/*Must follows the 'enum module_type' 
 						     enumeration*/
      NULL,
      &service_handlers,
      &loggers,
-     &authenticators
+     &access_controllers
 };
 
 
@@ -136,8 +136,8 @@ static int module_type(char *type){
      else if(strcmp(type,"logger")==0){
 	  return LOGGER;
      }
-     else if(strcmp(type,"authenticator")==0){
-	  return AUTH;
+     else if(strcmp(type,"access_controller")==0){
+	  return ACCESS_CONTROLLER;
      }
 
      debug_printf(1,"Uknown type of module:%s\n",type);
@@ -163,13 +163,12 @@ static int init_module(void *module,enum module_type type){
 				   ((logger_module_t *)module)->conf_table);
 
 	  break;
-     case AUTH:
-	  if(((auth_module_t *)module)->init_authenticator)
-	       ret=((auth_module_t *)module)->init_authenticator();
-	  if(((auth_module_t *)module)->conf_table)
-	       register_conf_table(((auth_module_t *)module)->name,
-				   ((auth_module_t *)module)->conf_table);
-
+     case ACCESS_CONTROLLER:
+	  if(((access_control_module_t *)module)->init_access_controller)
+	       ret=((access_control_module_t *)module)->init_access_controller();
+	  if(((access_control_module_t *)module)->conf_table)
+	       register_conf_table(((access_control_module_t *)module)->name,
+				   ((access_control_module_t *)module)->conf_table);
 	  break;
      default:
 	  return 0;
@@ -190,11 +189,11 @@ logger_module_t *find_logger(char *name){
      
 }
 
-auth_module_t *find_authenticator(char *name){
-     auth_module_t *sh;
+access_control_module_t *find_access_controller(char *name){
+     access_control_module_t *sh;
      int i;
-     for(i=0; i<authenticators.modules_num;i++){
-	  sh=(auth_module_t *)authenticators.modules[i];
+     for(i=0; i<access_controllers.modules_num;i++){
+	  sh=(access_control_module_t *)access_controllers.modules[i];
 	  if(sh->name && strcmp(sh->name,name)==0)
 	       return sh;
      }
@@ -222,8 +221,8 @@ void *find_module(char *name,int *type){
 	  *type=SERVICE_HANDLER;
 	  return mod;
      }
-     if(mod=find_authenticator(name)){
-	  *type=AUTH;
+     if(mod=find_access_controller(name)){
+	  *type=ACCESS_CONTROLLER;
 	  return mod;
      }
      *type=UNKNOWN;
@@ -287,13 +286,22 @@ service_handler_module_t *find_servicehandler_by_ext(char *extension){
 extern service_handler_module_t c_service_handler;
 extern logger_module_t file_logger;
 extern logger_module_t *default_logger;
+extern access_control_module_t default_acl;
+extern access_control_module_t **used_access_controllers;
 
 int init_modules(){
+     used_access_controllers=malloc(3*sizeof(access_control_module_t *));
+     
      default_service_handler=&c_service_handler;
      add_to_modules_list(&service_handlers,default_service_handler);
      default_logger=&file_logger;
      add_to_modules_list(&loggers,default_logger);
 
+     init_module(&default_acl,ACCESS_CONTROLLER);
+     add_to_modules_list(&access_controllers,&default_acl);
+
+     used_access_controllers[0]=&default_acl;
+     used_access_controllers[1]=NULL;
 /*     init_module(default_logger,LOGGER); Must be called, if default module has conf table 
                                            or init_service_handler. */
      return 1;

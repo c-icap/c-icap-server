@@ -165,6 +165,7 @@ int register_conf_table(char *name,struct conf_entry *table){
 	  extra_conf_tables=new;
 	  conf_tables_list_size+=STEPSIZE;
      }
+     debug_printf(10,"Registering conf table:%s\n",name);
      extra_conf_tables[conf_tables_num].name=name; /*It works. Points to the modules.name. (????)*/
      extra_conf_tables[conf_tables_num].conf_table=table;
      conf_tables_num++;
@@ -182,8 +183,9 @@ struct conf_entry *search_variables(char *table,char *varname){
 	  return NULL;
 
      for(i=0;i<conf_tables_num;i++){
-	  if(strcmp(table,extra_conf_tables[i].name)==0)
+	  if(strcmp(table,extra_conf_tables[i].name)==0){
 	       return search_conf_table(extra_conf_tables[i].conf_table,varname);
+	  }
      }
      return NULL;
 }
@@ -485,7 +487,7 @@ void usage(char *progname){
 }
 
 int config(int argc, char **argv){
-     init_conf_tables();
+
      
      if(!check_opts(argc,argv)){
 	  debug_printf(1,"Error in command line options");

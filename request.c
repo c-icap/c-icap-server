@@ -85,20 +85,25 @@ ci_encaps_entity_t *alloc_an_entity(request_t *req,int type,int val){
      return mk_encaps_entity(type,val);
 }
 
+#define FORBITTEN_STR "ICAP/1.0 403 Forbidden\r\n\r\n"
 
 request_t *newrequest(ci_connection_t *connection){
      request_t *req;
-     int i;
+     int i,access;
+
+     if((access=access_check_client(connection))==CI_ACCESS_DENY){ /*Check for client access */
+	  icap_write(connection->fd,FORBITTEN_STR,strlen(FORBITTEN_STR));
+	  return NULL; /*Or something that means authentication error*/
+     }
+     
 
      req=(request_t *)malloc(sizeof(request_t));
      req->connection=(ci_connection_t *)malloc(sizeof(ci_connection_t));
      memcpy(req->connection,connection,sizeof(ci_connection_t));
-/*     req->connection->fd=fd;
-     strncpy(req->clientname,clientname,CI_MAXHOSTNAMELEN);
-     req->clientname[CI_MAXHOSTNAMELEN]='\0';
-     icap_getsockhost(fd,req->server,CI_MAXHOSTNAMELEN);
-     req->server[CI_MAXHOSTNAMELEN]='\0';
-*/
+     req->user[0]='\0';
+
+     req->access_type=access;
+
      req->service=NULL;
      req->current_service_mod=NULL;
      req->service_data=NULL;
@@ -144,7 +149,7 @@ void destroy_request(request_t *req){
 }
 
 int recycle_request(request_t *req,ci_connection_t *connection){
-     int i;
+     int i,access;
 
 /*   
      req->connection->fd=fd;
@@ -154,8 +159,15 @@ int recycle_request(request_t *req,ci_connection_t *connection){
      req->server[CI_MAXHOSTNAMELEN]='\0';
 
 */
+     if((access=access_check_client(connection))==CI_ACCESS_DENY){ /*Check for client access */
+	  icap_write(connection->fd,FORBITTEN_STR,strlen(FORBITTEN_STR));
+	  return 0; /*Or something that means authentication error*/
+     }
+
+     req->access_type=access;
+     
      memcpy(req->connection,connection,sizeof(ci_connection_t));
-   
+     req->user[0]='\0';
      free(req->service);
      free(req->args);
      
@@ -182,8 +194,12 @@ int recycle_request(request_t *req,ci_connection_t *connection){
      for(i=0;req->entities[i]!=NULL;i++) {
 	  move_entity_to_trash(req,i);
      }
+     return 1;
 }
 
+/*reset_request simply reset request to use it with tunneled requests
+  The req->access_type must not be reset!!!!!
+*/
 int reset_request(request_t *req){
      int i;
      free(req->service);
@@ -1171,19 +1187,23 @@ int process_request(request_t *req){
      int res,preview_status=0,nextlen=0;
      char *nexte=NULL;
 
-     if(!access_check_client(req->connection))
-	  return -1; /*Or something that means authentication error*/
-
      res=parse_header(req,&nexte,&nextlen);
 
-     if(!access_check_request(req)){
-	  ec_responce(req,EC_400);/*Responce with bad request*/
+
+     if(req->access_type==CI_ACCESS_PARTIAL && access_check_request(req)==CI_ACCESS_DENY){
+	  ec_responce(req,EC_401);/*Responce with bad request*/
 	  return -1; /*Or something that means authentication error*/
      }
 
-
      if(res==EC_100)
 	  res=parse_encaps_headers(req,&nexte,&nextlen);
+
+
+     if(req->access_type==CI_ACCESS_HTTP_AUTH && access_authenticate_request(req) ){
+	  ec_responce(req,EC_401);/*Responce with bad request*/
+	  return -1; /*Or something that means authentication error*/
+     }
+  
 
 //     debug_print_request(req);
 

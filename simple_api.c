@@ -108,6 +108,16 @@ char *ci_req_respmod_get_header(request_t *req,char *head_name){
      return val;
 }
 
+char *ci_req_reqmod_get_header(request_t *req,char *head_name){
+     ci_header_list_t *heads;
+     char *val;
+     if(!(heads=ci_req_reqmod_headers(req)))
+	  return NULL;
+     if(!(val=get_header_value(heads,head_name)))
+	  return NULL;
+     return val;
+}
+
 
 int ci_req_content_lenght(request_t *req){
      ci_header_list_t *heads;

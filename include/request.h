@@ -29,7 +29,8 @@
 
 enum GETDATA_STATUS {GET_NOTHING=0,GET_HEADERS,GET_PREVIEW,GET_BODY};
 enum RESPONCE_STATUS {SEND_NOTHING=0, SEND_RESPHEAD, SEND_HEAD1, SEND_HEAD2, SEND_HEAD3, SEND_BODY, SEND_EOF };
-enum BODY_RESPONCE_STATUS{ CHUNK_DEF=1,CHUNK_BODY,CHUNK_END};
+
+/*enum BODY_RESPONCE_STATUS{ CHUNK_DEF=1,CHUNK_BODY,CHUNK_END};*/
 
 
 #define CI_OK       1
@@ -37,13 +38,18 @@ enum BODY_RESPONCE_STATUS{ CHUNK_DEF=1,CHUNK_BODY,CHUNK_END};
 #define CI_EOF     -2
 #define  MAX_CHUNK_SIZE 512
 #define EXTRA_CHUNK_SIZE 30
+#define MAX_USERNAME_LEN 255
 
 struct service_module;
 
 typedef struct request{
      ci_connection_t *connection;
      int type;
+
      char req_server[CI_MAXHOSTNAMELEN+1];
+     int access_type;
+     char user[MAX_USERNAME_LEN+1];
+
      char *service;
      char *args;
      int preview;

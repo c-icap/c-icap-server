@@ -87,6 +87,8 @@ const struct ci_error_code CI_ErrorCodes[]={
   {100,"Continue"}, /*Continue after ICAP Preview*/
   {204,"Unmodified"}, /*No modifications needed */
   {400,"Bad request"}, /*Bad request*/
+  {401,"Unauthorized"},
+  {403,"Forbidden"},
   {404,"Service not found"}, /*ICAP Service not found*/
   {405,"Not allowed"}, /*Method not allowed for service (e.g., RESPMOD requested for
 	  service that supports only REQMOD). */
@@ -112,7 +114,7 @@ int ci_error_code(int ec){
 const char *unknownerrorcode="UNKNOWN ERROR CODE";
 
 const char *ci_error_code_string(int ec){
-     return (ec>=EC_100&&ec<=EC_500?CI_ErrorCodes[ec].str:unknownerrorcode);
+     return (ec>=EC_100&&ec<=EC_505?CI_ErrorCodes[ec].str:unknownerrorcode);
 }
 #endif
 

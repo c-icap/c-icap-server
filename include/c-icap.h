@@ -103,6 +103,7 @@ const char *ci_method_string(int method);
 
 
 enum ci_error_codes { EC_100, EC_204, EC_400, 
+                   EC_401, EC_403,
 		   EC_404, EC_405, EC_408,
 		   EC_500, EC_501, EC_502, 
 		   EC_503, EC_505};
