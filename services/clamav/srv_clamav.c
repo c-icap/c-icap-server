@@ -359,25 +359,26 @@ scan_type_t scan_type(cli_file_t file_type){
 	  return NONE;
 
      switch(file_type){
-     CL_TYPE_UNKNOWN_DATA:
-     CL_TYPE_MSEXE:
-     CL_TYPE_DATA:
-     CL_TYPE_TAR:
-     CL_TYPE_GZ:
-     CL_TYPE_ZIP:
-     CL_TYPE_BZ:
-     CL_TYPE_RAR:
-     CL_TYPE_MSSZDD:
-     CL_TYPE_MSOLE2:
-     CL_TYPE_MSCAB:
-     CL_TYPE_MSCHM:
-     CL_TYPE_SCRENC:
-     CL_TYPE_MAIL:
+     case CL_TYPE_UNKNOWN_DATA:
+     case CL_TYPE_MSEXE:
+     case CL_TYPE_DATA:
+     case CL_TYPE_TAR:
+     case CL_TYPE_GZ:
+     case CL_TYPE_ZIP:
+     case CL_TYPE_BZ:
+     case CL_TYPE_RAR:
+     case CL_TYPE_MSSZDD:
+     case CL_TYPE_MSOLE2:
+     case CL_TYPE_MSCAB:
+     case CL_TYPE_MSCHM:
+     case CL_TYPE_SCRENC:
+     case CL_TYPE_MAIL:
 	  return SCAN_IN_FILE;
 
-     CL_TYPE_UNKNOWN_TEXT:
-     CL_TYPE_HTML:
-     CL_TYPE_GRAPHICS:
+     case CL_TYPE_UNKNOWN_TEXT:
+     case CL_TYPE_HTML:
+     case CL_TYPE_GRAPHICS:
+     default:
 	  return SCAN_IN_MEM;
      }     
 }
