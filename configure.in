@@ -1,0 +1,188 @@
+dnl Process this file with autoconf to produce a configure script.
+AC_INIT(aserver.c)
+AM_MAINTAINER_MODE
+AM_CONFIG_HEADER(config.h)
+
+cicap_version=`date +"%d%m%y"`
+AM_INIT_AUTOMAKE(c_icap,$cicap_version)
+AC_PROG_CC
+
+
+AC_DISABLE_STATIC
+AC_LIBTOOL_DLOPEN
+AC_LIBTOOL_WIN32_DLL
+AC_PROG_LIBTOOL
+AC_SUBST(LIBTOOL_DEPS)
+
+dnl AC_CANONICAL_HOST
+
+dnl Checks for flags
+
+case "$host_os" in
+     solaris2.*)
+     LIBS="-lsocket -lnsl"
+     CFLAGS="$CFLAGS -D_POSIX_PTHREAD_SEMANTICS"
+      ;;
+      cygwin*)
+      MODULES_LIBADD="-L../../ -licapapi"
+      AC_SUBST(MODULES_LIBADD)
+      ;;
+esac	
+
+CFLAGS="$CFLAGS -D_REENTRANT"
+
+
+
+AC_ARG_WITH(clamav,
+[ --with-clamav         Where to find ClamAv ],
+[ case "$withval" in
+  yes)
+    AC_MSG_WARN([--with-clamav called without argument])
+    clamav="yes"
+  ;;			     
+  no )
+    clamav="no"
+  ;;
+  * )
+    clamav="yes"
+    clamavinc=-I"$withval"/include
+    clamavlib=-L"$withval"/lib
+  ;;
+  esac
+],
+)
+
+
+AC_SUBST(clamavinc)
+AC_SUBST(clamavlib)
+
+AC_ARG_WITH(perl, [--with-perl   Path to perl binary],
+[
+case "$withval" in
+  yes)
+       perlbin="perl"
+  ;;			     
+  no )
+       perlbin="";
+       perlcore="";
+  ;;
+  * )
+      perlbin=$withval
+  ;;
+  esac
+],
+[
+   perlbin=perl
+]
+)
+
+if test a"$perlbin" != a; then 
+	perlcore=`$perlbin -MConfig -e 'print $Config{archlib}'`/CORE;
+        perllib=`$perlbin -MConfig -e 'print $Config{libs}'`;
+        perlccflags=`$perlbin -MConfig -e 'print $Config{ccflags}'`;
+	perlldflags=`$perlbin -MConfig -e 'print $Config{ccdlflags}'`;
+fi
+
+
+
+AC_SUBST(perlcore)
+AC_SUBST(perllib)
+AC_SUBST(perlccflags)
+AC_SUBST(perlldflags)
+
+
+# Checks for programs
+
+# Checks for libraries
+AC_CHECK_LIB(dl,dlopen,DL_ADD_FLAG=" -ldl")
+
+AC_SUBST(DL_ADD_FLAG)
+# Check for header files
+AC_HEADER_STDC
+AC_CHECK_HEADERS(strings.h unistd.h)
+AC_CHECK_HEADERS(sys/ipc.h,
+AC_DEFINE(HAVE_SYSV_IPC,1,[Define HAVE_SYSV_IPC if sys/ipc.h exists (maybe more tests needed)])
+)
+
+
+# Checks for typedefs, structures, and compiler characteristics.
+AC_C_CONST
+AC_TYPE_SIZE_T
+
+# Checks for library functions.
+#AC_FUNC_VPRINTF
+AC_CHECK_FUNCS(mmap munmap,
+AC_DEFINE(HAVE_POSIX_MAPPED_FILES,1,[Define HAVE_POSIX_MAPPED_FILES if mmap and munmap exists])
+)
+
+dnl Checking if interprocess posix semaphores works....
+AC_MSG_CHECKING(if posix 1003.1b interprocess semaphores works)
+AC_TRY_RUN(
+[
+#include <semaphore.h>
+#include <sys/wait.h>
+
+int main(int argc,char **argv){
+      sem_t s;
+      int status;
+      if(sem_init(&s,1,1)!=0){
+        return -1;
+      }
+     if(fork()==0){
+	  if(sem_post(&s)<0){
+	       exit(-1);
+	  }
+	  exit(0);
+     }
+     else{
+	waitpid(pid,&status,0);
+	if(WEXITSTATUS(status)!=0)
+	       exit(-1);
+     }
+      sem_destroy(&s);
+      exit(0);
+}
+],
+AC_DEFINE(HAVE_POSIX_SEMAPHORES,1,[Define HAVE_POSIX_SEMAPHORES if posix 1003.1b semaphores works])
+AC_MSG_RESULT(yes),
+AC_MSG_RESULT(no)
+)
+
+dnl Checking for file locking
+AC_MSG_CHECKING(if fcntl file locking works)	
+AC_TRY_RUN(
+[
+#include <unistd.h>
+#include <fcntl.h>
+
+
+int main(int argc,char **argv){
+     struct flock fl;
+     int fd;
+
+     fd=open("config.h.in",O_RDWR);
+
+     fl.l_type=F_WRLCK;
+     fl.l_whence=SEEK_SET;
+     fl.l_start=0;
+     fl.l_len=0;
+
+     if(fcntl(fd,F_SETLKW,&fl)<0){
+         close(fd);
+          return -1;
+    }
+     close(fd);
+     return 0;
+}
+],
+AC_DEFINE(HAVE_POSIX_FILE_LOCK,1,[Define HAVE_POSIX_FILE_LOCK if posix fcntl file locking works])
+AC_MSG_RESULT(yes),
+AC_MSG_RESULT(no)
+)
+
+# Now determine which modules will going to build .....
+
+AM_CONDITIONAL(USEPERL,[test a"$perlcore" != a])
+AM_CONDITIONAL(USECLAMAV,[test a"$clamav" != ano])
+
+AC_OUTPUT([Makefile c-icap.conf services/Makefile services/echo/Makefile services/sguard/Makefile services/clamav/Makefile os/Makefile os/unix/Makefile modules/Makefile])

@@ -1,0 +1,5 @@
+aclocal
+autoconf
+autoheader
+cp /usr/share/libtool/ltmain.sh .
+automake --add-missing --copy
