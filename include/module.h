@@ -33,6 +33,8 @@ enum module_type{
      SERVICE_HANDLER, 
      LOGGER,
      ACCESS_CONTROLLER,
+     AUTH_METHOD,
+     AUTHENTICATOR
 };
 
 typedef struct  service_handler_module{
@@ -60,11 +62,35 @@ typedef struct  access_control_module{
      int (*init_access_controller)();
      void (*release_access_controller)();
      int (*client_access)(struct sockaddr_in *client_address, struct sockaddr_in *server_address);
-     int (*request_access)(char *dec_user,char *service, struct sockaddr_in *client_address, 
-			                                 struct sockaddr_in *server_address);
-     int (*auth_access)(char *dec_user,char *service,struct sockaddr_in *client_address, struct sockaddr_in *server_address);
+     int (*request_access)(char *dec_user,char *service,int req_type, 
+			                                struct sockaddr_in *client_address, 
+			                                struct sockaddr_in *server_address);
+     int (*http_request_access)(char *dec_user,char *service,int req_type, 
+			                                struct sockaddr_in *client_address, 
+			                                struct sockaddr_in *server_address);
+
      struct conf_entry *conf_table;
 } access_control_module_t;
+
+
+typedef struct http_auth_method{
+     char *name;
+     int (*init_auth_method)();
+     void (*close_auth_method)();
+     void *(*create_auth_data)(char *auth_line,char **username);
+     void (*release_auth_data)(void *data);
+     struct conf_entry *conf_table;
+} http_auth_method_t;
+
+
+typedef struct authenticator_module{
+     char *name;
+     char *method;
+     int (*init_authenticator)();
+     void (*close_authenticator)();
+     int (*authenticate)(void *data);
+     struct conf_entry *conf_table;
+} authenticator_module_t;
 
 
 
@@ -75,6 +101,7 @@ logger_module_t *find_logger(char *name);
 access_control_module_t *find_access_controller(char *name);
 service_handler_module_t *find_servicehandler(char *name);
 service_handler_module_t *find_servicehandler_by_ext(char *extension);
+http_auth_method_t *find_auth_method_n( char *method,int len,int *method_id);
 
 void *find_module(char *name,int *type);
 

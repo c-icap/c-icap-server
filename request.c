@@ -1184,28 +1184,10 @@ int get_send_body(request_t *req,char **nexte,int *nextlen, int preview_only){
 
 int process_request(request_t *req){
 //     void *b;
-     int res,preview_status=0,nextlen=0;
+     int res,preview_status=0,nextlen=0,auth_status=CI_ACCESS_ALLOW;
      char *nexte=NULL;
 
      res=parse_header(req,&nexte,&nextlen);
-
-
-     if(req->access_type==CI_ACCESS_PARTIAL && access_check_request(req)==CI_ACCESS_DENY){
-	  ec_responce(req,EC_401);/*Responce with bad request*/
-	  return -1; /*Or something that means authentication error*/
-     }
-
-     if(res==EC_100)
-	  res=parse_encaps_headers(req,&nexte,&nextlen);
-
-
-     if(req->access_type==CI_ACCESS_HTTP_AUTH && access_authenticate_request(req) ){
-	  ec_responce(req,EC_401);/*Responce with bad request*/
-	  return -1; /*Or something that means authentication error*/
-     }
-  
-
-//     debug_print_request(req);
 
      if(res!=EC_100){
 	  if(res>=0)
@@ -1214,6 +1196,24 @@ int process_request(request_t *req){
 	  debug_printf(5,"Error parsing headers :(%d)\n",req->head->bufused);
 	  return -1;
      }
+
+     auth_status=req->access_type;
+     if(req->access_type==CI_ACCESS_PARTIAL && (auth_status=access_check_request(req))==CI_ACCESS_DENY){
+	  ec_responce(req,EC_401);/*Responce with bad request*/
+	  return -1; /*Or something that means authentication error*/
+     }
+
+     if(res==EC_100)
+	  res=parse_encaps_headers(req,&nexte,&nextlen);
+
+     if(auth_status==CI_ACCESS_HTTP_AUTH && access_authenticate_request(req)==CI_ACCESS_DENY ){
+	  ec_responce(req,EC_401);/*Responce with bad request*/
+	  return -1; /*Or something that means authentication error*/
+     }
+  
+
+//     debug_print_request(req);
+
 
      if(!req->current_service_mod){
 	  debug_printf(1,"Module not found\n");

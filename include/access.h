@@ -32,25 +32,19 @@
 #define CI_ACCESS_HTTP_AUTH   -3
 
 
-
-#define HTTP_AUTH_NONE   0
-#define HTTP_AUTH_BASIC  1
-#define HTTP_AUTH_DIGEST 2
-
+/**************************************************/
+/*Basic authentication method definitions ......  */
 
 #define HTTP_MAX_PASS_LEN 256
 
-
-struct http_auth_data{
-     char http_user[MAX_USERNAME_LEN];
-     char http_pass[MAX_PASS_LEN];
-     int  http_auth_method; /*Digest or Basic ....*/
+struct http_basic_auth_data{
+     char http_user[MAX_USERNAME_LEN+1];
+     char http_pass[HTTP_MAX_PASS_LEN+1];
 };
 
 
 
-CI_DECLARE_FUNC(int) get_http_authorized_data(request_t *req,struct http_auth_data *auth_data);
-
+CI_DECLARE_FUNC(int) http_authorize(request_t *req);
 CI_DECLARE_FUNC(int) access_check_client(ci_connection_t *connection);
 CI_DECLARE_FUNC(int) access_check_request(request_t *req);
 CI_DECLARE_FUNC(int) access_authenticate_request(request_t *req);

@@ -26,7 +26,7 @@ Group nobody
 #ServerName localhost:1344 # Not implemented yet
 
 TmpDir /var/tmp
-Max_mem_object 131072
+MaxMemObject 131072
 
 ServerLog @prefix@/var/log/server.log
 AccessLog @prefix@/var/log/access.log
@@ -41,6 +41,43 @@ sys_logger.Facility local1
 
 #Logger sys_logger
 Logger file_logger
+
+## AclControlers example. The default_acl is the buildin acl controller
+## To load an extrernal access controller named my_acl.so use:
+#Module access_controller  my_acl.so
+
+## This parameter needed to specify the order of used acl controllers
+## If not specified access control will not be used
+#AclControllers default_acl
+
+## An example of acl lists for default_acl controller.
+## Instead of acl and icap_access someone can use
+## the directives  default_acl.acl and default_acl.icap_access 
+#acl localnet_options src 192.168.1.0/255.255.255.0 type options
+#acl localnet_respmod src 192.168.1.0/255.255.255.0 type respmod
+#acl localnet src 192.168.1.0/255.255.255.0
+##Use the folllowing to demand use of username ......
+##acl localnet src 192.168.1.0/255.255.255.0 user *
+#acl externalnet src 0.0.0.0/0.0.0.0
+
+##An example to specify access to server
+#icap_access deny barbarian
+#icap_access allow localnet_options
+#icap_access allow localnet_respmod
+#icap_access allow localnet
+## http_auth mean that the icap server must try to authenticate the request
+## using the http headers ....
+#icap_access  http_auth localnet
+#icap_access deny externalnet
+
+##An example for authentication methods ....
+## To load an extarnal authentication method module named my_authmethod.so  use:
+#Module auth_method my_authmethod.so
+
+##The following parameter needed to specify the order of authenticators for
+##specific authentication method. file_basic is a buildin authenticator
+##for buildin basic authentication method......
+#AuthMethod basic file_basic 
 
 
 ServicesDir @prefix@/lib/c_icap

@@ -421,8 +421,8 @@ end_child_main:
      exit_normaly();
 }
 
-#define MULTICHILD
-//#undef MULTICHILD
+//#define MULTICHILD
+#undef MULTICHILD
 
 int start_child(int fd){
      int pid;

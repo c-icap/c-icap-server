@@ -60,11 +60,20 @@ extern char *ACCESS_LOG_FILE;
 /*extern char *LOGS_DIR;*/
 
 extern logger_module_t *default_logger;
+extern access_control_module_t **used_access_controllers;
+
 
 int Load_Service(char *directive,char **argv,void *setdata);
 int Load_Module(char *directive,char **argv,void *setdata);
 int SetLogger(char *directive,char **argv,void *setdata);
 int setTmpDir(char *directive,char **argv,void *setdata); 
+int Set_acl_controllers(char *directive,char **argv,void *setdata); 
+/*The following 2 functions defined in access.c file*/
+int acl_add(char *directive,char **argv,void *setdata);
+int acl_access(char *directive,char **argv,void *setdata);
+/****/
+int Set_auth_method(char *directive,char **argv,void *setdata); 
+
 
 struct sub_table{
      char *name;
@@ -98,7 +107,11 @@ static struct conf_entry conf_variables[]={
      {"Service",NULL,Load_Service,NULL},
      {"Module",NULL,Load_Module,NULL},
      {"TmpDir",NULL,setTmpDir,NULL},
-     {"Max_mem_object",&BODY_MAX_MEM,setInt,NULL},
+     {"MaxMemObject",&BODY_MAX_MEM,setInt,NULL},
+     {"AclControllers",NULL,Set_acl_controllers,NULL},
+     {"acl",NULL,acl_add,NULL},
+     {"icap_access",NULL,acl_access,NULL},
+     {"AuthMethod",NULL,Set_auth_method,NULL},
      {NULL,NULL,NULL,NULL}
 };
 
@@ -314,6 +327,52 @@ int setTmpDir(char *directive,char **argv,void *setdata){
    /*Check if tmpdir exists. If no try to build it , report an error and uses the default...*/
      debug_printf(1,"Setting parameter :%s=%s\n",directive,argv[0]);
      return 1;
+}
+
+int Set_acl_controllers(char *directive,char **argv,void *setdata){
+     int i,k,argc,ret;
+     access_control_module_t *acl_mod;
+     if(argv == NULL || argv[0] == NULL){
+	  return 0;
+     }
+
+     if(strncasecmp(argv[0],"none",4)==0){
+	  used_access_controllers=NULL;
+	  return 1;
+     }
+
+     for(argc=0;argv[argc]!=NULL;argc++); /*Find the number of acl controllers*/
+     used_access_controllers=malloc(argc*sizeof(access_control_module_t *)+1);
+     k=0;
+     ret=1;
+     for(i=0;i<argc;i++){
+	  if(acl_mod=find_access_controller(argv[i])){
+	       used_access_controllers[k++]=acl_mod;
+	  }
+	  else{
+	       debug_printf(1,"No access controller with name :%s\n",argv[i]);
+	       ret=0;
+	  }
+     }
+     used_access_controllers[k]=NULL;
+     return ret;
+
+}
+
+
+int Set_auth_method(char *directive,char **argv,void *setdata){
+     int i,k,argc,ret;
+     char *method=NULL;
+     access_control_module_t *acl_mod;
+     if(argv == NULL || argv[0] == NULL || argv[1] == NULL){
+	  return 0;
+     }
+     method=argv[0];
+
+     if(strncasecmp(argv[1],"none",4)==0){
+	  return set_method_authenticators(method,NULL);
+     }
+     return set_method_authenticators(method,argv+1);
 }
 
 
