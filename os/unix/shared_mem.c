@@ -91,7 +91,7 @@ void *ci_shared_mem_attach(ci_shared_mem_id_t *id){
 }
 
 
-int ci_shared_mem_detach(void *shmem){
+int ci_shared_mem_detach(ci_shared_mem_id_t *id, void *shmem){
      
   return 1;
 }

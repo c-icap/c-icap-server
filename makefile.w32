@@ -2,37 +2,37 @@
 
 
 !include <win32.mak>
+!include "c_icap.mak"
 
 LIBOS=os\win32\~
-MODULES=modules\echo\ modules\sguard\
+MODULES=services\echo\ services\sguard\
 
 ALL_DIRS=$(LIBOS)
-EXEC_ENTRY=c:\cygwin\home\tsantila\devel\vcneeded\crtexe.obj
 DLL_ENTRY=os/win32/dll_entry.obj
-#DLL_ENTRY=c:\cygwin\home\tsantila\devel\vcneeded\extradll.lib
 MOD_DLL_ENTRY=../../os/win32/dll_entry.obj
 
-c_icap_OBJS = request.obj module.obj log.obj cfg_param.obj proc_threads_queues.obj  aserver.obj winnt_server.obj  
+c_icap_OBJS = request.obj proc_threads_queues.obj  aserver.obj winnt_server.obj  
 
 
-all: $(LIBOS) c_icap.Dll c-icap.exe sub_modules
+all: c_icap.Dll c-icap.exe sub_modules
 
 .c.obj:
-	$(cc) -Iinclude  $(cdebug) $(cflags) $(cvarsmt) -I. -DUNICODE $*.c
+	$(cc) -Iinclude  $(cdebug) $(cflags) $(cvarsmt) $(CI_DEFS) -I. -DUNICODE $*.c
 #	$(cc) -Iinclude  $(cdebug) $(cflags) $(cvarsdll) -I. -DUNICODE $*.c
 
 c_icap.Dll:
 	@if EXIST c_icap_dll.mak $(MAKE) -f c_icap_dll.mak DLL_ENTRY=$(DLL_ENTRY)
 
-c-icap.exe: $(c_icap_OBJS) os\win32\utils.lib
-	$(link) $(ldebug) $(conlflags) $(conlibsdll) user32.lib c_icap.lib os\win32\utils.lib $** /OUT:c-icap.exe 
+c-icap.exe: $(c_icap_OBJS) 
+	$(link) $(ldebug) $(conlflags) $(conlibsdll) user32.lib c_icap.lib $** /OUT:c-icap.exe 
 
 
-$(LIBOS):    
-	@cd $(@D)
-	@echo *** %CD% *** 
-	@if NOT "%CD%"== "" $(MAKE) -f makefile.w32  $(makeopts) /$(MAKEFLAGS) 
-	@cd ..\..
+# The following not needed any more.
+#$(LIBOS):    
+#	@cd $(@D)
+#	@echo *** %CD% *** 
+#	@if NOT "%CD%"== "" $(MAKE) -f makefile.w32  $(makeopts) /$(MAKEFLAGS) 
+#	@cd ..\..
 
 sub_modules: 
 	@for %%d in ($(MODULES)) do (cd %%d && $(MAKE) -f makefile.w32 DLL_ENTRY=$(MOD_DLL_ENTRY) $(makeopts) /$(MAKEFLAGS)  & cd ..\..\ )

@@ -49,9 +49,9 @@ Service squard_module srv_sguard.so
 Service antivirus_module srv_clamav.so
 
 
-# Antivirus module settings
+# srv_clamav-antivirus module settings
 # ScanFileTypes must be one of: unknown_text unknown_data msexe data tar gz zip bz rar msszdd msole2 mscab mschm screnc graphics html mail
-antivirus.ScanFileTypes msexe data tar gz zip bz rar msszdd msole2 mscab mschm screnc
-antivirus.SendPercentData 5
+srv_clamav.ScanFileTypes msexe data tar gz zip bz rar msszdd msole2 mscab mschm screnc
+srv_clamav.SendPercentData 5
 
 

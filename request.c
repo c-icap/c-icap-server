@@ -29,7 +29,8 @@
 #include "debug.h"
 #include "request.h"
 #include "service.h"
-
+#include "access.h"
+#include "util.h"
 
 #define STARTBUF 1024
 #define STEPBUF 1024
@@ -668,7 +669,7 @@ void ec_responce(request_t *req,int ec){
 void options_responce(request_t *req){
      char buf[256];
      char *str;
-     time_t t;
+     /*   time_t t;*/
      ci_header_list_t *responce_head;
      void *responce_body=NULL;
      int i;
@@ -694,10 +695,11 @@ void options_responce(request_t *req){
      add_header(responce_head,"Max-Connections: 20");
      add_header(responce_head,"Options-TTL: 3600");
      /* DATE e****************************/
-     time(&t);
+     /* time(&t);*/
      // sprintf(buf,"Date: %s",asctime(localtime(&t)));
      strcpy(buf,"Date: ");
-     ctime_r(&t,buf+strlen(buf));
+/*     ctime_r(&t,buf+strlen(buf));*/
+     ci_strtime(buf+strlen(buf));
      buf[strlen(buf)-1]='\0'; /*Eat the \n at the end of the ctime returned string*/
      add_header(responce_head,buf);
      /********/

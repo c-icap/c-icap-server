@@ -56,6 +56,6 @@ struct  service_module{
 
 
 service_module_t * register_service(char *module_file);
-service_module_t *find_service(char *service_name);
+CI_DECLARE_FUNC(service_module_t) *find_service(char *service_name);
 
 #endif

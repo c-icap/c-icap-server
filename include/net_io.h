@@ -26,6 +26,9 @@
 #include <sys/ioctl.h>
 #include <sys/select.h>
 #include <sys/socket.h>
+#include <netinet/tcp.h>
+#include <arpa/inet.h>
+#include <netdb.h>
 #include <fcntl.h>
 
 
@@ -55,29 +58,29 @@ typedef struct ci_connection{
 
 
 
-void ci_addrtoip(struct sockaddr_in *addr, char *ip,int ip_strlen);
+CI_DECLARE_FUNC(void) ci_addrtoip(struct sockaddr_in *addr, char *ip,int ip_strlen);
 #define ci_conn_remote_ip(conn,ip) ci_addrtoip(&(conn->claddr),ip,CI_IPLEN)
 #define ci_conn_local_ip(conn,ip)  ci_addrtoip(&(conn->srvaddr),ip,CI_IPLEN)
 
 
-char *ci_addrtohost(struct in_addr *addr, char *hname, int maxhostlen);
+CI_DECLARE_FUNC(char) *ci_addrtohost(struct in_addr *addr, char *hname, int maxhostlen);
 
 
-int icap_socket_opts(ci_socket fd);
-ci_socket icap_init_server();
+CI_DECLARE_FUNC(int) icap_socket_opts(ci_socket fd);
+CI_DECLARE_FUNC(ci_socket) icap_init_server();
 
-int check_for_keepalive_data(ci_socket fd);
-int wait_for_data(ci_socket fd,int secs,int what_wait);
-int wait_for_incomming_data(ci_socket fd);
-int wait_for_outgoing_data(ci_socket fd);
+CI_DECLARE_FUNC(int) check_for_keepalive_data(ci_socket fd);
+CI_DECLARE_FUNC(int) wait_for_data(ci_socket fd,int secs,int what_wait);
+CI_DECLARE_FUNC(int) wait_for_incomming_data(ci_socket fd);
+CI_DECLARE_FUNC(int) wait_for_outgoing_data(ci_socket fd);
 
-int icap_netio_init(ci_socket fd);
-int icap_read(ci_socket fd,void *buf,size_t count);
-int icap_write(ci_socket fd, const void *buf,size_t count);
-int icap_read_nonblock(ci_socket fd, void *buf,size_t count);
-int icap_write_nonblock(ci_socket fd, const void *buf,size_t count);
+CI_DECLARE_FUNC(int) icap_netio_init(ci_socket fd);
+CI_DECLARE_FUNC(int) icap_read(ci_socket fd,void *buf,size_t count);
+CI_DECLARE_FUNC(int) icap_write(ci_socket fd, const void *buf,size_t count);
+CI_DECLARE_FUNC(int) icap_read_nonblock(ci_socket fd, void *buf,size_t count);
+CI_DECLARE_FUNC(int) icap_write_nonblock(ci_socket fd, const void *buf,size_t count);
 
-int icap_linger_close(ci_socket fd);
-int icap_hard_close(ci_socket fd);
+CI_DECLARE_FUNC(int) icap_linger_close(ci_socket fd);
+CI_DECLARE_FUNC(int) icap_hard_close(ci_socket fd);
 
 #endif

@@ -24,11 +24,11 @@
 
 
 
-int log_open();
-void log_close();
-void log_flush();
+CI_DECLARE_FUNC(int) log_open();
+CI_DECLARE_FUNC(void) log_close();
+CI_DECLARE_FUNC(void) log_flush();
 
-void log_access(request_t *req,int status);
-void log_server(request_t *req, const char *format, ... );
+CI_DECLARE_FUNC(void) log_access(request_t *req,int status);
+CI_DECLARE_FUNC(void) log_server(request_t *req, const char *format, ... );
 
 #endif

@@ -22,6 +22,7 @@
 #include <stdarg.h>
 #include <time.h>
 #include "log.h"
+#include "util.h"
 #include "module.h"
 #include "cfg_param.h"
 
@@ -139,14 +140,11 @@ void log_flush(){
 
 
 void file_log_access(char *server, char *clientname,char *method,char *request,char *args, char *status){     
-     struct tm br_tm;
-     time_t tm;
-     char buf[50];
+     char buf[STR_TIME_SIZE];
      if(!access_log)
 	  return ;
-     time(&tm);
-     asctime_r(localtime_r(&tm,&br_tm),buf);
-     buf[strlen(buf)-1]='\0';
+
+     ci_strtime(buf);
      fprintf(access_log,"%s, %s, %s, %s, %s%c%s, %s\n",buf,server,clientname,
 	     method,
 	     request,
@@ -157,16 +155,12 @@ void file_log_access(char *server, char *clientname,char *method,char *request,c
 
 
 void file_log_server(char *server, const char *format, va_list ap ){
-     char buf[50];
-     time_t tm;
-     struct tm br_tm;
+     char buf[STR_TIME_SIZE];
 
      if(!server_log)
           return ;
-     time(&tm);
-     asctime_r(localtime_r(&tm,&br_tm),buf);
-     buf[strlen(buf)-1]='\0';
 
+     ci_strtime(buf);
      fprintf(server_log,"%s, %s, ",buf,server);
      vfprintf(server_log,format,ap);
      fprintf(server_log,"\n");

@@ -27,8 +27,8 @@
 
 
 extern char *PIDFILE;
-extern char *USER;
-extern char *GROUP;
+extern char *RUN_USER;
+extern char *RUN_GROUP;
 extern int DAEMON_MODE;
 
 int config(int,char **);
@@ -37,6 +37,7 @@ int store_pid(char *pidfile);
 int set_running_permissions(char *user,char *group);
 
 
+#if ! defined(_WIN32)
 void run_as_daemon(){
      int pid;
      if((pid=fork())<0){
@@ -46,20 +47,21 @@ void run_as_daemon(){
      if(pid)
 	  exit(0);
 }
-
+#endif
 
 int main(int argc,char **argv){
      ci_socket s;
 
      init_modules();
      config(argc,argv);
-     
+
+#if ! defined(_WIN32)     
      if(DAEMON_MODE)
 	  run_as_daemon();
 
-#if ! defined(_WIN32)
+
      store_pid(PIDFILE);
-     if(!set_running_permissions(USER,GROUP))
+     if(!set_running_permissions(RUN_USER,RUN_GROUP))
 	  exit(-1);
 #endif
 

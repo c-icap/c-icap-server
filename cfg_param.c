@@ -48,8 +48,8 @@ int DEBUG_STDOUT=0;
 
 char *TMPDIR="/var/tmp/";
 char *PIDFILE="/var/run/c-icap.pid";
-char *USER=NULL;
-char *GROUP=NULL;
+char *RUN_USER=NULL;
+char *RUN_GROUP=NULL;
 char *cfg_file=CONFFILE;
 char *SERVICES_DIR=SERVDIR;
 char *MODULES_DIR=MODSDIR;
@@ -60,7 +60,11 @@ extern char *ACCESS_LOG_FILE;
 /*extern char *LOGS_DIR;*/
 
 extern logger_module_t *default_logger;
- 
+
+int Load_Service(char *directive,char **argv,void *setdata);
+int Load_Module(char *directive,char **argv,void *setdata);
+int SetLogger(char *directive,char **argv,void *setdata);
+int setTmpDir(char *directive,char **argv,void *setdata); 
 
 struct sub_table{
      char *name;
@@ -81,8 +85,8 @@ static struct conf_entry conf_variables[]={
      {"MaxRequestsPerChild",NULL,NULL,NULL},
      {"MaxRequestsReallocateMem",&MAX_REQUESTS_BEFORE_REALLOCATE_MEM,setInt,NULL},
      {"Port",&PORT,setInt,NULL},
-     {"User",&USER,setStr,NULL},
-     {"Group",&GROUP,setStr,NULL},
+     {"User",&RUN_USER,setStr,NULL},
+     {"Group",&RUN_GROUP,setStr,NULL},
      {"ServerAdmin",NULL,NULL,NULL},
      {"ServerName",NULL,NULL,NULL},
      {"Logger",&default_logger,SetLogger,NULL},
@@ -91,8 +95,8 @@ static struct conf_entry conf_variables[]={
      {"DebugLevel",&DEBUG_LEVEL,setInt,NULL},
      {"ServicesDir",&SERVICES_DIR,setStr,NULL},
      {"ModulesDir",&MODULES_DIR,setStr,NULL},
-     {"Service",NULL,LoadService,NULL},
-     {"Module",NULL,LoadModule,NULL},
+     {"Service",NULL,Load_Service,NULL},
+     {"Module",NULL,Load_Module,NULL},
      {"TmpDir",NULL,setTmpDir,NULL},
      {"Max_mem_object",&BODY_MAX_MEM,setInt,NULL},
      {NULL,NULL,NULL,NULL}
@@ -187,7 +191,7 @@ struct conf_entry *search_variables(char *table,char *varname){
 /************************************************************************/
 /*  Set variables functions                                             */
 
-int LoadService(char *directive,char **argv,void *setdata){
+int Load_Service(char *directive,char **argv,void *setdata){
      if(argv==NULL || argv[0]==NULL || argv[1]==NULL){
 	  debug_printf(1,"Missing arguments in LoadService directive\n");
 	  return 0;
@@ -201,7 +205,7 @@ int LoadService(char *directive,char **argv,void *setdata){
      return 1;
 }
 
-int LoadModule(char *directive,char **argv,void *setdata){
+int Load_Module(char *directive,char **argv,void *setdata){
      if(argv==NULL || argv[0]==NULL || argv[1]==NULL){
 	  debug_printf(1,"Missing arguments in LoadModule directive\n");
 	  return 0;

@@ -15,10 +15,6 @@
 #define snprintf _snprintf
 #define strtoll  strtol
 
-int strncasecmp(const char *s1, const char *s2, size_t n);
-char *asctime_r(const struct tm *ptm, char *buffer);
-
-
 /* Name of package */
 #define PACKAGE "c_icap"
 

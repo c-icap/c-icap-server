@@ -19,13 +19,9 @@
 
 #include "c-icap.h"
 #include <errno.h>
-#include <netinet/tcp.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <sys/time.h>
+#include "net_io.h"
 #include "debug.h"
 #include "net_io.h"
-
 
 
 

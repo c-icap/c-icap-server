@@ -147,14 +147,8 @@ void sys_log_close(){
 
 
 void sys_log_access(char *server, char *clientname,char *method,char *request,char *args, char *status){
-     time_t tm;
-     struct tm br_tm;
-     char buf[50];
 
-     time(&tm);
-     asctime_r(localtime_r(&tm,&br_tm),buf);
-     buf[strlen(buf)-1]='\0';
-     syslog(ACCESS_PRIORITY,"%s, %s, %s, %s, %s%c%s, %s\n",buf,server,clientname,
+     syslog(ACCESS_PRIORITY,"%s, %s, %s, %s%c%s, %s\n",server,clientname,
 	    method,
 	    request,
 	    (args==NULL?' ':'?'),
@@ -175,22 +169,3 @@ void sys_log_server(char *server, const char *format, va_list ap ){
      syslog(SERVER_PRIORITY,"%s",buf);
 }
 
-void sys_log_server_old(char *server, const char *format, va_list ap ){
-     char *buf,*s;
-     int serv_len,format_len;
-     time_t tm;
-     struct tm br_tm;
-     serv_len=strlen(server);
-     format_len=strlen(format);
-     buf=malloc(format_len+serv_len+55); /*Suppose that asctime_r returns less than 50 bytes....*/
-
-     memcpy(buf,server,serv_len+1);
-     strcat(buf,", ");
-     s=buf+serv_len+2;
-
-     time(&tm);
-     asctime_r(localtime_r(&tm,&br_tm),s);
-     memcpy(s+strlen(s)-1,format,format_len+1);
-     vsyslog(SERVER_PRIORITY,buf,ap);
-     free(buf);
-}

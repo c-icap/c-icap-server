@@ -22,7 +22,9 @@
 #include "body.h"
 #include "debug.h"
 #include "simple_api.h"
+#include "util.h"
 #include <assert.h>
+
 
 #define STARTLEN 8192 /*8*1024*1024*/
 #define INCSTEP  4096
@@ -105,9 +107,9 @@ void markendofdata(struct mem_body *b){
 
 
 
-/******************************************************************************************************/
-/*                                                                                                    */
-/*                                                                                                    */
+/**************************************************************************/
+/*                                                                        */
+/*                                                                        */
 
 #define tmp_template "CI_TMP_XXXXXX"
 
@@ -115,10 +117,13 @@ extern int  BODY_MAX_MEM;
 extern char *TMPDIR;
 
 int open_tmp_file(char *filename){
-
+#ifdef _WIN32
+     return  ci_mktemp_file(TMPDIR,filename);
+#else
      strncpy(filename,TMPDIR,FILENAME_LEN-sizeof(tmp_template)-1);
      strcat(filename,tmp_template);
-     return mkstemp(filename);
+     return  mkstemp(filename);
+#endif
 }
 
 int  resize_buffer(ci_cached_file_t *body,int new_size){

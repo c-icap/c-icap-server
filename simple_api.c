@@ -82,7 +82,7 @@ char * ci_req_reqmod_add_header(request_t *req,char *header){
      return add_header(heads,header);
 }
 
-int ci_req_respmod_revove_header(request_t *req,char *header){
+int ci_req_respmod_remove_header(request_t *req,char *header){
      ci_header_list_t *heads;
      if(!(heads=ci_req_respmod_headers(req)))
 	  return 0;
@@ -90,7 +90,7 @@ int ci_req_respmod_revove_header(request_t *req,char *header){
 }
 
 
-int ci_req_reqmod_revove_header(request_t *req,char *header){
+int ci_req_reqmod_remove_header(request_t *req,char *header){
      ci_header_list_t *heads;
      if(!(heads=ci_req_reqmod_headers(req)))
 	  return 0;

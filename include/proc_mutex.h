@@ -20,6 +20,8 @@
 #ifndef __PROC_MUTEX_H
 #define __PROC_MUTEX_H
 
+#include "c-icap.h"
+
 #if defined (HAVE_SYSV_IPC)
 
 #include <sys/ipc.h>
@@ -52,10 +54,10 @@ typedef struct ci_proc_mutex{
 
 #endif
 
-int ci_proc_mutex_init(ci_proc_mutex_t *mutex);
-int ci_proc_mutex_lock(ci_proc_mutex_t *mutex);
-int ci_proc_mutex_unlock(ci_proc_mutex_t *mutex);
-int ci_proc_mutex_destroy(ci_proc_mutex_t *mutex);
+CI_DECLARE_FUNC(int) ci_proc_mutex_init(ci_proc_mutex_t *mutex);
+CI_DECLARE_FUNC(int) ci_proc_mutex_lock(ci_proc_mutex_t *mutex);
+CI_DECLARE_FUNC(int) ci_proc_mutex_unlock(ci_proc_mutex_t *mutex);
+CI_DECLARE_FUNC(int) ci_proc_mutex_destroy(ci_proc_mutex_t *mutex);
 
 
 #endif

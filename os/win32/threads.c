@@ -68,7 +68,7 @@ int  ci_thread_cond_broadcast(ci_thread_cond_t *pcond){
      SetEvent(*pcond); /*This do not work with autoreset events.
 			But now the ci_thread_cond_broadcast 
 		        not used by the c-icap server.
-			This is wrong used by worker thread to kill childs..... */
+			SS: This is wrong used by worker thread to kill childs..... */
      return 0;
 }
 
@@ -88,5 +88,5 @@ int ci_thread_join(ci_thread_t thread_id){
  if(WaitForSingleObject(thread_id,INFINITE)==WAIT_FAILED){
       return -1;
    }
-     return 0;
+ return 0;
 }

@@ -17,10 +17,15 @@
  */
 
 
+
 #include "c-icap.h"
+#include <Windows.h>
+#include <Winbase.h>
 #include <time.h>
 #include <assert.h>
-
+#include <io.h>
+#include <fcntl.h>
+#include "util.h"
 
 int strncasecmp(const char *s1, const char *s2, size_t n)
 {
@@ -33,10 +38,61 @@ int strncasecmp(const char *s1, const char *s2, size_t n)
 	return r;
 }
 
+
+static const char *days[]={
+     "Sun", 
+     "Mon", 
+     "Tue", 
+     "Wed",
+     "Thu", 
+     "Fri", 
+     "Sat"
+};
+
+static const char *months[]={
+     "",
+     "Jan", 
+     "Feb", 
+     "Mar", 
+     "Apr",
+     "May", 
+     "Jun", 
+     "Jul", 
+     "Aug",
+     "Sep", 
+     "Oct", 
+     "Nov", 
+     "Dec"
+}; 
+
+void ci_strtime(char *buf){
+     SYSTEMTIME tm;
+     GetLocalTime(&tm);
+     
+     buf[0]='\0';
+     snprintf(buf,STR_TIME_SIZE,"%s %s %d %d:%d:%d %d",
+	      days[tm.wDayOfWeek],
+	      months[tm.wMonth],
+	      tm.wDay,
+	      tm.wHour,tm.wMinute,
+	      tm.wSecond,tm.wYear);
+     
+     buf[STR_TIME_SIZE-1]='\0';
+}
+
+
+int ci_mktemp_file(char*dir,char *filename){
+     int fd;
+     GetTempFileName(dir,"CI_TMP",1,filename);
+     fd=open(filename,O_RDWR|O_CREAT,S_IREAD|S_IWRITE);
+     return fd;
+}
+
+
 #ifndef offsetof
 #define offsetof(type,field) ((int) ( (char *)&((type *)0)->field))
 #endif
-
+/*
 static const unsigned char at_data[] = {
 	'S', 'u', 'n', 'M', 'o', 'n', 'T', 'u', 'e', 'W', 'e', 'd',
 	'T', 'h', 'u', 'F', 'r', 'i', 'S', 'a', 't',
@@ -56,7 +112,8 @@ static const unsigned char at_data[] = {
 	offsetof(struct tm, tm_sec),
 	' ', '?', '?', '?', '?', '\n', 0
 };
-
+*/
+/*
 char *asctime_r(const struct tm *ptm, char *buffer)
 {
 	int tmp;
@@ -85,7 +142,7 @@ char *asctime_r(const struct tm *ptm, char *buffer)
 	     --buffer;
 	     tmp = *((int *)(((const char *) ptm) + (int) *buffer));
 	     
-	     if (((unsigned int) tmp) >= 100) { /* Just check 2 digit non-neg. */
+	     if (((unsigned int) tmp) >= 100) { 
 		  buffer[-1] = *buffer = '?';
 	     } else
 	     {
@@ -95,9 +152,10 @@ char *asctime_r(const struct tm *ptm, char *buffer)
 	     }
 	} while ((buffer -= 2)[-2] == '0');
 	
-	if (*++buffer == '0') {		/* Space-pad day of month. */
+	if (*++buffer == '0') {		
 	     *buffer = ' ';
 	}
 	
 	return buffer - 8;
 }
+*/

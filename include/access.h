@@ -17,14 +17,16 @@
  */
 
 
-#ifndef __LOG_H
-#define __LOG_H
+#ifndef __ACCESS_H
+#define __ACCESS_H
 
+#include "c-icap.h"
 #include "net_io.h"
 
 
-int access_check_client(ci_connection_t *connection);
-int access_check_request(request_t *req);
+CI_DECLARE_FUNC(int) access_check_client(ci_connection_t *connection);
+CI_DECLARE_FUNC(int) access_check_request(request_t *req);
+
 
 #endif
 

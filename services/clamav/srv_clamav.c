@@ -138,7 +138,7 @@ char *srvclamav_options[]={
 };
 
 
-CI_DECLARE_DATA service_module_t service={
+CI_DECLARE_MOD_DATA service_module_t service={
      "srv_clamav",  /*Module name*/
      "Clamav/Antivirus service", /*Module short description*/
      ICAP_RESPMOD|ICAP_REQMOD, /*Service type responce or request modification*/

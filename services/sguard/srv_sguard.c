@@ -21,6 +21,7 @@
 #include "service.h"
 #include "header.h"
 #include "body.h"
+#include "simple_api.h"
 
 
 
@@ -40,7 +41,7 @@ char *sguard_options[]={
 
 
 //service_module echo={
-service_module_t service={
+CI_DECLARE_MOD_DATA service_module_t service={
      "sguard",
      "Sguard demo service",
      ICAP_REQMOD,
@@ -85,7 +86,7 @@ void sguard_end_of_headers_handler(void *data,request_t *req){
      ci_header_list_t* req_header;
 
      ci_req_reqmod_add_header(req,"Via: C-ICAP  0.01/sguard");
-     if((req_header=ci_reqmod_headers(req))!=NULL){
+     if((req_header=ci_req_reqmod_headers(req))!=NULL){
 	  get_http_info(req,req_header /*,&httpinf*/);
      }
      

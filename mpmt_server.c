@@ -129,8 +129,27 @@ static void term_handler_child(int sig){
 
 static void sigint_handler_main(int sig){
      int i=0,status,pid;
-     debug_printf(5,"SIGINT signal received for main server(%d).\n",sig);
 
+/* */
+     signal(SIGINT,SIG_IGN );
+     signal(SIGCHLD,SIG_IGN);
+
+     if(sig==SIGTERM){
+        debug_printf(5,"SIGTERM signal received for main server.\n");
+        debug_printf(5,"Going to term childs....\n");
+        for(i=0;i<childs_queue.size;i++){
+	     if(childs_queue.childs[i].pid==0)
+		  continue;
+	     kill(pid,SIGTERM);
+        }
+     }
+     else if(sig==SIGINT){
+	  debug_printf(5,"SIGINT signal received for main server.\n");
+     }
+     else{
+	  debug_printf(5,"Signal %d received. Exiting ....\n",sig);
+     }
+     
      for(i=0;i<childs_queue.size;i++){
 	  if(childs_queue.childs[i].pid==0)
 	       continue;
@@ -174,6 +193,7 @@ void child_signals(){
 
 void main_signals(){
      signal(SIGPIPE, sigpipe_handler);
+     signal(SIGTERM, sigint_handler_main);
      signal(SIGINT, sigint_handler_main);
      signal(SIGCHLD,sigchld_handler_main);
 }

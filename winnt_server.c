@@ -118,7 +118,6 @@ server_decl_t *newthread(struct connections_queue *con_queue){
 int thread_main(server_decl_t *srv){
      ci_connection_t con;
 
-     char clientname[CI_MAXHOSTNAMELEN];
      int ret,request_status=0;
 
 //***********************
@@ -234,7 +233,7 @@ int worker_main( ci_socket sockfd){
 	       continue;
 	  }
 	  child_data->idle=0;
-	  pid=child_data->pid;
+	  pid=(int)child_data->pid;
 	  debug_printf(1,"Child %d getting requests now ...\n",pid);
 
 	  do{//Getting requests while we have free servers.....
@@ -335,8 +334,8 @@ end_child_main:
 
 
 
-#define MULTICHILD
-//#undef MULTICHILD
+//#define MULTICHILD
+#undef MULTICHILD
 #ifdef MULTICHILD
 
 int create_child(PROCESS_INFORMATION *pi,HANDLE *pipe){
@@ -698,7 +697,7 @@ int start_server(ci_socket fd){
      ci_thread_mutex_init(&control_process_mtx);
 
      if(!create_childs_queue(&childs_queue,MAX_CHILDS)){
-	  log_server("Main","Can't init shared memory.Fatal error, exiting!\n");
+	  log_server(NULL,"Can't init shared memory.Fatal error, exiting!\n");
 	  debug_printf(1,"Can't init shared memory.Fatal error, exiting!\n");
 	  exit(0);
      }

@@ -41,7 +41,7 @@ char *echo_options[]={
 };
 
 
-CI_DECLARE_DATA service_module_t service={
+CI_DECLARE_MOD_DATA service_module_t service={
      "echo",  /*Module name*/
      "Echo demo service", /*Module short description*/
      ICAP_RESPMOD|ICAP_REQMOD, /*Service type responce or request modification*/

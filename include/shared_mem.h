@@ -20,6 +20,8 @@
 #ifndef _SHARED_MEM_H
 #define _SHARED_MEM_H
 
+#include "c-icap.h"
+
 #ifdef HAVE_SYSV_IPC
 
 #define ci_shared_mem_id_t int
@@ -38,10 +40,10 @@ typedef struct ci_shared_mem_id {
 
 #endif
 
-void *ci_shared_mem_create(ci_shared_mem_id_t *id,int size);
-void *ci_shared_mem_attach(ci_shared_mem_id_t *id);
-int ci_shared_mem_detach(ci_shared_mem_id_t *id,void *shmem);
-int ci_shared_mem_destroy(ci_shared_mem_id_t *id,void *shmem);
+CI_DECLARE_FUNC(void) *ci_shared_mem_create(ci_shared_mem_id_t *id,int size);
+CI_DECLARE_FUNC(void) *ci_shared_mem_attach(ci_shared_mem_id_t *id);
+CI_DECLARE_FUNC(int)   ci_shared_mem_detach(ci_shared_mem_id_t *id,void *shmem);
+CI_DECLARE_FUNC(int)   ci_shared_mem_destroy(ci_shared_mem_id_t *id,void *shmem);
 
 
 

@@ -22,7 +22,7 @@
 #include "request.h"
 #include "module.h"
 #include "cfg_param.h"
-
+#include "access.h"
 
 auth_module_t **used_authenticators=NULL;
 

@@ -65,7 +65,7 @@ typedef struct  auth_module{
 
 
 
-int init_modules();
+CI_DECLARE_FUNC(int) init_modules();
 void * register_module(char *module_file,char *type);
 
 logger_module_t *find_logger(char *name);

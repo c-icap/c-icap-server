@@ -7,3 +7,6 @@ srv_sguard_la_CFLAGS=  -I../../include/
 srv_sguard_la_LDFLAGS= -no-undefined -module -avoid-version
 srv_sguard_la_SOURCES = srv_sguard.c
 
+
+
+EXTRA_DIST= makefile.w32 srv_sguard.def

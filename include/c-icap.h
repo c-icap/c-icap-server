@@ -61,7 +61,7 @@
 #endif
 
 #ifdef _WIN32
-# if defined(CI_BUILD_LIB) || defined (CI_BUILD_MODULE)
+# if defined(CI_BUILD_LIB) 
 
 #   define CI_DECLARE_FUNC(type) __declspec(dllexport) type
 #   define CI_DECLARE_DATA       __declspec(dllexport)
@@ -72,11 +72,16 @@
 #   define CI_DECLARE_DATA       __declspec(dllimport)
 
 # endif
+
+# if defined (CI_BUILD_MODULE)
+#   define CI_DECLARE_MOD_DATA   __declspec(dllexport)
+# endif
+
 #else
 
 #define CI_DECLARE_FUNC(type) type
 #define CI_DECLARE_DATA
-
+#define CI_DECLARE_MOD_DATA
 #endif
 
 
