@@ -1213,6 +1213,7 @@ int send_current_block_data(request_t *req){
      if(req->remain_send_block_bytes==0)
 	  return 0;
      if((bytes=icap_write_nonblock(req->connection->fd,req->pstrblock_responce,req->remain_send_block_bytes))<0){
+	  ci_debug_printf(5,"Error writing to server (errno:%d)",errno);
 	  return CI_ERROR;
      }
      req->pstrblock_responce+=bytes;
@@ -1500,13 +1501,13 @@ int process_request(request_t *req){
 	       ec_responce(req,res); /*Bad request or Service not found or Server error or what else......*/
 	  req->keepalive=0; // Error occured, close the connection ......
 	  ci_debug_printf(5,"Error parsing headers :(%d)\n",req->head->bufused);
-	  return -1;
+	  return CI_ERROR;
      }
 
      auth_status=req->access_type;
      if(req->access_type==CI_ACCESS_PARTIAL && (auth_status=access_check_request(req))==CI_ACCESS_DENY){
 	  ec_responce(req,EC_401);/*Responce with bad request*/
-	  return -1; /*Or something that means authentication error*/
+	  return CI_ERROR; /*Or something that means authentication error*/
      }
 
      if(res==EC_100)
@@ -1514,7 +1515,7 @@ int process_request(request_t *req){
 
      if(auth_status==CI_ACCESS_HTTP_AUTH && access_authenticate_request(req)==CI_ACCESS_DENY ){
 	  ec_responce(req,EC_401);/*Responce with bad request*/
-	  return -1; /*Or something that means authentication error*/
+	  return CI_ERROR; /*Or something that means authentication error*/
      }
   
 
@@ -1522,9 +1523,9 @@ int process_request(request_t *req){
 
 
      if(!req->current_service_mod){
-	  ci_debug_printf(1,"Module not found\n");
+	  ci_debug_printf(1,"Service not found\n");
 	  ec_responce(req,EC_404);
-	  return -1;
+	  return CI_ERROR;
      }
 
      if(req->current_service_mod->mod_init_request_data)
@@ -1546,8 +1547,8 @@ int process_request(request_t *req){
 	       }*/
 	  if(req->hasbody && req->preview>0 ){
 	       if((preview_status=get_preview_or_chunk_data(req,1))==CI_ERROR){
-		    ci_debug_printf(5,"An error occured while reading preview data\n");
-		    ec_responce(req,EC_400);
+		    ci_debug_printf(5,"An error occured while reading preview data (propably timeout)\n");
+		    ec_responce(req,EC_408);
 		    /*Responce with error.....*/
 		    break;
 	       }
@@ -1562,6 +1563,7 @@ int process_request(request_t *req){
 		    }
 		    if(res==CI_ERROR){
 			 ci_debug_printf(10,"An error occured in preview handler!!");
+			 ec_responce(req,EC_500);
 			 break;
 		    }
 		    if(preview_status>0)

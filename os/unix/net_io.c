@@ -184,11 +184,10 @@ int ci_read_nonblock(int fd, void *buf,size_t count){
      do{
 	  bytes=read(fd,buf,count);
      }while(bytes==-1 && errno==EINTR);
-#ifdef __CYGWIN__/*  In linux and solaris not needed. A select function always called 
-                     before this function*/
+
      if(bytes<0 && errno==EAGAIN)
 	  return 0;
-#endif
+
      return bytes;
 }
 
@@ -199,11 +198,10 @@ int ci_write_nonblock(int fd, const void *buf,size_t count){
      do{
 	  bytes=write(fd,buf,count);
      }while(bytes==-1 && errno==EINTR);
-#ifdef __CYGWIN__    /*In linux and solaris not needed. A select function 
-                      always called before this function*/
+
      if(bytes<0 && errno==EAGAIN)
 	  return 0;
-#endif
+
      return bytes;
 }
 
