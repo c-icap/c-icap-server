@@ -19,7 +19,7 @@
 
 
 #include "c-icap.h"
-
+#include "simple_api.h"
 
 int base64_table[]={
      -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
@@ -62,9 +62,9 @@ void ci_base64_decode(char *str,char *result,int len){
 	 if (++c < 4)
             continue;
         /* One quantum of four encoding characters/24 bit */
-        result[j++] = val >> 16;        /* High 8 bits */
-        result[j++] = (val >> 8) & 0xff;        /* Mid 8 bits */
-        result[j++] = val & 0xff;       /* Low 8 bits */
+        result[j++] =(char) (val >> 16);        /* High 8 bits */
+        result[j++] = (char) ((val >> 8) & 0xff);        /* Mid 8 bits */
+        result[j++] =(char) (val & 0xff);       /* Low 8 bits */
         val = c = 0;
     }
     result[j] ='\0';

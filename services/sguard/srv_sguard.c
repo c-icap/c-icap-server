@@ -22,14 +22,17 @@
 #include "header.h"
 #include "body.h"
 #include "simple_api.h"
+#include "debug.h"
 
 
 
-int sguard_init_service(service_module_t *serv);
+int sguard_init_service(service_module_t *serv,struct icap_server_conf *server_conf);
 void *sguard_init_request_data(service_module_t *serv,request_t *req);
-void sguard_end_of_headers_handler(void *data,request_t *req);
+/*void sguard_end_of_headers_handler(void *data,request_t *req);*/
 int sguard_process(void *data,request_t *);
-int sguard_check_preview(void *data, request_t *);
+int sguard_check_preview(void *data,char *preview_data,int preview_data_len, request_t *);
+int sguard_write(void *data, char *buf,int len ,int iseof,request_t *req);
+int sguard_read(void *data,char *buf,int len,request_t *req);
 
 
 char *sguard_options[]={
@@ -50,26 +53,26 @@ CI_DECLARE_MOD_DATA service_module_t service={
      sguard_init_service, /* Init_service*/
      NULL, /*close_Service*/
      sguard_init_request_data,/* init_request_data*/
-     (void (*)(void *))freemembody, /*Release request data*/
+     (void (*)(void *))ci_free_membuf, /*Release request data*/
 
-     sguard_end_of_headers_handler,
-     NULL,
+/*     sguard_end_of_headers_handler,*/
+     sguard_check_preview,
      sguard_process,
-     (int (*)(void *, char *,int,int))writememdata,
-     (int (*)(void *,char *,int))readmemdata,
+     sguard_write,
+     sguard_read,
      NULL,
      NULL
 };
 
 
-int sguard_init_service(service_module_t *serv){
+int sguard_init_service(service_module_t *serv,struct icap_server_conf *server_conf){
      printf("Initialization of sguard module......\n");
 }
 
 
 void *sguard_init_request_data(service_module_t *serv,request_t *req){
      if(ci_req_hasbody(req))
-	  return newmembody();
+	  return ci_new_membuf();
      return NULL;
 }
 
@@ -80,9 +83,9 @@ void get_http_info(request_t *req,ci_header_list_t *req_header /*, struct httpIn
 }
 
 
-void sguard_end_of_headers_handler(void *data,request_t *req){
 
-     /*  struct httpInfo httpinf;*/
+int sguard_check_preview(void *data,char *preview_data,int preview_data_len, request_t *req){
+
      ci_header_list_t* req_header;
 
      ci_req_reqmod_add_header(req,"Via: C-ICAP  0.01/sguard");
@@ -91,11 +94,9 @@ void sguard_end_of_headers_handler(void *data,request_t *req){
      }
      
      unlock_data(req);
-}
-
-
-
-int sguard_check_preview(void *b, request_t *req){
+     
+     if(preview_data)
+	  ci_write_membuf(data,preview_data,preview_data_len,ci_req_hasalldata(req));
      return EC_100;
 }
 
@@ -104,15 +105,17 @@ int sguard_check_preview(void *b, request_t *req){
 int sguard_process(void *b,request_t *req){
 
 /*
-     if(b){
-	  markendofdata((struct mem_body *)b);
 	  printf("Buffer size=%d, Data size=%d\n ",
-		 ((struct mem_body *)b)->bufsize,((struct mem_body *)b)->endpos);
-     }
+		 ((struct membuf *)b)->bufsize,((struct membuf *)b)->endpos);
 */  
      return CI_MOD_DONE;     
 }
 
+int sguard_write(void *data, char *buf,int len ,int iseof,request_t *req){
+     return ci_write_membuf(data,buf,len,iseof);
+}
 
-
+int sguard_read(void *data,char *buf,int len,request_t *req){
+     return ci_read_membuf(data,buf,len);
+}
 

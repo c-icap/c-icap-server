@@ -39,6 +39,17 @@ int strncasecmp(const char *s1, const char *s2, size_t n)
 }
 
 
+int strcasecmp(const char *s1, const char *s2)
+{
+	int r = 0;
+	while (((s1 == s2) || !(r = ((int)( tolower(*((unsigned char *)s1))))- tolower(*((unsigned char *)s2))))
+		&& (++s2, *s1++));
+	return r;
+}
+
+
+
+
 static const char *days[]={
      "Sun", 
      "Mon", 
@@ -81,9 +92,9 @@ void ci_strtime(char *buf){
 }
 
 
-int ci_mktemp_file(char*dir,char *filename){
+int ci_mktemp_file(char*dir,char* template,char *filename){
      int fd;
-     GetTempFileName(dir,"CI_TMP",1,filename);
+     GetTempFileName(dir,template,1,filename);
      fd=open(filename,O_RDWR|O_CREAT,S_IREAD|S_IWRITE);
      return fd;
 }

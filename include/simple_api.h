@@ -31,6 +31,7 @@
 #define ci_req_preview_size(req) (req->preview) /*The preview data size*/
 #define ci_req_sent_data(req)(req->responce_status) /*if icap server has sent data
                                                       to client */
+#define ci_req_hasalldata(req)(req->eof_received)
 
 
 CI_DECLARE_FUNC(void)                ci_base64_decode(char *str,char *result,int len);
@@ -43,8 +44,10 @@ CI_DECLARE_FUNC(int)                 ci_req_respmod_remove_header(request_t *req
 CI_DECLARE_FUNC(int)                 ci_req_reqmod_remove_header(request_t *req,char *header);
 CI_DECLARE_FUNC(char *)              ci_req_respmod_get_header(request_t *req,char *head_name);
 CI_DECLARE_FUNC(char *)              ci_req_reqmod_get_header(request_t *req,char *head_name);
-CI_DECLARE_FUNC(int)                 ci_req_content_lenght(request_t *req);
 CI_DECLARE_FUNC(int)                 ci_req_respmod_reset_headers(request_t *req);
+
+CI_DECLARE_FUNC(int)                 ci_req_content_lenght(request_t *req);
+CI_DECLARE_FUNC(char *)              ci_req_http_request(request_t *req);
 
 #endif
 

@@ -58,6 +58,13 @@ typedef struct ci_connection{
 
 
 
+
+#ifdef _WIN32
+CI_DECLARE_FUNC(int) ci_inet_aton(const char *cp, struct in_addr *inp);
+#else
+#define ci_inet_aton inet_aton 
+#endif
+
 CI_DECLARE_FUNC(void) ci_addrtoip(struct sockaddr_in *addr, char *ip,int ip_strlen);
 #define ci_conn_remote_ip(conn,ip) ci_addrtoip(&(conn->claddr),ip,CI_IPLEN)
 #define ci_conn_local_ip(conn,ip)  ci_addrtoip(&(conn->srvaddr),ip,CI_IPLEN)
@@ -66,21 +73,22 @@ CI_DECLARE_FUNC(void) ci_addrtoip(struct sockaddr_in *addr, char *ip,int ip_strl
 CI_DECLARE_FUNC(char) *ci_addrtohost(struct in_addr *addr, char *hname, int maxhostlen);
 
 
-CI_DECLARE_FUNC(int) icap_socket_opts(ci_socket fd);
-CI_DECLARE_FUNC(ci_socket) icap_init_server();
+CI_DECLARE_FUNC(int) icap_socket_opts(ci_socket fd, int secs_to_linger);
+CI_DECLARE_FUNC(ci_socket) icap_init_server(int port,int secs_to_linger);
 
-CI_DECLARE_FUNC(int) check_for_keepalive_data(ci_socket fd);
-CI_DECLARE_FUNC(int) wait_for_data(ci_socket fd,int secs,int what_wait);
-CI_DECLARE_FUNC(int) wait_for_incomming_data(ci_socket fd);
-CI_DECLARE_FUNC(int) wait_for_outgoing_data(ci_socket fd);
 
-CI_DECLARE_FUNC(int) icap_netio_init(ci_socket fd);
-CI_DECLARE_FUNC(int) icap_read(ci_socket fd,void *buf,size_t count);
-CI_DECLARE_FUNC(int) icap_write(ci_socket fd, const void *buf,size_t count);
-CI_DECLARE_FUNC(int) icap_read_nonblock(ci_socket fd, void *buf,size_t count);
-CI_DECLARE_FUNC(int) icap_write_nonblock(ci_socket fd, const void *buf,size_t count);
+CI_DECLARE_FUNC(int) ci_wait_for_data(ci_socket fd,int secs,int what_wait);
 
-CI_DECLARE_FUNC(int) icap_linger_close(ci_socket fd);
-CI_DECLARE_FUNC(int) icap_hard_close(ci_socket fd);
+#define ci_wait_for_incomming_data(fd,timeout) ci_wait_for_data(fd,timeout,wait_for_read); 
+#define ci_wait_for_outgoing_data(fd,timeout) ci_wait_for_data(fd,timeout,wait_for_write); 
+
+CI_DECLARE_FUNC(int) ci_netio_init(ci_socket fd);
+CI_DECLARE_FUNC(int) ci_read(ci_socket fd,void *buf,size_t count,int timeout);
+CI_DECLARE_FUNC(int) ci_write(ci_socket fd, const void *buf,size_t count,int timeout);
+CI_DECLARE_FUNC(int) ci_read_nonblock(ci_socket fd, void *buf,size_t count);
+CI_DECLARE_FUNC(int) ci_write_nonblock(ci_socket fd, const void *buf,size_t count);
+
+CI_DECLARE_FUNC(int) ci_linger_close(ci_socket fd,int secs_to_linger);
+CI_DECLARE_FUNC(int) ci_hard_close(ci_socket fd);
 
 #endif

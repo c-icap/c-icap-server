@@ -34,7 +34,7 @@ struct perl_data{
      PerlInterpreter *perl;
 };
 
-int init_perl_handler();
+int init_perl_handler(struct icap_server_conf *server_conf);
 service_module_t *load_perl_module(char *service_file);
 
 
@@ -48,22 +48,21 @@ CI_DECLARE_DATA service_handler_module_t module={
 
 
 
-int perl_init_service(service_module_t *this);
+int perl_init_service(service_module_t *this,struct icap_server_conf *server_conf);
 void perl_close_service(service_module_t *this);
 void *perl_init_request_data(service_module_t *this,struct request *);
 void *perl_release_request_data(void *data);
 
 
-void perl_end_of_headers_handler(void *data,struct request *);
 int perl_check_preview_handler(void *data,struct request*);
 int perl_end_of_data_handler(void *data,struct request*);
      
 
-int perl_writedata(void *data, char *,int,int);
-int perl_readdata(void *data,char *,int);
+int perl_writedata(void *data, char *,int,int,struct request*);
+int perl_readdata(void *data,char *,int,struct request*);
 
 
-int init_perl_handler(){
+int init_perl_handler(struct icap_server_conf *server_conf){
      
 }
 
@@ -90,7 +89,6 @@ service_module_t *load_perl_module(char *service_file){
      service->mod_release_request_data=perl_release_request_data;
 
 
-     service->mod_end_of_headers_handler=perl_end_of_headers_handler;
      service->mod_check_preview_handler= perl_check_preview_handler;
      service->mod_end_of_data_handler=perl_end_of_data_handler;
 
@@ -100,14 +98,14 @@ service_module_t *load_perl_module(char *service_file){
      service->mod_name=strdup("perl_test");
      service->mod_type=ICAP_REQMOD|ICAP_RESPMOD;
      
-     debug_printf(1,"OK service %s loaded\n",service_file);
+     ci_debug_printf(1,"OK service %s loaded\n",service_file);
      return service;
 }
 
 
 
 
-int perl_init_service(service_module_t *this){
+int perl_init_service(service_module_t *this,struct icap_server_conf *server_conf){
      
 }
 
@@ -125,11 +123,6 @@ void *perl_release_request_data(void *data){
 }
 
 
-void perl_end_of_headers_handler(void *data,struct request *req){
-
-}
-
-
 int perl_check_preview_handler(void *data,struct request *req){
 
 }
@@ -139,9 +132,9 @@ int perl_end_of_data_handler(void *data,struct request *req){
 }
      
 
-int perl_writedata(void *data, char *buf,int len,int iseof){
+int perl_writedata(void *data, char *buf,int len,int iseof,struct request *req){
 }
 
-int perl_readdata(void *data,char *buf,int len){
+int perl_readdata(void *data,char *buf,int len,struct request *req){
 
 }

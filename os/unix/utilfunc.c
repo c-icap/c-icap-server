@@ -18,6 +18,7 @@
 
 
 #include "c-icap.h"
+#include <stdio.h>
 #include "util.h"
 #include <time.h>
 
@@ -29,14 +30,15 @@ void ci_strtime(char *buf){
      time(&tm);
      asctime_r(localtime_r(&tm,&br_tm),buf);
      buf[STR_TIME_SIZE-1]='\0';
+     buf[strlen(buf)-2]='\0';
 }
 
 
-/*
-int ci_mktemp_file(char*dir,char *filename){
+
+int ci_mktemp_file(char*dir,char*template,char *filename){
      int fd;
-     strncpy(filename,dir,FILENAME_LEN-sizeof(tmp_template)-1);
-     strcat(filename,tmp_template);
-     return fd;
+     strncpy(filename,dir,CI_FILENAME_LEN-sizeof(template)-1);
+     strcat(filename,template);
+     return  mkstemp(filename);
 }
-*/
+

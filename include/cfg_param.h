@@ -19,6 +19,22 @@
 
 #ifndef __CFG_PARAM_H
 #define __CFG_PARAM_H
+#include "filetype.h"
+#include "body.h"
+
+
+struct icap_server_conf{
+     int PORT;
+     char *TMPDIR;
+     char *PIDFILE;
+     char *RUN_USER;
+     char *RUN_GROUP;
+     char *cfg_file;
+     char *magics_file;
+     struct ci_magic_db *MAGIC_DB;   
+     char *SERVICES_DIR;
+     char *MODULES_DIR;
+};
 
 
 
@@ -29,6 +45,10 @@ struct conf_entry{
      char *msg;
 };
 
+#ifndef CI_BUILD_LIB
+extern struct icap_server_conf CONF;
+#endif
+
 int register_conf_table(char *name,struct conf_entry *table);
 
 CI_DECLARE_FUNC(int) setStr(char *directive,char **argv,void *setdata);
@@ -37,18 +57,5 @@ CI_DECLARE_FUNC(int) setDisable(char *directive,char **argv,void *setdata);
 CI_DECLARE_FUNC(int) setEnable(char *directive,char **argv,void *setdata);
 CI_DECLARE_FUNC(int) config(int argc, char **argv);
 
-
-CI_DECLARE_DATA extern int TIMEOUT;
-CI_DECLARE_DATA extern int KEEPALIVE_TIMEOUT;
-CI_DECLARE_DATA extern int MAX_SECS_TO_LINGER;
-CI_DECLARE_DATA extern int START_CHILDS;
-CI_DECLARE_DATA extern int MAX_CHILDS;
-CI_DECLARE_DATA extern int START_SERVERS;
-CI_DECLARE_DATA extern int MIN_FREE_SERVERS;
-CI_DECLARE_DATA extern int MAX_FREE_SERVERS;
-CI_DECLARE_DATA extern int MAX_REQUESTS_BEFORE_REALLOCATE_MEM;
-CI_DECLARE_DATA extern int PORT;
-CI_DECLARE_DATA extern char *SERVER_LOG_FILE;
-CI_DECLARE_DATA extern char *ACCESS_LOG_FILE;
 
 #endif

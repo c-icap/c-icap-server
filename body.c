@@ -24,14 +24,18 @@
 #include "simple_api.h"
 #include "util.h"
 #include <assert.h>
-
+#include <errno.h>
+#ifdef _WIN32
+#include <io.h>
+#include <fcntl.h>
+#endif
 
 #define STARTLEN 8192 /*8*1024*1024*/
 #define INCSTEP  4096
 
-struct mem_body *newmembody(){
-     struct mem_body *b;
-     b=malloc(sizeof(struct mem_body));
+struct ci_membuf *ci_new_membuf(){
+     struct ci_membuf *b;
+     b=malloc(sizeof(struct ci_membuf));
      if(!b)
 	  return NULL;
 
@@ -48,7 +52,27 @@ struct mem_body *newmembody(){
      return b;
 }
 
-void freemembody(struct mem_body *b){
+struct ci_membuf *ci_new_sized_membuf(int size){
+     struct ci_membuf *b;
+     b=malloc(sizeof(struct ci_membuf));
+     if(!b)
+	  return NULL;
+
+     b->len=0;
+     b->endpos=0;
+     b->readpos=0;
+     b->hasalldata=0;
+     b->buf=malloc(STARTLEN*sizeof(char));
+     if(b->buf==NULL){
+	  free(b);
+	  return NULL;
+     }
+     b->bufsize=STARTLEN;
+     return b;
+}
+
+
+void ci_free_membuf(struct ci_membuf *b){
      if(!b)
 	  return;
      if(b->buf)
@@ -57,13 +81,14 @@ void freemembody(struct mem_body *b){
 }
 
 
-int writememdata(struct mem_body *b, char *data,int len, int iseof){
+int ci_write_membuf(struct ci_membuf *b, char *data,int len, int iseof){
      int remains,newsize;
      char *newbuf;
      if(iseof){
 	  b->hasalldata=1;
-	  debug_printf(10,"Buffer size=%d, Data size=%d\n ",
-		       ((struct mem_body *)b)->bufsize,((struct mem_body *)b)->endpos);
+/*	  ci_debug_printf(10,"Buffer size=%d, Data size=%d\n ",
+		       ((struct membuf *)b)->bufsize,((struct membuf *)b)->endpos);
+*/
      }
 
      remains=b->bufsize-b->endpos;
@@ -87,7 +112,7 @@ int writememdata(struct mem_body *b, char *data,int len, int iseof){
      return len;
 }
 
-int readmemdata(struct mem_body *b,char *data,int len){
+int ci_read_membuf(struct ci_membuf *b,char *data,int len){
      int remains,copybytes;
      remains=b->endpos-b->readpos;
      if(remains==0 && b->hasalldata)
@@ -101,10 +126,11 @@ int readmemdata(struct mem_body *b,char *data,int len){
      return copybytes;
 }
 
-void markendofdata(struct mem_body *b){
+/*
+void markendofdata(struct membuf *b){
      b->hasalldata=1;
 }
-
+*/
 
 
 /**************************************************************************/
@@ -113,25 +139,26 @@ void markendofdata(struct mem_body *b){
 
 #define tmp_template "CI_TMP_XXXXXX"
 
+/*
 extern int  BODY_MAX_MEM;
 extern char *TMPDIR;
+*/
 
-int open_tmp_file(char *filename){
-#ifdef _WIN32
-     return  ci_mktemp_file(TMPDIR,filename);
-#else
-     strncpy(filename,TMPDIR,FILENAME_LEN-sizeof(tmp_template)-1);
-     strcat(filename,tmp_template);
-     return  mkstemp(filename);
-#endif
+int  CI_BODY_MAX_MEM=131072;
+char *CI_TMPDIR="/var/tmp/";
+
+/*
+int open_tmp_file(char *tmpdir,char *filename){
+     return  ci_mktemp_file(tmpdir,tmp_template,filename);
 }
+*/
 
 int  resize_buffer(ci_cached_file_t *body,int new_size){
      char *newbuf;
 
      if(new_size<body->bufsize)
 	  return 1;
-     if(new_size>BODY_MAX_MEM)
+     if(new_size>CI_BODY_MAX_MEM)
 	  return 0;
      
      newbuf=realloc(body->buf,new_size);
@@ -150,15 +177,16 @@ ci_cached_file_t * ci_new_cached_file(int size){
 /*     if(size==0)
 	  size=BODY_MAX_MEM;
 */
-     if(size>0 && size <=BODY_MAX_MEM ){
+     if(size>0 && size <=CI_BODY_MAX_MEM ){
 	  body->buf=malloc(size*sizeof(char));
      }
      else
 	  body->buf=NULL;
 
      if(body->buf==NULL){
-	  body->bufsize=0;
-	  if((body->fd=open_tmp_file(body->filename))<0){
+	  body->bufsize=0; 
+	  if((body->fd=ci_mktemp_file(CI_TMPDIR,tmp_template,body->filename) )<0){
+	       ci_debug_printf(1,"Can not open temporary filename in directory:%s\n",CI_TMPDIR);
 	       free(body);
 	       return NULL;
 	  }
@@ -174,6 +202,79 @@ ci_cached_file_t * ci_new_cached_file(int size){
      body->unlocked=-1;/*Not use look*/
      return body;
 }
+
+ci_cached_file_t * ci_new_uncached_file(int size){
+     ci_cached_file_t *body;
+
+     if(!(body=malloc(sizeof(ci_cached_file_t))))
+	  return NULL;
+     body->buf=NULL;
+     body->bufsize=0;
+     if((body->fd=ci_mktemp_file(CI_TMPDIR,tmp_template,body->filename))<0){
+	  ci_debug_printf(1,"Can not open temporary filename in directory:%s\n",CI_TMPDIR);
+	  free(body);
+	  return NULL;
+     }
+     body->endpos=0;
+     body->readpos=0;
+     body->eof_received=0;
+     body->unlocked=-1;/*Not use look*/
+
+     return body;
+}
+
+#ifdef _WIN32
+#define F_PERM S_IREAD|S_IWRITE
+#else
+#define F_PERM S_IREAD|S_IWRITE|S_IRGRP|S_IROTH
+#endif
+
+ci_cached_file_t *ci_new_named_uncached_file(char *tmp,char*filename){
+     ci_cached_file_t *body;
+
+     if(!(body=malloc(sizeof(ci_cached_file_t))))
+	  return NULL;
+     body->buf=NULL;
+     body->bufsize=0;
+     if(filename){
+	  snprintf(body->filename,CI_FILENAME_LEN,"%s/%s",tmp,filename);
+	  if((body->fd=open(body->filename,O_CREAT|O_RDWR|O_EXCL,F_PERM))<0){
+	       ci_debug_printf(1,"Can not open temporary filename: %s\n",body->filename);
+	       free(body);
+	       return NULL;
+	  }
+     }
+     else if((body->fd=ci_mktemp_file(tmp,tmp_template,body->filename))<0){
+	  ci_debug_printf(1,"Can not open temporary filename in directory: %s\n",tmp);
+	  free(body);
+	  return NULL;
+     }
+     body->endpos=0;
+     body->readpos=0;
+     body->eof_received=0;
+     body->unlocked=-1;/*Not use look*/
+
+     return body;
+}
+/*
+ci_cached_file_t *ci_new_uncached_file_d(char*tmp){
+     ci_cached_file_t *body;
+
+     if(!(body=malloc(sizeof(ci_cached_file_t))))
+	  return NULL;
+     body->buf=NULL;
+     body->bufsize=0;
+     if((body->fd=open_tmp_file(tmp,body->filename))<0){
+	  free(body);
+	  return NULL;
+     }
+     body->endpos=0;
+     body->readpos=0;
+     body->eof_received=0;
+     body->unlocked=-1;/
+     return body;
+}
+*/
 
 void ci_reset_cached_file(ci_cached_file_t *body,int new_size){
 
@@ -194,6 +295,7 @@ void ci_reset_cached_file(ci_cached_file_t *body,int new_size){
 }
 
 
+
 void ci_release_cached_file(ci_cached_file_t *body){
      if(!body)
 	  return;
@@ -209,19 +311,35 @@ void ci_release_cached_file(ci_cached_file_t *body){
 }
 
 
+void ci_release_and_save_cached_file(ci_cached_file_t *body){
+     if(!body)
+	  return;
+     if(body->buf)
+	  free(body->buf);
+     
+     if(body->fd>=0){
+	  close(body->fd);
+     }
+     free(body);
+}
+
+
+
 int ci_write_cached_file(ci_cached_file_t *body, char *buf,int len, int iseof){
-     int remains,newsize;
-     char *newbuf;
+     int remains;
+
 
      if(iseof){
 	  body->eof_received=1;
-	  debug_printf(10,"Buffer size=%d, Data size=%d\n ",
+	  ci_debug_printf(10,"Buffer size=%d, Data size=%d\n ",
 		       ((ci_cached_file_t *)body)->bufsize,((ci_cached_file_t *)body)->endpos);
      }
 
      if(body->fd>0){ /*A file was open so write the data at the end of file.......*/
 	  lseek(body->fd,0,SEEK_END);
-	  write(body->fd,buf,len);
+	  if(write(body->fd,buf,len)<0){
+	       ci_debug_printf(1,"Can not write to file!!! (errno=%d)\n",errno);
+	  }
 	  body->endpos+=len;
 	  return len;
      }
@@ -230,8 +348,8 @@ int ci_write_cached_file(ci_cached_file_t *body, char *buf,int len, int iseof){
      assert(remains>=0);
      if(remains< len){
 	  
-	  if((body->fd=open_tmp_file(body->filename))<0){
-	       debug_printf(1,"I can not create the temporary file name:%s!!!!!!\n",body->filename);
+	  if((body->fd=ci_mktemp_file(CI_TMPDIR,tmp_template,body->filename))<0){
+	       ci_debug_printf(1,"I can not create the temporary file name:%s!!!!!!\n",body->filename);
 	       return -1;
 	  }
 	  write(body->fd,body->buf,body->endpos);
@@ -293,7 +411,7 @@ int ci_read_cached_file(ci_cached_file_t *body,char *buf,int len){
 }
 
 
-
+/*
 int ci_memtofile_cached_file(ci_cached_file_t *body){
      int size;
      if(body->fd>0)
@@ -304,7 +422,7 @@ int ci_memtofile_cached_file(ci_cached_file_t *body){
      }
      size=write(body->fd,body->buf,body->endpos);
      if(size!=body->endpos){
-	  /*Do something .........\n*/
      }
      return size;
 }
+*/

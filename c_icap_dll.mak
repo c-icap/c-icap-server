@@ -4,8 +4,9 @@
 
 all: c_icap.Dll
 
-LIBICAPOBJS =  header.obj body.obj module.obj service.obj net_io.obj log.obj access.obj cfg_param.obj simple_api.obj base64.obj   debug.obj
+LIBICAPOBJS =  header.obj body.obj  net_io.obj  simple_api.obj base64.obj  cfg_lib.obj filetype.obj debug.obj
 LIBUTIL=os\win32\shared_mem.obj os\win32\proc_mutex.obj os\win32\net_io.obj os\win32\threads.obj os\win32\utilfunc.obj
+
 .c.obj:
 	$(cc) -Iinclude  $(cdebug) $(cflags) $(cvarsdll) $(CI_DEFS) -I. -DCI_BUILD_LIB  -DUNICODE $*.c /Fo$*.obj
 #	$(cc) -Iinclude  $(cdebug) $(cflags) $(cvarsmt) -I. -DCI_BUILD_LIB  -DUNICODE $*.c

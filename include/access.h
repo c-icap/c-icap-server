@@ -44,10 +44,11 @@ struct http_basic_auth_data{
 
 
 
-CI_DECLARE_FUNC(int) http_authorize(request_t *req);
-CI_DECLARE_FUNC(int) access_check_client(ci_connection_t *connection);
-CI_DECLARE_FUNC(int) access_check_request(request_t *req);
-CI_DECLARE_FUNC(int) access_authenticate_request(request_t *req);
+int http_authorize(request_t *req);
+int http_authenticate(request_t *req);
+int access_check_client(ci_connection_t *connection);
+int access_check_request(request_t *req);
+int access_authenticate_request(request_t *req);
 
 
 #endif

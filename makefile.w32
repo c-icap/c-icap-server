@@ -11,7 +11,7 @@ ALL_DIRS=$(LIBOS)
 DLL_ENTRY=os/win32/dll_entry.obj
 MOD_DLL_ENTRY=../../os/win32/dll_entry.obj
 
-c_icap_OBJS = request.obj proc_threads_queues.obj  aserver.obj winnt_server.obj  
+c_icap_OBJS = request.obj proc_threads_queues.obj  aserver.obj winnt_server.obj  module.obj service.obj log.obj access.obj cfg_param.obj http_auth.obj
 
 
 all: c_icap.Dll c-icap.exe sub_modules

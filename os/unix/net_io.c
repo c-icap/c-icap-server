@@ -25,14 +25,10 @@
 #include <sys/time.h>
 #include "debug.h"
 #include "net_io.h"
-#include "cfg_param.h"
 
 
 
-int icap_socket_opts(ci_socket fd);
-
-
-int icap_init_server(){
+int icap_init_server(int port,int secs_to_linger){
      int fd;
      struct sockaddr_in addr;
      struct linger li;
@@ -40,22 +36,22 @@ int icap_init_server(){
   
      fd = socket(AF_INET, SOCK_STREAM, 0);
      if(fd == -1){
-	  debug_printf(1,"Error opening socket ....\n");
+	  ci_debug_printf(1,"Error opening socket ....\n");
 	  return CI_SOCKET_ERROR;
      }
 
-     icap_socket_opts(fd);
+     icap_socket_opts(fd,secs_to_linger);
 
      addr.sin_family = AF_INET;
-     addr.sin_port = htons(PORT);
+     addr.sin_port = htons(port);
      addr.sin_addr.s_addr = INADDR_ANY;
 
      if(bind(fd,(struct sockaddr *) &addr, sizeof(addr))){
-	  debug_printf(1,"Error bind  \n");;
+	  ci_debug_printf(1,"Error bind  \n");;
 	  return CI_SOCKET_ERROR;
      }
      if(listen(fd, 5)){
-	  debug_printf(1,"Error listen .....\n");
+	  ci_debug_printf(1,"Error listen .....\n");
 	  return CI_SOCKET_ERROR;
      }
      return fd;
@@ -63,30 +59,30 @@ int icap_init_server(){
 
 
 
-int icap_socket_opts(ci_socket fd){
+int icap_socket_opts(ci_socket fd, int secs_to_linger){
      struct linger li;
      int value,addrlen;
      /* if (fcntl(fd, F_SETFD, 1) == -1) {
-        debug_printf(1,"can't set close-on-exec on server socket!");
+        ci_debug_printf(1,"can't set close-on-exec on server socket!");
 	}
      */
 
      value = 1;
      if(setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &value, sizeof(value)) == -1){
-	  debug_printf(1,"setsockopt: unable to set SO_REUSEADDR\n");  
+	  ci_debug_printf(1,"setsockopt: unable to set SO_REUSEADDR\n");  
      }
 
      value = 1;
      if (setsockopt(fd, IPPROTO_TCP, TCP_NODELAY,&value, sizeof (value)) == -1) {
-	  debug_printf(1,"setsockopt: unable to set TCP_NODELAY\n");
+	  ci_debug_printf(1,"setsockopt: unable to set TCP_NODELAY\n");
      }
 
      li.l_onoff = 1;
-     li.l_linger = MAX_SECS_TO_LINGER;
+     li.l_linger = secs_to_linger;/*MAX_SECS_TO_LINGER;*/
   
      if (setsockopt(fd, SOL_SOCKET, SO_LINGER,
 		    (char *) &li, sizeof(struct linger)) < 0) {
-	  debug_printf(1,"setsockopt: unable to set SO_LINGER \n");
+	  ci_debug_printf(1,"setsockopt: unable to set SO_LINGER \n");
      }
      return 1;
 }
@@ -94,12 +90,12 @@ int icap_socket_opts(ci_socket fd){
 
 
 
-int icap_netio_init(int fd){
+int ci_netio_init(int fd){
      fcntl(fd, F_SETFL, O_NONBLOCK ); //Setting newfd descriptor to nonblocking state....
 }
 
 
-int wait_for_data(int fd,int secs,int what_wait){
+int ci_wait_for_data(int fd,int secs,int what_wait){
      fd_set fds,*rfds,*wfds;
      struct timeval tv,*tv_param;
      int ret;
@@ -124,30 +120,13 @@ int wait_for_data(int fd,int secs,int what_wait){
 	  return 1;
      
      if(ret<0){
-	  debug_printf(5,"Fatal error while waiting for new data....\n");
+	  ci_debug_printf(5,"Fatal error while waiting for new data....\n");
      }
-//     debug_printf(1,"ERROR!!!!!!!!!!!!! wait for data time out after %d secs %d usecs\n",
-//		  tv.tv_sec,tv.tv_usec);
      return 0;
 }
 
-int check_for_keepalive_data(fd){
-     return wait_for_data(fd,KEEPALIVE_TIMEOUT,wait_for_read);
-}
 
-
-int wait_for_incomming_data(int fd){
-     return wait_for_data(fd,TIMEOUT,wait_for_read);
-}
-
-
-int wait_for_outgoing_data(int fd){
-     return wait_for_data(fd,TIMEOUT,wait_for_write);
-}
-
-
-
-int icap_read(int fd,void *buf,size_t count){
+int ci_read(int fd,void *buf,size_t count,int timeout){
      int bytes=0;
      do{
 	  bytes=read(fd,buf,count);
@@ -155,7 +134,7 @@ int icap_read(int fd,void *buf,size_t count){
      
      if(bytes==-1 && errno==EAGAIN){
 
-	  if(!wait_for_data(fd,TIMEOUT,wait_for_read)){
+	  if(!ci_wait_for_data(fd,timeout,wait_for_read)){
 	       return bytes;
 	  }
 
@@ -164,14 +143,13 @@ int icap_read(int fd,void *buf,size_t count){
 	  }while(bytes==-1 && errno==EINTR);
      }
      if(bytes==0){
-//	  debug_printf(1,"What the helll!!!! No data to read, TIMEOUT:%d, errno:%d\n",TIMEOUT,errno);
 	  return -1;
      }
      return bytes;
 }
 
 
-int icap_write(int fd, const void *buf,size_t count){
+int ci_write(int fd, const void *buf,size_t count,int timeout){
      int bytes=0;
      int remains=count;
      char *b= (char *)buf;
@@ -183,7 +161,7 @@ int icap_write(int fd, const void *buf,size_t count){
 	  
 	  if(bytes==-1 && errno==EAGAIN){
 	       
-	       if(!wait_for_data(fd,TIMEOUT,wait_for_write)){
+	       if(!ci_wait_for_data(fd,timeout,wait_for_write)){
 		    return bytes;
 	       }
 	       
@@ -201,7 +179,7 @@ int icap_write(int fd, const void *buf,size_t count){
 }
 
 
-int icap_read_nonblock(int fd, void *buf,size_t count){
+int ci_read_nonblock(int fd, void *buf,size_t count){
      int bytes=0;
      do{
 	  bytes=read(fd,buf,count);
@@ -216,7 +194,7 @@ int icap_read_nonblock(int fd, void *buf,size_t count){
 
 
 
-int icap_write_nonblock(int fd, const void *buf,size_t count){
+int ci_write_nonblock(int fd, const void *buf,size_t count){
      int bytes=0;
      do{
 	  bytes=write(fd,buf,count);
@@ -231,25 +209,25 @@ int icap_write_nonblock(int fd, const void *buf,size_t count){
 
 
 
-int icap_linger_close(int fd){
+int ci_linger_close(int fd, int timeout){
      char buf[10];
      int ret;
-     debug_printf(8,"Waiting to close connection\n");
+     ci_debug_printf(8,"Waiting to close connection\n");
 
      if(shutdown(fd,SHUT_WR)!=0){
 	  close(fd);
 	  return;
      }
 
-     while(wait_for_data(fd,MAX_SECS_TO_LINGER,wait_for_read) && (ret=icap_read_nonblock(fd,buf,10))>0)
-	  debug_printf(8,"OK I linger %d bytes.....\n",ret);
+     while(ci_wait_for_data(fd,timeout,wait_for_read) && (ret=ci_read_nonblock(fd,buf,10))>0)
+	  ci_debug_printf(8,"OK I linger %d bytes.....\n",ret);
 
      close(fd);
-     debug_printf(8,"Connection closed ...\n");
+     ci_debug_printf(8,"Connection closed ...\n");
 }
 
 
-int icap_hard_close(int fd){
+int ci_hard_close(int fd){
 	  close(fd);
 }
 
@@ -273,7 +251,7 @@ int readline(int fd,char *buf){
      }
      buf[i]='\0';
      if(i==BUFSIZE){
-	  debug_printf("Readline error. Skip until eol ......\n");
+	  ci_debug_printf("Readline error. Skip until eol ......\n");
 	  while(icap_read(fd,&c,1)>0 && c!='\n');
      }
      return i;

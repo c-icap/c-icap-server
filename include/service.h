@@ -22,6 +22,7 @@
 
 #include "request.h"
 #include "header.h"
+#include "cfg_param.h"
 
 
 #define CI_MOD_NOT_READY 0
@@ -39,23 +40,23 @@ struct  service_module{
      char **mod_options_header;
      char *mod_options_body;
 
-     int (*mod_init_service)(service_module_t *this);
+     int (*mod_init_service)(service_module_t *this,struct icap_server_conf *server_conf);
      void (*mod_close_service)(service_module_t *this);
      void *(*mod_init_request_data)(service_module_t *this,struct request *);
      void (*mod_release_request_data)(void *module_data);
 
-     void (*mod_end_of_headers_handler)(void *module_data,struct request *);
-     int (*mod_check_preview_handler)(void *module_data,struct request*);
+/*     void (*mod_end_of_headers_handler)(void *module_data,struct request *);*/
+     int (*mod_check_preview_handler)(void *module_data,char *preview_data,int preview_data_len,struct request*);
      int (*mod_end_of_data_handler)(void *module_data,struct request*);
      
-     int (*mod_writedata)(void *module_data, char *buf,int len,int iseof);
-     int (*mod_readdata)(void *module_data,char *buf,int len);
+     int (*mod_writedata)(void *module_data, char *buf,int len,int iseof,struct request *);
+     int (*mod_readdata)(void *module_data,char *buf,int len,struct request *);
      struct conf_entry *mod_conf_table;
      void *mod_data;
 };
 
 
 service_module_t * register_service(char *module_file);
-CI_DECLARE_FUNC(service_module_t) *find_service(char *service_name);
+service_module_t *find_service(char *service_name);
 
 #endif

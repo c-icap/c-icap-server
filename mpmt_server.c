@@ -41,6 +41,14 @@
 
 
 
+extern int KEEPALIVE_TIMEOUT;
+extern int MAX_SECS_TO_LINGER;
+extern int START_CHILDS;
+extern int MAX_CHILDS;
+extern int START_SERVERS;
+extern int MIN_FREE_SERVERS;
+extern int MAX_FREE_SERVERS;
+extern int MAX_REQUESTS_BEFORE_REALLOCATE_MEM;
 
 typedef struct server_decl{
      int srv_id;
@@ -67,24 +75,22 @@ ci_proc_mutex_t accept_mutex;
 
 
 
-#define hard_close_connection(connection)  icap_hard_close(connection->fd)
-
-
-#define close_connection(connection) icap_linger_close(connection->fd)
-
+#define hard_close_connection(connection)  ci_hard_close(connection->fd)
+#define close_connection(connection) ci_linger_close(connection->fd,MAX_SECS_TO_LINGER)
+#define check_for_keepalive_data(fd) ci_wait_for_data(fd,KEEPALIVE_TIMEOUT,wait_for_read)
 
 
 
 
 static void sigpipe_handler(int sig){
-    debug_printf(1,"SIGPIPE signal received.\n");
+    ci_debug_printf(1,"SIGPIPE signal received.\n");
     log_server(NULL,"%s","SIGPIPE signal received.\n");
 }
 
 static void exit_normaly(){
      int i=0;
      server_decl_t *srv;
-     debug_printf(5,"Suppose that all childs are allready exited...\n");
+     ci_debug_printf(5,"Suppose that all childs are allready exited...\n");
      while((srv=threads_list[i])!=NULL){
 	  if(srv->current_req){
 	       close_connection(srv->current_req->connection);
@@ -107,7 +113,7 @@ static void cancel_all_threads(){
 
      ci_thread_cond_broadcast(&(con_queue->queue_cond));//What about childs that serve a request?
      while(threads_list[i]!=NULL){
-	  debug_printf(5,"Cancel server %d, thread_id %d (%d)\n",threads_list[i]->srv_id,
+	  ci_debug_printf(5,"Cancel server %d, thread_id %d (%d)\n",threads_list[i]->srv_id,
 		       threads_list[i]->srv_pthread,i);
 	  ci_thread_join(threads_list[i]->srv_pthread);
 	  i++;
@@ -118,11 +124,11 @@ static void cancel_all_threads(){
 
 static void term_handler_child(int sig){
      int i=0;
-     debug_printf(5,"A termination signal received (%d).\n",sig);
+     ci_debug_printf(5,"A termination signal received (%d).\n",sig);
      if(child_data->to_be_killed==GRACEFULLY){
 	  cancel_all_threads();
 	  exit_normaly();
-	  debug_printf(5,"Exiting gracefully\n");
+	  ci_debug_printf(5,"Exiting gracefully\n");
      }
      exit(0);
 }
@@ -135,8 +141,8 @@ static void sigint_handler_main(int sig){
      signal(SIGCHLD,SIG_IGN);
 
      if(sig==SIGTERM){
-        debug_printf(5,"SIGTERM signal received for main server.\n");
-        debug_printf(5,"Going to term childs....\n");
+        ci_debug_printf(5,"SIGTERM signal received for main server.\n");
+        ci_debug_printf(5,"Going to term childs....\n");
         for(i=0;i<childs_queue.size;i++){
 	     if(childs_queue.childs[i].pid==0)
 		  continue;
@@ -144,17 +150,17 @@ static void sigint_handler_main(int sig){
         }
      }
      else if(sig==SIGINT){
-	  debug_printf(5,"SIGINT signal received for main server.\n");
+	  ci_debug_printf(5,"SIGINT signal received for main server.\n");
      }
      else{
-	  debug_printf(5,"Signal %d received. Exiting ....\n",sig);
+	  ci_debug_printf(5,"Signal %d received. Exiting ....\n",sig);
      }
      
      for(i=0;i<childs_queue.size;i++){
 	  if(childs_queue.childs[i].pid==0)
 	       continue;
 	  pid=wait(&status);
-	  debug_printf(5,"Child %d died with status %d\n",pid,status);
+	  ci_debug_printf(5,"Child %d died with status %d\n",pid,status);
      }
      ci_proc_mutex_destroy(&accept_mutex);
      destroy_childs_queue(&childs_queue);
@@ -162,23 +168,23 @@ static void sigint_handler_main(int sig){
 }
 
 static void empty(int sig){
-    debug_printf(10,"An empty signal handler (%d).\n",sig);
+    ci_debug_printf(10,"An empty signal handler (%d).\n",sig);
 }
 
 
 static void sigchld_handler_main(int sig){
      int status,pid,i;
      if((pid=wait(&status))<0){
-	  debug_printf(1,"Fatal error waiting a child to exit .....\n");
+	  ci_debug_printf(1,"Fatal error waiting a child to exit .....\n");
 	  return;
      }
      if(pid>0){
-	  debug_printf(5,"The child %d died ...\n",pid);
+	  ci_debug_printf(5,"The child %d died ...\n",pid);
 	  remove_child(&childs_queue,pid);
 	  if(!WIFEXITED(status)){
-	       debug_printf(3,"The child not exited normaly....");
+	       ci_debug_printf(3,"The child not exited normaly....");
 	       if(WIFSIGNALED(status))
-		    debug_printf(3,"signaled with signal:%d\n",WTERMSIG(status));
+		    ci_debug_printf(3,"signaled with signal:%d\n",WTERMSIG(status));
 	  }
 
      }
@@ -204,7 +210,7 @@ void thread_signals(){
      sigemptyset(&sig_mask);
      sigaddset(&sig_mask,SIGINT);
      if(pthread_sigmask(SIG_BLOCK,&sig_mask,NULL))
-	  debug_printf(5,"O an error....\n");
+	  ci_debug_printf(5,"O an error....\n");
      pthread_setcancelstate(PTHREAD_CANCEL_ENABLE,NULL);
      pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS,NULL);
 }
@@ -252,11 +258,11 @@ int thread_main(server_decl_t *srv){
 	  }
 	  
 	  if(ret<0){ //An error has occured
-	       debug_printf(1,"Error getting from connections queue\n");
+	       ci_debug_printf(1,"Error getting from connections queue\n");
 	       break;
 	  }
 
-	  icap_netio_init(con.fd);
+	  ci_netio_init(con.fd);
 
 	  ret=1;
 	  if(srv->current_req==NULL)
@@ -266,7 +272,7 @@ int thread_main(server_decl_t *srv){
 	  
 	  if(srv->current_req==NULL || ret==0){
 	       ci_addrtohost(&(con.claddr.sin_addr),clientname, CI_MAXHOSTNAMELEN);
-	       debug_printf(1,"Request from %s denied...\n",clientname);
+	       ci_debug_printf(1,"Request from %s denied...\n",clientname);
 	       hard_close_connection((&con));
 	       continue;/*The request rejected. Log an error and continue ...*/
 	  }
@@ -279,7 +285,7 @@ int thread_main(server_decl_t *srv){
 
 	  do{
 	       if((request_status=process_request(srv->current_req))<0){
-		    debug_printf(5,"Process request timeout or interupted....\n");
+		    ci_debug_printf(5,"Process request timeout or interupted....\n");
 		    reset_request(srv->current_req);
 		    break;//
 	       }
@@ -299,10 +305,10 @@ int thread_main(server_decl_t *srv){
 	       if(child_data->to_be_killed)
 		    return; //Exiting thread.....
 	      
-               debug_printf(8,"Keep-alive:%d\n",srv->current_req->keepalive); 
+               ci_debug_printf(8,"Keep-alive:%d\n",srv->current_req->keepalive); 
 	       if(srv->current_req->keepalive && check_for_keepalive_data(srv->current_req->connection->fd)){
 		    reset_request(srv->current_req);
-		    debug_printf(8,"Server %d going to serve new request from client(keep-alive) \n",
+		    ci_debug_printf(8,"Server %d going to serve new request from client(keep-alive) \n",
 				 srv->srv_id);
 	       }
 	       else
@@ -316,7 +322,7 @@ int thread_main(server_decl_t *srv){
 		    close_connection(srv->current_req->connection);
 	  }
 	  if(srv->served_requests_no_reallocation > MAX_REQUESTS_BEFORE_REALLOCATE_MEM){
-	       debug_printf(5,"Max requests reached, reallocate memory and buffers .....\n");
+	       ci_debug_printf(5,"Max requests reached, reallocate memory and buffers .....\n");
 	       destroy_request(srv->current_req);
 	       srv->current_req=NULL;
 	       srv->served_requests_no_reallocation=0;
@@ -363,19 +369,19 @@ void child_main(int sockfd){
 	  if(!ci_proc_mutex_lock(&accept_mutex)){
 	       
 	       if(errno==EINTR){
-		    debug_printf(5,"EINTR received\n");
+		    ci_debug_printf(5,"EINTR received\n");
 		    if(child_data->to_be_killed)
 			 goto end_child_main;
 		    continue;
 	       }
 	  }
 	  child_data->idle=0;
-	  debug_printf(7,"Child %d getting requests now ...\n",pid);
+	  ci_debug_printf(7,"Child %d getting requests now ...\n",pid);
 	  do{//Getting requests while we have free servers.....
 	       do{
 		    errno = 0;
 		    if(((conn.fd = accept(sockfd, (struct sockaddr *)&(conn.claddr), &claddrlen)) == -1) && errno != EINTR){
-			 debug_printf(1,"error accept .... %d\nExiting server ....\n",errno);
+			 ci_debug_printf(1,"error accept .... %d\nExiting server ....\n",errno);
 			 exit(-1); //For the moment .......
 			 goto end_child_main ;
 		    }
@@ -386,12 +392,12 @@ void child_main(int sockfd){
 	       getsockname(conn.fd,(struct sockaddr *)&(conn.srvaddr),&claddrlen);
 
 
-	       icap_socket_opts(sockfd);
+	       icap_socket_opts(sockfd,MAX_SECS_TO_LINGER);
 	       
 	       if((jobs_in_queue=put_to_queue(con_queue,&conn))==0){
-		    debug_printf(1,"ERROR!!!!!!NO AVAILABLE SERVERS!!!!!!!!!\n");
+		    ci_debug_printf(1,"ERROR!!!!!!NO AVAILABLE SERVERS!!!!!!!!!\n");
 		    child_data->to_be_killed=GRACEFULLY;
-		    debug_printf(1,"Jobs in Queue:%d,Free servers:%d, Used Servers :%d, Requests %d\n",
+		    ci_debug_printf(1,"Jobs in Queue:%d,Free servers:%d, Used Servers :%d, Requests %d\n",
 				 jobs_in_queue,
 				 child_data->freeservers,child_data->usedservers,child_data->requests);
 		    
@@ -408,7 +414,7 @@ void child_main(int sockfd){
 
 	  ci_thread_mutex_lock(&counters_mtx);
 	  if(child_data->freeservers==0){
-	       debug_printf(7,"Child %d waiting for a thread to accept more connections ...\n",pid);
+	       ci_debug_printf(7,"Child %d waiting for a thread to accept more connections ...\n",pid);
 	       ci_thread_cond_wait(&free_server_cond,&counters_mtx);
 	  }
 	  ci_thread_mutex_unlock(&counters_mtx);
@@ -444,7 +450,7 @@ int start_server(int fd){
 
      ci_proc_mutex_init(&accept_mutex);
      if(!create_childs_queue(&childs_queue,MAX_CHILDS)){
-	  debug_printf(1,"Can't init shared memory.Fatal error, exiting!\n");
+	  ci_debug_printf(1,"Can't init shared memory.Fatal error, exiting!\n");
 	  exit(0);
      }
 
@@ -463,23 +469,23 @@ int start_server(int fd){
 	  while(1){
 	       sleep(1); /*Must be replaced by nanosleep. */
 	       childs_queue_stats(&childs_queue,&childs,&freeservers, &used, &maxrequests);
-	       debug_printf(10,"Server stats: \n\t Childs:%d\n\t Free servers:%d\n\tUsed servers:%d\n\tRequests served:%d\n",
+	       ci_debug_printf(10,"Server stats: \n\t Childs:%d\n\t Free servers:%d\n\tUsed servers:%d\n\tRequests served:%d\n",
 			    childs, freeservers,used, maxrequests);
 	       if( (freeservers<=MIN_FREE_SERVERS && childs<MAX_CHILDS) ||childs<START_CHILDS){
-		    debug_printf(8,"Going to start a child .....\n");
+		    ci_debug_printf(8,"Going to start a child .....\n");
 		    pid=start_child(fd);
 	       }
 	       else if(freeservers>=MAX_FREE_SERVERS&& childs>START_CHILDS){
 		    child_indx=find_an_idle_child(&childs_queue);
 		    childs_queue.childs[child_indx].to_be_killed=GRACEFULLY;
 		    kill(childs_queue.childs[child_indx].pid,SIGINT);
-		    debug_printf(8,"Going to stop child %d .....\n",childs_queue.childs[child_indx].pid);
+		    ci_debug_printf(8,"Going to stop child %d .....\n",childs_queue.childs[child_indx].pid);
 		    //kill a server ...
 	       }    
 	  }
 	  for(i=0;i<START_CHILDS;i++){
 	       pid=wait(&status);
-	       debug_printf(5,"The child %d died with status %d\n",pid,status);
+	       ci_debug_printf(5,"The child %d died with status %d\n",pid,status);
 	  }
      }
 #else

@@ -25,11 +25,15 @@
 #include "log.h"
 #include "cfg_param.h"
 
-
+/*
 extern char *PIDFILE;
 extern char *RUN_USER;
 extern char *RUN_GROUP;
+extern int PORT;
+*/
+
 extern int DAEMON_MODE;
+extern int MAX_SECS_TO_LINGER;
 
 void init_conf_tables();
 int config(int,char **);
@@ -42,7 +46,7 @@ int set_running_permissions(char *user,char *group);
 void run_as_daemon(){
      int pid;
      if((pid=fork())<0){
-	  debug_printf(1,"Can not fork. exiting...");
+	  ci_debug_printf(1,"Can not fork. exiting...");
 	  exit(-1);
      }
      if(pid)
@@ -53,6 +57,12 @@ void run_as_daemon(){
 int main(int argc,char **argv){
      ci_socket s;
 
+#if ! defined(_WIN32)     
+     __log_error=log_server; /*set c-icap library log  function*/
+#else
+     __vlog_error=vlog_server; /*set c-icap library  log function*/
+#endif
+     
      init_conf_tables();
      init_modules();
      config(argc,argv);
@@ -62,17 +72,19 @@ int main(int argc,char **argv){
 	  run_as_daemon();
 
 
-     store_pid(PIDFILE);
-     if(!set_running_permissions(RUN_USER,RUN_GROUP))
+     store_pid(CONF.PIDFILE);
+     if(!set_running_permissions(CONF.RUN_USER,CONF.RUN_GROUP))
 	  exit(-1);
 #endif
+     
 
      if(!log_open()){
-          debug_printf(1,"Can not init loggers. Exiting.....\n");
+          ci_debug_printf(1,"Can not init loggers. Exiting.....\n");
           exit(-1);
      }
+
  
-     s=icap_init_server(); 
+     s=icap_init_server(CONF.PORT,MAX_SECS_TO_LINGER); 
 
 
      if(s==CI_SOCKET_ERROR)

@@ -43,7 +43,7 @@ static struct sembuf op_unlock[1]={
 
 int ci_proc_mutex_init(ci_proc_mutex_t *mutex){
      if((*mutex=semget(IPC_PRIVATE,1,IPC_CREAT|PERMS))<0 ){
-	  debug_printf(1,"Error creating mutex");
+	  ci_debug_printf(1,"Error creating mutex");
 	  return 0;
      }
      return 1;
@@ -51,7 +51,7 @@ int ci_proc_mutex_init(ci_proc_mutex_t *mutex){
 
 int ci_proc_mutex_destroy(ci_proc_mutex_t *mutex){
      if(semctl(*mutex,0,IPC_RMID,0)<0){
-	  debug_printf(1,"Error removing mutex");
+	  ci_debug_printf(1,"Error removing mutex");
 	  return 0;
      }
      return 1;
@@ -75,7 +75,7 @@ int ci_proc_mutex_unlock(ci_proc_mutex_t *mutex){
 
 int ci_proc_mutex_init(ci_proc_mutex_t *mutex){
   if(sem_init(mutex,1,1)<0){
-    debug_printf(1,"An error ocured (errno:%d, ENOSYS:%d)\n",errno,ENOSYS);
+    ci_debug_printf(1,"An error ocured (errno:%d, ENOSYS:%d)\n",errno,ENOSYS);
     return 0;
   }
   return 1;

@@ -23,6 +23,7 @@
 #include <time.h>
 #include "log.h"
 #include "util.h"
+#include "access.h"
 #include "module.h"
 #include "cfg_param.h"
 
@@ -45,6 +46,10 @@ void log_access(request_t *req, int status){ /*req can not be NULL*/
      char serverip[CI_IPLEN], clientip[CI_IPLEN];
      if(!req)
 	  return;
+
+     if(access_check_logging(req)==CI_ACCESS_ALLOW) 
+	  return;
+
      ci_conn_remote_ip(req->connection,clientip);
      ci_conn_local_ip(req->connection,serverip);
 

@@ -20,10 +20,18 @@
 #define __UTIL_H
 
 #define STR_TIME_SIZE 50
+#ifdef _WIN32
+#define CI_FILENAME_LEN _MAX_PATH
+#else
+#define CI_FILENAME_LEN FILENAME_MAX
+#endif
 
 CI_DECLARE_FUNC(void) ci_strtime(char *buf);
-CI_DECLARE_FUNC(int)  ci_mktemp_file(char*dir,char *filename);
+CI_DECLARE_FUNC(int)  ci_mktemp_file(char*dir,char *template,char *filename);
+
+
 #ifdef _WIN32
+CI_DECLARE_FUNC(int) strcasecmp(const char *s1, const char *s2);
 CI_DECLARE_FUNC(int) strncasecmp(const char *s1, const char *s2, size_t n);
 CI_DECLARE_FUNC(int) mkstemp(char *filename);
 #endif

@@ -2,13 +2,14 @@
 #include "request.h"
 #include "access.h"
 #include "module.h"
+#include "simple_api.h"
 #include "debug.h"
 
 
 /*To be repleced by http_authenticate .......*/
 int http_authorize(request_t *req){
      return http_authenticate(req);
-     debug_printf(1,"Allowing http_access.....\n");
+     ci_debug_printf(1,"Allowing http_access.....\n");
      return CI_ACCESS_ALLOW;
 }
 
@@ -24,17 +25,17 @@ int http_authenticate(request_t *req){
      int i,len,res,method_id;
 
      if((method_str=ci_req_reqmod_get_header(req,"Proxy-Authorization"))!=NULL){
-	  debug_printf(10,"Str is %s ....\n",method_str);
+	  ci_debug_printf(10,"Str is %s ....\n",method_str);
 	  if((auth_str=strchr(method_str,' '))==NULL)
 	       return 0;
 	  len=auth_str-method_str;
 	  method_str[len]='\0'; /*Just to pass it to the following method .....*/
-	  debug_printf(10,"Method is %s ....\n",method_str);
+	  ci_debug_printf(10,"Method is %s ....\n",method_str);
 	  auth_method=get_authentication_schema(method_str,&authenticators);
 	  method_str[len]=' '; /*Put back the space .........*/
 	  
 	  if(auth_method==NULL){
-	       debug_printf(1,"Authentication method not found ...\n");
+	       ci_debug_printf(1,"Authentication method not found ...\n");
 	       return 0;
 	  }
 
@@ -48,7 +49,7 @@ int http_authenticate(request_t *req){
 	  auth_method->release_auth_data(method_data);
 	  return res;
      }
-     debug_printf(1,"Access denied!!!!!\n");
+     ci_debug_printf(1,"Access denied!!!!!\n");
      return CI_ACCESS_DENY;
 }
 
@@ -91,7 +92,7 @@ struct http_basic_auth_data *basic_create_auth_data(char *auth_line, char **user
      data=malloc(sizeof(struct http_basic_auth_data));
      
      ci_base64_decode(auth_line,dec_http_user,max_decode_len);
-     debug_printf(10,"The proxy user is:%s (basic method) ", dec_http_user);
+     ci_debug_printf(10,"The proxy user is:%s (basic method) ", dec_http_user);
      
      if((str=strchr(dec_http_user,':'))!=NULL){
 	  *str='\0';
@@ -134,14 +135,14 @@ authenticator_module_t file_basic={
 
 int file_basic_athenticate(struct http_basic_auth_data *data){
 
-     debug_printf(1,"Going to authenticate user %s:%s\n",data->http_user,data->http_pass);
+     ci_debug_printf(1,"Going to authenticate user %s:%s\n",data->http_user,data->http_pass);
 
      if(strcmp(data->http_user,"squiduser")!=0)
 	  return CI_ACCESS_UNKNOWN;
      if(strcmp(data->http_pass,"123")!=0)
 	  return CI_ACCESS_DENY;
 
-     debug_printf(1,"User authenticated ........\n");
+     ci_debug_printf(1,"User authenticated ........\n");
      
      return CI_ACCESS_ALLOW;
 }

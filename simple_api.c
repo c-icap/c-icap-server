@@ -129,5 +129,11 @@ int ci_req_content_lenght(request_t *req){
      return strtol(val,NULL,10);
 }
 
-
+char *ci_req_http_request(request_t *req){
+     ci_header_list_t *heads;
+     char *val;
+     if(!(heads=ci_req_reqmod_headers(req)))
+	  return NULL;
+     return heads->headers[0];
+}
 

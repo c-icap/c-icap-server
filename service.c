@@ -26,9 +26,9 @@
 #ifdef _WIN32
 #include <windows.h>
 #endif
+#include "cfg_param.h"
 
 
-extern char *SERVICES_DIR;
 static service_module_t **service_list=NULL;
 static int service_list_size;
 static int services_num=0;
@@ -65,9 +65,9 @@ service_module_t *load_c_module(char *service_file){
      
 #ifdef HAVE_DLFCN_H 
      if(service_file[0]!='/'){
-	  if((path=malloc((strlen(service_file)+strlen(SERVICES_DIR)+5)*sizeof(char)))==NULL)
+	  if((path=malloc((strlen(service_file)+strlen(CONF.SERVICES_DIR)+5)*sizeof(char)))==NULL)
 	       return NULL;
-	  strcpy(path,SERVICES_DIR);
+	  strcpy(path,CONF.SERVICES_DIR);
 	  strcat(path,"/");
 	  strcat(path,service_file);
 	  handle=dlopen(path,RTLD_LAZY|RTLD_GLOBAL);	  
@@ -77,7 +77,7 @@ service_module_t *load_c_module(char *service_file){
 	  handle=dlopen(service_file,RTLD_LAZY|RTLD_GLOBAL);
 
      if(!handle){
-          debug_printf(1,"Error loading service :%s\n",service_file);
+          ci_debug_printf(1,"Error loading service :%s\n",service_file);
 	  return NULL;
      }
      service=dlsym(handle,"service");
@@ -91,7 +91,7 @@ service_module_t *load_c_module(char *service_file){
      if( !(handle=LoadLibraryEx(filename,NULL,LOAD_WITH_ALTERED_SEARCH_PATH))
 	&&
 	!(handle=LoadLibraryEx(filename,NULL,NULL))){
-	  debug_printf(1,"Error loading service. Error code %d\n",GetLastError());
+	  ci_debug_printf(1,"Error loading service. Error code %d\n",GetLastError());
 	  return NULL;
      }
      service=GetProcAddress(handle,"service");
@@ -137,12 +137,12 @@ service_module_t * register_service(char *service_file){
 //     service=load_c_module(service_file);
      service=create_service(service_file);
      if(!service){
-	  debug_printf(1,"Error finding symbol \"service\" in  module %s\n",service_file);
+	  ci_debug_printf(1,"Error finding symbol \"service\" in  module %s\n",service_file);
 	  return NULL;
      }
 
      if(service->mod_init_service)
-	  service->mod_init_service(service);
+	  service->mod_init_service(service,&CONF);
      
      service_list[services_num++]=service;
 

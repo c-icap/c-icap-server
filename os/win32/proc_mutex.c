@@ -25,7 +25,7 @@
 
 int ci_proc_mutex_init(ci_proc_mutex_t *mutex){
      if((*mutex=CreateMutex(NULL,FALSE,NULL))==NULL){
-	  debug_printf(1,"Error creating mutex:%d\n",GetLastError());
+	  ci_debug_printf(1,"Error creating mutex:%d\n",GetLastError());
 	  return 0;
      }
      return 1;

@@ -40,21 +40,28 @@ enum RESPONCE_STATUS {SEND_NOTHING=0, SEND_RESPHEAD, SEND_HEAD1, SEND_HEAD2, SEN
 #define EXTRA_CHUNK_SIZE 30
 #define MAX_USERNAME_LEN 255
 
+struct buf{
+     char *buf;
+     int size;
+     int used;
+} buf_t;
+
+
 struct service_module;
 
 typedef struct request{
      ci_connection_t *connection;
      int type;
-
      char req_server[CI_MAXHOSTNAMELEN+1];
      int access_type;
      char user[MAX_USERNAME_LEN+1];
-
      char *service;
      char *args;
      int preview;
      int keepalive;
+     int allow204;
      int hasbody;
+     struct buf preview_data;
      struct service_module *current_service_mod;
      ci_header_list_t *head;
      ci_header_list_t *responce_head;
@@ -63,14 +70,19 @@ typedef struct request{
 
      void *service_data;
 
-     char buf[BUFSIZE];
+     char rbuf[BUFSIZE];
      char wbuf[MAX_CHUNK_SIZE+EXTRA_CHUNK_SIZE+2];
-     
+     int eof_received;
      int data_locked;
-     int getdata_status;
-     char *pstrblock_getdata;
-     int next_block_len;
-     
+
+     char *pstrblock_read; 
+     int  pstrblock_read_len;
+     unsigned int current_chunk_len;
+     unsigned int chunk_bytes_read;
+     unsigned int write_to_module_pending;
+
+//     int next_block_len;
+//     int getdata_status;     
 //     char chunk_defs_buf[10];
 //     char *pstr_chunk_defs;
 //     char remain_chunk_defs_bytes;

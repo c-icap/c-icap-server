@@ -106,6 +106,7 @@ const struct ci_error_code CI_ErrorCodes[]={
   {505, "Unsupported version"}  /*ICAP version not supported by server.*/
 };
 
+/*
 #ifdef __CYGWIN__
 int ci_error_code(int ec){
      return (ec>=EC_100&&ec<=EC_500?CI_ErrorCodes[ec].code:1000);
@@ -117,7 +118,7 @@ const char *ci_error_code_string(int ec){
      return (ec>=EC_100&&ec<=EC_505?CI_ErrorCodes[ec].str:unknownerrorcode);
 }
 #endif
-
+*/
 
 
 const char *CI_EncapsEntities[]={
@@ -151,18 +152,18 @@ ci_header_list_t  *mk_header(){
        return NULL;
 
   if(!(h->headers=malloc(HEADERSTARTSIZE*sizeof(char *))) ||!(h->buf=malloc(HEADSBUFSIZE*sizeof(char))) ){
-    debug_printf(1,"Server Error: Error allocation memory \n");
-    if(h->headers) free(h->headers);
-    if(h->buf) free(h->buf);
-    if(h) free(h);
-    return NULL;    
+       ci_debug_printf(1,"Server Error: Error allocation memory \n");
+       if(h->headers) free(h->headers);
+       if(h->buf) free(h->buf);
+       if(h) free(h);
+       return NULL;    
   }
   
   h->size=HEADERSTARTSIZE;
   h->used=0;
   h->bufsize=HEADSBUFSIZE;
   h->bufused=0;
-
+  
   return h;
 }
 
@@ -181,7 +182,7 @@ int set_size_header(ci_header_list_t *h, int size){
      
      newbuf=realloc(h->buf,size*sizeof(char));
      if(!newbuf){
-	  debug_printf(1,"Server Error:Error allocation memory \n");
+	  ci_debug_printf(1,"Server Error:Error allocation memory \n");
 	  return 0;
      }
      h->buf=newbuf;
@@ -203,7 +204,7 @@ char *add_header(ci_header_list_t *h, char *line){
        len=h->size+HEADERSTARTSIZE;
        newspace=realloc(h->headers,len*sizeof(char *));
        if(!newspace){
-	    debug_printf(1,"Server Error:Error allocation memory \n");
+	    ci_debug_printf(1,"Server Error:Error allocation memory \n");
 	    return NULL;
        }
        h->headers=newspace;
@@ -213,7 +214,7 @@ char *add_header(ci_header_list_t *h, char *line){
        len=h->bufsize+HEADSBUFSIZE;
        newbuf=realloc(h->buf,len*sizeof(char));
        if(!newbuf){
-	    debug_printf(1,"Server Error:Error allocation memory \n");
+	    ci_debug_printf(1,"Server Error:Error allocation memory \n");
 	    return NULL;
        }
        h->buf=newbuf;
@@ -272,7 +273,7 @@ int remove_header(ci_header_list_t *h, char *header){
 	       else{
 		    header_len=h->headers[i+1]-h->headers[i];
 		    rest_len=h->bufused-(h->headers[i]-h->buf)-header_len;
-		    debug_printf(1,"remove_header : remain len %d\n",rest_len);
+		    ci_debug_printf(1,"remove_header : remain len %d\n",rest_len);
 		    memmove(phead,h->headers[i+1],rest_len);
 		    /*reconstruct index.....*/
 		    h->bufused-=header_len;

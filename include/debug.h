@@ -25,20 +25,22 @@
 #include <stdarg.h>
 #include "request.h"
 #include "log.h" 
+#include "cfg_param.h"
 
-/*#define DEBUG_LEVEL 10*/
-CI_DECLARE_DATA extern int DEBUG_LEVEL;
-CI_DECLARE_DATA extern int DEBUG_STDOUT;
-CI_DECLARE_FUNC(void) ci_debug_printf(int i,const char *format, ...);
-CI_DECLARE_FUNC(void) debug_print_request(request_t *req);
+
+CI_DECLARE_DATA extern int CI_DEBUG_LEVEL;
+CI_DECLARE_DATA extern int CI_DEBUG_STDOUT;
+
 
 #ifdef _MSC_VER
-#define debug_printf ci_debug_printf
+CI_DECLARE_DATA extern void (*__vlog_error)(request_t *req, const char *format, va_list ap);
+CI_DECLARE_FUNC(void) __ldebug_printf(int i,const char *format, ...);
+#define ci_debug_printf __ldebug_printf
+
 #else
-#define debug_printf(i,args...) if(i<=DEBUG_LEVEL){ log_server(NULL,args); if(DEBUG_STDOUT) printf(args);}
+ extern void (*__log_error)(void *req, const char *format,... );
+#define ci_debug_printf(i, args...) if(i<=CI_DEBUG_LEVEL){ if(__log_error) (*__log_error)(NULL,args); if(CI_DEBUG_STDOUT) printf(args);}
 #endif
 
 
-
-
-#endif
+#endif /*__DEBUG_H*/

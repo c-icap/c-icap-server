@@ -30,7 +30,7 @@ int store_pid(char *pidfile){
      pid=getpid();
 
      if((fd=open(pidfile,O_CREAT | O_WRONLY, 0644))<0){
-	  debug_printf(1,"Can not open the pid file:%s\n",pidfile);
+	  ci_debug_printf(1,"Can not open the pid file:%s\n",pidfile);
 	  return 0;
      }
      snprintf(strPid,29,"%d",pid);     
@@ -52,18 +52,18 @@ int set_running_permissions(char *user,char *group){
 	  gid=strtol(group,&pend,10);
 	  if(pend!='\0' || gid <0 || errno!=0){ /*string "group" does not contains a clear number*/
 	       if((grp=getgrnam(group))==NULL){
-		    debug_printf(1,"There is no group %s in password file!\n",group);
+		    ci_debug_printf(1,"There is no group %s in password file!\n",group);
 		    return 0;
 	       }
 	       gid=grp->gr_gid;	       
 	  }
 	  else if(getgrgid(gid)==NULL){
-	       debug_printf(1,"There is no group with id=%d in password file!\n",uid);
+	       ci_debug_printf(1,"There is no group with id=%d in password file!\n",uid);
 	       return 0;
 	  }
 	  
 	  if(setgid(gid)!=0){
-	       debug_printf(1,"setgid to %d failed!!!!\n",gid);
+	       ci_debug_printf(1,"setgid to %d failed!!!!\n",gid);
 	       perror("Wtat is this; ");
 	       return 0;
 	  }
@@ -75,18 +75,18 @@ int set_running_permissions(char *user,char *group){
 	  uid=strtol(user,&pend,10);
 	  if(pend!='\0' || uid <0 || errno!=0){ /*string "user" does not contain a clear number*/
 	       if((pwd=getpwnam(user))==NULL){
-		    debug_printf(1,"There is no user %s in password file!\n",user);
+		    ci_debug_printf(1,"There is no user %s in password file!\n",user);
 		    return 0;
 	       }
 	       uid=pwd->pw_uid;
 	  }
 	  else if(getpwuid(uid)==NULL){
-	       debug_printf(1,"There is no user with id=%d in password file!\n",uid);
+	       ci_debug_printf(1,"There is no user with id=%d in password file!\n",uid);
 	       return 0;
 	  }
 
 	  if(setuid(uid)!=0){
-	       debug_printf(1,"setuid to %d failed!!!!\n",uid);
+	       ci_debug_printf(1,"setuid to %d failed!!!!\n",uid);
 	       return 0;
 	  }
      }

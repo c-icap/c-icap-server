@@ -70,7 +70,7 @@ CI_DECLARE_DATA logger_module_t module={
 
 int SetFacility(char *directive,char **argv,void *setdata){
      if(argv==NULL || argv[0]==NULL){
-	  debug_printf(1,"Missing arguments in directive\n");
+//	  ci_debug_printf(1,"Missing arguments in directive\n");
 	  return 0;
      }
      if(strcmp(argv[0],"daemon")==0)
@@ -109,7 +109,7 @@ int SetFacility(char *directive,char **argv,void *setdata){
 
 int SetPriority(char *directive,char **argv,void *setdata){
      if(argv==NULL || argv[0]==NULL){
-	  debug_printf(1,"Missing arguments in directive\n");
+	  ci_debug_printf(1,"Missing arguments in directive\n");
 	  return 0;
      }
      if(!setdata)

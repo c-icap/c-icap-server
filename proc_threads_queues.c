@@ -63,7 +63,7 @@ int put_to_queue(struct connections_queue *q,ci_connection_t *con){
 	  return -1;
      if(q->used==q->size){
 	  ci_thread_mutex_unlock(&(q->queue_mtx));
-	  debug_printf(1,"put_to_queue_fatal error used=%d size=%d\n",q->used,q->size);
+	  ci_debug_printf(1,"put_to_queue_fatal error used=%d size=%d\n",q->used,q->size);
 	  return 0;
      }
      memcpy(&(q->connections[q->used]),con,sizeof(ci_connection_t));
@@ -87,7 +87,7 @@ int get_from_queue(struct connections_queue *q, ci_connection_t *con){
 }
 
 int wait_for_queue(struct connections_queue *q){
-     debug_printf(7,"Waiting for a request....\n");
+     ci_debug_printf(7,"Waiting for a request....\n");
      if(ci_thread_mutex_lock(&(q->cond_mtx))!=0)
 	  return -1;
      if(ci_thread_cond_wait(&(q->queue_cond),&(q->cond_mtx))!=0){

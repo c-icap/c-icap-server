@@ -1,0 +1,50 @@
+# CURRENT GROUPS are :TEXT DATA EXECUTABLE ARCHIVE GRAPHICS STREAM DOCUMENT
+#
+#
+
+0:MZ:MSEXE:EXECUTABLE:DOS/W32 executable/library/driver
+0:LZ:DOSEXE:EXECUTABLE:MS-DOS executable
+0:\177ELF:ELF:EXECUTABLE:ELF unix executable
+0:\312\376\272\276:JavaClass:EXECUTABLE:Compiled Java class
+
+#Archives
+0:Rar!:RAR:ARCHIVE:Rar archive
+0:PK\003\004:ZIP:ARCHIVE:Zip archive
+0:PK00PK\003\004:ZIP:ARCHIVE:Zip archive
+0:\037\213:GZip:ARCHIVE:Gzip compressed file
+0:BZh:BZip:ARCHIVE:BZip compressed file
+0:SZDD:Compress.exe:ARCHIVE:MS Copmress.exe'd compressed data
+0:\037\235:Compress:ARCHIVE:UNIX compress:compressed data
+0:MSCF:MSCAB:ARCHIVE:Microsoft cabinet file
+257:ustar:TAR:ARCHIVE:Tar archive file
+0:\355\253\356\333:RPM:ARCHIVE:Linux RPM file
+#Other type of Archives
+0:ITSF:MSCHM:ARCHIVE:MS Windows Html Help
+
+# Graphics
+0:GIF8:GIF:GRAPHICS:GIF image data
+0:BM:BMP:GRAPHICS:BMP image data
+0:\377\330:JPEG:GRAPHICS:JPEG image data
+0:\211PNG:PNG:GRAPHICS:PNG image data
+0:\000\000\001\000:ICO:GRAPHICS:MS Windows icon resource
+0:FWS:SWF:GRAPHICS:Shockwave Flash data
+0:CWS:SWF:GRAPHICS:Shockwave Flash data
+
+#STREAM
+0:\000\000\001\263:MPEG:STREAM:MPEG video stream
+0:\000\000\001\272:MPEG:STREAM:
+0:RIFF:RIFF:STREAM:RIFF video/autdio stream
+0:OggS:OGG:STREAM:Ogg Stream
+0:ID3:MP3:STREAM:MP3 audio stream
+0:\377\373\220:MP3:STREAM:MP3 audio stream
+0:\060\046\262\165\216\146\317:ASF:STREAM:WMA/WMV/ASF
+0:.RMF:RMF:STREAM:Real Media File
+
+#Documents
+0:\320\317\021\340\241\261\032\341:MSOFFICE:DOCUMENT:MS Office Document
+0:\208\207\017\224\161\177\026\225\000:MSOFFICE:DOCUMENT:
+4:Standard Jet DB:MSOFFICE:DOCUMENT:MS Access Database
+0:%PDF-:PDF:DOCUMENT:PDF document
+0:%!:PS:DOCUMENT:PostScript document
+
+

@@ -18,19 +18,18 @@
 
 
 #include "c-icap.h"
-#include "net_io.h"
 #include "request.h"
 #include "module.h"
 #include "cfg_param.h"
 #include "debug.h"
 #include "access.h"
 #include "simple_api.h"
-
+#include "net_io.h"
 
 
 /*********************************************************************************************/
 /* Default Authenticator  definitions                                                         */
-int  default_acl_init();
+int  default_acl_init(struct icap_server_conf *server_conf);
 void default_release_authenticator();
 int  default_acl_client_access(struct sockaddr_in *client_address, struct sockaddr_in *server_address);
 int  default_acl_request_access(char *dec_user,char *service,int req_type,
@@ -39,6 +38,10 @@ int  default_acl_request_access(char *dec_user,char *service,int req_type,
 int  default_acl_http_request_access(char *dec_user,char *service,int req_type,
 				     struct sockaddr_in *client_address, 
 				     struct sockaddr_in *server_address);
+int default_acl_log_access(char *dec_user,char *service,
+			   int req_type,
+			   struct sockaddr_in *client_address, 
+			   struct sockaddr_in *server_address);
 
 
 
@@ -57,11 +60,12 @@ static struct conf_entry acl_conf_variables[]={
 
 access_control_module_t default_acl={
      "default_acl",
-     &default_acl_init,
-     &default_release_authenticator,
-     &default_acl_client_access,
-     &default_acl_request_access,
-     &default_acl_http_request_access,
+     default_acl_init,
+     default_release_authenticator,
+     default_acl_client_access,
+     default_acl_request_access,
+     default_acl_http_request_access,
+     default_acl_log_access,
      acl_conf_variables
 };
 
@@ -127,6 +131,39 @@ int access_check_request(request_t *req){
 }
 
 
+/* Returns CI_ACCESS_DENY to log CI_ACCESS_ALLOW to not log .........*/
+
+int access_check_logging(request_t *req){ 
+     char *user;
+     int i,res;
+
+     if(!used_access_controllers)
+	  return CI_ACCESS_DENY;
+
+     user=get_header_value(req->head,"X-Authenticated-User");
+     if(user){
+	  ci_base64_decode(user,req->user,MAX_USERNAME_LEN);
+     }
+
+     i=0;
+     while(used_access_controllers[i]!=NULL){
+	  if(used_access_controllers[i]->log_access){
+	       res=used_access_controllers[i]->log_access(req->user,
+							      req->service,
+							      req->type,
+							      &(req->connection->claddr),
+							      &(req->connection->srvaddr));
+	       if(res!=CI_ACCESS_UNKNOWN) 
+		    return res;
+	  }
+	  i++;
+     }
+
+     return CI_ACCESS_DENY; /*By default log this request .......*/
+}
+
+
+
 int access_authenticate_request(request_t *req){
      int i,res;
 
@@ -183,24 +220,37 @@ struct access_entry{
      access_entry_t *next;
 };
 
+struct access_entry_list{
+     access_entry_t *access_entry_list;
+     access_entry_t *access_entry_last;
+};
+
 
 acl_spec_t *acl_spec_list=NULL;
 acl_spec_t *acl_spec_last=NULL;
+
+struct access_entry_list acl_access_list;
+struct access_entry_list acl_log_access_list;
+
+/*
 access_entry_t *access_entry_list=NULL;
 access_entry_t *access_entry_last=NULL;
-int match_connection(acl_spec_t *spec,in_port_t srvport,struct in_addr *client_address, 
+*/
+int match_connection(acl_spec_t *spec,unsigned int srvport,struct in_addr *client_address, 
 		     struct in_addr *server_address);
 int match_request(acl_spec_t *spec, char *dec_user, char *service,int request_type, 
-		  in_port_t srvport,
+		  unsigned int srvport,
 		  struct in_addr *client_address, struct in_addr *server_address);
 
 
 
-int default_acl_init(){
+int default_acl_init(struct icap_server_conf *server_conf){
      acl_spec_list=NULL; /*Not needed ......*/
      acl_spec_last=NULL;
-     access_entry_list=NULL;
-     access_entry_last=NULL;
+     acl_access_list.access_entry_list=NULL;
+     acl_access_list.access_entry_last=NULL;
+     acl_log_access_list.access_entry_list=NULL;
+     acl_log_access_list.access_entry_last=NULL;
 }
 
 void default_release_authenticator(){
@@ -211,7 +261,7 @@ int default_acl_client_access(struct sockaddr_in *client_address, struct sockadd
      access_entry_t *entry;
      acl_spec_t *spec;
 
-     entry=access_entry_list;
+     entry=acl_access_list.access_entry_list;
      while(entry){
 	  spec=entry->spec;
 	  if(match_connection(spec,
@@ -242,7 +292,7 @@ int default_acl_request_access(char *dec_user,char *service,
 			       struct sockaddr_in *server_address){
      access_entry_t *entry;
      acl_spec_t *spec;
-     entry=access_entry_list;
+     entry=acl_access_list.access_entry_list;
      while(entry){
 	  spec=entry->spec; 
 	  if( match_request(spec, dec_user, service,req_type, 
@@ -262,7 +312,7 @@ int default_acl_http_request_access(char *dec_user,char *service,
 			       struct sockaddr_in *server_address){
      access_entry_t *entry;
      acl_spec_t *spec;
-     entry=access_entry_list;
+     entry=acl_access_list.access_entry_list;
      while(entry){
 	  spec=entry->spec;
 	  if(match_request(spec, dec_user, service,req_type, 
@@ -277,11 +327,34 @@ int default_acl_http_request_access(char *dec_user,char *service,
 }
 
 
+int default_acl_log_access(char *dec_user,char *service,
+			   int req_type,
+			   struct sockaddr_in *client_address, 
+			   struct sockaddr_in *server_address){
+
+     access_entry_t *entry;
+     acl_spec_t *spec;
+     entry=acl_log_access_list.access_entry_list;
+     while(entry){
+	  spec=entry->spec; 
+	  if( match_request(spec, dec_user, service,req_type, 
+			   server_address->sin_port,
+			   &(client_address->sin_addr),
+			   &(server_address->sin_addr))){
+	       return entry->type;
+	  }
+	  entry=entry->next;
+     }
+     return CI_ACCESS_UNKNOWN;
+}
+
+
+
 /*********************************************************************/
 /*ACL list managment functions                                       */
 
 
-int match_connection(acl_spec_t *spec,in_port_t srvport,struct in_addr *client_address, 
+int match_connection(acl_spec_t *spec,unsigned int srvport,struct in_addr *client_address, 
 		                                         struct in_addr *server_address){
      unsigned long hmask;
 
@@ -301,7 +374,7 @@ int match_connection(acl_spec_t *spec,in_port_t srvport,struct in_addr *client_a
 }
 
 int match_request(acl_spec_t *spec, char *dec_user, char *service, int request_type,
-		  in_port_t srvport,
+		  unsigned int srvport,
 		  struct in_addr *client_address, 
 		  struct in_addr *server_address){
 
@@ -338,7 +411,7 @@ acl_spec_t *find_acl_spec_byname(char *name){
 }
 
 
-access_entry_t *new_access_entry(int type,char *name){
+access_entry_t *new_access_entry(struct access_entry_list *list,int type,char *name){
      access_entry_t *a_entry;
      acl_spec_t *spec;
 
@@ -353,16 +426,16 @@ access_entry_t *new_access_entry(int type,char *name){
      a_entry->spec=spec;
 
      /*Add access entry to the end of list ........*/
-     if(access_entry_list==NULL){
-	  access_entry_list=a_entry;
-	  access_entry_last=a_entry;
+     if(list->access_entry_list==NULL){
+	  list->access_entry_list=a_entry;
+	  list->access_entry_last=a_entry;
      }
      else{
-	  access_entry_last->next=a_entry;
-	  access_entry_last=a_entry;
+	  list->access_entry_last->next=a_entry;
+	  list->access_entry_last=a_entry;
      }
 
-     debug_printf(10,"ACL entry %s %d  added\n",name,type);
+     ci_debug_printf(10,"ACL entry %s %d  added\n",name,type);
      return a_entry;
 }
 
@@ -419,7 +492,8 @@ acl_spec_t *new_acl_spec(char *name,char *username, int port,
 	  acl_spec_last->next=a_spec;
 	  acl_spec_last=a_spec;
      }
-     debug_printf(10,"ACL spec name:%s username:%s service:%s type:%d port:%d src_ip:%s src_netmask:%s server_ip:%s  \n",
+     /*(inet_ntoa maybe is not thread safe (but it is for glibc) but here called only once. )*/
+     ci_debug_printf(10,"ACL spec name:%s username:%s service:%s type:%d port:%d src_ip:%s src_netmask:%s server_ip:%s  \n",
 		  name,username,service,request_type,port,
 		  inet_ntoa(*client_address),inet_ntoa(*client_netmask),inet_ntoa(*server_address));
      return a_spec;
@@ -444,14 +518,14 @@ int acl_add(char *directive,char **argv,void *setdata){
 
 
      if(argv[0]==NULL || argv[1]==NULL){
-	  debug_printf(1,"Parse error in directive %s \n",directive);
+	  ci_debug_printf(1,"Parse error in directive %s \n",directive);
 	  return 0;
      }
      name=argv[0];
      i=1;
      while(argv[i]!=NULL){
 	  if(argv[i+1]==NULL){
-	       debug_printf(1,"Parse error in directive %s \n",directive);
+	       ci_debug_printf(1,"Parse error in directive %s \n",directive);
 	       return 0;
 	  }
 
@@ -459,29 +533,29 @@ int acl_add(char *directive,char **argv,void *setdata){
 	       if(str=strchr(argv[i+1],'/')){
 		    *str='\0';
 		    str=str+1;
-		    if(!(res=inet_aton(str,&client_netmask))){
-			 debug_printf(1,"Invalid src netmask address %s. Disabling %s acl spec \n",str,name);
+		    if(!(res=ci_inet_aton(str,&client_netmask))){
+			 ci_debug_printf(1,"Invalid src netmask address %s. Disabling %s acl spec \n",str,name);
 			 return 0;
 		    }
 
 	       }
 	       else{
-		    inet_aton("255.255.255.255",&client_netmask);
+		    ci_inet_aton("255.255.255.255",&client_netmask);
 	       }
-	       if(!(res=inet_aton(argv[i+1],&client_address))){
-		    debug_printf(1,"Invalid src ip address %s. Disabling %s acl spec \n",argv[i+1],name);
+	       if(!(res=ci_inet_aton(argv[i+1],&client_address))){
+		    ci_debug_printf(1,"Invalid src ip address %s. Disabling %s acl spec \n",argv[i+1],name);
 		    return 0;
 	       }
 	  }
 	  else if(strcmp(argv[i],"srvip")==0){ /*has the form ip */
-	       if(!(res=inet_aton(argv[i+1],&client_address))){
-		    debug_printf(1,"Invalid server ip address %s. Disabling %s acl spec \n",argv[i+1],name);
+	       if(!(res=ci_inet_aton(argv[i+1],&client_address))){
+		    ci_debug_printf(1,"Invalid server ip address %s. Disabling %s acl spec \n",argv[i+1],name);
 		    return 0;
 	       }
 	  }
 	  else if(strcmp(argv[i],"port")==0){ /*an integer */
 	       if((port=strtol(argv[i+1],NULL,10))==0){
-		    debug_printf(1,"Invalid server port  %s. Disabling %s acl spec \n",argv[i+1],name);
+		    ci_debug_printf(1,"Invalid server port  %s. Disabling %s acl spec \n",argv[i+1],name);
 		    return 0;
 	       }
 	  }
@@ -499,12 +573,12 @@ int acl_add(char *directive,char **argv,void *setdata){
 	       else if(strcasecmp(argv[i+1],"respmod")==0)
 		    request_type=ICAP_RESPMOD;
 	       else{
-		    debug_printf(1,"Invalid request type  %s. Disabling %s acl spec \n",argv[i+1],name);
+		    ci_debug_printf(1,"Invalid request type  %s. Disabling %s acl spec \n",argv[i+1],name);
 		    return 0;
 	       }
 	  }
 	  else{
-	       debug_printf(1,"Invalid directive :%s. Disabling %s acl spec \n",argv[i],name);
+	       ci_debug_printf(1,"Invalid directive :%s. Disabling %s acl spec \n",argv[i],name);
 	       return 0;
 	  }
 	  i+=2;
@@ -519,27 +593,40 @@ int acl_add(char *directive,char **argv,void *setdata){
 int acl_access(char *directive,char **argv,void *setdata){
      int type;
      char *acl_spec;
+     struct access_entry_list *tolist;
+
 
      if(argv[0]==NULL || argv[1]==NULL){
-	  debug_printf(1,"Parse error in directive %s \n",directive);
+	  ci_debug_printf(1,"Parse error in directive %s \n",directive);
 	  return 0;
      }
      if(strcmp(argv[0],"allow")==0){
 	  type=CI_ACCESS_ALLOW;
+	  tolist=&acl_access_list;
      }
      else if(strcmp(argv[0],"deny")==0){
 	  type=CI_ACCESS_DENY;
+	  tolist=&acl_access_list;
      }
      else if(strcmp(argv[0],"http_auth")==0){
 	  type=CI_ACCESS_HTTP_AUTH;
+	  tolist=&acl_access_list;
+     }
+     else if(strcmp(argv[0],"log")==0){
+	  type=CI_ACCESS_DENY;
+	  tolist=&acl_log_access_list;
+     }
+     else if(strcmp(argv[0],"nolog")==0){
+	  type=CI_ACCESS_ALLOW;
+	  tolist=&acl_log_access_list;
      }
      else{
-	  debug_printf(1,"Invalid directive :%s. Disabling %s acl rule \n",argv[0],argv[1]);
+	  ci_debug_printf(1,"Invalid directive :%s. Disabling %s acl rule \n",argv[0],argv[1]);
 	  return 0;
      }
      acl_spec=argv[1];
      
-     if(!new_access_entry(type,acl_spec))
+     if(!new_access_entry(tolist,type,acl_spec))
 	  return 0;
      return 1;
 }

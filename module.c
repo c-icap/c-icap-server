@@ -25,7 +25,7 @@
 #ifdef _WIN32
 #include <windows.h>
 #endif
-
+#include "cfg_param.h"
 
 struct modules_list{
      void **modules;
@@ -40,7 +40,7 @@ struct modules_list{
  int modules_num=0;
 */
 #define STEP 20
-extern char *MODULES_DIR;
+
 
 static struct modules_list service_handlers;
 service_handler_module_t *default_service_handler;
@@ -75,9 +75,9 @@ void *load_module(char *module_file){
 #endif 
 #ifdef HAVE_DLFCN_H
      if(module_file[0]!='/'){
-	  if((path=malloc((strlen(module_file)+strlen(MODULES_DIR)+5)*sizeof(char)))==NULL)
+	  if((path=malloc((strlen(module_file)+strlen(CONF.MODULES_DIR)+5)*sizeof(char)))==NULL)
 	       return NULL;
-	  strcpy(path,MODULES_DIR);
+	  strcpy(path,CONF.MODULES_DIR);
 	  strcat(path,"/");
 	  strcat(path,module_file);
 	  handle=dlopen(path,RTLD_LAZY|RTLD_GLOBAL);	  
@@ -87,7 +87,7 @@ void *load_module(char *module_file){
 	  handle=dlopen(module_file,RTLD_LAZY|RTLD_GLOBAL);
      
      if(!handle){
-          debug_printf(1,"Error loading module %s\n",module_file);
+          ci_debug_printf(1,"Error loading module %s\n",module_file);
 	  return NULL;
      }
      service=dlsym(handle,"module");
@@ -101,7 +101,7 @@ void *load_module(char *module_file){
      if( !(handle=LoadLibraryEx(filename,NULL,LOAD_WITH_ALTERED_SEARCH_PATH))
 	&&
 	!(handle=LoadLibraryEx(filename,NULL,NULL))){
-	  debug_printf(1,"Error loading module. Error code %d\n",GetLastError());
+	  ci_debug_printf(1,"Error loading module. Error code %d\n",GetLastError());
 	  return NULL;
      }
      service=GetProcAddress(handle,"module");
@@ -152,7 +152,7 @@ static int module_type(char *type){
 	  return AUTHENTICATOR;
      }
      
-     debug_printf(1,"Uknown type of module:%s\n",type);
+     ci_debug_printf(1,"Uknown type of module:%s\n",type);
      return UNKNOWN;
 }
 
@@ -161,15 +161,15 @@ static int init_module(void *module,enum module_type type){
      int ret;
      switch(type){
      case SERVICE_HANDLER:
-	  if(((service_handler_module_t *)module)->init_service_handler())
-	       ret=((service_handler_module_t *)module)->init_service_handler();
+	  if(((service_handler_module_t *)module)->init_service_handler)
+	       ret=((service_handler_module_t *)module)->init_service_handler(&CONF);
 	  if(((service_handler_module_t *)module)->conf_table)
 	       register_conf_table(((service_handler_module_t *)module)->name,
 				   ((service_handler_module_t *)module)->conf_table);
 	  break;
      case LOGGER:
 	  if(((logger_module_t *)module)->init_logger)
-	       ret=((logger_module_t *)module)->init_logger();
+	       ret=((logger_module_t *)module)->init_logger(&CONF);
 	  if(((logger_module_t *)module)->conf_table)
 	       register_conf_table(((logger_module_t *)module)->name,
 				   ((logger_module_t *)module)->conf_table);
@@ -177,14 +177,14 @@ static int init_module(void *module,enum module_type type){
 	  break;
      case ACCESS_CONTROLLER:
 	  if(((access_control_module_t *)module)->init_access_controller)
-	       ret=((access_control_module_t *)module)->init_access_controller();
+	       ret=((access_control_module_t *)module)->init_access_controller(&CONF);
 	  if(((access_control_module_t *)module)->conf_table)
 	       register_conf_table(((access_control_module_t *)module)->name,
 				   ((access_control_module_t *)module)->conf_table);
 	  break;
      case AUTH_METHOD:
 	  if(((http_auth_method_t *)module)->init_auth_method)
-	       ret=((http_auth_method_t *)module)->init_auth_method();
+	       ret=((http_auth_method_t *)module)->init_auth_method(&CONF);
 	  if(((http_auth_method_t *)module)->conf_table)
 	       register_conf_table(((http_auth_method_t *)module)->name,
 				   ((http_auth_method_t *)module)->conf_table);
@@ -192,7 +192,7 @@ static int init_module(void *module,enum module_type type){
 
      case AUTHENTICATOR:
 	  if(((authenticator_module_t *)module)->init_authenticator)
-	       ret=((authenticator_module_t *)module)->init_authenticator();
+	       ret=((authenticator_module_t *)module)->init_authenticator(&CONF);
 	  if(((authenticator_module_t *)module)->conf_table)
 	       register_conf_table(((authenticator_module_t *)module)->name,
 				   ((authenticator_module_t *)module)->conf_table);
@@ -320,7 +320,7 @@ void *register_module(char *module_file,char *type){
      
      module=load_module(module_file);
      if(!module){
-	  debug_printf(1,"Error finding symbol \"module\" in  module %s\n",module_file);
+	  ci_debug_printf(1,"Error finding symbol \"module\" in  module %s\n",module_file);
 	  return NULL;
      }
      
@@ -353,12 +353,12 @@ service_handler_module_t *find_servicehandler_by_ext(char *extension){
 	  }while(s && !found);
 
 	  if(found){
-	       debug_printf(1,"Found handler %s for service with extension:%s\n",sh->name,extension);
+	       ci_debug_printf(1,"Found handler %s for service with extension:%s\n",sh->name,extension);
 	       return sh;
 	  }
      }
 
-     debug_printf(1,"Not handler for extension :%s. Using default ...\n",extension);
+     ci_debug_printf(1,"Not handler for extension :%s. Using default ...\n",extension);
      return default_service_handler;
 }
 
@@ -407,14 +407,14 @@ authenticator_module_t **get_authenticators_list(struct auth_hash *hash,int meth
 int check_to_add_method_id(struct auth_hash *hash,int method_id){
      authenticator_module_t ***new_mem;
      if(method_id> MAX_HASH_SIZE || method_id <0){
-	  debug_printf(1,"Method id is %d. Possible bug, please report it to developers!!!!!!\n",method_id);
+	  ci_debug_printf(1,"Method id is %d. Possible bug, please report it to developers!!!!!!\n",method_id);
 	  return 0;
      }
      
      while(hash->hash_size<method_id){
 	  new_mem=realloc(hash->hash,hash->hash_size+STEP);
 	  if(!new_mem){
-	       debug_printf(1,"Error allocating memory for authenticators hash!!!!!!\n");
+	       ci_debug_printf(1,"Error allocating memory for authenticators hash!!!!!!\n");
 	       return 0;
 	  }
 	  memset(hash->hash+hash->hash_size,(int)NULL,STEP);/*Reset the newly allocated memory */
@@ -435,7 +435,7 @@ int methods_authenticators(struct auth_hash *hash,char *method_name,int method_i
      for(auths_num=0;argv[auths_num]!=NULL;auths_num++);
      
      if(NULL==(new_mem=malloc((auths_num+1)*sizeof(authenticator_module_t *)))){
-	  debug_printf(1,"Error allocating memory!!!!!!\n");
+	  ci_debug_printf(1,"Error allocating memory!!!!!!\n");
 	  return 0;
      }
      memset(new_mem,(int)NULL,auths_num+1);
@@ -445,13 +445,13 @@ int methods_authenticators(struct auth_hash *hash,char *method_name,int method_i
 
      k=0;
      for(i=0;i<auths_num;i++){
-	       debug_printf(1,"Authenticator %s......\n",argv[i]);
+	       ci_debug_printf(1,"Authenticator %s......\n",argv[i]);
 	  if((auth_mod=find_authenticator(argv[i]))==NULL){
-	       debug_printf(1,"Authenticator %s does not exist!!!!!\n",argv[i]);
+	       ci_debug_printf(1,"Authenticator %s does not exist!!!!!\n",argv[i]);
 	       continue;
 	  }
 	  if(strcasecmp(auth_mod->method,method_name)!=0){
-	       debug_printf(1,"Authenticator %s does not provides authentication method %s!!!!\n",
+	       ci_debug_printf(1,"Authenticator %s does not provides authentication method %s!!!!\n",
 			    auth_mod->name,method_name);
 	       continue;
 	  }
@@ -467,7 +467,7 @@ int set_method_authenticators(char *method_name,char **argv){
      http_auth_method_t *method_mod;
      
      if(!(method_mod=find_auth_method_id(method_name,&method_id))){
-	  debug_printf(1,"Authentication method \"%s\" not supported\n",method_name);
+	  ci_debug_printf(1,"Authentication method \"%s\" not supported\n",method_name);
 	  return 0;     
      }
      return methods_authenticators(&authenticators_hash,method_name,method_id,argv);

@@ -85,8 +85,6 @@
 #endif
 
 
-//enum icap_methods {ICAP_REQMOD, ICAP_RESPMOD, ICAP_OPTIONS };
-//
 #define ICAP_OPTIONS   0x01
 #define ICAP_REQMOD    0x02
 #define ICAP_RESPMOD   0x04
@@ -94,11 +92,8 @@
 CI_DECLARE_DATA extern const char *CI_Methods[];
 
 #define ci_method_support(METHOD, METHOD_DEF) (METHOD&METHOD_DEF)
-#ifdef __CYGWIN__
-const char *ci_method_string(int method);
-#else
 #define ci_method_string(method) (method<=ICAP_RESPMOD && method>=ICAP_OPTIONS ?CI_Methods[method]:"UNKNOWN")
-#endif
+
 
 
 
@@ -114,13 +109,9 @@ typedef struct ci_error_code{
 } ci_error_code_t;
 
 CI_DECLARE_DATA extern const struct ci_error_code CI_ErrorCodes[];
-#ifdef __CYGWIN__
-int ci_error_code(int ec);
-const char *ci_error_code_string(int ec);
-#else
 #define ci_error_code(ec) (ec>=EC_100&&ec<=EC_500?CI_ErrorCodes[ec].code:1000)
 #define ci_error_code_string(ec) (ec>=EC_100&&ec<=EC_500?CI_ErrorCodes[ec].str:"UNKNOWN ERROR CODE")
-#endif
+
 
 #define ICAP_EOL "\r\n"
 #define ICAP_EOF "0\r\n\r\n"

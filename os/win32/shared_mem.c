@@ -43,7 +43,7 @@ void *ci_shared_mem_create(ci_shared_mem_id_t *id,int size){
  
     if (hMapFile == NULL) 
     { 
-        debug_printf(1,"Could not create file mapping object:(error:%d)\n",
+        ci_debug_printf(1,"Could not create file mapping object:(error:%d)\n",
                         GetLastError()); 
         return NULL;
     }
@@ -57,7 +57,7 @@ void *ci_shared_mem_create(ci_shared_mem_id_t *id,int size){
  
     if (lpMapAddress == NULL) 
     { 
-        debug_printf(1,"Could not map view of file.(error:%d)\n",
+        ci_debug_printf(1,"Could not map view of file.(error:%d)\n",
                         GetLastError());
         CloseHandle(hMapFile);
         return NULL; 
@@ -79,7 +79,7 @@ void *ci_shared_mem_attach(ci_shared_mem_id_t *id){
  
     if (lpMapAddress == NULL) 
     { 
-        debug_printf(1,"Could not map view of file.(error:%d)\n",
+        ci_debug_printf(1,"Could not map view of file.(error:%d)\n",
                         GetLastError());
         CloseHandle(*id);
         return NULL; 

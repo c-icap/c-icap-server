@@ -24,7 +24,7 @@
 #include "request.h"
 #include "header.h"
 #include "service.h"
-
+#include "cfg_param.h"
 
 struct request;
 
@@ -40,7 +40,7 @@ enum module_type{
 typedef struct  service_handler_module{
      char *name;
      char *extensions;
-     int (*init_service_handler)();
+     int (*init_service_handler)(struct icap_server_conf *server_conf);
      service_module_t *(*create_service)(char *service_file);
      struct conf_entry *conf_table;
 } service_handler_module_t;
@@ -48,7 +48,7 @@ typedef struct  service_handler_module{
 
 typedef struct  logger_module{
      char *name;
-     int  (*init_logger)();
+     int  (*init_logger)(struct icap_server_conf *server_conf);
      int  (*log_open)();
      void (*log_close)();
      void  (*log_access)(char *server,char *clientname,char *method,
@@ -59,7 +59,7 @@ typedef struct  logger_module{
 
 typedef struct  access_control_module{
      char *name;
-     int (*init_access_controller)();
+     int (*init_access_controller)(struct icap_server_conf *server_conf);
      void (*release_access_controller)();
      int (*client_access)(struct sockaddr_in *client_address, struct sockaddr_in *server_address);
      int (*request_access)(char *dec_user,char *service,int req_type, 
@@ -68,6 +68,9 @@ typedef struct  access_control_module{
      int (*http_request_access)(char *dec_user,char *service,int req_type, 
 			                                struct sockaddr_in *client_address, 
 			                                struct sockaddr_in *server_address);
+     int (*log_access)(char *dec_user,char *service,int req_type, 
+				struct sockaddr_in *client_address, 
+				struct sockaddr_in *server_address);
 
      struct conf_entry *conf_table;
 } access_control_module_t;
@@ -75,7 +78,7 @@ typedef struct  access_control_module{
 
 typedef struct http_auth_method{
      char *name;
-     int (*init_auth_method)();
+     int (*init_auth_method)(struct icap_server_conf *server_conf);
      void (*close_auth_method)();
      void *(*create_auth_data)(char *auth_line,char **username);
      void (*release_auth_data)(void *data);
@@ -86,7 +89,7 @@ typedef struct http_auth_method{
 typedef struct authenticator_module{
      char *name;
      char *method;
-     int (*init_authenticator)();
+     int (*init_authenticator)(struct icap_server_conf *server_conf);
      void (*close_authenticator)();
      int (*authenticate)(void *data);
      struct conf_entry *conf_table;
@@ -94,7 +97,7 @@ typedef struct authenticator_module{
 
 
 
-CI_DECLARE_FUNC(int) init_modules();
+int init_modules();
 void * register_module(char *module_file,char *type);
 
 logger_module_t *find_logger(char *name);
@@ -102,6 +105,7 @@ access_control_module_t *find_access_controller(char *name);
 service_handler_module_t *find_servicehandler(char *name);
 service_handler_module_t *find_servicehandler_by_ext(char *extension);
 http_auth_method_t *find_auth_method_n( char *method,int len,int *method_id);
+http_auth_method_t * get_authentication_schema(char *method_name,authenticator_module_t ***authenticators);
 
 void *find_module(char *name,int *type);
 
