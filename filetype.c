@@ -48,7 +48,7 @@ struct ci_magic_record{
                                                     }
 
 
-#define CHECK_SIZE(db,array,type,size)   if(db->array##_num>db->array##_size){\
+#define CHECK_SIZE(db,array,type,size)   if(db->array##_num >= db->array##_size){\
 	                                           if((newdata=realloc(db->array,db->array##_size+size*sizeof(type)))==NULL)\
 	                                                     return -1;\
 	                                            db->array =newdata;\
