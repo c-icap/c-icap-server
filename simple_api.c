@@ -64,6 +64,45 @@ int   ci_req_respmod_reset_headers(request_t *req){
      return 1;
 }
 
+ci_header_list_t *  ci_req_respmod_build_headers(request_t *req){
+     ci_encaps_entity_t **e_list,*e;
+     if(ci_req_respmod_headers(req)){
+	  return NULL;
+     }
+     e_list=req->entities;
+     if(e_list[0]==NULL){
+	  e_list[0]=mk_encaps_entity(ICAP_RES_HDR,0);
+	  e=e_list[0];
+     }
+     else if(e_list[1]==NULL){
+	  e_list[1]=mk_encaps_entity(ICAP_RES_HDR,0);
+	  e=e_list[1];
+     }
+     else{
+	  e_list[2]=e_list[1];
+	  e_list[1]=mk_encaps_entity(ICAP_RES_HDR,0);
+	  e=e_list[1];
+     }
+     return e;
+}
+
+int  ci_req_create_new_respmod(request_t *req, int hasbody){
+     int i;
+     ci_encaps_entity_t **e_list;
+     e_list=req->entities;
+
+     for(i=0;i<3;i++){
+          if(req->entities[i]){
+               destroy_encaps_entity(req->entities[i]);
+	       req->entities[i]=NULL;
+	  }
+     }
+     req->entities[0]=mk_encaps_entity(ICAP_RES_HDR,0);
+     if(hasbody)
+          req->entities[1]=mk_encaps_entity(ICAP_RES_BODY,0);
+     
+     return 1;
+}
 
 
 char * ci_req_respmod_add_header(request_t *req,char *header){

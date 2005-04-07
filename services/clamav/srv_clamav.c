@@ -139,11 +139,11 @@ int srvclamav_init_service(service_module_t *this,struct icap_server_conf *serve
 
      ci_debug_printf(10,"Going to initialize srvclamav\n");;
      if((ret = cl_loaddbdir(cl_retdbdir(), &root, &no))) {
-	  ci_debug_printf(10,"cl_loaddbdir: %s\n", cl_perror(ret));
+	  ci_debug_printf(1,"cl_loaddbdir: %s\n", cl_perror(ret));
 	  return 0;
      }
      if((ret = cl_build(root))) {
-	  ci_debug_printf(10,"Database initialization error: %s\n", cl_strerror(ret));;
+	  ci_debug_printf(1,"Database initialization error: %s\n", cl_strerror(ret));;
 	  cl_free(root);
 	  return 0;
      }
@@ -174,7 +174,7 @@ void *srvclamav_init_request_data(service_module_t *serv,request_t *req){
      
      
      if(ci_req_hasbody(req)){
-	  ci_debug_printf(10,"Request type: %d. Preview size:%d\n",req->type,preview_size);
+	  ci_debug_printf(8,"Request type: %d. Preview size:%d\n",req->type,preview_size);
 	  if(!(data=malloc(sizeof(av_req_data_t)))){
 	       ci_debug_printf(1,"Error allocation memory for service data!!!!!!!");
 	       return NULL;
@@ -193,7 +193,7 @@ void *srvclamav_init_request_data(service_module_t *serv,request_t *req){
 
 void srvclamav_release_request_data(void *data){
      if(data){
-	  ci_debug_printf(10,"Releaseing srv_clamav data.....\n");
+	  ci_debug_printf(8,"Releaseing srv_clamav data.....\n");
 #ifdef VIRALATOR_MODE
 	  if(((av_req_data_t *)data)->must_scanned==VIR_SCAN){
 	       ci_release_and_save_cached_file(((av_req_data_t *)data)->body);
@@ -233,7 +233,7 @@ int srvclamav_check_preview_handler(void *data,char *preview_data,int preview_da
      /*Going to determine the file type ....... */
      file_type=get_filetype(req,preview_data,preview_data_len);
      if((((av_req_data_t *)data)->must_scanned=must_scanned(file_type))==0){
-	  ci_debug_printf(10,"Not in \"must scanned list\".Allow it...... \n");
+	  ci_debug_printf(8,"Not in \"must scanned list\".Allow it...... \n");
 	  return EC_204;
      }
      
@@ -347,12 +347,12 @@ int srvclamav_end_of_data_handler(void *data,request_t *req){
 
 
      if(ci_isfile_cached_file(body)){ /*can only be file*/
-	  ci_debug_printf(10,"Scan from file\n");
+	  ci_debug_printf(8,"Scan from file\n");
 	  lseek(body->fd,0,SEEK_SET);
 	  ret=cl_scandesc(body->fd,&virname,&scanned_data,root,&limits,CL_SCAN_STDOPT);
      }
   
-     ci_debug_printf(10,"Clamav engine scanned %d size of  data....\n",(scanned_data?scanned_data:body->endpos));
+     ci_debug_printf(9,"Clamav engine scanned %d size of  data....\n",(scanned_data?scanned_data:body->endpos));
 
      if(ret==CL_VIRUS){
 	  ci_debug_printf(1,"VIRUS DETECTED:%s.\nTake action.......\n ",virname);
@@ -360,10 +360,10 @@ int srvclamav_end_of_data_handler(void *data,request_t *req){
 	  if(!ci_req_sent_data(req)) /*If no data had sent we can send an error page  */
 	       generate_error_page((av_req_data_t *)data,req);
 	  else
-	       ci_debug_printf(10,"Simply not send other data\n");
+	       ci_debug_printf(3,"Simply not send other data\n");
      }
      else if (ret!= CL_CLEAN){
-	  ci_debug_printf(10,"srvClamAv module:An error occured while scanning the data\n");
+	  ci_debug_printf(1,"srvClamAv module:An error occured while scanning the data\n");
      }
      
      if(((av_req_data_t *)data)->must_scanned==VIR_SCAN){
@@ -389,7 +389,7 @@ int get_filetype(request_t *req,char *buf,int len){
 
      if(ci_req_type(req)==ICAP_RESPMOD){
 	  content_type=ci_req_respmod_get_header(req,"Content-Type");
-	  ci_debug_printf(10,"File type: %s\n",(content_type!=NULL?content_type:"Unknown") );
+	  ci_debug_printf(8,"File type: %s\n",(content_type!=NULL?content_type:"Unknown") );
      }     
 	  
      file_type=ci_filetype(magic_db,buf,len);
@@ -402,14 +402,14 @@ int get_filetype(request_t *req,char *buf,int len){
      }
      else if(file_type==ci_get_data_type_id(magic_db,"GZip")){
 	  content_encoding=ci_req_respmod_get_header(req,"Content-Encoding");
-	  ci_debug_printf(10,"Content-Encoding :%s\n",content_type);
+	  ci_debug_printf(8,"Content-Encoding :%s\n",content_type);
 	  if(content_type && content_encoding && (strstr(content_type,"text/html") 
 			                          || strstr(content_type,"text/css") 
 						  || strstr(content_type,"text/javascript") )) 
 	       file_type=CI_HTML_DATA;
      }
 
-     ci_debug_printf(10,"File type returned :%s,%s\n",
+     ci_debug_printf(7,"File type returned :%s,%s\n",
 		  ci_data_type_name(magic_db,file_type),
 		  ci_data_type_descr(magic_db,file_type));
      return file_type;
@@ -436,7 +436,10 @@ void generate_error_page(av_req_data_t *data,request_t *req){
      ci_membuf_t *error_page;
      new_size=strlen(error_message)+strlen(tail_message)+strlen(data->virus_name)+10;
 
-     ci_req_respmod_reset_headers(req);
+     if(ci_req_respmod_headers(req))
+	  ci_req_respmod_reset_headers(req);
+     else
+	  ci_req_create_new_respmod(req,1);
      ci_req_respmod_add_header(req,"HTTP/1.1 200 OK");
      ci_req_respmod_add_header(req,"Server: C-ICAP");
      ci_req_respmod_add_header(req,"Connection: close");

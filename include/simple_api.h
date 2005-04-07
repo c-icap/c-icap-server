@@ -45,7 +45,7 @@ CI_DECLARE_FUNC(int)                 ci_req_reqmod_remove_header(request_t *req,
 CI_DECLARE_FUNC(char *)              ci_req_respmod_get_header(request_t *req,char *head_name);
 CI_DECLARE_FUNC(char *)              ci_req_reqmod_get_header(request_t *req,char *head_name);
 CI_DECLARE_FUNC(int)                 ci_req_respmod_reset_headers(request_t *req);
-
+CI_DECLARE_FUNC(ci_header_list_t *)  ci_req_respmod_build_headers(request_t *req);
 CI_DECLARE_FUNC(int)                 ci_req_content_lenght(request_t *req);
 CI_DECLARE_FUNC(char *)              ci_req_http_request(request_t *req);
 
