@@ -50,7 +50,7 @@ int icap_init_server(int port,int secs_to_linger){
 	  ci_debug_printf(1,"Error bind  \n");;
 	  return CI_SOCKET_ERROR;
      }
-     if(listen(fd, 5)){
+     if(listen(fd, 512)){
 	  ci_debug_printf(1,"Error listen .....\n");
 	  return CI_SOCKET_ERROR;
      }
