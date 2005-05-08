@@ -218,7 +218,7 @@ int ci_linger_close(int fd, int timeout){
      }
 
      while(ci_wait_for_data(fd,timeout,wait_for_read) && (ret=ci_read_nonblock(fd,buf,10))>0)
-	  ci_debug_printf(8,"OK I linger %d bytes.....\n",ret);
+	  ci_debug_printf(10,"OK I linger %d bytes.....\n",ret);
 
      close(fd);
      ci_debug_printf(8,"Connection closed ...\n");

@@ -90,7 +90,7 @@ static void sigpipe_handler(int sig){
 static void exit_normaly(){
      int i=0;
      server_decl_t *srv;
-     ci_debug_printf(5,"Suppose that all childs are allready exited...\n");
+     ci_debug_printf(5,"Suppose that all threads are allready exited...\n");
      while((srv=threads_list[i])!=NULL){
 	  if(srv->current_req){
 	       close_connection(srv->current_req->connection);
@@ -126,9 +126,9 @@ static void term_handler_child(int sig){
      int i=0;
      ci_debug_printf(5,"A termination signal received (%d).\n",sig);
      if(child_data->to_be_killed==GRACEFULLY){
+	  ci_debug_printf(5,"Exiting gracefully\n");
 	  cancel_all_threads();
 	  exit_normaly();
-	  ci_debug_printf(5,"Exiting gracefully\n");
      }
      exit(0);
 }
@@ -252,15 +252,23 @@ int thread_main(server_decl_t *srv){
 	       return; //Exiting thread.....
 	  
 	  if((ret=get_from_queue(con_queue,&con))==0){
-	       wait_for_queue(con_queue); //It is better that the wait_for_queue to be 
+	       ret=wait_for_queue(con_queue); //It is better that the wait_for_queue to be 
                                           //moved into the get_from_queue 
 	       continue; 
 	  }
+
 	  
 	  if(ret<0){ //An error has occured
-	       ci_debug_printf(1,"Error getting from connections queue\n");
+	       ci_debug_printf(1,"Fatal Error!!! Error getting a connection from connections queue!!!\n");
 	       break;
 	  }
+
+	  ci_thread_mutex_lock(&counters_mtx); /*Update counters as soon as possible .......*/
+	  (child_data->freeservers)--;
+	  (child_data->usedservers)++;
+	  ci_thread_mutex_unlock(&counters_mtx);
+
+
 
 	  ci_netio_init(con.fd);
 
@@ -274,14 +282,10 @@ int thread_main(server_decl_t *srv){
 	       ci_addrtohost(&(con.claddr.sin_addr),clientname, CI_MAXHOSTNAMELEN);
 	       ci_debug_printf(1,"Request from %s denied...\n",clientname);
 	       hard_close_connection((&con));
-	       continue;/*The request rejected. Log an error and continue ...*/
+	       goto end_of_main_loop_thread;/*The request rejected. Log an error and continue ...*/
 	  }
 
 
-	  ci_thread_mutex_lock(&counters_mtx);
-	  (child_data->freeservers)--;
-	  (child_data->usedservers)++;
-	  ci_thread_mutex_unlock(&counters_mtx);
 
 	  do{
 	       if((request_status=process_request(srv->current_req))<0){
@@ -328,6 +332,8 @@ int thread_main(server_decl_t *srv){
 	       srv->served_requests_no_reallocation=0;
 	  }
 
+	  
+     end_of_main_loop_thread:
 	  ci_thread_mutex_lock(&counters_mtx);
 	  (child_data->freeservers)++;
 	  (child_data->usedservers)--;
@@ -395,7 +401,7 @@ void child_main(int sockfd){
 	       icap_socket_opts(sockfd,MAX_SECS_TO_LINGER);
 	       
 	       if((jobs_in_queue=put_to_queue(con_queue,&conn))==0){
-		    ci_debug_printf(1,"ERROR!!!!!!NO AVAILABLE SERVERS!!!!!!!!!\n");
+		    ci_debug_printf(1,"ERROR!!!!!!NO AVAILABLE SERVERS!THIS IS A BUG!!!!!!!!\n");
 		    child_data->to_be_killed=GRACEFULLY;
 		    ci_debug_printf(1,"Jobs in Queue:%d,Free servers:%d, Used Servers :%d, Requests %d\n",
 				 jobs_in_queue,
@@ -404,7 +410,7 @@ void child_main(int sockfd){
 		    goto end_child_main;
 	       }
 	       ci_thread_mutex_lock(&counters_mtx);	       
-	       haschild=(child_data->freeservers?1:0);
+	       haschild=((child_data->freeservers-jobs_in_queue)>0?1:0);
 	       ci_thread_mutex_unlock(&counters_mtx);
 	       (child_data->connections)++; //NUM of Requests....
 	  }while(haschild);
@@ -413,7 +419,7 @@ void child_main(int sockfd){
 	  ci_proc_mutex_unlock(&accept_mutex);
 
 	  ci_thread_mutex_lock(&counters_mtx);
-	  if(child_data->freeservers==0){
+	  if((child_data->freeservers-connections_pending(con_queue))<=0){
 	       ci_debug_printf(7,"Child %d waiting for a thread to accept more connections ...\n",pid);
 	       ci_thread_cond_wait(&free_server_cond,&counters_mtx);
 	  }
@@ -472,16 +478,26 @@ int start_server(int fd){
 	       ci_debug_printf(10,"Server stats: \n\t Childs:%d\n\t Free servers:%d\n\tUsed servers:%d\n\tRequests served:%d\n",
 			    childs, freeservers,used, maxrequests);
 	       if( (freeservers<=MIN_FREE_SERVERS && childs<MAX_CHILDS) ||childs<START_CHILDS){
-		    ci_debug_printf(8,"Going to start a child .....\n");
+		    ci_debug_printf(8,"Free Servers:%d,childs:%d. Going to start a child .....\n",
+				    freeservers,childs);
 		    pid=start_child(fd);
 	       }
-	       else if(freeservers>=MAX_FREE_SERVERS&& childs>START_CHILDS){
-		    child_indx=find_an_idle_child(&childs_queue);
-		    childs_queue.childs[child_indx].to_be_killed=GRACEFULLY;
-		    kill(childs_queue.childs[child_indx].pid,SIGINT);
-		    ci_debug_printf(8,"Going to stop child %d .....\n",childs_queue.childs[child_indx].pid);
-		    //kill a server ...
+	       else if(freeservers>=MAX_FREE_SERVERS&& 
+		       childs>START_CHILDS && 
+		       (freeservers-START_SERVERS)>MIN_FREE_SERVERS){
+		    
+		    if((child_indx=find_an_idle_child(&childs_queue))>=0){
+			 childs_queue.childs[child_indx].to_be_killed=GRACEFULLY;
+			 ci_debug_printf(8,"Free Servers:%d,childs:%d. Going to stop child %d(index:%d) .....\n",
+					 freeservers,childs,childs_queue.childs[child_indx].pid,child_indx);
+			 /*kill a server ...*/
+			 kill(childs_queue.childs[child_indx].pid,SIGINT);
+			
+		    }
 	       }    
+	       else if(childs==MAX_CHILDS && freeservers < MIN_FREE_SERVERS ){
+		    ci_debug_printf(1,"ATTENTION!!!! Not enought available servers!!!!! Maybe you must increase the MaxServers and the ThreadsPerChild values in c-icap.conf file!!!!!!!!!");
+	       }
 	  }
 	  for(i=0;i<START_CHILDS;i++){
 	       pid=wait(&status);

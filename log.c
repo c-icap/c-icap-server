@@ -26,7 +26,7 @@
 #include "access.h"
 #include "module.h"
 #include "cfg_param.h"
-
+#include "debug.h"
 
 logger_module_t *default_logger=NULL;
 
@@ -38,8 +38,9 @@ int log_open(){
 
 
 void log_close(){
-     if(default_logger)
+     if(default_logger){
 	  return default_logger->log_close();
+     }
 }
 
 void log_access(request_t *req, int status){ /*req can not be NULL*/
@@ -105,8 +106,8 @@ logger_module_t file_logger={
 };
 
 
-FILE *access_log;
-FILE *server_log;
+FILE *access_log=NULL;
+FILE *server_log=NULL;
 
 
 int file_log_open(){
@@ -123,13 +124,12 @@ int file_log_open(){
 }
 
 void file_log_close(){
-
      if(access_log)
 	  fclose(access_log);
-
      if(server_log)
 	  fclose(server_log);
-
+     access_log=NULL;
+     server_log=NULL;
 }
 
 

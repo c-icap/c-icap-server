@@ -32,10 +32,77 @@
 #include <ci_threads.h>
 
 
+/*GLOBALS ........*/
 char *servername;
+int threadsnum=0;
+int MAX_REQUESTS=0;
+
+time_t START_TIME=0;
 int keepalive=0;
 int FILES_NUMBER;
 char **FILES;
+ci_thread_t *threads;
+ci_thread_mutex_t filemtx;
+int file_indx=0;
+int requests_stats=0;
+int in_bytes_stats=0;
+int out_bytes_stats=0;
+int _THE_END=0;
+
+
+ci_thread_mutex_t statsmtx;
+
+
+
+void print_stats(){
+     time_t rtime;
+     int h=0,m=0,s=0;
+     time(&rtime);
+     printf("Statistics:\n\t Files used :%d\n\t Number of threads :%d\n\t"
+	    " Requests served :%d\n\t Incoming bytes :%d\n\t Outgoing bytes :%d\n",
+	    FILES_NUMBER,
+	    threadsnum,
+	    requests_stats,
+	    in_bytes_stats,
+	    out_bytes_stats
+	  );
+     rtime=rtime-START_TIME;
+     printf("Running for %d seconds\n",rtime);
+}
+
+
+static void sigint_handler(int sig){
+     int i=0,status,pid;
+
+/* */
+     signal(SIGINT,SIG_IGN );
+     signal(SIGCHLD,SIG_IGN);
+
+     if(sig==SIGTERM){
+        printf("SIGTERM signal received for main server.\n");
+        printf("Going to term childs....\n");
+
+     }
+     else if(sig==SIGINT){
+          printf("SIGINT signal received for icap-stretch.\n");
+	  
+     }
+     else{
+          printf("Signal %d received. Exiting ....\n",sig);
+     }
+     _THE_END=1;
+     for(i=0;i<threadsnum;i++){
+	  if(threads[i])
+	       ci_thread_join(threads[i]);	  //What if a child is blocked??????
+     }
+     
+     ci_thread_mutex_destroy(&filemtx);
+
+     print_stats();
+     
+     exit(0);
+}
+
 
 
 
@@ -133,28 +200,30 @@ int readheaderresponce(int fd){
 
 }
 
+#define SIZE_8K 8192
 int readallresponce(int fd){
-     char c,cprev,lbuf[512];
+     char c,cprev,lbuf[SIZE_8K];
      int len,bytes,remains,toread,i,totalbytes;
      i=0;
+     totalbytes=0;
      while(1){
-	  icap_readline(fd,lbuf,512);
+	  totalbytes+=icap_readline(fd,lbuf,SIZE_8K);
 	  if(strlen(lbuf)==0)
 	       i++;
 	  if(i==2)
 	       break;
      }
-     printf("OK headers readed...\n");
-     totalbytes=0;
+
      while(1){
 	  c=0;cprev=0;
 	  for(i=0;!(c=='\n' && cprev=='\r');i++){
 	       cprev=c;
 	       if(i>10 || read(fd,&c,1)<=0){
 		    lbuf[i]='\0';
-		    printf("Error.Exiting i:%d, lbuf:%s",i,lbuf);
-		    return 0;
+		    printf("Error reading socket %d.Exiting i:%d, lbuf:%s\n",fd,i,lbuf);
+		    return -1;
 	       }
+	       totalbytes+=1;
 	       lbuf[i]=c;
 	  }
 	  len=strtol(lbuf,NULL,16);
@@ -162,13 +231,14 @@ int readallresponce(int fd){
 	  if(len==0){
 	       read(fd,&c,1);
 	       read(fd,&c,1);
-	       return totalbytes;
+	       return totalbytes+2;
 	  }
 	  totalbytes+=len;
 	  remains=len+2;
 	  while(remains>0){
-	       toread=(remains>512?512:remains);
-	       len=read(fd,lbuf,toread);
+	       toread=(remains>SIZE_8K?SIZE_8K:remains);
+	       if((len=read(fd,lbuf,toread))<=0)
+		    return -1;
 	       remains=remains-len;
 	  }
      }
@@ -285,7 +355,7 @@ void buildrespmodfile(FILE *f,char *buf){
      strcat(buf,"Connection: keep-alive\r\n\r\n");
      strcat(buf,lbuf);
      keepalive=1;
-     printf(buf);
+//     printf("%s",buf);
 }
 
 
@@ -293,7 +363,7 @@ void buildrespmodfile(FILE *f,char *buf){
 int do_file(int fd, char *filename){
      FILE *f;
      char lg[10],lbuf[512],tmpbuf[522];
-     int bytes,len,totalbytes;
+     int bytes,len,totalbytesout,totalbytesin;
 
      if((f=fopen(filename,"r"))==NULL)
 	  return 0;
@@ -303,35 +373,49 @@ int do_file(int fd, char *filename){
      if(icap_write(fd,lbuf,strlen(lbuf))<0)
 	  return 0;
 
-
-     printf("Sending file:\n");
      
-     totalbytes=0;
+//     printf("Sending file:\n");
+     
+     totalbytesout=strlen(lbuf);
      while((len=fread(lbuf,sizeof(char),512,f))>0){
-	  totalbytes+=len;
+	  totalbytesout+=len;
 	  bytes=sprintf(lg,"%X\r\n",len);
-	  icap_write(fd,lg,bytes);
-	  icap_write(fd,lbuf,len);
+	  if(icap_write(fd,lg,bytes)<0){
+	       printf("Error writing to socket.....\n");
+	       return 0;
+	  }
+	  if(icap_write(fd,lbuf,len)<0){
+	       printf("Error writing to socket.....\n");
+	       return 0;
+	  }
 	  icap_write(fd,"\r\n",2);
 //	  printf("Sending chunksize :%d\n",len);
      }
      icap_write(fd,"0\r\n\r\n",5);
      fclose(f);
-     printf("Done(%d bytes). Reading responce.....\n",totalbytes);
-     totalbytes=readallresponce(fd);
-     printf("Done(%d bytes).\n",totalbytes);
-     
+
+
+     //        printf("Done(%d bytes). Reading responce.....\n",totalbytesout);
+     if((totalbytesin=readallresponce(fd))<0){
+	  printf("Read all responce error;\n");
+	  return -1;
+     }
+     // printf("Done(%d bytes).\n",totalbytes);
+     ci_thread_mutex_lock(&statsmtx);
+     in_bytes_stats+=totalbytesin;
+     out_bytes_stats+=totalbytesout;
+     ci_thread_mutex_unlock(&statsmtx);
+
+     return 1;
 }
 
-ci_thread_mutex_t filemtx;
-int file_indx=0;
 
 int threadjobsendfiles(){
      struct sockaddr_in addr;
      struct hostent *hent;
      int port=1344;
      int fd,indx;
-     
+     int arand;
      
      hent = gethostbyname(servername);
      if(hent == NULL)
@@ -351,6 +435,7 @@ int threadjobsendfiles(){
 	  
 	  if(connect(fd, (struct sockaddr *)&addr, sizeof(addr))){
 	       printf("Error connecting to socket .....\n");
+	       exit(-1);
 	       return -1;
 	  }
 	  
@@ -365,9 +450,26 @@ int threadjobsendfiles(){
 		    file_indx++;
 	       ci_thread_mutex_unlock(&filemtx);
 	       
-	       if(do_file(fd,FILES[indx])==0)
+	       if(do_file(fd,FILES[indx])<=0)
 		    break;
-//	       sleep(1);
+	       sleep(1);
+//	       usleep(100000);
+	       ci_thread_mutex_lock(&statsmtx);
+	       requests_stats++;
+	       arand=rand(); /*rasnd is not thread safe ....*/
+	       ci_thread_mutex_unlock(&statsmtx);
+
+	      
+	       if(_THE_END){
+		    close(fd);
+		    return 0;
+	       }
+	       arand=(int)(( ((double)arand)/(double)RAND_MAX)*10.0);
+	       if(arand==5 || arand==7 || arand==3 ){ // 30% possibility ....
+//		    printf("OK, closing the connection......\n");
+		    break;
+	       }
+//	       printf("Keeping alive connection\n");
 	  }
 	  close(fd);
      }
@@ -377,36 +479,49 @@ int threadjobsendfiles(){
 
 
 int main(int argc, char **argv){
-     int i,fd,len,threadsnum;
+     int i,fd,len;
      struct buffer buf;
      char *str;
      FILE *f;
-     ci_thread_t *threads;
+     
 
-     if(argc<3){
-	  printf("Usage:\n%s servername theadsnum filename\n",argv[0]);
+
+     if(argc<4){
+	  printf("Usage:\n%s servername theadsnum max_requests file1 file2 .....\n",argv[0]);
 	  exit(1);
      }
      signal(SIGPIPE,SIG_IGN);
-
+     signal(SIGINT, sigint_handler);
+     
+     time(&START_TIME);
+     srand((int)START_TIME);
+     
      servername=argv[1];
 	  
      threadsnum=atoi(argv[2]);
      if(threadsnum<=0)
 	  return 0;
 
-     threads=malloc(sizeof(ci_thread_t)*threadsnum);
 
+     if((MAX_REQUESTS=atoi(argv[3]))<0)
+	  MAX_REQUESTS=0;
+
+     threads=malloc(sizeof(ci_thread_t)*threadsnum);
+     for(i=0;i<threadsnum;i++) threads[i]=0;
      
-     if(argc>3){ //
+     if(argc>4){ //
+
 
 	  FILES=argv+3;
 	  FILES_NUMBER=argc-3;
 	  ci_thread_mutex_init(&filemtx);
+	  ci_thread_mutex_init(&statsmtx);
+
 	  printf("Files to send:%d\n",FILES_NUMBER);
 	  for(i=0;i<threadsnum;i++){
+	       printf("Create thread %d\n",i);
 	       ci_thread_create(&(threads[i]),threadjobsendfiles,NULL);	  
-	       sleep(1);
+//	       sleep(1);
 	  }	  
 
      }
@@ -416,16 +531,32 @@ int main(int argc, char **argv){
 	  buf.size=strlen(buf.buf);
 	  
 	  for(i=0;i<threadsnum;i++){
+	       printf("Create thread %d\n",i);
 	       ci_thread_create(&(threads[i]),threadjobreqmod,(void *)&buf);	  
 	       sleep(1);
 	  }
      }
 
 
+
+     while(1){
+	  sleep(1);
+	  if(MAX_REQUESTS && requests_stats>=MAX_REQUESTS){
+	       printf("Oops max requests reached. Exiting .....\n");
+	       _THE_END=1;
+	       break;
+	  }
+	  print_stats();
+     }
+
+
+
      for(i=0;i<threadsnum;i++){
 	  ci_thread_join(threads[i]);	  
      }
 
+     print_stats();
      ci_thread_mutex_destroy(&filemtx);
-     
+     ci_thread_mutex_destroy(&statsmtx);
+
 }

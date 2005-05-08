@@ -72,6 +72,8 @@ void destroy_queue(struct connections_queue *q);
 int put_to_queue(struct connections_queue *q,ci_connection_t *con);
 int get_from_queue(struct connections_queue *q, ci_connection_t *con);
 int wait_for_queue(struct connections_queue *q);
+#define connections_pending(q) (q->used)
+
 
 int create_childs_queue(struct childs_queue *q, int size);
 int destroy_childs_queue(struct childs_queue *q);
