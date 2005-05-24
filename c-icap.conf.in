@@ -25,11 +25,6 @@ Group nobody
 #ServerAdmin you@your.address # Not implemented yet
 #ServerName localhost:1344 # Not implemented yet
 
-# LoadMagicFile must be specified in order to use internal filetype recognizer.
-# Currently used by srv_clamav module. Edit this file if you want to add more filetypes.
-# /etc/magic is a good source to get info about varius file types.
-LoadMagicFile c-icap.magic
-
 TmpDir /var/tmp
 MaxMemObject 131072
 
@@ -41,9 +36,10 @@ ModulesDir @prefix@/lib/c_icap
 Module logger sys_logger.so
 Module perl_handler perl_handler.so
 
-sys_logger.Prefix "Tsants' C-ICAP:"
+sys_logger.Prefix "C-ICAP:"
 sys_logger.Facility local1
 
+##Specify wich logger to use......
 #Logger sys_logger
 Logger file_logger
 
