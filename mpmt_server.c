@@ -195,6 +195,12 @@ void child_signals(){
      signal(SIGINT, term_handler_child);
      signal(SIGTERM,term_handler_child);
      signal(SIGHUP,empty);
+
+     /*Maybe the SIGCHLD must not ignored but better
+       a signal handler must be developed with an 
+       interface for use from modules
+       */
+//     signal(SIGCHLD,SIG_IGN);
 }
 
 void main_signals(){

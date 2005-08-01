@@ -1465,6 +1465,7 @@ int get_send_body(request_t *req){
 
      req->responce_status=SEND_NOTHING;
      while((get_data_ret=get_preview_or_chunk_data(req,0))==CI_OK){
+	  ci_debug_printf(9,"OK getting data...\n");
 	  if(!(req->data_locked)){
 	       if(req->responce_status==SEND_NOTHING){
 		    if((ret=start_send_data(req))==CI_ERROR){
@@ -1575,6 +1576,7 @@ int process_request(request_t *req){
 	  }
 
 	  if(req->hasbody && preview_status>=0){
+	       ci_debug_printf(9,"Going to get_send_data.....\n");
 	       res=get_send_body(req);
 	       if(res!=CI_OK){
 		    ci_debug_printf(5,"An error occured. Parse error or the client closed the connection (res:%d, preview status:%d)\n",res,preview_status);

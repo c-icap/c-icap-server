@@ -87,7 +87,7 @@ void *load_module(char *module_file){
 	  handle=dlopen(module_file,RTLD_LAZY|RTLD_GLOBAL);
      
      if(!handle){
-          ci_debug_printf(1,"Error loading module %s\n",module_file);
+          ci_debug_printf(1,"Error loading module %s:%s\n",module_file,dlerror());
 	  return NULL;
      }
      service=dlsym(handle,"module");

@@ -337,15 +337,107 @@ int check_ascii(unsigned char *buf,int buflen){
      if(res<=3)
 	  return CI_ISO8859_DATA;
      
-     return CI_XASCII_DATA;
+     /* return CI_XASCII_DATA;*/ /*Extend ascii for web pages?*/
+     return -1;
 }
 
 
 
+int isUTF8(char *c,int size){
+     int i,r_size=0;
+     unsigned int ucs_c=0;
+     static unsigned int utf_boundaries[]={0x0,0x0, 0x07F,0x7FF,0xFFFF,0x1FFFFF,0x3FFFFFF};
+
+     if( text_chars[*c] == T )
+	  return 1;
+     
+     if( (*c & 0xE0) ==0xC0 ){ /*2 byte unicode char ...*/
+	  ucs_c= (*c) & 0x1F;
+	  r_size=2;
+     }
+     else if( (*c & 0xF0) ==0xE0 ){ /*3 byte unicode char */
+	  ucs_c= (*c) & 0x0F;
+	  r_size=3;
+     }
+     else if( (*c & 0xF8) ==0xF0 ){ /*4 byte unicode char */
+	  ucs_c= (*c) & 0x07;
+	  r_size=4;
+     }
+     else if( (*c & 0xFC) ==0xF8 ){ /*5 byte unicode char */
+	  ucs_c= (*c) & 0x03;
+	  r_size=5;
+     }
+     else if( (*c & 0xFE) ==0xFC){ /*6 byte unicode char */
+	  ucs_c= (*c) & 0x01;
+	  r_size=6;
+     }
+     
+     if(!r_size /*|| r_size >4 */)
+	  return 0;
+
+     for(i=1;i<r_size && i<size ;i++){
+	  if((*(c+i) & 0xC0 )!=0x80)
+	       return 0;
+	  ucs_c= (ucs_c<<6) | (*(c+i) & 0x3F );
+     }
+     
+     if( i< r_size){
+	  /*Not enough length ... */
+	  return -1;
+     }
+     
+     if(ucs_c <= utf_boundaries[r_size] ){
+	  /*Over long character .... */
+	  return 0;
+     }
+     
+     /* check UTF-16 surrogates? ........*/
+     if( (ucs_c>=0xd800 && ucs_c<=0xdfff) || ucs_c==0xfffe || ucs_c==0xffff ){
+	  return 0;
+     }
+     return r_size;
+}
 
 
 int check_unicode(unsigned char *buf,int buflen){
-     return -1;
+     int i,ret=0;
+     int endian=0;
+     /*check for utf8 ........*/
+     for(i=0;i<buflen;i+=ret){ 
+	  if(!(ret=isUTF8(buf+i,buflen-i)))
+	       break;
+     }
+
+     if(ret) /*Even if the last char is unknown ret!=0 mean is utf*/
+	  return CI_UTF_DATA; /*... but what about if buflen is about 2 or 3 bytes long ?*/
+     
+     /*check for utf16 ....*/
+     if(buflen<2)
+	  return -1;
+     /*I read somewhere that only Microsoft uses the first 2 bytes to identify utf16 documents */
+     if(buf[0] == 0xff && buf[1] == 0xfe) /*Litle endian utf16*/
+	  endian=0;
+     else if(buf[0] == 0xfe && buf[1] == 0xff) /*big endian utf16 .... */
+	  endian=1;
+     else 
+	  return -1;
+     
+     /*The only check we can do is for the ascii characters ...... */
+     for(i=2;i<buflen;i+=2){
+	  if(endian){
+	       if(buf[i]==0 && buf[i+1]<128 && text_chars[buf[i+1]]!=T)
+		    return -1;
+	  }
+	  else{
+	       if(buf[i+1]==0 && buf[i]<128 && text_chars[buf[i]]!=T)
+		    return -1;
+	  }
+     }
+     
+     
+     /*utf32 ????? who are using it?*/
+
+     return CI_UTF_DATA;
 }
 
 
@@ -357,7 +449,12 @@ int ci_filetype(struct ci_magics_db *db,char *buf, int buflen){
      if((ret=check_magics(db,buf,buflen))>=0)
 	  return ret;
      
-     if((ret=check_ascii((unsigned char *)buf,buflen))<0)
-	  return CI_BIN_DATA; /*binary data*/
-     return ret;
+     if((ret=check_ascii((unsigned char *)buf,buflen))>0)
+	  return ret;
+
+     if((ret=check_unicode((unsigned char *)buf,buflen))>0){
+	  return CI_UTF_DATA;
+     }
+     
+     return CI_BIN_DATA; /*binary data*/
 }

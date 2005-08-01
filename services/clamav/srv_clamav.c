@@ -395,6 +395,11 @@ int get_filetype(request_t *req,char *buf,int len){
      file_type=ci_filetype(magic_db,buf,len);
      file_group=ci_data_type_group(magic_db,file_type);
 
+     ci_debug_printf(7,"File type returned :%s,%s\n",
+		     ci_data_type_name(magic_db,file_type),
+		     ci_data_type_descr(magic_db,file_type));
+     
+
      if( file_group==CI_TEXT_DATA && content_type!=NULL){
 	  if(strstr(content_type,"text/html") || strstr(content_type,"text/css") ||
 	                                           strstr(content_type,"text/javascript"))
@@ -409,9 +414,12 @@ int get_filetype(request_t *req,char *buf,int len){
 	       file_type=CI_HTML_DATA;
      }
 
-     ci_debug_printf(7,"File type returned :%s,%s\n",
-		  ci_data_type_name(magic_db,file_type),
-		  ci_data_type_descr(magic_db,file_type));
+
+     ci_debug_printf(7,"The file type now is :%s,%s\n",
+		     ci_data_type_name(magic_db,file_type),
+		     ci_data_type_descr(magic_db,file_type));
+	  
+
      return file_type;
 }
 
