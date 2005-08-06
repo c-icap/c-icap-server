@@ -1,3 +1,22 @@
+/*
+ *  Copyright (C) 2004 Christos Tsantilas
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ */
+
+
 #include <stdio.h>
 #include <ctype.h>
 #include <errno.h>
@@ -342,11 +361,11 @@ int check_ascii(unsigned char *buf,int buflen){
 }
 
 
+static unsigned int utf_boundaries[]={0x0,0x0, 0x07F,0x7FF,0xFFFF,0x1FFFFF,0x3FFFFFF};
 
 int isUTF8(char *c,int size){
      int i,r_size=0;
      unsigned int ucs_c=0;
-     static unsigned int utf_boundaries[]={0x0,0x0, 0x07F,0x7FF,0xFFFF,0x1FFFFF,0x3FFFFFF};
 
      if( text_chars[*c] == T )
 	  return 1;
@@ -372,7 +391,7 @@ int isUTF8(char *c,int size){
 	  r_size=6;
      }
      
-     if(!r_size /*|| r_size >4 */)
+     if(!r_size /*|| r_size >4 */)/*In practice there are not yet 5 and 6 sized utf characters*/
 	  return 0;
 
      for(i=1;i<r_size && i<size ;i++){
@@ -449,6 +468,7 @@ int ci_filetype(struct ci_magics_db *db,char *buf, int buflen){
      if((ret=check_magics(db,buf,buflen))>=0)
 	  return ret;
      
+/*At the feature the check_ascii and check_unicode must be merged ....*/
      if((ret=check_ascii((unsigned char *)buf,buflen))>0)
 	  return ret;
 
