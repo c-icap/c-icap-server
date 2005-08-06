@@ -33,7 +33,7 @@
 #define STARTLEN 8192 /*8*1024*1024*/
 #define INCSTEP  4096
 
-struct ci_membuf *ci_new_membuf(){
+struct ci_membuf *ci_membuf_new(){
      struct ci_membuf *b;
      b=malloc(sizeof(struct ci_membuf));
      if(!b)
@@ -52,7 +52,7 @@ struct ci_membuf *ci_new_membuf(){
      return b;
 }
 
-struct ci_membuf *ci_new_sized_membuf(int size){
+struct ci_membuf *ci_membuf_new_sized(int size){
      struct ci_membuf *b;
      b=malloc(sizeof(struct ci_membuf));
      if(!b)
@@ -72,7 +72,7 @@ struct ci_membuf *ci_new_sized_membuf(int size){
 }
 
 
-void ci_free_membuf(struct ci_membuf *b){
+void ci_membuf_free(struct ci_membuf *b){
      if(!b)
 	  return;
      if(b->buf)
@@ -81,7 +81,7 @@ void ci_free_membuf(struct ci_membuf *b){
 }
 
 
-int ci_write_membuf(struct ci_membuf *b, char *data,int len, int iseof){
+int ci_membuf_write(struct ci_membuf *b, char *data,int len, int iseof){
      int remains,newsize;
      char *newbuf;
      if(iseof){
@@ -112,7 +112,7 @@ int ci_write_membuf(struct ci_membuf *b, char *data,int len, int iseof){
      return len;
 }
 
-int ci_read_membuf(struct ci_membuf *b,char *data,int len){
+int ci_membuf_read(struct ci_membuf *b,char *data,int len){
      int remains,copybytes;
      remains=b->endpos-b->readpos;
      if(remains==0 && b->hasalldata)
@@ -125,12 +125,6 @@ int ci_read_membuf(struct ci_membuf *b,char *data,int len){
 
      return copybytes;
 }
-
-/*
-void markendofdata(struct membuf *b){
-     b->hasalldata=1;
-}
-*/
 
 
 /**************************************************************************/
@@ -169,7 +163,7 @@ int  resize_buffer(ci_cached_file_t *body,int new_size){
      return 1;
 }
 
-ci_cached_file_t * ci_new_cached_file(int size){
+ci_cached_file_t * ci_cached_file_new(int size){
      ci_cached_file_t *body;
      if(!(body=malloc(sizeof(ci_cached_file_t))))
 	  return NULL;
@@ -203,25 +197,6 @@ ci_cached_file_t * ci_new_cached_file(int size){
      return body;
 }
 
-ci_cached_file_t * ci_new_uncached_file(int size){
-     ci_cached_file_t *body;
-
-     if(!(body=malloc(sizeof(ci_cached_file_t))))
-	  return NULL;
-     body->buf=NULL;
-     body->bufsize=0;
-     if((body->fd=ci_mktemp_file(CI_TMPDIR,tmp_template,body->filename))<0){
-	  ci_debug_printf(1,"Can not open temporary filename in directory:%s\n",CI_TMPDIR);
-	  free(body);
-	  return NULL;
-     }
-     body->endpos=0;
-     body->readpos=0;
-     body->eof_received=0;
-     body->unlocked=-1;/*Not use look*/
-
-     return body;
-}
 
 #ifdef _WIN32
 #define F_PERM S_IREAD|S_IWRITE
@@ -229,54 +204,7 @@ ci_cached_file_t * ci_new_uncached_file(int size){
 #define F_PERM S_IREAD|S_IWRITE|S_IRGRP|S_IROTH
 #endif
 
-ci_cached_file_t *ci_new_named_uncached_file(char *tmp,char*filename){
-     ci_cached_file_t *body;
-
-     if(!(body=malloc(sizeof(ci_cached_file_t))))
-	  return NULL;
-     body->buf=NULL;
-     body->bufsize=0;
-     if(filename){
-	  snprintf(body->filename,CI_FILENAME_LEN,"%s/%s",tmp,filename);
-	  if((body->fd=open(body->filename,O_CREAT|O_RDWR|O_EXCL,F_PERM))<0){
-	       ci_debug_printf(1,"Can not open temporary filename: %s\n",body->filename);
-	       free(body);
-	       return NULL;
-	  }
-     }
-     else if((body->fd=ci_mktemp_file(tmp,tmp_template,body->filename))<0){
-	  ci_debug_printf(1,"Can not open temporary filename in directory: %s\n",tmp);
-	  free(body);
-	  return NULL;
-     }
-     body->endpos=0;
-     body->readpos=0;
-     body->eof_received=0;
-     body->unlocked=-1;/*Not use look*/
-
-     return body;
-}
-/*
-ci_cached_file_t *ci_new_uncached_file_d(char*tmp){
-     ci_cached_file_t *body;
-
-     if(!(body=malloc(sizeof(ci_cached_file_t))))
-	  return NULL;
-     body->buf=NULL;
-     body->bufsize=0;
-     if((body->fd=open_tmp_file(tmp,body->filename))<0){
-	  free(body);
-	  return NULL;
-     }
-     body->endpos=0;
-     body->readpos=0;
-     body->eof_received=0;
-     body->unlocked=-1;/
-     return body;
-}
-*/
-
-void ci_reset_cached_file(ci_cached_file_t *body,int new_size){
+void ci_cached_file_reset(ci_cached_file_t *body,int new_size){
 
      if(body->fd>0){
 	  close(body->fd);
@@ -296,7 +224,7 @@ void ci_reset_cached_file(ci_cached_file_t *body,int new_size){
 
 
 
-void ci_release_cached_file(ci_cached_file_t *body){
+void ci_cached_file_destroy(ci_cached_file_t *body){
      if(!body)
 	  return;
      if(body->buf)
@@ -311,7 +239,7 @@ void ci_release_cached_file(ci_cached_file_t *body){
 }
 
 
-void ci_release_and_save_cached_file(ci_cached_file_t *body){
+void ci_cached_file_release(ci_cached_file_t *body){
      if(!body)
 	  return;
      if(body->buf)
@@ -325,9 +253,8 @@ void ci_release_and_save_cached_file(ci_cached_file_t *body){
 
 
 
-int ci_write_cached_file(ci_cached_file_t *body, char *buf,int len, int iseof){
+int ci_cached_file_write(ci_cached_file_t *body, char *buf,int len, int iseof){
      int remains;
-
 
      if(iseof){
 	  body->eof_received=1;
@@ -370,7 +297,7 @@ int ci_write_cached_file(ci_cached_file_t *body, char *buf,int len, int iseof){
 body->unlocked=?
 */
 
-int ci_read_cached_file(ci_cached_file_t *body,char *buf,int len){
+int ci_cached_file_read(ci_cached_file_t *body,char *buf,int len){
      int remains,bytes;
 
      if( (body->readpos==body->endpos) && body->eof_received)
@@ -411,18 +338,118 @@ int ci_read_cached_file(ci_cached_file_t *body,char *buf,int len){
 }
 
 
-/*
-int ci_memtofile_cached_file(ci_cached_file_t *body){
-     int size;
-     if(body->fd>0)
-	  return 0;
+/********************************************************************************/
+/*ci_simple_file function implementation                                        */
 
-     if((body->fd=open_tmp_file(body->filename))<0){
-	  return -1;
+ci_simple_file_t * ci_simple_file_new(){
+     ci_simple_file_t *body;
+
+     if(!(body=malloc(sizeof(ci_simple_file_t))))
+	  return NULL;
+     
+     if((body->fd=ci_mktemp_file(CI_TMPDIR,tmp_template,body->filename))<0){
+	  ci_debug_printf( 1,"ci_simple_file_new: Can not open temporary filename in directory:%s\n",CI_TMPDIR);
+	  free(body);
+	  return NULL;
      }
-     size=write(body->fd,body->buf,body->endpos);
-     if(size!=body->endpos){
-     }
-     return size;
+     body->endpos=0;
+     body->readpos=0;
+     body->eof_received=0;
+     body->unlocked=-1;/*Not use look*/
+
+     return body;
 }
-*/
+
+
+
+ci_simple_file_t *ci_simple_file_named_new(char *dir,char*filename){
+     ci_simple_file_t *body;
+
+     if(!(body=malloc(sizeof(ci_cached_file_t))))
+	  return NULL;
+
+     if(filename){
+	  snprintf(body->filename,CI_FILENAME_LEN,"%s/%s",dir,filename);
+	  if((body->fd=open(body->filename,O_CREAT|O_RDWR|O_EXCL,F_PERM))<0){
+	       ci_debug_printf(1,"Can not open temporary filename: %s\n",body->filename);
+	       free(body);
+	       return NULL;
+	  }
+     }
+     else if((body->fd=ci_mktemp_file(dir,tmp_template,body->filename))<0){
+	  ci_debug_printf(1,"Can not open temporary filename in directory: %s\n",dir);
+	  free(body);
+	  return NULL;
+     }
+     body->endpos=0;
+     body->readpos=0;
+     body->eof_received=0;
+     body->unlocked=-1;/*Not use look*/
+
+     return body;
+}
+
+
+void ci_simple_file_destroy(ci_simple_file_t *body){
+     if(!body)
+	  return;
+     
+     if(body->fd>=0){
+	  close(body->fd);
+	  unlink(body->filename); /*Comment out for debuging reasons*/
+     }
+     
+     free(body);
+}
+
+
+void ci_simple_file_release(ci_simple_file_t *body){
+     if(!body)
+	  return;
+     
+     if(body->fd>=0){
+	  close(body->fd);
+     }
+     
+     free(body);
+}
+
+
+int ci_simple_file_write(ci_simple_file_t *body, char *buf,int len, int iseof){
+     int ret;
+     if(iseof){
+	  body->eof_received=1;
+	  ci_debug_printf(10,"Buffer Data size=%d\n ",body->endpos);
+     }
+     
+     lseek(body->fd,0,SEEK_END);
+     if((ret=write(body->fd,buf,len))<0){
+	  ci_debug_printf(1,"Can not write to file!!! (errno=%d)\n",errno);
+     }
+     body->endpos+=ret;
+     
+     return ret;
+}
+
+
+
+int ci_simple_file_read(ci_simple_file_t *body,char *buf,int len){
+     int remains,bytes;
+
+     if( (body->readpos==body->endpos) && body->eof_received)
+	  return CI_EOF;
+     
+     if(body->unlocked>=0)
+	  remains=body->unlocked-body->readpos;
+     else
+	  remains=len;
+     
+
+     bytes=(remains>len?len:remains); /*Number of bytes that we are going to read from file.....*/
+     
+     lseek(body->fd,body->readpos,SEEK_SET);
+     if((bytes=read(body->fd,buf,bytes))>0)
+	  body->readpos+=bytes;
+     return bytes;
+
+}

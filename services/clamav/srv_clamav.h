@@ -5,7 +5,7 @@
 
 
 typedef struct av_req_data{
-     ci_cached_file_t *body;
+     ci_simple_file_t *body;
      request_t *req;
      int must_scanned ;
      const char *virus_name;

@@ -54,7 +54,7 @@ CI_DECLARE_MOD_DATA service_module_t service={
      NULL,/*post_init_service*/
      NULL, /*close_Service*/
      sguard_init_request_data,/* init_request_data*/
-     (void (*)(void *))ci_free_membuf, /*Release request data*/
+     (void (*)(void *))ci_membuf_free, /*Release request data*/
 
 /*     sguard_end_of_headers_handler,*/
      sguard_check_preview,
@@ -73,7 +73,7 @@ int sguard_init_service(service_module_t *serv,struct icap_server_conf *server_c
 
 void *sguard_init_request_data(service_module_t *serv,request_t *req){
      if(ci_req_hasbody(req))
-	  return ci_new_membuf();
+	  return ci_membuf_new();
      return NULL;
 }
 
@@ -97,7 +97,7 @@ int sguard_check_preview(void *data,char *preview_data,int preview_data_len, req
      unlock_data(req);
      
      if(preview_data)
-	  ci_write_membuf(data,preview_data,preview_data_len,ci_req_hasalldata(req));
+	  ci_membuf_write(data,preview_data,preview_data_len,ci_req_hasalldata(req));
      return EC_100;
 }
 
@@ -113,10 +113,10 @@ int sguard_process(void *b,request_t *req){
 }
 
 int sguard_write(void *data, char *buf,int len ,int iseof,request_t *req){
-     return ci_write_membuf(data,buf,len,iseof);
+     return ci_membuf_write(data,buf,len,iseof);
 }
 
 int sguard_read(void *data,char *buf,int len,request_t *req){
-     return ci_read_membuf(data,buf,len);
+     return ci_membuf_read(data,buf,len);
 }
 

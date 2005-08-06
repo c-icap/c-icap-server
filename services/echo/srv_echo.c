@@ -52,7 +52,7 @@ CI_DECLARE_MOD_DATA service_module_t service={
      NULL,/*post_init_service*/
      NULL,/*close_service*/
      echo_init_request_data,/*init_request_data. */
-     (void (*)(void *))ci_free_membuf, /*release request data*/
+     (void (*)(void *))ci_membuf_free, /*release request data*/
      echo_check_preview_handler,
      echo_end_of_data_handler,
      echo_write, 
@@ -70,7 +70,7 @@ int echo_init_service(service_module_t *serv,struct icap_server_conf *server_con
 void *echo_init_request_data(service_module_t *serv,request_t *req){
 
      if(ci_req_hasbody(req))
-	  return ci_new_membuf();
+	  return ci_membuf_new();
      return NULL;
 }
 
@@ -94,7 +94,7 @@ int echo_check_preview_handler(void *data,char *preview_data,int preview_data_le
 
     if(whattodo==0){
  	    whattodo=1;
-	    ci_write_membuf(data,preview_data,preview_data_len,ci_req_hasalldata(req));
+	    ci_membuf_write(data,preview_data,preview_data_len,ci_req_hasalldata(req));
             return EC_100;
     }
     else{
@@ -111,11 +111,11 @@ int echo_end_of_data_handler(void *b,request_t *req){
 
 
 int echo_write(void *data, char *buf,int len ,int iseof,request_t *req){
-     return ci_write_membuf(data,buf,len,iseof);
+     return ci_membuf_write(data,buf,len,iseof);
 }
 
 int echo_read(void *data,char *buf,int len,request_t *req){
-     return ci_read_membuf(data,buf,len);
+     return ci_membuf_read(data,buf,len);
 }
 
 

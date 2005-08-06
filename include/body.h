@@ -34,18 +34,15 @@ typedef struct ci_membuf{
      char *buf;
 } ci_membuf_t;
 
-CI_DECLARE_FUNC(struct ci_membuf) * ci_new_membuf();
-CI_DECLARE_FUNC(struct ci_membuf) * ci_new_sized_membuf(int size);
-CI_DECLARE_FUNC(void) ci_free_membuf(struct ci_membuf *);
-CI_DECLARE_FUNC(int) ci_write_membuf(struct ci_membuf *body, char *buf,int len, int iseof);
-CI_DECLARE_FUNC(int) ci_read_membuf(struct ci_membuf *body,char *buf,int len);
-/*CI_DECLARE_FUNC(void) ci_markendofdata(struct mem_buf *body);*/
+CI_DECLARE_FUNC(struct ci_membuf) * ci_membuf_new();
+CI_DECLARE_FUNC(struct ci_membuf) * ci_membuf_new_sized(int size);
+CI_DECLARE_FUNC(void) ci_membuf_free(struct ci_membuf *);
+CI_DECLARE_FUNC(int) ci_membuf_write(struct ci_membuf *body, char *buf,int len, int iseof);
+CI_DECLARE_FUNC(int) ci_membuf_read(struct ci_membuf *body,char *buf,int len);
 
 
 /*****************************************************************/
 /* Cached file functions and structure                           */
-
-
 
 typedef struct ci_cached_file{
      int endpos;
@@ -63,26 +60,51 @@ typedef struct ci_cached_file{
 CI_DECLARE_DATA extern int  CI_BODY_MAX_MEM;
 CI_DECLARE_DATA extern char *CI_TMPDIR;
 
-CI_DECLARE_FUNC(ci_cached_file_t) * ci_new_cached_file(int size);
-CI_DECLARE_FUNC(ci_cached_file_t) * ci_new_uncached_file(int size);
-CI_DECLARE_FUNC(ci_cached_file_t) * ci_new_named_uncached_file(char *tmp,char*filename);
-CI_DECLARE_FUNC(void) ci_release_cached_file(ci_cached_file_t *);
-CI_DECLARE_FUNC(int) ci_write_cached_file(ci_cached_file_t *body,
+CI_DECLARE_FUNC(ci_cached_file_t) * ci_cached_file_new(int size);
+CI_DECLARE_FUNC(void) ci_cached_file_destroy(ci_cached_file_t *);
+CI_DECLARE_FUNC(int) ci_cached_file_write(ci_cached_file_t *body,
 					  char *buf,int len, int iseof);
-CI_DECLARE_FUNC(int) ci_read_cached_file(ci_cached_file_t *body,char *buf,int len);
-/*CI_DECLARE_FUNC(int)  ci_memtofile_cached_file(ci_cached_file_t *body);*/
-CI_DECLARE_FUNC(void) ci_reset_cached_file(ci_cached_file_t *body,int new_size);
-CI_DECLARE_FUNC(void) ci_release_and_save_cached_file(ci_cached_file_t *body);
+CI_DECLARE_FUNC(int) ci_cached_file_read(ci_cached_file_t *body,char *buf,int len);
+CI_DECLARE_FUNC(void) ci_cached_file_reset(ci_cached_file_t *body,int new_size);
+CI_DECLARE_FUNC(void) ci_cached_file_release(ci_cached_file_t *body);
 
 
-#define ci_lockalldata_cached_file(body) (body->unlocked=0)
-#define ci_unlockdata_cached_file(body, len) (body->unlocked=len)
-#define ci_unlockalldata_cached_file(body) (body->unlocked=-1)
-#define ci_size_cached_file(body)            (body->endpos)
-#define ci_ismem_cached_file(body)           (body->fd<0)
-#define ci_isfile_cached_file(body)          (body->fd>0)
-#define ci_readeddata_cached_file(body)      (body->readpos)
+#define ci_cached_file_lock_all(body)     (body->unlocked=0)
+#define ci_cached_file_unlock(body, len) (body->unlocked=len)
+#define ci_cached_file_unlock_all(body)   (body->unlocked=-1)
+#define ci_cached_file_size(body)            (body->endpos)
+#define ci_cached_file_ismem(body)           (body->fd<0)
+#define ci_cached_file_read_pos(body)      (body->readpos)
 
+
+/*****************************************************************/
+/* simple file function and structures                           */
+
+typedef struct ci_simple_file{
+     int endpos;
+     int readpos;
+     int eof_received;
+     int unlocked;
+     int fd;
+     char filename[CI_FILENAME_LEN+1];
+} ci_simple_file_t;
+
+
+CI_DECLARE_FUNC(ci_simple_file_t) * ci_simple_file_new();
+CI_DECLARE_FUNC(ci_simple_file_t) * ci_simple_file_named_new(char *tmp,char*filename);
+
+CI_DECLARE_FUNC(void) ci_simple_file_release(ci_simple_file_t *);
+CI_DECLARE_FUNC(void) ci_simple_file_destroy(ci_simple_file_t *body);
+CI_DECLARE_FUNC(int) ci_simple_file_write(ci_simple_file_t *body,
+					  char *buf,int len, int iseof);
+CI_DECLARE_FUNC(int) ci_simple_file_read(ci_simple_file_t *body,char *buf,int len);
+
+
+//#define ci_simple_file_lock(body,len)            (body->unlocked=0)
+#define ci_simple_file_lock_all(body)            (body->unlocked=0)
+#define ci_simple_file_unlock(body, len)     (body->unlocked=len)
+#define ci_simple_file_unlock_all(body)      (body->unlocked=-1)
+#define ci_simple_file_size(body)            (body->endpos)
 
 
 #endif

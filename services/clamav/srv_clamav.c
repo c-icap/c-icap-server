@@ -196,17 +196,17 @@ void srvclamav_release_request_data(void *data){
 	  ci_debug_printf(8,"Releaseing srv_clamav data.....\n");
 #ifdef VIRALATOR_MODE
 	  if(((av_req_data_t *)data)->must_scanned==VIR_SCAN){
-	       ci_release_and_save_cached_file(((av_req_data_t *)data)->body);
+	       ci_simple_file_release(((av_req_data_t *)data)->body);
 	       if(((av_req_data_t *)data)->requested_filename)
 		    free(((av_req_data_t *)data)->requested_filename);
 	  }
 	  else
 #endif
 	       if(((av_req_data_t *)data)->body)
-		    ci_release_cached_file(((av_req_data_t *)data)->body);
+		    ci_simple_file_destroy(((av_req_data_t *)data)->body);
 	  
 	  if(((av_req_data_t *)data)->error_page)
-	       ci_free_membuf(((av_req_data_t *)data)->error_page);
+	       ci_membuf_free(((av_req_data_t *)data)->error_page);
 	  
 	  free(data);
      }
@@ -253,12 +253,12 @@ int srvclamav_check_preview_handler(void *data,char *preview_data,int preview_da
 	       return EC_204;
 	  }
 	  
-	  ((av_req_data_t *)data)->body=ci_new_uncached_file(content_size); 
+	  ((av_req_data_t *)data)->body=ci_simple_file_new(content_size); 
 
 	  if(SEND_PERCENT_BYTES>=0 && START_SEND_AFTER==0){
 	       ci_req_unlock_data(req); /*Icap server can send data before all body has received*/
-	       /*Let cached_file api to control the percentage of data.For the beggining no data can send..*/
-	       ci_lockalldata_cached_file(((av_req_data_t *)data)->body);
+	       /*Let ci_simple_file api to control the percentage of data.For the beggining no data can send..*/
+	       ci_simple_file_lock_all(((av_req_data_t *)data)->body);
 	  }
 #ifdef VIRALATOR_MODE
      }
@@ -266,7 +266,7 @@ int srvclamav_check_preview_handler(void *data,char *preview_data,int preview_da
      if(!((av_req_data_t *)data)->body)/*Memory allocation or something else .....*/
 	  return CI_ERROR;
 
-     ci_write_cached_file(((av_req_data_t *)data)->body, preview_data,preview_data_len ,ci_req_hasalldata(req));
+     ci_simple_file_write(((av_req_data_t *)data)->body, preview_data,preview_data_len ,ci_req_hasalldata(req));
      return EC_100;
 }
 
@@ -282,20 +282,20 @@ int srvclamav_write(void *data, char *buf,int len ,int iseof,request_t *req){
 	     || ((av_req_data_t *)data)->must_scanned==VIR_SCAN
 #endif
 	       ){/*if must not scanned then simply write the data and exit.....*/
-	       return ci_write_cached_file(((av_req_data_t *)data)->body, buf,len ,iseof);
+	       return ci_simple_file_write(((av_req_data_t *)data)->body, buf,len ,iseof);
 	  }
 
-	  if( ci_size_cached_file(((av_req_data_t *)data)->body) >= MAX_OBJECT_SIZE){
+	  if( ci_simple_file_size(((av_req_data_t *)data)->body) >= MAX_OBJECT_SIZE){
 	       ((av_req_data_t *)data)->must_scanned=0;
 	       ci_req_unlock_data(req); /*Allow ICAP to send data before receives the EOF.......*/
-	       ci_unlockalldata_cached_file(((av_req_data_t *)data)->body);/*Unlock all body data to continue send them.....*/
+	       ci_simple_file_unlock_all(((av_req_data_t *)data)->body);/*Unlock all body data to continue send them.....*/
 	  }                                    /*else Allow transfer SEND_PERCENT_BYTES of the data*/
-	  else if(SEND_PERCENT_BYTES && START_SEND_AFTER < ci_size_cached_file(((av_req_data_t *)data)->body)){	 
+	  else if(SEND_PERCENT_BYTES && START_SEND_AFTER < ci_simple_file_size(((av_req_data_t *)data)->body)){	 
 	       ci_req_unlock_data(req);
 	       allow_transfer=(SEND_PERCENT_BYTES*(((av_req_data_t *)data)->body->endpos+len))/100;
-	       ci_unlockdata_cached_file(((av_req_data_t *)data)->body,allow_transfer);
+	       ci_simple_file_unlock(((av_req_data_t *)data)->body,allow_transfer);
 	  }
-	  return ci_write_cached_file(((av_req_data_t *)data)->body, buf,len ,iseof);
+	  return ci_simple_file_write(((av_req_data_t *)data)->body, buf,len ,iseof);
      }
      return -1;
 }
@@ -321,10 +321,10 @@ int srvclamav_read(void *data,char *buf,int len,request_t *req){
      /*if a virus found and no data sent, an inform page has already generated*/
      
      if(((av_req_data_t *)data)->error_page)
-	  return ci_read_membuf(((av_req_data_t *)data)->error_page,buf,len);
+	  return ci_membuf_read(((av_req_data_t *)data)->error_page,buf,len);
      
      if(data){
-	  bytes=ci_read_cached_file(((av_req_data_t *)data)->body,buf,len);
+	  bytes=ci_simple_file_read(((av_req_data_t *)data)->body,buf,len);
 	  return bytes;
      }
      return -1;
@@ -332,7 +332,7 @@ int srvclamav_read(void *data,char *buf,int len,request_t *req){
 
 
 int srvclamav_end_of_data_handler(void *data,request_t *req){
-     ci_cached_file_t *body=(data?((av_req_data_t *)data)->body:NULL);
+     ci_simple_file_t *body=(data?((av_req_data_t *)data)->body:NULL);
      const char *virname;
      int ret=0;
      unsigned long int scanned_data=0;
@@ -341,16 +341,15 @@ int srvclamav_end_of_data_handler(void *data,request_t *req){
 	  return CI_MOD_DONE;
 
      if(((av_req_data_t *)data)->must_scanned==NO_SCAN){/*If exceeds the MAX_OBJECT_SIZE for example ......  */
-	  ci_unlockalldata_cached_file(body); /*Unlock all data to continue send them . Not really needed here....*/
+	  ci_simple_file_unlock_all(body); /*Unlock all data to continue send them . Not really needed here....*/
 	  return CI_MOD_DONE;     
      }
 
 
-     if(ci_isfile_cached_file(body)){ /*can only be file*/
-	  ci_debug_printf(8,"Scan from file\n");
-	  lseek(body->fd,0,SEEK_SET);
-	  ret=cl_scandesc(body->fd,&virname,&scanned_data,root,&limits,CL_SCAN_STDOPT);
-     }
+     ci_debug_printf(8,"Scan from file\n");
+     lseek(body->fd,0,SEEK_SET);
+     ret=cl_scandesc(body->fd,&virname,&scanned_data,root,&limits,CL_SCAN_STDOPT);
+     
   
      ci_debug_printf(9,"Clamav engine scanned %d size of  data....\n",(scanned_data?scanned_data:body->endpos));
 
@@ -370,7 +369,7 @@ int srvclamav_end_of_data_handler(void *data,request_t *req){
 	  endof_data_vir_mode(data,req);
      }
      
-     ci_unlockalldata_cached_file(body);/*Unlock all data to continue send them.....*/
+     ci_simple_file_unlock_all(body);/*Unlock all data to continue send them.....*/
 
      return CI_MOD_DONE;     
 }
@@ -455,12 +454,12 @@ void generate_error_page(av_req_data_t *data,request_t *req){
      ci_req_respmod_add_header(req,"Content-Language: en");
 
 
-     error_page=ci_new_sized_membuf(new_size);
+     error_page=ci_membuf_new_sized(new_size);
      ((av_req_data_t *)data)->error_page=error_page;
      
-     ci_write_membuf(error_page,error_message,strlen(error_message),0);
-     ci_write_membuf(error_page,(char *)data->virus_name,strlen(data->virus_name),0);
-     ci_write_membuf(error_page,tail_message,strlen(tail_message),1);/*And here is the eof....*/
+     ci_membuf_write(error_page,error_message,strlen(error_message),0);
+     ci_membuf_write(error_page,(char *)data->virus_name,strlen(data->virus_name),0);
+     ci_membuf_write(error_page,tail_message,strlen(tail_message),1);/*And here is the eof....*/
 }
 
 

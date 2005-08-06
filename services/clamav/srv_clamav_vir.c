@@ -51,11 +51,11 @@ void init_vir_mode_data(request_t *req,av_req_data_t *data){
 
      
      if(data->requested_filename=srvclamav_compute_name(req)){
-	  if(NULL==(data->body=ci_new_named_uncached_file(VIR_SAVE_DIR,data->requested_filename)))
-	       data->body=ci_new_named_uncached_file(VIR_SAVE_DIR,NULL);
+	  if(NULL==(data->body=ci_simple_file_named_new(VIR_SAVE_DIR,data->requested_filename)))
+	       data->body=ci_simple_file_named_new(VIR_SAVE_DIR,NULL);
      }
      else{
-	  data->body=ci_new_named_uncached_file(VIR_SAVE_DIR,NULL);
+	  data->body=ci_simple_file_named_new(VIR_SAVE_DIR,NULL);
      }
 
      ci_req_unlock_data(req);
@@ -69,7 +69,7 @@ int send_vir_mode_page(av_req_data_t *data,char *buf,int len,request_t *req){
 //     ci_debug_printf(10,"viralator:test to see %d....\n",len);
      if(((av_req_data_t *)data)->body->eof_received){
 	  if(data->error_page)
-	       return ci_read_membuf(data->error_page,buf,len);
+	       return ci_membuf_read(data->error_page,buf,len);
 	  
 	  
 	  if(data->page_sent){
@@ -84,7 +84,7 @@ int send_vir_mode_page(av_req_data_t *data,char *buf,int len,request_t *req){
 	  url=construct_url(VIR_HTTP_SERVER,data->requested_filename,req->user);
 
 	  bytes=snprintf(buf,len,"Download your file(size=%d) from <a href=\"%s%s\">%s</a> <br>",
-			 ci_size_cached_file(((av_req_data_t *)data)->body),
+			 ci_simple_file_size(((av_req_data_t *)data)->body),
 			 url,
 			 filename,
 			 (data->requested_filename?data->requested_filename:((av_req_data_t *)data)->body->filename)
@@ -101,9 +101,9 @@ int send_vir_mode_page(av_req_data_t *data,char *buf,int len,request_t *req){
      }
      time(&(((av_req_data_t *)data)->last_update));
      ci_debug_printf(10,"Downloaded %d bytes from %d of data<br>",
-	    ci_size_cached_file(((av_req_data_t *)data)->body), ((av_req_data_t *)data)->expected_size);
+	    ci_simple_file_size(((av_req_data_t *)data)->body), ((av_req_data_t *)data)->expected_size);
      return snprintf(buf,len,"Downloaded %d bytes from %d of data<br>",
-		     ci_size_cached_file(((av_req_data_t *)data)->body), ((av_req_data_t *)data)->expected_size);
+		     ci_simple_file_size(((av_req_data_t *)data)->body), ((av_req_data_t *)data)->expected_size);
 }
 
 
@@ -119,14 +119,14 @@ void endof_data_vir_mode(av_req_data_t *data,request_t *req){
       ci_membuf_t *error_page;
 
      if(data->virus_name && data->body){
-	  error_page=ci_new_membuf();
+	  error_page=ci_membuf_new();
 	  ((av_req_data_t *)data)->error_page=error_page;	  
-	  ci_write_membuf(error_page,e_message,strlen(e_message),0);
-	  ci_write_membuf(error_page,(char *)data->virus_name,strlen(data->virus_name),0);
-	  ci_write_membuf(error_page,t_message,strlen(t_message),0);/*And here is the eof....*/
-	  ci_write_membuf(data->error_page,(char *)msg,strlen(msg),0);
-	  ci_write_membuf(data->error_page,data->body->filename,strlen(data->body->filename),0);
-	  ci_write_membuf(data->error_page,(char *)msg2,strlen(msg2),1);
+	  ci_membuf_write(error_page,e_message,strlen(e_message),0);
+	  ci_membuf_write(error_page,(char *)data->virus_name,strlen(data->virus_name),0);
+	  ci_membuf_write(error_page,t_message,strlen(t_message),0);/*And here is the eof....*/
+	  ci_membuf_write(data->error_page,(char *)msg,strlen(msg),0);
+	  ci_membuf_write(data->error_page,data->body->filename,strlen(data->body->filename),0);
+	  ci_membuf_write(data->error_page,(char *)msg2,strlen(msg2),1);
 	  fchmod(data->body->fd,0);    
      }
      else
