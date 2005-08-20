@@ -218,10 +218,10 @@ int srvclamav_check_preview_handler(void *data,char *preview_data,int preview_da
      int file_type;
 
     if(ci_req_type(req)==ICAP_RESPMOD){
-	  ci_req_respmod_add_header(req,"Via: C-ICAP  0.01/ClamAV Antivirus");
+	  ci_respmod_add_header(req,"Via: C-ICAP  0.01/ClamAV Antivirus");
      }
      else if(ci_req_type(req)==ICAP_REQMOD){
-	  ci_req_reqmod_add_header(req,"Via: C-ICAP  0.01/ClamAV Antivirus");
+	  ci_reqmod_add_header(req,"Via: C-ICAP  0.01/ClamAV Antivirus");
      }
      ci_debug_printf(10,"OK The preview data size is %d\n",preview_data_len);
 
@@ -237,7 +237,7 @@ int srvclamav_check_preview_handler(void *data,char *preview_data,int preview_da
 	  return EC_204;
      }
      
-     content_size=ci_req_content_lenght(req);
+     content_size=ci_content_lenght(req);
 #ifdef VIRALATOR_MODE
      /*Lets see ...........*/
      if(((av_req_data_t *)data)->must_scanned==VIR_SCAN && ci_req_type(req)==ICAP_RESPMOD){
@@ -387,7 +387,7 @@ int get_filetype(request_t *req,char *buf,int len){
      char *content_type=NULL,*content_encoding=NULL;
 
      if(ci_req_type(req)==ICAP_RESPMOD){
-	  content_type=ci_req_respmod_get_header(req,"Content-Type");
+	  content_type=ci_respmod_get_header(req,"Content-Type");
 	  ci_debug_printf(8,"File type: %s\n",(content_type!=NULL?content_type:"Unknown") );
      }     
 	  
@@ -405,7 +405,7 @@ int get_filetype(request_t *req,char *buf,int len){
 	       file_type=CI_HTML_DATA;
      }
      else if(file_type==ci_get_data_type_id(magic_db,"GZip")){
-	  content_encoding=ci_req_respmod_get_header(req,"Content-Encoding");
+	  content_encoding=ci_respmod_get_header(req,"Content-Encoding");
 	  ci_debug_printf(8,"Content-Encoding :%s\n",content_type);
 	  if(content_type && content_encoding && (strstr(content_type,"text/html") 
 			                          || strstr(content_type,"text/css") 
@@ -443,15 +443,15 @@ void generate_error_page(av_req_data_t *data,request_t *req){
      ci_membuf_t *error_page;
      new_size=strlen(error_message)+strlen(tail_message)+strlen(data->virus_name)+10;
 
-     if(ci_req_respmod_headers(req))
-	  ci_req_respmod_reset_headers(req);
+     if(ci_respmod_headers(req))
+	  ci_respmod_reset_headers(req);
      else
-	  ci_req_create_new_respmod(req,1);
-     ci_req_respmod_add_header(req,"HTTP/1.1 200 OK");
-     ci_req_respmod_add_header(req,"Server: C-ICAP");
-     ci_req_respmod_add_header(req,"Connection: close");
-     ci_req_respmod_add_header(req,"Content-Type: text/html");
-     ci_req_respmod_add_header(req,"Content-Language: en");
+	  ci_respmod_create(req,1);
+     ci_respmod_add_header(req,"HTTP/1.1 200 OK");
+     ci_respmod_add_header(req,"Server: C-ICAP");
+     ci_respmod_add_header(req,"Connection: close");
+     ci_respmod_add_header(req,"Content-Type: text/html");
+     ci_respmod_add_header(req,"Content-Language: en");
 
 
      error_page=ci_membuf_new_sized(new_size);

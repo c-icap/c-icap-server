@@ -36,18 +36,18 @@
 
 CI_DECLARE_FUNC(void)                ci_base64_decode(char *str,char *result,int len);
 
-CI_DECLARE_FUNC(ci_header_list_t *)  ci_req_respmod_headers(request_t *req);
-CI_DECLARE_FUNC(ci_header_list_t *)  ci_req_reqmod_headers(request_t *req);
-CI_DECLARE_FUNC(char *)              ci_req_respmod_add_header(request_t *req,char *header);
-CI_DECLARE_FUNC(char *)              ci_req_reqmod_add_header(request_t *req,char *header);
-CI_DECLARE_FUNC(int)                 ci_req_respmod_remove_header(request_t *req,char *header);
-CI_DECLARE_FUNC(int)                 ci_req_reqmod_remove_header(request_t *req,char *header);
-CI_DECLARE_FUNC(char *)              ci_req_respmod_get_header(request_t *req,char *head_name);
-CI_DECLARE_FUNC(char *)              ci_req_reqmod_get_header(request_t *req,char *head_name);
-CI_DECLARE_FUNC(int)                 ci_req_respmod_reset_headers(request_t *req);
-CI_DECLARE_FUNC(ci_header_list_t *)  ci_req_respmod_build_headers(request_t *req);
-CI_DECLARE_FUNC(int)                 ci_req_content_lenght(request_t *req);
-CI_DECLARE_FUNC(char *)              ci_req_http_request(request_t *req);
+CI_DECLARE_FUNC(ci_header_list_t *)  ci_respmod_headers(request_t *req);
+CI_DECLARE_FUNC(ci_header_list_t *)  ci_reqmod_headers(request_t *req);
+CI_DECLARE_FUNC(char *)              ci_respmod_add_header(request_t *req,char *header);
+CI_DECLARE_FUNC(char *)              ci_reqmod_add_header(request_t *req,char *header);
+CI_DECLARE_FUNC(int)                 ci_respmod_remove_header(request_t *req,char *header);
+CI_DECLARE_FUNC(int)                 ci_reqmod_remove_header(request_t *req,char *header);
+CI_DECLARE_FUNC(char *)              ci_respmod_get_header(request_t *req,char *head_name);
+CI_DECLARE_FUNC(char *)              ci_reqmod_get_header(request_t *req,char *head_name);
+CI_DECLARE_FUNC(int)                 ci_respmod_reset_headers(request_t *req);
+CI_DECLARE_FUNC(ci_header_list_t *)  ci_respmod_build_headers(request_t *req);
+CI_DECLARE_FUNC(int)                 ci_content_lenght(request_t *req);
+CI_DECLARE_FUNC(char *)              ci_http_request(request_t *req);
 
 #endif
 

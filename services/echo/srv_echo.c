@@ -79,14 +79,14 @@ void *echo_init_request_data(service_module_t *serv,request_t *req){
 static int whattodo=0;
 int echo_check_preview_handler(void *data,char *preview_data,int preview_data_len, request_t *req){
      int content_len;
-     content_len=ci_req_content_lenght(req);
+     content_len=ci_content_lenght(req);
      ci_debug_printf(10,"We expect to read :%d body data\n",content_len);
 
      if(ci_req_type(req)==ICAP_RESPMOD){
-	  ci_req_respmod_add_header(req,"Via: C-ICAP  0.01/echo");
+	  ci_respmod_add_header(req,"Via: C-ICAP  0.01/echo");
      }
      else if(ci_req_type(req)==ICAP_REQMOD){
-	  ci_req_reqmod_add_header(req,"Via: C-ICAP  0.01/echo");
+	  ci_reqmod_add_header(req,"Via: C-ICAP  0.01/echo");
      }
      ci_req_unlock_data(req); /*Icap server can send data before all body has received*/
      if(!preview_data_len)

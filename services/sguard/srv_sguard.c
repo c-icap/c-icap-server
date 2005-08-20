@@ -89,8 +89,8 @@ int sguard_check_preview(void *data,char *preview_data,int preview_data_len, req
 
      ci_header_list_t* req_header;
 
-     ci_req_reqmod_add_header(req,"Via: C-ICAP  0.01/sguard");
-     if((req_header=ci_req_reqmod_headers(req))!=NULL){
+     ci_reqmod_add_header(req,"Via: C-ICAP  0.01/sguard");
+     if((req_header=ci_reqmod_headers(req))!=NULL){
 	  get_http_info(req,req_header /*,&httpinf*/);
      }
      

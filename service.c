@@ -72,14 +72,14 @@ service_module_t *load_c_module(char *service_file){
 	  strcpy(path,CONF.SERVICES_DIR);
 	  strcat(path,"/");
 	  strcat(path,service_file);
-	  handle=dlopen(path,RTLD_LAZY|RTLD_GLOBAL);	  
+	  handle=dlopen(path,RTLD_NOW|RTLD_GLOBAL);	  
 	  free(path);
      }
      else
-	  handle=dlopen(service_file,RTLD_LAZY|RTLD_GLOBAL);
+	  handle=dlopen(service_file,RTLD_NOW|RTLD_GLOBAL);
 
      if(!handle){
-          ci_debug_printf(1,"Error loading service :%s\n",service_file);
+          ci_debug_printf(1,"Error loading service %s: %s\n",service_file,dlerror());
 	  return NULL;
      }
      service=dlsym(handle,"service");

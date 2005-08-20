@@ -24,7 +24,7 @@ int http_authenticate(request_t *req){
      char *auth_str,*method_str,*username;
      int i,len,res,method_id;
 
-     if((method_str=ci_req_reqmod_get_header(req,"Proxy-Authorization"))!=NULL){
+     if((method_str=ci_reqmod_get_header(req,"Proxy-Authorization"))!=NULL){
 	  ci_debug_printf(10,"Str is %s ....\n",method_str);
 	  if((auth_str=strchr(method_str,' '))==NULL)
 	       return 0;

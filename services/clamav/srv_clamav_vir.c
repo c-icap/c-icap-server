@@ -38,12 +38,12 @@ char *construct_url(char *strformat,char *filename, char *user);
 
 
 void init_vir_mode_data(request_t *req,av_req_data_t *data){
-     ci_req_respmod_reset_headers(req);
-     ci_req_respmod_add_header(req,"HTTP/1.1 200 OK");
-     ci_req_respmod_add_header(req,"Server: C-ICAP/srvclamav");
-     ci_req_respmod_add_header(req,"Connection: close");
-     ci_req_respmod_add_header(req,"Content-Type: text/html");
-     ci_req_respmod_add_header(req,"Content-Language: en");
+     ci_respmod_reset_headers(req);
+     ci_respmod_add_header(req,"HTTP/1.1 200 OK");
+     ci_respmod_add_header(req,"Server: C-ICAP/srvclamav");
+     ci_respmod_add_header(req,"Connection: close");
+     ci_respmod_add_header(req,"Content-Type: text/html");
+     ci_respmod_add_header(req,"Content-Language: en");
 
      data->last_update=time(NULL);
      data->requested_filename=NULL;
@@ -139,7 +139,7 @@ void endof_data_vir_mode(av_req_data_t *data,request_t *req){
 char *srvclamav_compute_name(request_t *req){
      char *str,*filename,*last_delim;
      int namelen;
-     if(filename=ci_req_respmod_get_header(req,"Location")){
+     if(filename=ci_respmod_get_header(req,"Location")){
 	  if((str=strrchr(filename,'/'))){
 	       filename=str+1;
 	       if((str=strrchr(filename,'?')))
@@ -151,7 +151,7 @@ char *srvclamav_compute_name(request_t *req){
 	       return NULL; 
      }
      /*if we are here we are going to compute name from request headers if exists....*/
-     if(!(str=ci_req_http_request(req)))
+     if(!(str=ci_http_request(req)))
 	  return NULL;
 
      if(strncmp(str,"GET",3)!=0)

@@ -80,11 +80,11 @@ void *load_module(char *module_file){
 	  strcpy(path,CONF.MODULES_DIR);
 	  strcat(path,"/");
 	  strcat(path,module_file);
-	  handle=dlopen(path,RTLD_LAZY|RTLD_GLOBAL);	  
+	  handle=dlopen(path,RTLD_NOW|RTLD_GLOBAL);	  
 	  free(path);
      }
      else
-	  handle=dlopen(module_file,RTLD_LAZY|RTLD_GLOBAL);
+	  handle=dlopen(module_file,RTLD_NOW|RTLD_GLOBAL);
      
      if(!handle){
           ci_debug_printf(1,"Error loading module %s:%s\n",module_file,dlerror());
