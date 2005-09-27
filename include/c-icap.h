@@ -84,6 +84,19 @@
 #define CI_DECLARE_MOD_DATA
 #endif
 
+/*
+  Here we are define the ci_off_t type to support large files
+  We must be careful here, the off_t type is unsigned integer.
+  With a first look we did not need negative integers but........
+*/
+typedef off_t ci_off_t;
+#if SIZEOF_OFF_T > 4 
+#   define PRINTF_OFF_T "llu" 
+#   define strto_off_t strtoull
+#else
+#   define PRINTF_OFF_T "u" 
+#   define strto_off_t strtoull
+#endif
 
 #define ICAP_OPTIONS   0x01
 #define ICAP_REQMOD    0x02
@@ -93,8 +106,6 @@ CI_DECLARE_DATA extern const char *CI_Methods[];
 
 #define ci_method_support(METHOD, METHOD_DEF) (METHOD&METHOD_DEF)
 #define ci_method_string(method) (method<=ICAP_RESPMOD && method>=ICAP_OPTIONS ?CI_Methods[method]:"UNKNOWN")
-
-
 
 
 enum ci_error_codes { EC_100, EC_204, EC_400, 

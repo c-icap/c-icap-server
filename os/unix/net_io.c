@@ -31,8 +31,6 @@
 int icap_init_server(int port,int secs_to_linger){
      int fd;
      struct sockaddr_in addr;
-     struct linger li;
-     int value,addrlen;
   
      fd = socket(AF_INET, SOCK_STREAM, 0);
      if(fd == -1){
@@ -61,7 +59,7 @@ int icap_init_server(int port,int secs_to_linger){
 
 int icap_socket_opts(ci_socket fd, int secs_to_linger){
      struct linger li;
-     int value,addrlen;
+     int value;
      /* if (fcntl(fd, F_SETFD, 1) == -1) {
         ci_debug_printf(1,"can't set close-on-exec on server socket!");
 	}
@@ -92,12 +90,13 @@ int icap_socket_opts(ci_socket fd, int secs_to_linger){
 
 int ci_netio_init(int fd){
      fcntl(fd, F_SETFL, O_NONBLOCK ); //Setting newfd descriptor to nonblocking state....
+     return 1;
 }
 
 
 int ci_wait_for_data(int fd,int secs,int what_wait){
      fd_set fds,*rfds,*wfds;
-     struct timeval tv,*tv_param;
+     struct timeval tv;
      int ret;
 
      if(secs>=0){
@@ -214,7 +213,7 @@ int ci_linger_close(int fd, int timeout){
 
      if(shutdown(fd,SHUT_WR)!=0){
 	  close(fd);
-	  return;
+	  return 1;
      }
 
      while(ci_wait_for_data(fd,timeout,wait_for_read) && (ret=ci_read_nonblock(fd,buf,10))>0)
@@ -222,11 +221,13 @@ int ci_linger_close(int fd, int timeout){
 
      close(fd);
      ci_debug_printf(8,"Connection closed ...\n");
+     return 1;
 }
 
 
 int ci_hard_close(int fd){
 	  close(fd);
+	  return 1;
 }
 
 

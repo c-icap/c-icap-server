@@ -52,10 +52,10 @@ CI_DECLARE_DATA service_handler_module_t module={
 int perl_init_service(service_module_t *this,struct icap_server_conf *server_conf);
 void perl_close_service(service_module_t *this);
 void *perl_init_request_data(service_module_t *this,struct request *);
-void *perl_release_request_data(void *data);
+void perl_release_request_data(void *data);
 
 
-int perl_check_preview_handler(void *data,struct request*);
+int perl_check_preview_handler(void *data,char *preview_data,int preview_data_len,struct request*);
 int perl_end_of_data_handler(void *data,struct request*);
      
 
@@ -64,7 +64,7 @@ int perl_readdata(void *data,char *,int,struct request*);
 
 
 int init_perl_handler(struct icap_server_conf *server_conf){
-     
+     return 0;
 }
 
 
@@ -88,8 +88,6 @@ service_module_t *load_perl_module(char *service_file){
      service->mod_close_service=perl_close_service;
      service->mod_init_request_data=perl_init_request_data;
      service->mod_release_request_data=perl_release_request_data;
-
-
      service->mod_check_preview_handler= perl_check_preview_handler;
      service->mod_end_of_data_handler=perl_end_of_data_handler;
 
@@ -107,7 +105,7 @@ service_module_t *load_perl_module(char *service_file){
 
 
 int perl_init_service(service_module_t *this,struct icap_server_conf *server_conf){
-     
+     return 0;
 }
 
 void perl_close_service(service_module_t *this){
@@ -116,26 +114,27 @@ void perl_close_service(service_module_t *this){
 
 
 void *perl_init_request_data(service_module_t *this,struct request *req){
+     return NULL;
+}
+
+void perl_release_request_data(void *data){
 
 }
 
-void *perl_release_request_data(void *data){
 
-}
-
-
-int perl_check_preview_handler(void *data,struct request *req){
-
+int perl_check_preview_handler(void *data,char *preview_data,int preview_data_len,struct request *req){
+     return EC_500;
 }
 
 int perl_end_of_data_handler(void *data,struct request *req){
-
+     return 0;
 }
      
 
 int perl_writedata(void *data, char *buf,int len,int iseof,struct request *req){
+     return 0;
 }
 
 int perl_readdata(void *data,char *buf,int len,struct request *req){
-
+     return 0;
 }

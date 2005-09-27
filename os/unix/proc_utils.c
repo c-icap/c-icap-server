@@ -58,7 +58,7 @@ int set_running_permissions(char *user,char *group){
 	       gid=grp->gr_gid;	       
 	  }
 	  else if(getgrgid(gid)==NULL){
-	       ci_debug_printf(1,"There is no group with id=%d in password file!\n",uid);
+	       ci_debug_printf(1,"There is no group with id=%d in password file!\n",gid);
 	       return 0;
 	  }
 	  

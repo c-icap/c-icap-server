@@ -186,7 +186,6 @@ void init_conf_tables(){
 
 int register_conf_table(char *name,struct conf_entry *table){
      struct sub_table *new;
-     int newsize;
      if(!extra_conf_tables)
 	  return 0;
      if(conf_tables_num==conf_tables_list_size){/*tables list is full reallocating space ......*/
@@ -224,15 +223,17 @@ struct conf_entry *search_variables(char *table,char *varname){
 /*  Set variables functions                                             */
 
 int SetDebugLevel(char *directive,char **argv,void *setdata){
-     setInt(directive,argv,&CI_DEBUG_LEVEL);
+     return setInt(directive,argv,&CI_DEBUG_LEVEL);
 }
 
 int SetDebugSTDOUT(char *directive,char **argv,void *setdata){
      CI_DEBUG_STDOUT=1;
+     return 1;
 }
 
 int SetBodyMaxMem(char *directive,char **argv,void *setdata){
      setInt(directive,argv,&CI_BODY_MAX_MEM);
+     return 1;
 }
 
 
@@ -274,7 +275,7 @@ int LoadMagicFile(char *directive,char **argv,void *setdata){
      }
 
      db_file=argv[0];
-     if(!ci_magics_db_file_add(CONF.MAGIC_DB,db_file)){
+     if(!ci_magics_db_file_add(CONF.MAGIC_DB, db_file)){
 	  ci_debug_printf(1,"Can not load magic file %s!!!\n",db_file);
 	  return 0;
      }
@@ -341,7 +342,7 @@ int Set_acl_controllers(char *directive,char **argv,void *setdata){
      k=0;
      ret=1;
      for(i=0;i<argc;i++){
-	  if(acl_mod=find_access_controller(argv[i])){
+	  if((acl_mod=find_access_controller(argv[i]))!=NULL){
 	       used_access_controllers[k++]=acl_mod;
 	  }
 	  else{
@@ -356,9 +357,7 @@ int Set_acl_controllers(char *directive,char **argv,void *setdata){
 
 
 int Set_auth_method(char *directive,char **argv,void *setdata){
-     int i,k,argc,ret;
      char *method=NULL;
-     access_control_module_t *acl_mod;
      if(argv == NULL || argv[0] == NULL || argv[1] == NULL){
 	  return 0;
      }
@@ -390,7 +389,7 @@ int fread_line(FILE *f_conf, char *line){
 
 struct conf_entry *find_action(char *str, char **arg){
      char *end,*table,*s;
-     int i=0,size;
+     int size;
      end=str;
      while(*end!='\0' && !isspace(*end))
 	  end++;
@@ -400,7 +399,7 @@ struct conf_entry *find_action(char *str, char **arg){
      while(*end!='\0' && isspace(*end)) /*Find the start of arguments ......*/
 	  end++;    
      *arg=end;
-     if(s=strchr(str,'.')){
+     if((s=strchr(str,'.'))!=NULL){
 	  table=str;
 	  str=s+1;
 	  *s='\0';
@@ -413,7 +412,7 @@ struct conf_entry *find_action(char *str, char **arg){
 }
 
 char **split_args(char *args){
-     int len,i=0,k;
+     int len,i=0;
      char **argv=NULL,*str,*end;
      argv=malloc((MAX_ARGS+1)*sizeof(char*));
      end=args;
@@ -464,7 +463,6 @@ void free_args(char **argv){
 }
 
 int process_line(char *line){
-     int i=0;
      char *str,*args,**argv=NULL;
      struct conf_entry *entry;
 

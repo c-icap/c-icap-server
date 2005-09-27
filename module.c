@@ -158,7 +158,7 @@ static int module_type(char *type){
 
 
 static int init_module(void *module,enum module_type type){
-     int ret;
+     int ret=0;
      switch(type){
      case SERVICE_HANDLER:
 	  if(((service_handler_module_t *)module)->init_service_handler)
@@ -285,23 +285,23 @@ service_handler_module_t *find_servicehandler(char *name){
 
 void *find_module(char *name,int *type){
      void *mod;
-     if(mod=find_logger(name)){
+     if((mod=find_logger(name))!=NULL){
 	  *type=LOGGER;
 	  return mod;
      }
-     if(mod=find_servicehandler(name)){
+     if((mod=find_servicehandler(name))!=NULL){
 	  *type=SERVICE_HANDLER;
 	  return mod;
      }
-     if(mod=find_access_controller(name)){
+     if((mod=find_access_controller(name))!=NULL){
 	  *type=ACCESS_CONTROLLER;
 	  return mod;
      }
-     if(mod=find_auth_method(name)){
+     if((mod=find_auth_method(name))!=NULL){
 	  *type=AUTH_METHOD;
 	  return mod;
      }
-     if(mod=find_authenticator(name)){
+     if((mod=find_authenticator(name))!=NULL){
 	  *type=AUTHENTICATOR;
 	  return mod;
      }
@@ -334,7 +334,7 @@ void *register_module(char *module_file,char *type){
 service_handler_module_t *find_servicehandler_by_ext(char *extension){
      service_handler_module_t *sh;
      char *s;
-     int i,len_extension,len_s,found=0;
+     int i,len_extension,len_s=0,found=0;
      len_extension=strlen(extension);
      for(i=0; i<service_handlers.modules_num;i++){
 	  sh=(service_handler_module_t *)service_handlers.modules[i];
@@ -463,7 +463,7 @@ int methods_authenticators(struct auth_hash *hash,char *method_name,int method_i
 
 
 int set_method_authenticators(char *method_name,char **argv){
-     int i,method_id,authenticators_num;
+     int method_id;
      http_auth_method_t *method_mod;
      
      if(!(method_mod=find_auth_method_id(method_name,&method_id))){

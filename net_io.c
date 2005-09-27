@@ -39,7 +39,7 @@ char *ci_addrtohost(struct in_addr *addr, char *hname, int maxhostlen)
      hent = gethostbyaddr(addr, sizeof(*addr), AF_INET);
      if(hent == NULL){
 	  /* Use the ip address as the hostname */
-	  ci_addrtoip(addr,hname,maxhostlen);
+	  ci_addrtoip((struct sockaddr_in *)addr,hname,maxhostlen);
      }
      else{
 	  strncpy(hname, hent->h_name, maxhostlen);

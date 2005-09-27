@@ -49,6 +49,7 @@ int http_authenticate(request_t *req);
 int access_check_client(ci_connection_t *connection);
 int access_check_request(request_t *req);
 int access_authenticate_request(request_t *req);
+int access_check_logging(request_t *req);
 
 
 #endif

@@ -20,6 +20,7 @@
 #include "c-icap.h"
 #include <stdio.h>
 #include <fcntl.h>
+#include <ctype.h>
 #include "debug.h"
 #include "header.h"
 
@@ -244,7 +245,7 @@ char * search_header(ci_header_list_t *h, char *header){
 }
 
 char *get_header_value(ci_header_list_t *h, char *header){
-     char *ptr,*phead;
+     char *phead;
      if(!(phead=search_header(h, header)))
 	  return NULL;
      while(*phead!='\0' && *phead!=':') phead++;
@@ -256,7 +257,7 @@ char *get_header_value(ci_header_list_t *h, char *header){
 }
 
 int remove_header(ci_header_list_t *h, char *header){
-     char *phead,*pnexthead;
+     char *phead;
      int i,j,header_len,rest_len;
      for(i=0;i<h->used;i++){
 	  if(strncasecmp(h->headers[i],header,strlen(header))==0){
@@ -292,6 +293,7 @@ int remove_header(ci_header_list_t *h, char *header){
 }
 
 char *replace_header(ci_header_list_t *h, char *header, char *newval){
+     return NULL;
 }
 
 

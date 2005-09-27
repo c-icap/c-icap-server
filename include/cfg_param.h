@@ -31,7 +31,7 @@ struct icap_server_conf{
      char *RUN_GROUP;
      char *cfg_file;
      char *magics_file;
-     struct ci_magic_db *MAGIC_DB;   
+     struct ci_magics_db *MAGIC_DB;   
      char *SERVICES_DIR;
      char *MODULES_DIR;
 };

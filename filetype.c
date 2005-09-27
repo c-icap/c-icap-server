@@ -367,7 +367,7 @@ int isUTF8(char *c,int size){
      int i,r_size=0;
      unsigned int ucs_c=0;
 
-     if( text_chars[*c] == T )
+     if( text_chars[(int)*c] == T )
 	  return 1;
      
      if( (*c & 0xE0) ==0xC0 ){ /*2 byte unicode char ...*/
@@ -463,7 +463,7 @@ int check_unicode(unsigned char *buf,int buflen){
 
 
 int ci_filetype(struct ci_magics_db *db,char *buf, int buflen){
-     int i,ret, ascii = 1, len;
+     int ret;
 
      if((ret=check_magics(db,buf,buflen))>=0)
 	  return ret;

@@ -34,12 +34,13 @@ logger_module_t *default_logger=NULL;
 int log_open(){
      if(default_logger)
 	  return default_logger->log_open();
+     return 0;
 }
 
 
 void log_close(){
      if(default_logger){
-	  return default_logger->log_close();
+	  default_logger->log_close();
      }
 }
 

@@ -108,12 +108,10 @@ static void exit_normaly(){
 
 static void cancel_all_threads(){
      int i=0;
-     int retval,pid,status;
 //     ci_thread_mutex_lock(&threads_list_mtx);
-
      ci_thread_cond_broadcast(&(con_queue->queue_cond));//What about childs that serve a request?
      while(threads_list[i]!=NULL){
-	  ci_debug_printf(5,"Cancel server %d, thread_id %d (%d)\n",threads_list[i]->srv_id,
+	  ci_debug_printf(5,"Cancel server %d, thread_id %lu (%d)\n",threads_list[i]->srv_id,
 		       threads_list[i]->srv_pthread,i);
 	  ci_thread_join(threads_list[i]->srv_pthread);
 	  i++;
@@ -123,7 +121,6 @@ static void cancel_all_threads(){
 
 
 static void term_handler_child(int sig){
-     int i=0;
      ci_debug_printf(5,"A termination signal received (%d).\n",sig);
      if(child_data->to_be_killed==GRACEFULLY){
 	  ci_debug_printf(5,"Exiting gracefully\n");
@@ -144,7 +141,7 @@ static void sigint_handler_main(int sig){
         ci_debug_printf(5,"SIGTERM signal received for main server.\n");
         ci_debug_printf(5,"Going to term childs....\n");
         for(i=0;i<childs_queue.size;i++){
-	     if(childs_queue.childs[i].pid==0)
+	     if((pid=childs_queue.childs[i].pid)==0)
 		  continue;
 	     kill(pid,SIGTERM);
         }
@@ -173,7 +170,7 @@ static void empty(int sig){
 
 
 static void sigchld_handler_main(int sig){
-     int status,pid,i;
+     int status,pid;
      if((pid=wait(&status))<0){
 	  ci_debug_printf(1,"Fatal error waiting a child to exit .....\n");
 	  return;
@@ -225,7 +222,6 @@ void thread_signals(){
 
 
 server_decl_t *newthread(struct connections_queue *con_queue){
-     int i=0;
      server_decl_t *serv;
      serv=(server_decl_t *)malloc(sizeof(server_decl_t));
      serv->srv_id=0;
@@ -243,10 +239,8 @@ server_decl_t *newthread(struct connections_queue *con_queue){
 
 int thread_main(server_decl_t *srv){
      ci_connection_t con;
-     ci_thread_mutex_t cont_mtx;
      char clientname[CI_MAXHOSTNAMELEN+1];
-     int max,ret,request_status=0;
-     request_t *tmp;
+     int ret,request_status=0;
 //***********************
      thread_signals();
 //*************************
@@ -255,7 +249,7 @@ int thread_main(server_decl_t *srv){
 
      for(;;){
 	  if(child_data->to_be_killed)
-	       return; //Exiting thread.....
+	       return 1; //Exiting thread.....
 	  
 	  if((ret=get_from_queue(con_queue,&con))==0){
 	       ret=wait_for_queue(con_queue); //It is better that the wait_for_queue to be 
@@ -313,7 +307,7 @@ int thread_main(server_decl_t *srv){
 //	       break; //No keep-alive ......
 
 	       if(child_data->to_be_killed)
-		    return; //Exiting thread.....
+		    return 1; //Exiting thread.....
 	      
                ci_debug_printf(8,"Keep-alive:%d\n",srv->current_req->keepalive); 
 	       if(srv->current_req->keepalive && check_for_keepalive_data(srv->current_req->connection->fd)){
@@ -355,7 +349,6 @@ void child_main(int sockfd){
      ci_connection_t conn;
      int claddrlen=sizeof(struct sockaddr_in);
      ci_thread_t thread;
-     char clientname[300];
      int i,retcode,haschild=1,jobs_in_queue=0;
      int pid=0;
 
@@ -522,5 +515,5 @@ int start_server(int fd){
      child_main(fd);
 #endif
 
-
+     return 1;
 }

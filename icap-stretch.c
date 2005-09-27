@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
+#include <arpa/inet.h>
 #include <netinet/in.h>
 #include <netdb.h>
 #include <sys/types.h>
@@ -56,7 +57,6 @@ ci_thread_mutex_t statsmtx;
 
 void print_stats(){
      time_t rtime;
-     int h=0,m=0,s=0;
      time(&rtime);
      printf("Statistics:\n\t Files used :%d\n\t Number of threads :%d\n\t"
 	    " Requests served :%d\n\t Incoming bytes :%d\n\t Outgoing bytes :%d\n",
@@ -67,12 +67,12 @@ void print_stats(){
 	    out_bytes_stats
 	  );
      rtime=rtime-START_TIME;
-     printf("Running for %d seconds\n",rtime);
+     printf("Running for %u seconds\n",(unsigned int)rtime);
 }
 
 
 static void sigint_handler(int sig){
-     int i=0,status,pid;
+     int i=0;
 
 /* */
      signal(SIGINT,SIG_IGN );
@@ -140,7 +140,7 @@ int readline(char *buf,int max,FILE *f){
 
 int icap_readline(int fd,char *buf,int BUFSIZE){
      int i=0,readed=0;
-     char c,oc=0;
+     char c;
      while((readed=read(fd,&c,1))>0 && c!='\n'  && i<BUFSIZE ){
           if(c=='\r'){
                read(fd,&c,1);
@@ -175,7 +175,7 @@ int readheaderresponce(int fd){
      int blocks=0;
      bytes=0;
      printf("\n\nRESPONCE: ");
-     while(len=read(fd,lbuf,512)){
+     while((len=read(fd,lbuf,512))>0){
 	  bytes+=len;
 	  lbuf[len]='\0';
 
@@ -197,13 +197,13 @@ int readheaderresponce(int fd){
 	  if(blocks==2)
 	       return bytes;
      }
-
+     return 0;
 }
 
 #define SIZE_8K 8192
 int readallresponce(int fd){
      char c,cprev,lbuf[SIZE_8K];
-     int len,bytes,remains,toread,i,totalbytes;
+     int len,remains,toread,i,totalbytes;
      i=0;
      totalbytes=0;
      while(1){
@@ -242,7 +242,7 @@ int readallresponce(int fd){
 	       remains=remains-len;
 	  }
      }
-     
+     return 1;
 }
 
 
@@ -362,7 +362,7 @@ void buildrespmodfile(FILE *f,char *buf){
 
 int do_file(int fd, char *filename){
      FILE *f;
-     char lg[10],lbuf[512],tmpbuf[522];
+     char lg[10],lbuf[512];
      int bytes,len,totalbytesout,totalbytesin;
 
      if((f=fopen(filename,"r"))==NULL)
@@ -479,12 +479,8 @@ int threadjobsendfiles(){
 
 
 int main(int argc, char **argv){
-     int i,fd,len;
+     int i;
      struct buffer buf;
-     char *str;
-     FILE *f;
-     
-
 
      if(argc<4){
 	  printf("Usage:\n%s servername theadsnum max_requests file1 file2 .....\n",argv[0]);
@@ -520,7 +516,7 @@ int main(int argc, char **argv){
 	  printf("Files to send:%d\n",FILES_NUMBER);
 	  for(i=0;i<threadsnum;i++){
 	       printf("Create thread %d\n",i);
-	       ci_thread_create(&(threads[i]),threadjobsendfiles,NULL);	  
+	       ci_thread_create(&(threads[i]),(void *(*)(void *))threadjobsendfiles,NULL);	  
 //	       sleep(1);
 	  }	  
 
@@ -532,7 +528,7 @@ int main(int argc, char **argv){
 	  
 	  for(i=0;i<threadsnum;i++){
 	       printf("Create thread %d\n",i);
-	       ci_thread_create(&(threads[i]),threadjobreqmod,(void *)&buf);	  
+	       ci_thread_create(&(threads[i]),(void *(*)(void *))threadjobreqmod,(void *)&buf);	  
 	       sleep(1);
 	  }
      }
@@ -558,5 +554,5 @@ int main(int argc, char **argv){
      print_stats();
      ci_thread_mutex_destroy(&filemtx);
      ci_thread_mutex_destroy(&statsmtx);
-
+     return 0;
 }

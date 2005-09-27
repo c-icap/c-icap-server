@@ -83,7 +83,7 @@ ci_header_list_t *  ci_respmod_build_headers(request_t *req){
 	  e_list[1]=mk_encaps_entity(ICAP_RES_HDR,0);
 	  e=e_list[1];
      }
-     return e;
+     return (ci_header_list_t*)e->entity;
 }
 
 int  ci_respmod_create(request_t *req, int hasbody){
@@ -114,7 +114,6 @@ char * ci_respmod_add_header(request_t *req,char *header){
 
 
 char * ci_reqmod_add_header(request_t *req,char *header){
-     ci_encaps_entity_t *e;
      ci_header_list_t *heads;
      if(!(heads=ci_reqmod_headers(req)))
 	  return NULL;
@@ -158,19 +157,18 @@ char *ci_reqmod_get_header(request_t *req,char *head_name){
 }
 
 
-int ci_content_lenght(request_t *req){
+ci_off_t ci_content_lenght(request_t *req){
      ci_header_list_t *heads;
      char *val;
      if(!(heads=ci_respmod_headers(req)))
 	  return 0;
      if(!(val=get_header_value(heads,"Content-Length")))
 	  return 0;
-     return strtol(val,NULL,10);
+     return strto_off_t(val,NULL,10);
 }
 
 char *ci_http_request(request_t *req){
      ci_header_list_t *heads;
-     char *val;
      if(!(heads=ci_reqmod_headers(req)))
 	  return NULL;
      return heads->headers[0];

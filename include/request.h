@@ -99,7 +99,7 @@ typedef struct request{
 request_t *newrequest(ci_connection_t *connection);
 void destroy_request(request_t *req);
 int recycle_request(request_t *req,ci_connection_t *connection);
-int reset_request(request_t *req);
+void reset_request(request_t *req);
 int process_request(request_t *);
 
 /*Tool functions .........*/

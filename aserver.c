@@ -58,7 +58,7 @@ int main(int argc,char **argv){
      ci_socket s;
 
 #if ! defined(_WIN32)     
-     __log_error=log_server; /*set c-icap library log  function*/
+     __log_error=(void(*)(void *, const char *,... ))log_server; /*set c-icap library log  function*/
 #else
      __vlog_error=vlog_server; /*set c-icap library  log function*/
 #endif

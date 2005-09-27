@@ -36,7 +36,6 @@ void ci_strtime(char *buf){
 
 
 int ci_mktemp_file(char*dir,char*template,char *filename){
-     int fd;
      strncpy(filename,dir,CI_FILENAME_LEN-sizeof(template)-1);
      strcat(filename,template);
      return  mkstemp(filename);

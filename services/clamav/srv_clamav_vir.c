@@ -25,6 +25,7 @@
 #include "debug.h"
 #include "cfg_param.h"
 #include <clamav.h>
+#include <time.h>
 #include <errno.h>
 #include "srv_clamav.h"
 
@@ -50,7 +51,7 @@ void init_vir_mode_data(request_t *req,av_req_data_t *data){
      data->page_sent=0;
 
      
-     if(data->requested_filename=srvclamav_compute_name(req)){
+     if((data->requested_filename=srvclamav_compute_name(req))!=NULL){
 	  if(NULL==(data->body=ci_simple_file_named_new(VIR_SAVE_DIR,data->requested_filename)))
 	       data->body=ci_simple_file_named_new(VIR_SAVE_DIR,NULL);
      }
@@ -66,8 +67,7 @@ int send_vir_mode_page(av_req_data_t *data,char *buf,int len,request_t *req){
      int bytes;
      char *filename,*str;
      char *url;
-//     ci_debug_printf(10,"viralator:test to see %d....\n",len);
-     if(((av_req_data_t *)data)->body->eof_received){
+     if(ci_simple_file_haseof(((av_req_data_t *)data)->body)){
 	  if(data->error_page)
 	       return ci_membuf_read(data->error_page,buf,len);
 	  
@@ -78,12 +78,12 @@ int send_vir_mode_page(av_req_data_t *data,char *buf,int len,request_t *req){
 	  }
 
 	  filename=((av_req_data_t *)data)->body->filename;
-	  if(str=strrchr(filename,'/'))
+	  if((str=strrchr(filename,'/'))!=NULL)
 	       filename=str+1;
 	  
 	  url=construct_url(VIR_HTTP_SERVER,data->requested_filename,req->user);
 
-	  bytes=snprintf(buf,len,"Download your file(size=%d) from <a href=\"%s%s\">%s</a> <br>",
+	  bytes=snprintf(buf,len,"Download your file(size=%"PRINTF_OFF_T") from <a href=\"%s%s\">%s</a> <br>",
 			 ci_simple_file_size(((av_req_data_t *)data)->body),
 			 url,
 			 filename,
@@ -100,9 +100,9 @@ int send_vir_mode_page(av_req_data_t *data,char *buf,int len,request_t *req){
 	  return 0;
      }
      time(&(((av_req_data_t *)data)->last_update));
-     ci_debug_printf(10,"Downloaded %d bytes from %d of data<br>",
+     ci_debug_printf(10,"Downloaded %"PRINTF_OFF_T" bytes from %"PRINTF_OFF_T" of data<br>",
 	    ci_simple_file_size(((av_req_data_t *)data)->body), ((av_req_data_t *)data)->expected_size);
-     return snprintf(buf,len,"Downloaded %d bytes from %d of data<br>",
+     return snprintf(buf,len,"Downloaded %"PRINTF_OFF_T" bytes from %"PRINTF_OFF_T" of data<br>",
 		     ci_simple_file_size(((av_req_data_t *)data)->body), ((av_req_data_t *)data)->expected_size);
 }
 
@@ -139,7 +139,7 @@ void endof_data_vir_mode(av_req_data_t *data,request_t *req){
 char *srvclamav_compute_name(request_t *req){
      char *str,*filename,*last_delim;
      int namelen;
-     if(filename=ci_respmod_get_header(req,"Location")){
+     if((filename=ci_respmod_get_header(req,"Location"))!=NULL){
 	  if((str=strrchr(filename,'/'))){
 	       filename=str+1;
 	       if((str=strrchr(filename,'?')))

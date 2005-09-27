@@ -29,15 +29,15 @@
 
 #define  SEMKEY 888888L  /*A key but what key;The IPC_PRIVATE must used instead .....*/
 #define  PERMS 0600 
-static int current_semkey=SEMKEY; 
+/*static int current_semkey=SEMKEY; */
 
 static struct sembuf op_lock[2]={
-     0,0,0,             /*wait for sem to become 0 */
-     0,1,SEM_UNDO      /*then increment sem by 1  */
+     {0,0,0},             /*wait for sem to become 0 */
+     {0,1,SEM_UNDO}      /*then increment sem by 1  */
 };
 
 static struct sembuf op_unlock[1]={
-     0,-1, (IPC_NOWAIT|SEM_UNDO)      /*decrement sem by 1   */
+     {0,-1, (IPC_NOWAIT|SEM_UNDO)}      /*decrement sem by 1   */
 };
 
 

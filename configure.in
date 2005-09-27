@@ -35,8 +35,22 @@ case "$host_os" in
       ;;
 esac	
 
-CFLAGS="$CFLAGS -D_REENTRANT"
+CFLAGS="$CFLAGS -Wall -D_REENTRANT"
 
+AC_ARG_ENABLE(large_files,
+[ --enable-large-files	Enable large files support],
+[ if test $enableval = "yes"; then
+    large_file_support="yes"
+  fi
+],
+   [ large_file_support="no" ]
+)
+
+if test $large_file_support = "yes"; then
+   CFLAGS="$CFLAGS -D_FILE_OFFSET_BITS=64"
+#here I must put a check if the -D_FILE_OFFSET_BITS makes the off_t  an 64bit integer
+#later .......
+fi
 
 
 AC_ARG_WITH(clamav,
@@ -101,8 +115,8 @@ AC_SUBST(perlldflags)
 
 # Checks for libraries
 AC_CHECK_LIB(dl,dlopen,DL_ADD_FLAG=" -ldl")
-
 AC_SUBST(DL_ADD_FLAG)
+
 # Check for header files
 AC_HEADER_STDC
 AC_CHECK_HEADERS(strings.h unistd.h)
@@ -114,6 +128,8 @@ AC_DEFINE(HAVE_SYSV_IPC,1,[Define HAVE_SYSV_IPC if sys/ipc.h exists (maybe more 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
 AC_TYPE_SIZE_T
+AC_TYPE_OFF_T
+AC_CHECK_SIZEOF(off_t)
 
 # Checks for library functions.
 #AC_FUNC_VPRINTF

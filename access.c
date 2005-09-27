@@ -252,6 +252,7 @@ int default_acl_init(struct icap_server_conf *server_conf){
      acl_access_list.access_entry_last=NULL;
      acl_log_access_list.access_entry_list=NULL;
      acl_log_access_list.access_entry_last=NULL;
+     return 1;
 }
 
 void default_release_authenticator(){
@@ -531,7 +532,7 @@ int acl_add(char *directive,char **argv,void *setdata){
 	  }
 
 	  if(strcmp(argv[i],"src")==0){ /*has the form ip/netmask */
-	       if(str=strchr(argv[i+1],'/')){
+	       if((str=strchr(argv[i+1],'/')) != NULL){
 		    *str='\0';
 		    str=str+1;
 		    if(!(res=ci_inet_aton(str,&client_netmask))){

@@ -43,8 +43,8 @@ char *srvclamav_compute_name(request_t *req);
 /* Module definitions                                                              */
 
 int SEND_PERCENT_BYTES=0; /* Can send all bytes that has received without checked */
-int MAX_OBJECT_SIZE=0;
-int START_SEND_AFTER=0;
+ci_off_t MAX_OBJECT_SIZE=0;
+ci_off_t START_SEND_AFTER=0;
 
 struct ci_magics_db *magic_db=NULL;
 int *scantypes=NULL;
@@ -72,8 +72,11 @@ int srvclamav_read(void *data,char *buf,int len,request_t *req);
 int SetScanFileTypes(char *directive,char **argv,void *setdata);
 int SetPercentBytes(char *directive,char **argv,void *setdata);
 int SetObjectSize(char *directive,char **argv,void *setdata);
+int SetUIntObjectSize(char *directive,char **argv,void *setdata);
 int SetTMPDir(char *directive,char **argv,void *setdata);
 
+/*General functions*/
+int get_filetype(request_t *req,char *buf,int len);
 
 /*Configuration Table .....*/
 static struct conf_entry conf_variables[]={
@@ -84,7 +87,7 @@ static struct conf_entry conf_variables[]={
      {"ClamAvMaxRecLevel",&limits.maxreclevel,setInt,NULL},
      {"ClamAvMaxFilesInArchive",&limits.maxfiles,setInt,NULL},
 /*     {"ClamAvBzipMemLimit",NULL,setBoolean,NULL},*/
-     {"ClamAvMaxFileSizeInArchive",&limits.maxfilesize,SetObjectSize,NULL},
+     {"ClamAvMaxFileSizeInArchive",&limits.maxfilesize,SetUIntObjectSize,NULL},
      {"ClamAvTmpDir",NULL,SetTMPDir,NULL},
 #ifdef VIRALATOR_MODE
      {"VirSaveDir",&VIR_SAVE_DIR,setStr,NULL},
@@ -127,9 +130,7 @@ CI_DECLARE_MOD_DATA service_module_t service={
 
 int srvclamav_init_service(service_module_t *this,struct icap_server_conf *server_conf){
      int ret,no=0,i;
-
      magic_db=server_conf->MAGIC_DB;
-     
      scantypes=(int *)malloc(ci_magic_types_num(magic_db)*sizeof(int));
      scangroups=(int *)malloc(ci_magic_groups_num(magic_db)*sizeof(int));
 
@@ -214,7 +215,7 @@ void srvclamav_release_request_data(void *data){
 
 
 int srvclamav_check_preview_handler(void *data,char *preview_data,int preview_data_len, request_t *req){
-     int content_size=0;
+     ci_off_t content_size=0;
      int file_type;
 
     if(ci_req_type(req)==ICAP_RESPMOD){
@@ -248,7 +249,8 @@ int srvclamav_check_preview_handler(void *data,char *preview_data,int preview_da
 #endif    
  
 	  if(MAX_OBJECT_SIZE && content_size>MAX_OBJECT_SIZE){
-	       ci_debug_printf(1,"Object size is %d. Bigger than max scannable file size (%d). Allow it.... \n",
+	       ci_debug_printf(1,"Object size is %" PRINTF_OFF_T" ."\
+			       " Bigger than max scannable file size (%" PRINTF_OFF_T"). Allow it.... \n",
 			       content_size,MAX_OBJECT_SIZE);
 	       return EC_204;
 	  }
@@ -335,7 +337,7 @@ int srvclamav_end_of_data_handler(void *data,request_t *req){
      ci_simple_file_t *body=(data?((av_req_data_t *)data)->body:NULL);
      const char *virname;
      int ret=0;
-     unsigned long int scanned_data=0;
+     unsigned long scanned_data=0;
 
      if(!data || !body)
 	  return CI_MOD_DONE;
@@ -351,7 +353,8 @@ int srvclamav_end_of_data_handler(void *data,request_t *req){
      ret=cl_scandesc(body->fd,&virname,&scanned_data,root,&limits,CL_SCAN_STDOPT);
      
   
-     ci_debug_printf(9,"Clamav engine scanned %d size of  data....\n",(scanned_data?scanned_data:body->endpos));
+     ci_debug_printf(9,"Clamav engine scanned %lu blocks of  data. Data size: %"PRINTF_OFF_T"...\n",
+		     scanned_data,body->endpos);
 
      if(ret==CL_VIRUS){
 	  ci_debug_printf(1,"VIRUS DETECTED:%s.\nTake action.......\n ",virname);
@@ -370,7 +373,8 @@ int srvclamav_end_of_data_handler(void *data,request_t *req){
      }
      
      ci_simple_file_unlock_all(body);/*Unlock all data to continue send them.....*/
-
+     ci_debug_printf(7,"file unlocked, flags :%d (unlocked:%"PRINTF_OFF_T")\n",
+		        body->flags,body->unlocked);
      return CI_MOD_DONE;     
 }
 
@@ -427,7 +431,7 @@ int must_scanned(int file_type){
      int type,file_group;
      file_group=ci_data_type_group(magic_db,file_type);
 
-     if(type=scangroups[file_group])
+     if((type=scangroups[file_group])>0)
 	  return type;
      
      return scantypes[file_type];
@@ -521,7 +525,7 @@ int SetPercentBytes(char *directive,char **argv,void *setdata){
 
 
 int SetObjectSize(char *directive,char **argv,void *setdata){
-     int val=0;
+     ci_off_t val=0;
      char *end;
      if(argv==NULL || argv[0]==NULL){
           ci_debug_printf(1,"Missing arguments in directive:%s\n",directive);
@@ -531,7 +535,7 @@ int SetObjectSize(char *directive,char **argv,void *setdata){
      if(setdata==NULL)
           return 0;
      errno=0;
-     val=strtoll(argv[0],&end,10);
+     val=strto_off_t(argv[0],&end,10);
 
      if((val==0 && errno!=0) || val <0)
 	  return 0;
@@ -543,7 +547,36 @@ int SetObjectSize(char *directive,char **argv,void *setdata){
 
 
      if(val>0)
-          *((int*)setdata)=val;
+          *((ci_off_t*)setdata)=val;
+     ci_debug_printf(1,"Setting parameter :%s=%"PRINTF_OFF_T"\n",directive,val);
+     return val;
+}
+
+
+int SetUIntObjectSize(char *directive,char **argv,void *setdata){
+     unsigned int val=0;
+     char *end;
+     if(argv==NULL || argv[0]==NULL){
+          ci_debug_printf(1,"Missing arguments in directive:%s\n",directive);
+          return 0;
+     }
+     
+     if(setdata==NULL)
+          return 0;
+     errno=0;
+     val=strtoul(argv[0],&end,10);
+
+     if((val==0 && errno!=0) || val <0)
+	  return 0;
+
+     if(*end=='k' || *end=='K')
+	  val=val*1024;
+     else if(*end=='m' || *end=='M')
+	  val=val*1024*1024;
+
+
+     if(val>0)
+          *((unsigned int*)setdata)=val;
      ci_debug_printf(1,"Setting parameter :%s=%d\n",directive,val);
      return val;
 }
@@ -552,7 +585,6 @@ int SetObjectSize(char *directive,char **argv,void *setdata){
 
 int SetTMPDir(char *directive,char **argv,void *setdata){
      int val=0;
-     char *end;
      struct stat stat_buf;
      if(argv==NULL || argv[0]==NULL){
           ci_debug_printf(1,"Missing arguments in directive:%s\n",directive);

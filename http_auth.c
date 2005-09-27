@@ -14,15 +14,23 @@ int http_authorize(request_t *req){
 }
 
 
+int call_authenticators(authenticator_module_t **authenticators, void *method_data){
+     int i,res;
+     for(i=0;authenticators[i]!=NULL;i++){
+	  if((res=authenticators[i]->authenticate(method_data))!=CI_ACCESS_UNKNOWN ){
+	       return res;
+	  }
+     }
+     return CI_ACCESS_DENY;
+}
 
 
 int http_authenticate(request_t *req){
-
      struct http_auth_method *auth_method;
      authenticator_module_t **authenticators;
      void *method_data;
      char *auth_str,*method_str,*username;
-     int i,len,res,method_id;
+     int len,res;
 
      if((method_str=ci_reqmod_get_header(req,"Proxy-Authorization"))!=NULL){
 	  ci_debug_printf(10,"Str is %s ....\n",method_str);
@@ -53,16 +61,6 @@ int http_authenticate(request_t *req){
      return CI_ACCESS_DENY;
 }
 
-
-int call_authenticators(authenticator_module_t **authenticators, void *method_data){
-     int i,res;
-     for(i=0;authenticators[i]!=NULL;i++){
-	  if((res=authenticators[i]->authenticate(method_data))!=CI_ACCESS_UNKNOWN ){
-	       return res;
-	  }
-     }
-     return CI_ACCESS_DENY;
-}
 
 
 

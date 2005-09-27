@@ -189,11 +189,10 @@ ci_cached_file_t * ci_cached_file_new(int size){
 	  body->bufsize=size;
 	  body->fd=-1;
      }
-/*     body->growtosize=0;*/
      body->endpos=0;
      body->readpos=0;
-     body->eof_received=0;
-     body->unlocked=-1;/*Not use look*/
+     body->flags=0;
+     body->unlocked=0;
      return body;
 }
 
@@ -210,11 +209,11 @@ void ci_cached_file_reset(ci_cached_file_t *body,int new_size){
 	  close(body->fd);
 	  unlink(body->filename); /*Comment out for debuging reasons*/
      }
-/*     body->growtosize=0;*/
+
      body->endpos=0;
      body->readpos=0;
-     body->eof_received=0;
-     body->unlocked=-1;
+     body->flags=0;
+     body->unlocked=0;
      body->fd=-1;
 
      if(!resize_buffer(body,new_size)){
@@ -257,8 +256,8 @@ int ci_cached_file_write(ci_cached_file_t *body, char *buf,int len, int iseof){
      int remains;
 
      if(iseof){
-	  body->eof_received=1;
-	  ci_debug_printf(10,"Buffer size=%d, Data size=%d\n ",
+	  body->flags|=CI_FILE_HAS_EOF;
+	  ci_debug_printf(10,"Buffer size=%d, Data size=%"PRINTF_OFF_T"\n ",
 		       ((ci_cached_file_t *)body)->bufsize,((ci_cached_file_t *)body)->endpos);
      }
 
@@ -300,7 +299,7 @@ body->unlocked=?
 int ci_cached_file_read(ci_cached_file_t *body,char *buf,int len){
      int remains,bytes;
 
-     if( (body->readpos==body->endpos) && body->eof_received)
+     if( (body->readpos==body->endpos) && (body->flags&CI_FILE_HAS_EOF))
 	  return CI_EOF;
      
      if(body->fd>0){
@@ -319,7 +318,7 @@ int ci_cached_file_read(ci_cached_file_t *body,char *buf,int len){
 	  return bytes;
      }
      
-     if(body->unlocked>=0)
+     if((body->flags&CI_FILE_USELOCK) && body->unlocked>=0)
 	  remains=body->unlocked-body->readpos;
      else
 	  remains=body->endpos-body->readpos;
@@ -354,8 +353,8 @@ ci_simple_file_t * ci_simple_file_new(){
      }
      body->endpos=0;
      body->readpos=0;
-     body->eof_received=0;
-     body->unlocked=-1;/*Not use look*/
+     body->flags=0;
+     body->unlocked=0;/*Not use look*/
 
      return body;
 }
@@ -383,8 +382,8 @@ ci_simple_file_t *ci_simple_file_named_new(char *dir,char*filename){
      }
      body->endpos=0;
      body->readpos=0;
-     body->eof_received=0;
-     body->unlocked=-1;/*Not use look*/
+     body->flags=0;
+     body->unlocked=0;
 
      return body;
 }
@@ -418,8 +417,8 @@ void ci_simple_file_release(ci_simple_file_t *body){
 int ci_simple_file_write(ci_simple_file_t *body, char *buf,int len, int iseof){
      int ret;
      if(iseof){
-	  body->eof_received=1;
-	  ci_debug_printf(10,"Buffer Data size=%d\n ",body->endpos);
+	  body->flags |= CI_FILE_HAS_EOF;
+	  ci_debug_printf(10,"Buffer Data size=%"PRINTF_OFF_T"\n ",body->endpos);
      }
      
      lseek(body->fd,0,SEEK_END);
@@ -436,10 +435,10 @@ int ci_simple_file_write(ci_simple_file_t *body, char *buf,int len, int iseof){
 int ci_simple_file_read(ci_simple_file_t *body,char *buf,int len){
      int remains,bytes;
 
-     if( (body->readpos==body->endpos) && body->eof_received)
+     if( (body->readpos==body->endpos) && (body->flags & CI_FILE_HAS_EOF))
 	  return CI_EOF;
      
-     if(body->unlocked>=0)
+     if( (body->flags&CI_FILE_USELOCK) && body->unlocked>=0)
 	  remains=body->unlocked-body->readpos;
      else
 	  remains=len;

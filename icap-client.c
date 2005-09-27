@@ -77,7 +77,7 @@ void dofile(int fd,char *filename,char *savefilename){
      str=buf;
 
      printf("Sending :\n");
-     while(len=readline(str,511,f)){
+     while((len=readline(str,511,f))>0){
 	  if(len>1){
 	       str[len-1]='\r';
 	       str[len]='\n';
@@ -111,7 +111,7 @@ void dofile(int fd,char *filename,char *savefilename){
 
 
 int main(int argc, char **argv){
-     int i,fd,len,threadsnum;
+     int fd;
      struct sockaddr_in addr;
      struct hostent *hent;
      char *filename;
@@ -148,5 +148,5 @@ int main(int argc, char **argv){
      dofile(fd,filename,NULL);
 
      close(fd);      
-     
+     return 0;
 }

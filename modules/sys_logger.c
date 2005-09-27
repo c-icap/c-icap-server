@@ -25,7 +25,7 @@
 #include "log.h"
 #include "module.h"
 #include "cfg_param.h"
-
+#include "debug.h"
 
 
 /************************************************************************/
@@ -105,6 +105,7 @@ int SetFacility(char *directive,char **argv,void *setdata){
 	       break;
 	  }
      }
+     return 1;
 }
 
 int SetPriority(char *directive,char **argv,void *setdata){

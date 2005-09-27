@@ -68,6 +68,7 @@ CI_DECLARE_MOD_DATA service_module_t service={
 
 int sguard_init_service(service_module_t *serv,struct icap_server_conf *server_conf){
      printf("Initialization of sguard module......\n");
+     return CI_OK;
 }
 
 

@@ -64,6 +64,7 @@ CI_DECLARE_MOD_DATA service_module_t service={
 
 int echo_init_service(service_module_t *serv,struct icap_server_conf *server_conf){
      printf("Initialization of echo module......\n");
+     return CI_OK;
 }
 
 

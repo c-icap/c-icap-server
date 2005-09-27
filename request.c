@@ -47,7 +47,7 @@ extern int TIMEOUT;
 
 
 /* struct buf functions*/
-int buf_init(struct buf *buf){
+void buf_init(struct buf *buf){
      buf->buf=NULL;
      buf->size=0;
      buf->used=0;
@@ -62,9 +62,10 @@ int buf_mem_alloc(struct buf *buf,int size){
 	  return 0;
      buf->size=size;
      buf->used=0;
+     return size;
 }
 
-int buf_mem_free(struct buf *buf){
+void buf_mem_free(struct buf *buf){
      free(buf->buf);
      buf->buf=NULL;
      buf->size=0;
@@ -85,7 +86,7 @@ int buf_reset_size(struct buf *buf,int req_size){
 	  return req_size;
      if(buf->buf)
 	  free(buf->buf);
-     buf_mem_alloc(buf,req_size);
+     return buf_mem_alloc(buf,req_size);
 }
 
 /**/
@@ -195,7 +196,7 @@ request_t *newrequest(ci_connection_t *connection){
 }
 
 void destroy_request(request_t *req){
-     int i,bytes=0;
+     int i;
      free(req->service);
      free(req->args);
      free(req->connection);
@@ -271,7 +272,7 @@ int recycle_request(request_t *req,ci_connection_t *connection){
 /*reset_request simply reset request to use it with tunneled requests
   The req->access_type must not be reset!!!!!
 */
-int reset_request(request_t *req){
+void reset_request(request_t *req){
      int i;
      free(req->service);
      free(req->args);
@@ -310,7 +311,6 @@ int reset_request(request_t *req){
 
 int checkrealloc(char **buf,int *size,int used,int mustadded){
      char *newbuf;
-     int request_status=0;
      int len;
      if(*size-used < mustadded ){
 	  len=*size+STEPBUF;
@@ -350,7 +350,7 @@ int read_startheader(request_t *req,ci_header_list_t *h){
 	  }
 	  if(eoh) break;
 	  
-	  if(request_status=checkrealloc(&(h->buf),&(h->bufsize),readed,READSIZE)!=0)
+	  if((request_status=checkrealloc(&(h->buf),&(h->bufsize),readed,READSIZE))!=0)
 	       break;
 	  buf_end=h->buf+readed; 	       
 	  if(startsearch>-3) 
@@ -365,7 +365,7 @@ int read_startheader(request_t *req,ci_header_list_t *h){
 }
 
 int read_encaps_header(request_t *req,ci_header_list_t *h,int size){
-     int bytes=0,remains,request_status=0,readed=0;
+     int bytes=0,remains,readed=0;
      char *buf_end=NULL;
 
      if(!set_size_header(h,size))
@@ -404,12 +404,11 @@ int read_encaps_header(request_t *req,ci_header_list_t *h,int size){
 
 int parse_request(request_t *req,char *buf){
      char *start,*end;
-     int servnamelen;
-     int i=0,len;
+     int servnamelen,len;
 
-     if(start=strstr(buf,"icap://")){
+     if( (start=strstr(buf,"icap://")) != NULL ){
 	  start=start+7;
-	  if( (end=strchr(start,'/')) || (end=strchr(start,' ')) ){ /*server*/
+	  if( (end=strchr(start,'/')) != NULL || (end=strchr(start,' ')) != NULL ){ /*server*/
 	       len=end-start;
 	       servnamelen=(CI_MAXHOSTNAMELEN>len?len:CI_MAXHOSTNAMELEN);
 	       memcpy(req->req_server,start,servnamelen);
@@ -425,7 +424,7 @@ int parse_request(request_t *req,char *buf){
 			 req->service[len]='\0';
 			 if(*end=='?'){/*args*/
 			      start=++end;
-			      if(end=strchr(start,' ')){
+			      if((end=strchr(start,' '))!=NULL){
 				   len=end-start;
 				   req->args=malloc((len+1)*sizeof(char));
 				   strncpy(req->args,start,len);
@@ -585,7 +584,6 @@ int parse_encaps_headers(request_t *req){
 }
 
 int write_preview_data( void *notused,char *data,int len,int iseof,struct request *req){
-     int (*writedata)(void *, char *,int,int,struct request*);
      if(len > (req->preview_data.size-req->preview_data.used)){
 	  ci_debug_printf(3,"Parse error.Preview data has size bigger than headers defines");
 	  return -1;
@@ -597,7 +595,7 @@ int write_preview_data( void *notused,char *data,int len,int iseof,struct reques
 
 
 int get_next_chunk_def(request_t *req){
-     char c,*end/*,eofchunk[15]*/;
+     char *end/*,eofchunk[15]*/;
      int i,remains=0,len;
      int ret_status=CI_OK;
 
@@ -671,8 +669,7 @@ int get_next_chunk_def(request_t *req){
 } 
 
 int get_chunk_data(request_t *req,int preview_only){
-     char c,*end;
-     int i,len,wbytes,ret_status=CI_OK,remains=0;
+     int len,wbytes,ret_status=CI_OK,remains=0;
      int (*writedata)(void *, char *,int,int,struct request*);
 
      if(!req->write_to_module_pending) /*No bytes to write .........*/
@@ -690,7 +687,7 @@ int get_chunk_data(request_t *req,int preview_only){
 */
      wbytes=(*writedata)(req->service_data,req->pstrblock_read,req->write_to_module_pending,0,req);
      if(wbytes<req->write_to_module_pending){
-	  req->pstrblock_read+wbytes;
+	  req->pstrblock_read+=wbytes;
 	  req->write_to_module_pending-=wbytes;
 	  return CI_OK;
      }
@@ -751,8 +748,7 @@ int get_chunk_data(request_t *req,int preview_only){
 
 
 int get_preview_or_chunk_data(request_t *req, int preview_only){
-     char c;
-     int i, ret_status=CI_OK;
+     int ret_status=CI_OK;
      int (*writedata)(void *, char *,int,int,struct request*);
 
      do{
@@ -803,9 +799,9 @@ int get_preview_or_chunk_data(request_t *req, int preview_only){
 
 
 int get_preview_or_chunk_data_old(request_t *req, int preview_only){
-     char c,*start=NULL,*end;
+     char *start=NULL,*end;
      char eofchunk[15];
-     int i,/*chunkbytes=0,*/remains=0,count=0,len;
+     int i,/*chunkbytes=0,*/remains=0,count=0,len=0;
      int ret_status=CI_OK;
 
      int (*writedata)(void *, char *,int,int,struct request*);
@@ -992,7 +988,6 @@ void options_responce(request_t *req){
      char *str;
      /*   time_t t;*/
      ci_header_list_t *responce_head;
-     void *responce_body=NULL;
      int i;
      responce_head=req->responce_head;
 
@@ -1465,7 +1460,7 @@ int get_send_body(request_t *req){
 
      req->responce_status=SEND_NOTHING;
      while((get_data_ret=get_preview_or_chunk_data(req,0))==CI_OK){
-	  ci_debug_printf(9,"OK getting data...\n");
+	  ci_debug_printf(10,"OK getting data...\n");
 	  if(!(req->data_locked)){
 	       if(req->responce_status==SEND_NOTHING){
 		    if((ret=start_send_data(req))==CI_ERROR){

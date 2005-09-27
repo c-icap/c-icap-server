@@ -44,13 +44,15 @@ CI_DECLARE_FUNC(int) ci_membuf_read(struct ci_membuf *body,char *buf,int len);
 /*****************************************************************/
 /* Cached file functions and structure                           */
 
+#define CI_FILE_USELOCK  0x01
+#define CI_FILE_HAS_EOF  0x02
+
 typedef struct ci_cached_file{
-     int endpos;
-     int readpos;
-     int bufsize;
-/*     int growtosize;*/
-     int eof_received;
-     int unlocked;
+     ci_off_t endpos;
+     ci_off_t readpos;
+     int      bufsize;
+     int flags;
+     ci_off_t unlocked;
      char *buf;
      int fd;
      char filename[CI_FILENAME_LEN];
@@ -69,22 +71,22 @@ CI_DECLARE_FUNC(void) ci_cached_file_reset(ci_cached_file_t *body,int new_size);
 CI_DECLARE_FUNC(void) ci_cached_file_release(ci_cached_file_t *body);
 
 
-#define ci_cached_file_lock_all(body)     (body->unlocked=0)
+#define ci_cached_file_lock_all(body)     (body->flags|=CI_FILE_USELOCK,body->unlocked=0)
 #define ci_cached_file_unlock(body, len) (body->unlocked=len)
-#define ci_cached_file_unlock_all(body)   (body->unlocked=-1)
+#define ci_cached_file_unlock_all(body)   (body->flags&=~CI_FILE_USELOCK,body->unlocked=0)
 #define ci_cached_file_size(body)            (body->endpos)
 #define ci_cached_file_ismem(body)           (body->fd<0)
 #define ci_cached_file_read_pos(body)      (body->readpos)
-
+#define ci_cached_file_haseof(body)        (body->flags&CI_FILE_HAS_EOF)
 
 /*****************************************************************/
 /* simple file function and structures                           */
 
 typedef struct ci_simple_file{
-     int endpos;
-     int readpos;
-     int eof_received;
-     int unlocked;
+     ci_off_t endpos;
+     ci_off_t readpos;
+     int flags;
+     ci_off_t unlocked;
      int fd;
      char filename[CI_FILENAME_LEN+1];
 } ci_simple_file_t;
@@ -100,11 +102,10 @@ CI_DECLARE_FUNC(int) ci_simple_file_write(ci_simple_file_t *body,
 CI_DECLARE_FUNC(int) ci_simple_file_read(ci_simple_file_t *body,char *buf,int len);
 
 
-//#define ci_simple_file_lock(body,len)            (body->unlocked=0)
-#define ci_simple_file_lock_all(body)            (body->unlocked=0)
+#define ci_simple_file_lock_all(body)            (body->flags|=CI_FILE_USELOCK,body->unlocked=0)
 #define ci_simple_file_unlock(body, len)     (body->unlocked=len)
-#define ci_simple_file_unlock_all(body)      (body->unlocked=-1)
+#define ci_simple_file_unlock_all(body)      (body->flags&=~CI_FILE_USELOCK,body->unlocked=0)
 #define ci_simple_file_size(body)            (body->endpos)
-
+#define ci_simple_file_haseof(body)        (body->flags&CI_FILE_HAS_EOF)
 
 #endif

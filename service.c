@@ -29,32 +29,99 @@
 #include "cfg_param.h"
 
 
+
+/****************************************************************
+ Base functions for services support ....
+*****************************************************************/
+
 static service_module_t **service_list=NULL;
 static int service_list_size;
 static int services_num=0;
 #define STEP 20
 
+service_module_t *create_service(char *service_file){
+     char *extension;
+     service_handler_module_t *service_handler;
+     extension=strrchr(service_file,'.');
+     service_handler=find_servicehandler_by_ext(extension);
+     
+     if(!service_handler)
+	  return NULL;
+     return service_handler->create_service(service_file);
 
-/*
+}
+
+
+/*Must called only in initialization procedure.
+  It is not thread-safe!
+*/
+service_module_t * register_service(char *service_file){ 
+     service_module_t *service=NULL;
+
+     if(service_list==NULL){
+	  service_list_size=STEP;
+	  service_list=malloc(service_list_size*sizeof(service_module_t *));
+     }
+     else if(services_num==service_list_size){
+	  service_list_size+=STEP;
+	  service_list=realloc(service_list,service_list_size*sizeof(service_module_t *));
+     }
+
+     if(service_list==NULL){
+	  //log an error......and...
+	  exit(-1);
+     }
+	  
+     service=create_service(service_file);
+     if(!service){
+	  ci_debug_printf(1,"Error finding symbol \"service\" in  module %s\n",service_file);
+	  return NULL;
+     }
+
+     if(service->mod_init_service)
+	  service->mod_init_service(service,&CONF);
+     
+     service_list[services_num++]=service;
+
+     if(service->mod_conf_table)
+	  register_conf_table(service->mod_name,service->mod_conf_table);
+
+     return service;
+}
+
+
+service_module_t *find_service(char *service_name){
+     int i;
+     for(i=0;i<services_num;i++){
+	  if(strcmp(service_list[i]->mod_name,service_name)==0)
+	       return (service_list[i]);
+     }
+     return NULL;
+}
+
+
+
+
+/**********************************************************************
   The code for the default handler (C_handler)
   that handles services written in C/C++
   and loaded as dynamic libraries
-*/
+ **********************************************************************/
 
-service_module_t *load_c_module(char *service_file);
+service_module_t *load_c_service(char *service_file);
 
 service_handler_module_t c_service_handler={
      "C_handler",
      ".so,.sa,.a",
      NULL,/*init*/
      NULL,/*post_init*/
-     load_c_module,
+     load_c_service,
      NULL /*config table ....*/
 };
 
 
 
-service_module_t *load_c_module(char *service_file){
+service_module_t *load_c_service(char *service_file){
      service_module_t *service=NULL;
      char *path;
 #ifdef HAVE_DLFCN_H 
@@ -101,65 +168,4 @@ service_module_t *load_c_module(char *service_file){
      return service;
 }
 
-/********************************************************************/
 
-service_module_t *create_service(char *service_file){
-     char *extension;
-     service_handler_module_t *serv_handler;
-     extension=strrchr(service_file,'.');
-     serv_handler=find_servicehandler_by_ext(extension);
-     
-     if(!serv_handler)
-	  return NULL;
-     return serv_handler->create_service(service_file);
-
-}
-
-
-/*Must called only in initialization procedure.
-  It is not thread-safe!
-*/
-service_module_t * register_service(char *service_file){ 
-     service_module_t *service=NULL;
-
-     if(service_list==NULL){
-	  service_list_size=STEP;
-	  service_list=malloc(service_list_size*sizeof(service_module_t *));
-     }
-     else if(services_num==service_list_size){
-	  service_list_size+=STEP;
-	  service_list=realloc(service_list,service_list_size*sizeof(service_module_t *));
-     }
-
-     if(service_list==NULL){
-	  //log an error......and...
-	  exit(-1);
-     }
-	  
-//     service=load_c_module(service_file);
-     service=create_service(service_file);
-     if(!service){
-	  ci_debug_printf(1,"Error finding symbol \"service\" in  module %s\n",service_file);
-	  return NULL;
-     }
-
-     if(service->mod_init_service)
-	  service->mod_init_service(service,&CONF);
-     
-     service_list[services_num++]=service;
-
-     if(service->mod_conf_table)
-	  register_conf_table(service->mod_name,service->mod_conf_table);
-
-     return service;
-}
-
-
-service_module_t *find_service(char *service_name){
-     int i;
-     for(i=0;i<services_num;i++){
-	  if(strcmp(service_list[i]->mod_name,service_name)==0)
-	       return (service_list[i]);
-     }
-     return NULL;
-}
