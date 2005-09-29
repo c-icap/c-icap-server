@@ -535,7 +535,7 @@ int SetObjectSize(char *directive,char **argv,void *setdata){
      if(setdata==NULL)
           return 0;
      errno=0;
-     val=strto_off_t(argv[0],&end,10);
+     val=ci_strto_off_t(argv[0],&end,10);
 
      if((val==0 && errno!=0) || val <0)
 	  return 0;

@@ -87,15 +87,29 @@
 /*
   Here we are define the ci_off_t type to support large files
   We must be careful here, the off_t type is unsigned integer.
-  With a first look we did not need negative integers but........
+
+  -A comment about lfs:
+  In Solaris and Linux to have lfs support, if you are using 
+  only lseek and open function, you are using off_t type for offsets
+  and compile the program with -D_FILE_OFFSET_BITS=64. This flag
+  forces the compiler to typedefs the off_t type as an 64bit unsigned  integer,
+  uses open64, lseek64, mkstemp64 and fopen64 functions. 
+  
+  Instead for fseek and ftell the functions fseeko and ftello must be used.
+  This functions uses off_t argument's instead of long.
+  Currently we are not using fseek and ftell in c-icap. 
+
+  The open's manual page says that the flag O_LARGEFILE must be used. Looks that 
+  it does not actually needed for linux and solaris (version 10) (but must be checked again......)
+  
 */
 typedef off_t ci_off_t;
 #if SIZEOF_OFF_T > 4 
 #   define PRINTF_OFF_T "llu" 
-#   define strto_off_t strtoull
+#   define ci_strto_off_t strtoull
 #else
-#   define PRINTF_OFF_T "u" 
-#   define strto_off_t strtoull
+#   define PRINTF_OFF_T "lu" 
+#   define ci_strto_off_t strtoul
 #endif
 
 #define ICAP_OPTIONS   0x01

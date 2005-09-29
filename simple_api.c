@@ -164,7 +164,7 @@ ci_off_t ci_content_lenght(request_t *req){
 	  return 0;
      if(!(val=get_header_value(heads,"Content-Length")))
 	  return 0;
-     return strto_off_t(val,NULL,10);
+     return ci_strto_off_t(val,NULL,10);
 }
 
 char *ci_http_request(request_t *req){

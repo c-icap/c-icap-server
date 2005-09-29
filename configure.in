@@ -38,7 +38,7 @@ esac
 CFLAGS="$CFLAGS -Wall -D_REENTRANT"
 
 AC_ARG_ENABLE(large_files,
-[ --enable-large-files	Enable large files support],
+[  --enable-large-files	Enable large files support],
 [ if test $enableval = "yes"; then
     large_file_support="yes"
   fi
@@ -49,12 +49,14 @@ AC_ARG_ENABLE(large_files,
 if test $large_file_support = "yes"; then
    CFLAGS="$CFLAGS -D_FILE_OFFSET_BITS=64"
 #here I must put a check if the -D_FILE_OFFSET_BITS makes the off_t  an 64bit integer
+# and if not supported warning the user
+#Possibly checks for systems which supports large files using different defines....
 #later .......
 fi
 
 
 AC_ARG_WITH(clamav,
-[ --with-clamav         Where to find ClamAv ],
+[  --with-clamav	Where to find ClamAv ],
 [ case "$withval" in
   yes)
     AC_MSG_WARN([--with-clamav called without argument])
@@ -76,7 +78,8 @@ AC_ARG_WITH(clamav,
 AC_SUBST(clamavinc)
 AC_SUBST(clamavlib)
 
-AC_ARG_WITH(perl, [--with-perl   Path to perl binary],
+AC_ARG_WITH(perl, 
+[  --with-perl		Path to perl binary],
 [
 case "$withval" in
   yes)
