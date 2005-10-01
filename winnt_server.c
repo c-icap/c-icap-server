@@ -232,7 +232,7 @@ maybe with lists instead of connections array....*/
 
 int worker_main( ci_socket sockfd){
      ci_connection_t conn;
-     int claddrlen=sizeof(struct sockaddr_in);
+     int claddrlen=sizeof(ci_sockaddr_t);
 //     char clientname[300];
      int haschild=1,jobs_in_queue=0;
      int pid=0,error;
@@ -293,7 +293,7 @@ int worker_main( ci_socket sockfd){
 
 
 void child_main(ci_socket sockfd){
-     int claddrlen=sizeof(struct sockaddr_in);
+     int claddrlen=sizeof(ci_sockaddr_t);
      ci_thread_t thread;
      int i,retcode,haschild=1,jobs_in_queue=0;
      int pid=0;

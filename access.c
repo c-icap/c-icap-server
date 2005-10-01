@@ -31,17 +31,17 @@
 /* Default Authenticator  definitions                                                         */
 int  default_acl_init(struct icap_server_conf *server_conf);
 void default_release_authenticator();
-int  default_acl_client_access(struct sockaddr_in *client_address, struct sockaddr_in *server_address);
+int  default_acl_client_access(ci_sockaddr_t *client_address, ci_sockaddr_t *server_address);
 int  default_acl_request_access(char *dec_user,char *service,int req_type,
-				struct sockaddr_in *client_address, 
-				struct sockaddr_in *server_address);
+				ci_sockaddr_t *client_address, 
+				ci_sockaddr_t *server_address);
 int  default_acl_http_request_access(char *dec_user,char *service,int req_type,
-				     struct sockaddr_in *client_address, 
-				     struct sockaddr_in *server_address);
+				     ci_sockaddr_t *client_address, 
+				     ci_sockaddr_t *server_address);
 int default_acl_log_access(char *dec_user,char *service,
 			   int req_type,
-			   struct sockaddr_in *client_address, 
-			   struct sockaddr_in *server_address);
+			   ci_sockaddr_t *client_address, 
+			   ci_sockaddr_t *server_address);
 
 
 
@@ -83,7 +83,7 @@ access_control_module_t **used_access_controllers=default_access_controllers;
 
 int access_check_client(ci_connection_t *connection){
      int i=0,res;
-     struct sockaddr_in *client_address, *server_address;
+     ci_sockaddr_t *client_address, *server_address;
      if(!used_access_controllers)
 	  return CI_ACCESS_ALLOW;
      client_address=&(connection->claddr);
@@ -206,9 +206,13 @@ struct acl_spec{
                                it can exceed 256 bytes .......*/
      int request_type;
      unsigned int port;
-     unsigned long hclient_address; /*unsigned 32 bit integer */
-     unsigned long hclient_netmask;
-     unsigned long hserver_address;
+//     unsigned long hclient_address; /*unsigned 32 bit integer */
+//     unsigned long hclient_netmask;
+//     unsigned long hserver_address;
+     ci_addr_t hclient_address; /*unsigned 32 bit integer */
+     ci_addr_t hclient_netmask;
+     ci_addr_t hserver_address;
+  
      acl_spec_t *next;
 };
 
@@ -237,11 +241,11 @@ struct access_entry_list acl_log_access_list;
 access_entry_t *access_entry_list=NULL;
 access_entry_t *access_entry_last=NULL;
 */
-int match_connection(acl_spec_t *spec,unsigned int srvport,struct in_addr *client_address, 
-		     struct in_addr *server_address);
+int match_connection(acl_spec_t *spec,unsigned int srvport,ci_addr_t *client_address, 
+		     ci_addr_t *server_address);
 int match_request(acl_spec_t *spec, char *dec_user, char *service,int request_type, 
 		  unsigned int srvport,
-		  struct in_addr *client_address, struct in_addr *server_address);
+		  ci_addr_t *client_address, ci_addr_t *server_address);
 
 
 
@@ -259,7 +263,7 @@ void default_release_authenticator(){
      /*Must release the queues ........*/
 }
 
-int default_acl_client_access(struct sockaddr_in *client_address, struct sockaddr_in *server_address){
+int default_acl_client_access(ci_sockaddr_t *client_address, ci_sockaddr_t *server_address){
      access_entry_t *entry;
      acl_spec_t *spec;
 
@@ -290,8 +294,8 @@ int default_acl_client_access(struct sockaddr_in *client_address, struct sockadd
 
 int default_acl_request_access(char *dec_user,char *service,
 			       int req_type,
-			       struct sockaddr_in *client_address, 
-			       struct sockaddr_in *server_address){
+			       ci_sockaddr_t *client_address, 
+			       ci_sockaddr_t *server_address){
      access_entry_t *entry;
      acl_spec_t *spec;
      entry=acl_access_list.access_entry_list;
@@ -310,8 +314,8 @@ int default_acl_request_access(char *dec_user,char *service,
 
 int default_acl_http_request_access(char *dec_user,char *service,
 			       int req_type,
-			       struct sockaddr_in *client_address, 
-			       struct sockaddr_in *server_address){
+			       ci_sockaddr_t *client_address, 
+			       ci_sockaddr_t *server_address){
      access_entry_t *entry;
      acl_spec_t *spec;
      entry=acl_access_list.access_entry_list;
@@ -331,8 +335,8 @@ int default_acl_http_request_access(char *dec_user,char *service,
 
 int default_acl_log_access(char *dec_user,char *service,
 			   int req_type,
-			   struct sockaddr_in *client_address, 
-			   struct sockaddr_in *server_address){
+			   ci_sockaddr_t *client_address, 
+			   ci_sockaddr_t *server_address){
 
      access_entry_t *entry;
      acl_spec_t *spec;
@@ -354,22 +358,22 @@ int default_acl_log_access(char *dec_user,char *service,
 
 /*********************************************************************/
 /*ACL list managment functions                                       */
+#define ci_addr_t_copy (dest,src) ((dest).s_addr=(src).s_addr)
 
-
-int match_connection(acl_spec_t *spec,unsigned int srvport,struct in_addr *client_address, 
-		                                         struct in_addr *server_address){
-     unsigned long hmask;
+int match_connection(acl_spec_t *spec,unsigned int srvport,ci_addr_t *client_address, 
+		                                         ci_addr_t *server_address){
+     ci_addr_t hmask;
 
      hmask=spec->hclient_netmask;
 
      if(spec->port!=0 && spec->port != srvport)
 	  return 0;
 
-     if(spec->hserver_address!=0 && spec->hserver_address != server_address->s_addr)
+     if(spec->hserver_address.s_addr!=0 && spec->hserver_address.s_addr != server_address->s_addr)
 	  return 0;
      
-     if( (spec->hclient_address & hmask)!=0 && 
-	 (spec->hclient_address & hmask)!=(client_address->s_addr & hmask))
+     if( (spec->hclient_address.s_addr & hmask.s_addr)!=0 && 
+	 (spec->hclient_address.s_addr & hmask.s_addr)!=(client_address->s_addr & hmask.s_addr))
 	  return 0;
 
      return 1;
@@ -377,8 +381,8 @@ int match_connection(acl_spec_t *spec,unsigned int srvport,struct in_addr *clien
 
 int match_request(acl_spec_t *spec, char *dec_user, char *service, int request_type,
 		  unsigned int srvport,
-		  struct in_addr *client_address, 
-		  struct in_addr *server_address){
+		  ci_addr_t *client_address, 
+		  ci_addr_t *server_address){
 
      if(!match_connection(spec,srvport,client_address,server_address))
 	  return 0;
@@ -444,11 +448,11 @@ access_entry_t *new_access_entry(struct access_entry_list *list,int type,char *n
 acl_spec_t *new_acl_spec(char *name,char *username, int port,
 			 char *service,   
 			 int request_type,
-			 struct in_addr *client_address,
-			 struct in_addr *client_netmask,
-			 struct in_addr *server_address){
+			 ci_addr_t *client_address,
+			 ci_addr_t *client_netmask,
+			 ci_addr_t *server_address){
      acl_spec_t *a_spec;
-     unsigned long haddr,hmask;
+     ci_addr_t haddr,hmask;
      if((a_spec=malloc(sizeof(acl_spec_t)))==NULL)
 	  return NULL;
      a_spec->next=NULL;
@@ -472,19 +476,19 @@ acl_spec_t *new_acl_spec(char *name,char *username, int port,
 
      a_spec->port=htons(port);
 
-     haddr=(client_address->s_addr);
-     hmask=(client_netmask->s_addr);
-     a_spec->hclient_address=haddr;
+     haddr.s_addr=(client_address->s_addr);
+     hmask.s_addr=(client_netmask->s_addr);
+     a_spec->hclient_address.s_addr=haddr.s_addr;
      
-     if(hmask!=0)
-	  a_spec->hclient_netmask=hmask;
+     if(hmask.s_addr!=0)
+	  a_spec->hclient_netmask.s_addr=hmask.s_addr;
      else{
-	  if(haddr!=0) 
-	       a_spec->hclient_netmask=htonl(0xFFFFFFFF);
+	  if(haddr.s_addr!=0) 
+	       a_spec->hclient_netmask.s_addr=htonl(0xFFFFFFFF);
 	  else
-	       a_spec->hclient_netmask=hmask;
+	       a_spec->hclient_netmask.s_addr=hmask.s_addr;
      }
-     a_spec->hserver_address=(server_address->s_addr);
+     a_spec->hserver_address.s_addr=(server_address->s_addr);
 
      if(acl_spec_list==NULL){
 	  acl_spec_list=a_spec;
@@ -509,7 +513,7 @@ int acl_add(char *directive,char **argv,void *setdata){
      char *name, *username,*service,*str;
      int i,res,request_type;    
      unsigned int port;
-     struct in_addr client_address, client_netmask, server_address;
+     ci_addr_t client_address, client_netmask, server_address;
      username=NULL;
      service=NULL;
      port=0;

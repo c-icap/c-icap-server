@@ -30,7 +30,7 @@
 
 int icap_init_server(int port,int secs_to_linger){
      int fd;
-     struct sockaddr_in addr;
+     ci_sockaddr_t addr;
   
      fd = socket(AF_INET, SOCK_STREAM, 0);
      if(fd == -1){

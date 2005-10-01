@@ -347,7 +347,7 @@ int thread_main(server_decl_t *srv){
 
 void child_main(int sockfd){
      ci_connection_t conn;
-     int claddrlen=sizeof(struct sockaddr_in);
+     int claddrlen=sizeof(ci_sockaddr_t);
      ci_thread_t thread;
      int i,retcode,haschild=1,jobs_in_queue=0;
      int pid=0;

@@ -51,7 +51,7 @@ int windows_init(){
 ci_socket icap_init_server(int port,int secs_to_linger){
      ci_socket s;
      int er;
-     struct sockaddr_in addr;
+     ci_sockaddr_t addr;
 
      if(!windows_init()){
 	  ci_debug_printf(1,"Error initialize windows sockets...\n");
