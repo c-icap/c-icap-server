@@ -453,6 +453,8 @@ acl_spec_t *new_acl_spec(char *name,char *username, int port,
 			 ci_addr_t *server_address){
      acl_spec_t *a_spec;
      ci_addr_t haddr,hmask;
+     char str_cl_addr[CI_IPLEN],str_cl_netmask[CI_IPLEN],str_srv_addr[CI_IPLEN];
+
      if((a_spec=malloc(sizeof(acl_spec_t)))==NULL)
 	  return NULL;
      a_spec->next=NULL;
@@ -499,9 +501,15 @@ acl_spec_t *new_acl_spec(char *name,char *username, int port,
 	  acl_spec_last=a_spec;
      }
      /*(inet_ntoa maybe is not thread safe (but it is for glibc) but here called only once. )*/
-     ci_debug_printf(10,"ACL spec name:%s username:%s service:%s type:%d port:%d src_ip:%s src_netmask:%s server_ip:%s  \n",
-		  name,username,service,request_type,port,
-		  inet_ntoa(*client_address),inet_ntoa(*client_netmask),inet_ntoa(*server_address));
+     ci_debug_printf(6,"ACL spec name:%s username:%s service:%s type:%d port:%d src_ip:%s src_netmask:%s server_ip:%s  \n",
+		     name,
+		     (username!=NULL ? username:"-"),
+		     (service!=NULL ?  service:"-"),
+		     request_type,port,
+		     ci_inet_ntoa(AF_INET,client_address,str_cl_addr,CI_IPLEN),
+		     ci_inet_ntoa(AF_INET,client_netmask,str_cl_netmask,CI_IPLEN),
+		     ci_inet_ntoa(AF_INET,server_address,str_srv_addr,CI_IPLEN)
+	  );
      return a_spec;
 }
 
@@ -539,22 +547,22 @@ int acl_add(char *directive,char **argv,void *setdata){
 	       if((str=strchr(argv[i+1],'/')) != NULL){
 		    *str='\0';
 		    str=str+1;
-		    if(!(res=ci_inet_aton(str,&client_netmask))){
+		    if(!(res=ci_inet_aton(AF_INET,str,&client_netmask))){
 			 ci_debug_printf(1,"Invalid src netmask address %s. Disabling %s acl spec \n",str,name);
 			 return 0;
 		    }
 
 	       }
 	       else{
-		    ci_inet_aton("255.255.255.255",&client_netmask);
+		    ci_inet_aton(AF_INET,"255.255.255.255",&client_netmask);
 	       }
-	       if(!(res=ci_inet_aton(argv[i+1],&client_address))){
+	       if(!(res=ci_inet_aton(AF_INET,argv[i+1],&client_address))){
 		    ci_debug_printf(1,"Invalid src ip address %s. Disabling %s acl spec \n",argv[i+1],name);
 		    return 0;
 	       }
 	  }
 	  else if(strcmp(argv[i],"srvip")==0){ /*has the form ip */
-	       if(!(res=ci_inet_aton(argv[i+1],&server_address))){
+	       if(!(res=ci_inet_aton(AF_INET,argv[i+1],&server_address))){
 		    ci_debug_printf(1,"Invalid server ip address %s. Disabling %s acl spec \n",argv[i+1],name);
 		    return 0;
 	       }

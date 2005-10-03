@@ -279,7 +279,7 @@ int thread_main(server_decl_t *srv){
 	       ret=recycle_request(srv->current_req,&con);
 	  
 	  if(srv->current_req==NULL || ret==0){
-	       ci_addrtohost(&(con.claddr.sin_addr),clientname, CI_MAXHOSTNAMELEN);
+	       ci_sockaddr_t_to_host(&(con.claddr),clientname, CI_MAXHOSTNAMELEN);
 	       ci_debug_printf(1,"Request from %s denied...\n",clientname);
 	       hard_close_connection((&con));
 	       goto end_of_main_loop_thread;/*The request rejected. Log an error and continue ...*/

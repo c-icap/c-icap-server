@@ -61,18 +61,16 @@ typedef struct ci_connection{
 
 
 
-#ifdef HAVE_INET_ATON
-#define ci_inet_aton inet_aton
-#else
-CI_DECLARE_FUNC(int) ci_inet_aton(const char *cp, ci_addr_t *inp);
-#endif
-
-CI_DECLARE_FUNC(void) ci_addrtoip(ci_sockaddr_t *addr, char *ip,int ip_strlen);
-#define ci_conn_remote_ip(conn,ip) ci_addrtoip(&(conn->claddr),ip,CI_IPLEN)
-#define ci_conn_local_ip(conn,ip)  ci_addrtoip(&(conn->srvaddr),ip,CI_IPLEN)
+CI_DECLARE_FUNC(int) ci_inet_aton(int af,const char *cp, void *inp);
+CI_DECLARE_FUNC(const char *) ci_inet_ntoa(int af,const void *src,char *dst,int cnt);
 
 
-CI_DECLARE_FUNC(char) *ci_addrtohost(ci_addr_t *addr, char *hname, int maxhostlen);
+CI_DECLARE_FUNC(const char *) ci_sockaddr_t_to_ip(ci_sockaddr_t *addr, char *ip,int ip_strlen);
+#define ci_conn_remote_ip(conn,ip) ci_sockaddr_t_to_ip(&(conn->claddr),ip,CI_IPLEN)
+#define ci_conn_local_ip(conn,ip)  ci_sockaddr_t_to_ip(&(conn->srvaddr),ip,CI_IPLEN)
+
+
+CI_DECLARE_FUNC(const char *) ci_sockaddr_t_to_host(ci_sockaddr_t *addr, char *hname, int maxhostlen);
 
 
 CI_DECLARE_FUNC(int) icap_socket_opts(ci_socket fd, int secs_to_linger);
