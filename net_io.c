@@ -27,7 +27,7 @@
 
 const char *ci_sockaddr_t_to_ip(ci_sockaddr_t *addr, char *ip,int maxlen){
      unsigned char *addr_bytes;
-     addr_bytes=(unsigned char *)&(addr->sin_addr);
+     addr_bytes=(unsigned char *)(addr->ci_sin_addr);
      snprintf(ip,maxlen,"%d.%d.%d.%d",addr_bytes[0],addr_bytes[1],addr_bytes[2],addr_bytes[3]);
      ip[maxlen-1]='\0';
      return (const char *)ip;
@@ -36,7 +36,7 @@ const char *ci_sockaddr_t_to_ip(ci_sockaddr_t *addr, char *ip,int maxlen){
 
 const char *ci_sockaddr_t_to_host(ci_sockaddr_t *addr, char *hname, int maxhostlen){
      struct hostent *hent;
-     hent = gethostbyaddr(&(addr->sin_addr), sizeof(ci_addr_t), AF_INET);
+     hent = gethostbyaddr(addr->ci_sin_addr, addr->ci_inaddr_len, addr->ci_sin_family);
      if(hent == NULL){
 	  /* Use the ip address as the hostname */
 	  ci_sockaddr_t_to_ip(addr,hname,maxhostlen);
@@ -49,12 +49,11 @@ const char *ci_sockaddr_t_to_host(ci_sockaddr_t *addr, char *hname, int maxhostl
 
 
 int ci_inet_aton(int af,const char *cp, void *addr){
-     
 #ifdef HAVE_INET_ATON
-     return inet_aton(cp,(ci_addr_t *)addr);
+     return inet_aton(cp,(struct in_addr *)addr);
 #else
-     ((ci_addr_t *)addr)->s_addr=inet_addr(cp);
-     if(((ci_addr_t *)addr)->s_addr==0xffffffff && strcmp(cp,"255.255.255.255")!=0)
+     ((struct in_addr *)addr)->s_addr=inet_addr(cp);
+     if(((struct in_addr *)addr)->s_addr==0xffffffff && strcmp(cp,"255.255.255.255")!=0)
           return 0; /*0xffffffff =255.255.255.255 which is a valid address */
      return 1;
 #endif

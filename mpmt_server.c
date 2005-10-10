@@ -347,7 +347,7 @@ int thread_main(server_decl_t *srv){
 
 void child_main(int sockfd){
      ci_connection_t conn;
-     int claddrlen=sizeof(ci_sockaddr_t);
+     int claddrlen=sizeof(struct sockaddr_in);
      ci_thread_t thread;
      int i,retcode,haschild=1,jobs_in_queue=0;
      int pid=0;
@@ -385,7 +385,7 @@ void child_main(int sockfd){
 	  do{//Getting requests while we have free servers.....
 	       do{
 		    errno = 0;
-		    if(((conn.fd = accept(sockfd, (struct sockaddr *)&(conn.claddr), &claddrlen)) == -1) && errno != EINTR){
+		    if(((conn.fd = accept(sockfd, (struct sockaddr *)&(conn.claddr.sockaddr), &claddrlen)) == -1) && errno != EINTR){
 			 ci_debug_printf(1,"error accept .... %d\nExiting server ....\n",errno);
 			 exit(-1); //For the moment .......
 			 goto end_child_main ;
@@ -394,8 +394,11 @@ void child_main(int sockfd){
 			 goto end_child_main;
 	       }while(errno==EINTR);
 
-	       getsockname(conn.fd,(struct sockaddr *)&(conn.srvaddr),&claddrlen);
+	       getsockname(conn.fd,(struct sockaddr *)&(conn.srvaddr.sockaddr),&claddrlen);
 
+	       ci_fill_sockaddr(&conn.claddr);
+	       ci_fill_sockaddr(&conn.srvaddr);
+	       
 
 	       icap_socket_opts(sockfd,MAX_SECS_TO_LINGER);
 	       

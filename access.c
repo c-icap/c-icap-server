@@ -206,12 +206,10 @@ struct acl_spec{
                                it can exceed 256 bytes .......*/
      int request_type;
      unsigned int port;
-//     unsigned long hclient_address; /*unsigned 32 bit integer */
-//     unsigned long hclient_netmask;
-//     unsigned long hserver_address;
-     ci_addr_t hclient_address; /*unsigned 32 bit integer */
-     ci_addr_t hclient_netmask;
-     ci_addr_t hserver_address;
+
+     struct in_addr hclient_address; /*unsigned 32 bit integer */
+     struct in_addr hclient_netmask;
+     struct in_addr hserver_address;
   
      acl_spec_t *next;
 };
@@ -241,11 +239,11 @@ struct access_entry_list acl_log_access_list;
 access_entry_t *access_entry_list=NULL;
 access_entry_t *access_entry_last=NULL;
 */
-int match_connection(acl_spec_t *spec,unsigned int srvport,ci_addr_t *client_address, 
-		     ci_addr_t *server_address);
+int match_connection(acl_spec_t *spec,unsigned int srvport,struct in_addr *client_address, 
+		     struct in_addr *server_address);
 int match_request(acl_spec_t *spec, char *dec_user, char *service,int request_type, 
 		  unsigned int srvport,
-		  ci_addr_t *client_address, ci_addr_t *server_address);
+		  struct in_addr *client_address, struct in_addr *server_address);
 
 
 
@@ -271,9 +269,9 @@ int default_acl_client_access(ci_sockaddr_t *client_address, ci_sockaddr_t *serv
      while(entry){
 	  spec=entry->spec;
 	  if(match_connection(spec,
-			      server_address->sin_port,
-			      &(client_address->sin_addr),
-			      &(server_address->sin_addr))){
+			      server_address->ci_sin_port,
+			      client_address->ci_sin_addr,
+			      server_address->ci_sin_addr)){
 	       if(entry->type==CI_ACCESS_HTTP_AUTH){
 		    return CI_ACCESS_HTTP_AUTH;
 	       }
@@ -302,9 +300,9 @@ int default_acl_request_access(char *dec_user,char *service,
      while(entry){
 	  spec=entry->spec; 
 	  if( match_request(spec, dec_user, service,req_type, 
-			   server_address->sin_port,
-			   &(client_address->sin_addr),
-			   &(server_address->sin_addr))){
+			    server_address->ci_sin_port,
+			    client_address->ci_sin_addr,
+			    server_address->ci_sin_addr)){
 	       return entry->type;
 	  }
 	  entry=entry->next;
@@ -322,9 +320,9 @@ int default_acl_http_request_access(char *dec_user,char *service,
      while(entry){
 	  spec=entry->spec;
 	  if(match_request(spec, dec_user, service,req_type, 
-			   server_address->sin_port,
-			   &(client_address->sin_addr),
-			   &(server_address->sin_addr))){
+			   server_address->ci_sin_port,
+			   client_address->ci_sin_addr,
+			   server_address->ci_sin_addr)){
 	       return (entry->type==CI_ACCESS_HTTP_AUTH?CI_ACCESS_ALLOW:entry->type);
 	  }
 	  entry=entry->next;
@@ -344,9 +342,9 @@ int default_acl_log_access(char *dec_user,char *service,
      while(entry){
 	  spec=entry->spec; 
 	  if( match_request(spec, dec_user, service,req_type, 
-			   server_address->sin_port,
-			   &(client_address->sin_addr),
-			   &(server_address->sin_addr))){
+			    server_address->ci_sin_port,
+			    client_address->ci_sin_addr,
+			    server_address->ci_sin_addr)){
 	       return entry->type;
 	  }
 	  entry=entry->next;
@@ -358,11 +356,10 @@ int default_acl_log_access(char *dec_user,char *service,
 
 /*********************************************************************/
 /*ACL list managment functions                                       */
-#define ci_addr_t_copy (dest,src) ((dest).s_addr=(src).s_addr)
 
-int match_connection(acl_spec_t *spec,unsigned int srvport,ci_addr_t *client_address, 
-		                                         ci_addr_t *server_address){
-     ci_addr_t hmask;
+int match_connection(acl_spec_t *spec,unsigned int srvport,struct in_addr *client_address, 
+		                                         struct in_addr *server_address){
+     struct in_addr hmask;
 
      hmask=spec->hclient_netmask;
 
@@ -381,8 +378,8 @@ int match_connection(acl_spec_t *spec,unsigned int srvport,ci_addr_t *client_add
 
 int match_request(acl_spec_t *spec, char *dec_user, char *service, int request_type,
 		  unsigned int srvport,
-		  ci_addr_t *client_address, 
-		  ci_addr_t *server_address){
+		  struct in_addr *client_address, 
+		  struct in_addr *server_address){
 
      if(!match_connection(spec,srvport,client_address,server_address))
 	  return 0;
@@ -448,11 +445,11 @@ access_entry_t *new_access_entry(struct access_entry_list *list,int type,char *n
 acl_spec_t *new_acl_spec(char *name,char *username, int port,
 			 char *service,   
 			 int request_type,
-			 ci_addr_t *client_address,
-			 ci_addr_t *client_netmask,
-			 ci_addr_t *server_address){
+			 struct in_addr *client_address,
+			 struct in_addr *client_netmask,
+			 struct in_addr *server_address){
      acl_spec_t *a_spec;
-     ci_addr_t haddr,hmask;
+     struct in_addr haddr,hmask;
      char str_cl_addr[CI_IPLEN],str_cl_netmask[CI_IPLEN],str_srv_addr[CI_IPLEN];
 
      if((a_spec=malloc(sizeof(acl_spec_t)))==NULL)
@@ -521,7 +518,7 @@ int acl_add(char *directive,char **argv,void *setdata){
      char *name, *username,*service,*str;
      int i,res,request_type;    
      unsigned int port;
-     ci_addr_t client_address, client_netmask, server_address;
+     struct in_addr client_address, client_netmask, server_address;
      username=NULL;
      service=NULL;
      port=0;

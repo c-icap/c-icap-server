@@ -232,7 +232,7 @@ maybe with lists instead of connections array....*/
 
 int worker_main( ci_socket sockfd){
      ci_connection_t conn;
-     int claddrlen=sizeof(ci_sockaddr_t);
+     int claddrlen=sizeof(struct sockaddr_in);
 //     char clientname[300];
      int haschild=1,jobs_in_queue=0;
      int pid=0,error;
@@ -251,7 +251,7 @@ int worker_main( ci_socket sockfd){
 	  do{//Getting requests while we have free servers.....
 	       ci_debug_printf(1,"In accept loop..................\n");
 	       error = 0;
-	       if(((conn.fd = accept(sockfd, (struct sockaddr *)&(conn.claddr), &claddrlen)) == INVALID_SOCKET ) && 
+	       if(((conn.fd = accept(sockfd, (struct sockaddr *)&(conn.claddr.sockaddr), &claddrlen)) == INVALID_SOCKET ) && 
 //	       if(((conn.fd = WSAAccept(sockfd, (struct sockaddr *)&(conn.claddr), &claddrlen,NULL,NULL)) == INVALID_SOCKET ) && 
 		  (error=WSAGetLastError()) ){
 		    ci_debug_printf(1,"error accept .... %d\nExiting server ....\n",error);
@@ -259,8 +259,11 @@ int worker_main( ci_socket sockfd){
 	       }
 
 	       ci_debug_printf(1,"Accepting one connection...\n");
-	       claddrlen=sizeof(conn.srvaddr);
-	       getsockname(conn.fd,(struct sockaddr *)&(conn.srvaddr),&claddrlen);
+	       claddrlen=sizeof(conn.srvaddr.sockaddr);
+	       getsockname(conn.fd,(struct sockaddr *)&(conn.srvaddr.sockaddr),&claddrlen);
+
+	       ci_fill_sockaddr(&conn.claddr);
+	       ci_fill_sockaddr(&conn.srvaddr);
 
 	       icap_socket_opts(sockfd,MAX_SECS_TO_LINGER);
 	       

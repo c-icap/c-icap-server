@@ -43,8 +43,21 @@
 #endif
 
 
-typedef struct sockaddr_in  ci_sockaddr_t;
-typedef struct in_addr      ci_addr_t;
+typedef struct ci_sockaddr{
+     struct sockaddr_in   sockaddr;
+     int ci_sin_family;/* #define ci_sin_family sockaddr.sin_family */
+     int ci_sin_port;  /* #define ci_sin_port   sockaddr.sin_port   */
+     void *ci_sin_addr;
+     int ci_inaddr_len;
+}  ci_sockaddr_t;
+
+#define ci_fill_sockaddr(s_addr)\
+       {(s_addr)->ci_sin_family=(s_addr)->sockaddr.sin_family; \
+        (s_addr)->ci_sin_port=(s_addr)->sockaddr.sin_port;\
+        (s_addr)->ci_sin_addr=&((s_addr)->sockaddr.sin_addr);\
+        (s_addr)->ci_inaddr_len=sizeof(struct in_addr);\
+       }
+
 
 #define CI_MAXHOSTNAMELEN 64
 #define CI_IPLEN      18
