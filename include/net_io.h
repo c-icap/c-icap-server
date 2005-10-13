@@ -44,19 +44,16 @@
 
 
 typedef struct ci_sockaddr{
+#ifdef HAVE_IPV6
+     struct sockaddr_storage  sockaddr;
+#else
      struct sockaddr_in   sockaddr;
+#endif
      int ci_sin_family;/* #define ci_sin_family sockaddr.sin_family */
      int ci_sin_port;  /* #define ci_sin_port   sockaddr.sin_port   */
      void *ci_sin_addr;
      int ci_inaddr_len;
 }  ci_sockaddr_t;
-
-#define ci_fill_sockaddr(s_addr)\
-       {(s_addr)->ci_sin_family=(s_addr)->sockaddr.sin_family; \
-        (s_addr)->ci_sin_port=(s_addr)->sockaddr.sin_port;\
-        (s_addr)->ci_sin_addr=&((s_addr)->sockaddr.sin_addr);\
-        (s_addr)->ci_inaddr_len=sizeof(struct in_addr);\
-       }
 
 
 #define CI_MAXHOSTNAMELEN 64
@@ -73,7 +70,7 @@ typedef struct ci_connection{
 
 
 
-
+CI_DECLARE_FUNC(void) ci_fill_sockaddr(ci_sockaddr_t *s_addr);
 CI_DECLARE_FUNC(int) ci_inet_aton(int af,const char *cp, void *inp);
 CI_DECLARE_FUNC(const char *) ci_inet_ntoa(int af,const void *src,char *dst,int cnt);
 

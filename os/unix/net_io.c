@@ -27,11 +27,49 @@
 #include "net_io.h"
 
 
+#ifdef HAVE_IPV6
+int icap_init_server_ipv6(int port,int secs_to_linger){
+     int fd;
+     struct sockaddr_in6 addr;
+  
+     fd = socket(AF_INET6, SOCK_STREAM, 0);
+     if(fd == -1){
+	  ci_debug_printf(1,"Error opening ipv6 socket ....\n");
+	  return CI_SOCKET_ERROR;
+     }
+
+     icap_socket_opts(fd,secs_to_linger);
+
+     addr.sin6_family = AF_INET6;
+     addr.sin6_port = htons(port);
+     memcpy(&(addr.sin6_addr), &(in6addr_any),sizeof(struct in6_addr));
+
+     if(bind(fd,(struct sockaddr *) &addr, sizeof(addr))){
+	  ci_debug_printf(1,"Error bind  at ipv6 address \n");;
+	  close(fd);
+	  return CI_SOCKET_ERROR;
+     }
+     if(listen(fd, 512)){
+	  ci_debug_printf(1,"Error listen at ipv6 address.....\n");
+	  close(fd);
+	  return CI_SOCKET_ERROR;
+     }
+     return fd;
+
+}
+
+#endif
 
 int icap_init_server(int port,int secs_to_linger){
      int fd;
      struct sockaddr_in addr;
-  
+
+#ifdef HAVE_IPV6
+     if((fd=icap_init_server_ipv6(port,secs_to_linger))!=CI_SOCKET_ERROR)
+	  return fd;
+     ci_debug_printf(1,"WARNING! Error bind to an ipv6 address. Trying ipv4...\n");
+#endif
+
      fd = socket(AF_INET, SOCK_STREAM, 0);
      if(fd == -1){
 	  ci_debug_printf(1,"Error opening socket ....\n");

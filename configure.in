@@ -55,6 +55,18 @@ if test $large_file_support = "yes"; then
 fi
 
 
+AC_ARG_ENABLE(ipv6,
+[  --enable-ipv6	Enable ipv6 support],
+[ if test $enableval = "yes"; then
+    ipv6_support="yes"
+    AC_DEFINE(HAVE_IPV6,1,[Define HAVE_IPV6 if OS supports ipv6])	
+  fi
+],
+   [ ipv6_support="no" ]
+)
+
+
+
 AC_ARG_WITH(clamav,
 [  --with-clamav	Where to find ClamAv ],
 [ case "$withval" in

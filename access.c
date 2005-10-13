@@ -198,6 +198,18 @@ int access_authenticate_request(request_t *req){
 
 #define MAX_NAME_LEN 31 /*Must implement it as general limit of names ....... */
 
+#ifdef HAVE_IPV6
+typedef struct acl_in_addr{
+     union{
+	  struct in_addr ipv4_addr;
+	  struct in6_addr ipv6_addr;
+     } addr;
+} acl_in_addr_t;
+
+#else
+typedef struct in_addr acl_in_addr_t
+#endif
+
 typedef struct acl_spec acl_spec_t;
 struct acl_spec{
      char name[MAX_NAME_LEN+1];
@@ -205,12 +217,11 @@ struct acl_spec{
      char servicename[256]; /*There is no limit for the length of service name, but I do not believe that
                                it can exceed 256 bytes .......*/
      int request_type;
+     int family;
      unsigned int port;
-
      struct in_addr hclient_address; /*unsigned 32 bit integer */
      struct in_addr hclient_netmask;
      struct in_addr hserver_address;
-  
      acl_spec_t *next;
 };
 

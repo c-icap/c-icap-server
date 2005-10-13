@@ -257,7 +257,6 @@ int thread_main(server_decl_t *srv){
 	       continue; 
 	  }
 
-	  
 	  if(ret<0){ //An error has occured
 	       ci_debug_printf(1,"Fatal Error!!! Error getting a connection from connections queue!!!\n");
 	       break;
@@ -267,8 +266,6 @@ int thread_main(server_decl_t *srv){
 	  (child_data->freeservers)--;
 	  (child_data->usedservers)++;
 	  ci_thread_mutex_unlock(&counters_mtx);
-
-
 
 	  ci_netio_init(con.fd);
 
@@ -285,8 +282,6 @@ int thread_main(server_decl_t *srv){
 	       goto end_of_main_loop_thread;/*The request rejected. Log an error and continue ...*/
 	  }
 
-
-
 	  do{
 	       if((request_status=process_request(srv->current_req))<0){
 		    ci_debug_printf(5,"Process request timeout or interupted....\n");
@@ -300,8 +295,6 @@ int thread_main(server_decl_t *srv){
 	       ci_thread_mutex_lock(&counters_mtx); 
 	       (child_data->requests)++; 
 	       ci_thread_mutex_unlock(&counters_mtx);
-
-
 
 	       log_access(srv->current_req,request_status);
 //	       break; //No keep-alive ......
