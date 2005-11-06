@@ -193,42 +193,73 @@ int access_authenticate_request(request_t *req){
      return CI_ACCESS_ALLOW;
 }
 
-
-
-
 #define MAX_NAME_LEN 31 /*Must implement it as general limit of names ....... */
 
+
 #ifdef HAVE_IPV6
-typedef struct acl_in_addr{
-     union{
-	  struct in_addr ipv4_addr;
-	  struct in6_addr ipv6_addr;
-     } addr;
+
+typedef union acl_inaddr{
+     struct in_addr ipv4_addr;
+     struct in6_addr ipv6_addr;
 } acl_in_addr_t;
 
-#else
-typedef struct in_addr acl_in_addr_t
-#endif
+#define acl_ipv4_inaddr_is_zero(addr) ((addr).ipv4_addr.s_addr==0)
+#define acl_ipv4_inaddr_are_equal(addr1,addr2) ((addr1).ipv4_addr.s_addr == (addr2).ipv4_addr.s_addr)
+#define acl_ipv4_inaddr_check_net(addr1,addr2,mask) (((addr1).ipv4_addr.s_addr & (mask).ipv4_addr.s_addr)==((addr2).ipv4_addr.s_addr & (mask).ipv4_addr.s_addr))     
+
+#define acl_ipv4_inaddr_hostnetmask(addr)((addr).ipv4_addr.s_addr=htonl(0xFFFFFFFF))
+#define acl_ipv4_inaddr_zero(addr) ((addr).ipv4_addr.s_addr=0)
+
+#define acl_ipv6_inaddr_is_zero(addr) ((addr).ipv6_addr.s6_addr32[0]==0 &&\
+                                       (addr).ipv6_addr.s6_addr32[1]==0 &&\
+                                       (addr).ipv6_addr.s6_addr32[2]==0 &&\
+                                       (addr).ipv6_addr.s6_addr32[3]==0)
+
+#define acl_ipv6_inaddr_hostnetmask(addr)((addr).ipv6_addr.s6_addr32[0]=htonl(0xFFFFFFFF),\
+                                          (addr).ipv6_addr.s6_addr32[1]=htonl(0xFFFFFFFF),\
+                                          (addr).ipv6_addr.s6_addr32[2]=htonl(0xFFFFFFFF),\
+                                          (addr).ipv6_addr.s6_addr32[3]=htonl(0xFFFFFFFF))
+
+#define acl_inaddr_zero(addr) (memset(&(addr),0,sizeof(acl_in_addr_t)))
+#define acl_inaddr_copy(dest,src) (memcpy(&(dest),&(src),sizeof(acl_in_addr_t)))
+
+
+#else /*if no HAVE_IPV6*/
+
+typedef struct in_addr acl_in_addr_t;
+
+#define acl_ipv4_inaddr_is_zero(addr) ((addr).s_addr==0)
+#define acl_ipv4_inaddr_are_equal(addr1,addr2) ((addr1).s_addr == (addr2).s_addr)
+#define acl_ipv4_inaddr_check_net(addr1,addr2,mask) (((addr1).s_addr & (mask).s_addr)==((addr2).s_addr & (mask).s_addr))     
+
+#define acl_ipv4_inaddr_hostnetmask(addr)((addr).s_addr=htonl(0xFFFFFFFF))
+#define acl_ipv4_inaddr_zero(addr) ((addr).s_addr=0)
+
+#define acl_inaddr_zero(addr) ((addr).s_addr=0)
+#define acl_inaddr_copy(dest,src) ((dest)=(src))
+
+#endif /*ifdef HAVE_IPV6*/
+
+#define acl_copy_inaddr(dest,src,len) memcpy(dest,src,len)
 
 typedef struct acl_spec acl_spec_t;
 struct acl_spec{
      char name[MAX_NAME_LEN+1];
-     char username[MAX_USERNAME_LEN+1];
-     char servicename[256]; /*There is no limit for the length of service name, but I do not believe that
-                               it can exceed 256 bytes .......*/
+     char *username;
+     char *servicename; 
      int request_type;
      int family;
      unsigned int port;
-     struct in_addr hclient_address; /*unsigned 32 bit integer */
-     struct in_addr hclient_netmask;
-     struct in_addr hserver_address;
+     acl_in_addr_t hclient_address; 
+     acl_in_addr_t hclient_netmask;
+     acl_in_addr_t hserver_address;
      acl_spec_t *next;
 };
 
 
 typedef struct access_entry access_entry_t;
 struct access_entry{
-     int type;/*CI_ACCESS_DENY or CI_ACCESS_ALLOW or CI_ACCES_AUTH*/
+     int type;/*CI_ACCESS_DENY or CI_ACCESS_ALLOW or CI_ACCESS_AUTH*/
 
      acl_spec_t *spec;
      access_entry_t *next;
@@ -246,16 +277,9 @@ acl_spec_t *acl_spec_last=NULL;
 struct access_entry_list acl_access_list;
 struct access_entry_list acl_log_access_list;
 
-/*
-access_entry_t *access_entry_list=NULL;
-access_entry_t *access_entry_last=NULL;
-*/
-int match_connection(acl_spec_t *spec,unsigned int srvport,struct in_addr *client_address, 
-		     struct in_addr *server_address);
-int match_request(acl_spec_t *spec, char *dec_user, char *service,int request_type, 
-		  unsigned int srvport,
-		  struct in_addr *client_address, struct in_addr *server_address);
-
+int match_ipv4_connection(acl_spec_t *spec,acl_spec_t *conn_spec);
+int match_ipv6_connection(acl_spec_t *spec,acl_spec_t *conn_spec);
+int match_request(acl_spec_t *spec, acl_spec_t *req_spec, int (*match_connection)(acl_spec_t *,acl_spec_t *));
 
 
 int default_acl_init(struct icap_server_conf *server_conf){
@@ -274,19 +298,34 @@ void default_release_authenticator(){
 
 int default_acl_client_access(ci_sockaddr_t *client_address, ci_sockaddr_t *server_address){
      access_entry_t *entry;
-     acl_spec_t *spec;
-
+     acl_spec_t *spec,conn_spec;
+     int (*match_connection)(acl_spec_t *,acl_spec_t *);
+#ifdef HAVE_IPV6
+     if(server_address->ci_sin_family==AF_INET6)
+	  match_connection=match_ipv6_connection;
+     else
+	  match_connection=match_ipv4_connection;
+#else
+     match_connection=match_ipv4_connection;
+#endif
      entry=acl_access_list.access_entry_list;
+     if(!entry)
+	  return CI_ACCESS_UNKNOWN;
+
+     conn_spec.family=server_address->ci_sin_family;
+     conn_spec.port=server_address->ci_sin_port;
+     acl_copy_inaddr(&conn_spec.hserver_address,server_address->ci_sin_addr,
+		    server_address->ci_inaddr_len);
+     acl_copy_inaddr(&conn_spec.hclient_address,client_address->ci_sin_addr,
+		    client_address->ci_inaddr_len);
+
      while(entry){
 	  spec=entry->spec;
-	  if(match_connection(spec,
-			      server_address->ci_sin_port,
-			      client_address->ci_sin_addr,
-			      server_address->ci_sin_addr)){
+	  if((*match_connection)(spec,&conn_spec)){
 	       if(entry->type==CI_ACCESS_HTTP_AUTH){
 		    return CI_ACCESS_HTTP_AUTH;
 	       }
-	       else if(spec->username[0]=='\0' && spec->servicename[0]=='\0' && spec->request_type==0){
+	       else if(spec->username==NULL && spec->servicename==NULL && spec->request_type==0){
                                                /* So no user or service name and type check needed*/
 		    return entry->type;
 	       }
@@ -306,14 +345,35 @@ int default_acl_request_access(char *dec_user,char *service,
 			       ci_sockaddr_t *client_address, 
 			       ci_sockaddr_t *server_address){
      access_entry_t *entry;
-     acl_spec_t *spec;
+     acl_spec_t *spec,req_spec;
+     int (*match_connection)(acl_spec_t *,acl_spec_t *);
      entry=acl_access_list.access_entry_list;
+     if(!entry)
+	  return CI_ACCESS_UNKNOWN;
+
+
+#ifdef HAVE_IPV6
+     if(server_address->ci_sin_family==AF_INET6)
+	  match_connection=match_ipv6_connection;
+     else
+	  match_connection=match_ipv4_connection;
+#else
+     match_connection=match_ipv4_connection;
+#endif
+
+     req_spec.username=dec_user;/*dec_user always non null (required)*/
+     req_spec.servicename=service;
+     req_spec.request_type=req_type;
+     req_spec.family=server_address->ci_sin_family;
+     req_spec.port=server_address->ci_sin_port;
+     acl_copy_inaddr(&req_spec.hserver_address,server_address->ci_sin_addr,
+		    server_address->ci_inaddr_len);
+     acl_copy_inaddr(&req_spec.hclient_address,client_address->ci_sin_addr,
+		    client_address->ci_inaddr_len);
+
      while(entry){
 	  spec=entry->spec; 
-	  if( match_request(spec, dec_user, service,req_type, 
-			    server_address->ci_sin_port,
-			    client_address->ci_sin_addr,
-			    server_address->ci_sin_addr)){
+	  if( match_request(spec,&req_spec,match_connection)){
 	       return entry->type;
 	  }
 	  entry=entry->next;
@@ -326,14 +386,36 @@ int default_acl_http_request_access(char *dec_user,char *service,
 			       ci_sockaddr_t *client_address, 
 			       ci_sockaddr_t *server_address){
      access_entry_t *entry;
-     acl_spec_t *spec;
+     acl_spec_t *spec,req_spec;
+     int (*match_connection)(acl_spec_t *,acl_spec_t *);
      entry=acl_access_list.access_entry_list;
+
+     if(!entry)
+	  return CI_ACCESS_UNKNOWN;
+
+#ifdef HAVE_IPV6
+     if(server_address->ci_sin_family==AF_INET6)
+	  match_connection=match_ipv6_connection;
+     else
+	  match_connection=match_ipv4_connection;
+#else
+     match_connection=match_ipv4_connection;
+#endif
+
+     req_spec.username=dec_user;/*dec_user always non null (required)*/
+     req_spec.servicename=service;
+     req_spec.request_type=req_type;
+     req_spec.family=server_address->ci_sin_family;
+     req_spec.port=server_address->ci_sin_port;
+     acl_copy_inaddr(&req_spec.hserver_address,server_address->ci_sin_addr,
+		    server_address->ci_inaddr_len);
+     acl_copy_inaddr(&req_spec.hclient_address,client_address->ci_sin_addr,
+		    client_address->ci_inaddr_len);
+
+
      while(entry){
 	  spec=entry->spec;
-	  if(match_request(spec, dec_user, service,req_type, 
-			   server_address->ci_sin_port,
-			   client_address->ci_sin_addr,
-			   server_address->ci_sin_addr)){
+	  if(match_request(spec,&req_spec,match_connection)){
 	       return (entry->type==CI_ACCESS_HTTP_AUTH?CI_ACCESS_ALLOW:entry->type);
 	  }
 	  entry=entry->next;
@@ -348,14 +430,36 @@ int default_acl_log_access(char *dec_user,char *service,
 			   ci_sockaddr_t *server_address){
 
      access_entry_t *entry;
-     acl_spec_t *spec;
+     acl_spec_t *spec,req_spec;
+     int (*match_connection)(acl_spec_t *,acl_spec_t *);
      entry=acl_log_access_list.access_entry_list;
+
+     if(!entry)
+	  return CI_ACCESS_UNKNOWN;
+
+#ifdef HAVE_IPV6
+     if(server_address->ci_sin_family==AF_INET6)
+	  match_connection=match_ipv6_connection;
+     else
+	  match_connection=match_ipv4_connection;
+#else
+     match_connection=match_ipv4_connection;
+#endif
+
+     req_spec.username=dec_user;/*dec_user always non null (required)*/
+     req_spec.servicename=service;
+     req_spec.request_type=req_type;
+     req_spec.family=server_address->ci_sin_family;
+     req_spec.port=server_address->ci_sin_port;
+     acl_copy_inaddr(&req_spec.hserver_address,server_address->ci_sin_addr,
+		    server_address->ci_inaddr_len);
+     acl_copy_inaddr(&req_spec.hclient_address,client_address->ci_sin_addr,
+		    client_address->ci_inaddr_len);
+
+
      while(entry){
 	  spec=entry->spec; 
-	  if( match_request(spec, dec_user, service,req_type, 
-			    server_address->ci_sin_port,
-			    client_address->ci_sin_addr,
-			    server_address->ci_sin_addr)){
+	  if( match_request(spec,&req_spec,match_connection)){
 	       return entry->type;
 	  }
 	  entry=entry->next;
@@ -368,45 +472,52 @@ int default_acl_log_access(char *dec_user,char *service,
 /*********************************************************************/
 /*ACL list managment functions                                       */
 
-int match_connection(acl_spec_t *spec,unsigned int srvport,struct in_addr *client_address, 
-		                                         struct in_addr *server_address){
-     struct in_addr hmask;
+int match_ipv4_connection(acl_spec_t *spec,acl_spec_t *conn_spec){
 
-     hmask=spec->hclient_netmask;
+#ifdef HAVE_IPV6
+     if(spec->family!=conn_spec->family)
+	  return 0;
+#endif
 
-     if(spec->port!=0 && spec->port != srvport)
+     if(spec->port!=0 && spec->port != conn_spec->port)
 	  return 0;
 
-     if(spec->hserver_address.s_addr!=0 && spec->hserver_address.s_addr != server_address->s_addr)
+     if(!acl_ipv4_inaddr_is_zero(spec->hserver_address) && 
+	!acl_ipv4_inaddr_are_equal(spec->hserver_address, conn_spec->hserver_address))
 	  return 0;
      
-     if( (spec->hclient_address.s_addr & hmask.s_addr)!=0 && 
-	 (spec->hclient_address.s_addr & hmask.s_addr)!=(client_address->s_addr & hmask.s_addr))
+     if( !acl_ipv4_inaddr_is_zero(spec->hclient_address) && !acl_ipv4_inaddr_is_zero(spec->hclient_netmask) &&
+	 !acl_ipv4_inaddr_check_net(spec->hclient_address,conn_spec->hclient_address,spec->hclient_netmask))
 	  return 0;
 
      return 1;
 }
 
-int match_request(acl_spec_t *spec, char *dec_user, char *service, int request_type,
-		  unsigned int srvport,
-		  struct in_addr *client_address, 
-		  struct in_addr *server_address){
+#ifdef HAVE_IPV6
+int match_ipv6_connection(acl_spec_t *spec,acl_spec_t *conn_spec){
+     return 0;
+}
 
-     if(!match_connection(spec,srvport,client_address,server_address))
+#endif
+
+
+int match_request(acl_spec_t *spec, acl_spec_t *req_spec,int (*match_connection)(acl_spec_t *,acl_spec_t *)){
+
+     if(!match_connection(spec,req_spec))
 	  return 0;
-     if(spec->servicename[0]!='\0' && strcmp(spec->servicename,service)!=0)
+     if(spec->servicename!=NULL && strcmp(spec->servicename,req_spec->servicename)!=0)
 	  return 0;
-     if(spec->request_type!=0 && spec->request_type!=request_type){
+     if(spec->request_type!=0 && spec->request_type!=req_spec->request_type){
 	  return 0;
      }
 
-     if(spec->username[0]!='\0'){
-	  if(dec_user[0]=='\0')
+     if(spec->username!=NULL){
+	  if(req_spec->username==NULL)
 	       return 0;
 	  if(strcmp(spec->username,"*")==0) /*All users ......*/
 	       return 1;
-	  if(strcmp(spec->username,dec_user)!=0)
-	       return 0;
+	  if(strcmp(spec->username,req_spec->username)!=0)/*here we are assuming that req_spec->username*/
+	       return 0;                                  /* is always not null !!!!!!!!!!*/
      }
 
      return 1;
@@ -453,14 +564,55 @@ access_entry_t *new_access_entry(struct access_entry_list *list,int type,char *n
      return a_entry;
 }
 
+
+void fill_ipv4_addresses( acl_spec_t *a_spec,
+			  acl_in_addr_t *client_address,
+			  acl_in_addr_t *client_netmask,
+			  acl_in_addr_t *server_address){
+
+     acl_inaddr_copy(a_spec->hclient_address,*client_address);
+     
+     if(!acl_ipv4_inaddr_is_zero(*client_netmask))
+	  acl_inaddr_copy(a_spec->hclient_netmask,*client_netmask);
+     else{
+	  if(!acl_ipv4_inaddr_is_zero(*client_address)) 
+	       acl_ipv4_inaddr_hostnetmask(a_spec->hclient_netmask);
+	  else
+	       acl_ipv4_inaddr_zero(a_spec->hclient_netmask);
+     }
+     acl_inaddr_copy(a_spec->hserver_address,*server_address);
+}
+
+#ifdef HAVE_IPV6
+
+void fill_ipv6_addresses( acl_spec_t *a_spec,
+			  acl_in_addr_t *client_address,
+			  acl_in_addr_t *client_netmask,
+			  acl_in_addr_t *server_address){
+
+     acl_inaddr_copy(a_spec->hclient_address,*client_address);
+     
+     if(!acl_ipv6_inaddr_is_zero(*client_netmask))
+	  acl_inaddr_copy(a_spec->hclient_netmask,*client_netmask);
+     else{
+	  if(!acl_ipv6_inaddr_is_zero(*client_address)) 
+	       acl_ipv6_inaddr_hostnetmask(a_spec->hclient_netmask);
+	  else
+	       acl_inaddr_zero(a_spec->hclient_netmask);
+     }
+     acl_inaddr_copy(a_spec->hserver_address,*server_address);
+}
+
+#endif
+
 acl_spec_t *new_acl_spec(char *name,char *username, int port,
 			 char *service,   
 			 int request_type,
-			 struct in_addr *client_address,
-			 struct in_addr *client_netmask,
-			 struct in_addr *server_address){
+			 int socket_family,/*AF_INET, AF_INET6*/
+			 acl_in_addr_t *client_address,
+			 acl_in_addr_t *client_netmask,
+			 acl_in_addr_t *server_address){
      acl_spec_t *a_spec;
-     struct in_addr haddr,hmask;
      char str_cl_addr[CI_IPLEN],str_cl_netmask[CI_IPLEN],str_srv_addr[CI_IPLEN];
 
      if((a_spec=malloc(sizeof(acl_spec_t)))==NULL)
@@ -469,37 +621,29 @@ acl_spec_t *new_acl_spec(char *name,char *username, int port,
      strncpy(a_spec->name,name,MAX_NAME_LEN);
      a_spec->name[MAX_NAME_LEN]='\0';
      if(username){
-	  strncpy(a_spec->username,username,MAX_USERNAME_LEN);
-	  a_spec->username[MAX_USERNAME_LEN]='\0';
+	  a_spec->username=strdup(username);
      }
      else
-	  a_spec->username[0]='\0';
+	  a_spec->username=NULL;
 
      if(service){
-	  strncpy(a_spec->servicename,service,255);
-	  a_spec->servicename[255]='\0';
+	  a_spec->servicename=strdup(service);
      }
      else
-	  a_spec->servicename[0]='\0';
+	  a_spec->servicename=NULL;
 
      a_spec->request_type=request_type;
-
      a_spec->port=htons(port);
 
-     haddr.s_addr=(client_address->s_addr);
-     hmask.s_addr=(client_netmask->s_addr);
-     a_spec->hclient_address.s_addr=haddr.s_addr;
+     a_spec->family=socket_family;/*AF_INET*/
      
-     if(hmask.s_addr!=0)
-	  a_spec->hclient_netmask.s_addr=hmask.s_addr;
-     else{
-	  if(haddr.s_addr!=0) 
-	       a_spec->hclient_netmask.s_addr=htonl(0xFFFFFFFF);
-	  else
-	       a_spec->hclient_netmask.s_addr=hmask.s_addr;
-     }
-     a_spec->hserver_address.s_addr=(server_address->s_addr);
-
+#ifdef HAVE_IPV6
+     if(socket_family==AF_INET6)
+	  fill_ipv6_addresses(a_spec,client_address,client_netmask,server_address);
+     else
+#endif
+	  fill_ipv4_addresses(a_spec,client_address,client_netmask,server_address);
+     
      if(acl_spec_list==NULL){
 	  acl_spec_list=a_spec;
 	  acl_spec_last=a_spec;
@@ -508,19 +652,27 @@ acl_spec_t *new_acl_spec(char *name,char *username, int port,
 	  acl_spec_last->next=a_spec;
 	  acl_spec_last=a_spec;
      }
-     /*(inet_ntoa maybe is not thread safe (but it is for glibc) but here called only once. )*/
+
      ci_debug_printf(6,"ACL spec name:%s username:%s service:%s type:%d port:%d src_ip:%s src_netmask:%s server_ip:%s  \n",
 		     name,
 		     (username!=NULL ? username:"-"),
 		     (service!=NULL ?  service:"-"),
 		     request_type,port,
-		     ci_inet_ntoa(AF_INET,client_address,str_cl_addr,CI_IPLEN),
-		     ci_inet_ntoa(AF_INET,client_netmask,str_cl_netmask,CI_IPLEN),
-		     ci_inet_ntoa(AF_INET,server_address,str_srv_addr,CI_IPLEN)
+		     ci_inet_ntoa(socket_family,&(a_spec->hclient_address),str_cl_addr,CI_IPLEN),
+		     ci_inet_ntoa(socket_family,&(a_spec->hclient_netmask),str_cl_netmask,CI_IPLEN),
+		     ci_inet_ntoa(socket_family,&(a_spec->hserver_address),str_srv_addr,CI_IPLEN)
 	  );
      return a_spec;
 }
 
+#ifdef HAVE_IPV6
+int check_protocol_family(char *ip){
+     if(strchr(ip,':')!=NULL)
+	  return AF_INET6;
+     return AF_INET;
+}
+
+#endif
 
 /********************************************************************/
 /*Configuration functions ...............                           */
@@ -529,14 +681,19 @@ int acl_add(char *directive,char **argv,void *setdata){
      char *name, *username,*service,*str;
      int i,res,request_type;    
      unsigned int port;
-     struct in_addr client_address, client_netmask, server_address;
+#ifdef HAVE_IPV6
+     int family=0;
+#else
+     int family=AF_INET;
+#endif
+     acl_in_addr_t client_address, client_netmask, server_address;
      username=NULL;
      service=NULL;
      port=0;
      request_type=0;
-     client_address.s_addr=0;
-     client_netmask.s_addr=0;
-     server_address.s_addr=0;
+     acl_inaddr_zero(client_address);
+     acl_inaddr_zero(client_netmask);
+     acl_inaddr_zero(server_address);
 
 
      if(argv[0]==NULL || argv[1]==NULL){
@@ -552,25 +709,45 @@ int acl_add(char *directive,char **argv,void *setdata){
 	  }
 
 	  if(strcmp(argv[i],"src")==0){ /*has the form ip/netmask */
+#ifdef HAVE_IPV6
+	       if(family==0)
+		    family=check_protocol_family(argv[i]);
+	       else{
+		    if(family!=check_protocol_family(argv[i])){
+			 ci_debug_printf(1,"Mixing ipv4/ipv6 address in the same acl spec does not allowed."
+					 " Disabling %s acl spec \n",name);
+			 return 0;
+		    }
+	       }
+	       
+#endif
 	       if((str=strchr(argv[i+1],'/')) != NULL){
 		    *str='\0';
 		    str=str+1;
-		    if(!(res=ci_inet_aton(AF_INET,str,&client_netmask))){
+		    if(!(res=ci_inet_aton(family,str,&client_netmask))){
 			 ci_debug_printf(1,"Invalid src netmask address %s. Disabling %s acl spec \n",str,name);
 			 return 0;
 		    }
-
 	       }
-	       else{
-		    ci_inet_aton(AF_INET,"255.255.255.255",&client_netmask);
-	       }
-	       if(!(res=ci_inet_aton(AF_INET,argv[i+1],&client_address))){
+	       
+	       if(!(res=ci_inet_aton(family,argv[i+1],&client_address))){
 		    ci_debug_printf(1,"Invalid src ip address %s. Disabling %s acl spec \n",argv[i+1],name);
 		    return 0;
 	       }
 	  }
 	  else if(strcmp(argv[i],"srvip")==0){ /*has the form ip */
-	       if(!(res=ci_inet_aton(AF_INET,argv[i+1],&server_address))){
+#ifdef HAVE_IPV6
+	       if(family==0)
+		    family=check_protocol_family(argv[i]);
+	       else{
+		    if(family!=check_protocol_family(argv[i])){
+			 ci_debug_printf(1,"Mixing ipv4/ipv6 address in the same acl spec does not allowed."
+					 " Disabling %s acl spec \n",name);
+			 return 0;
+		    }
+	       }
+#endif
+	       if(!(res=ci_inet_aton(family,argv[i+1],&server_address))){
 		    ci_debug_printf(1,"Invalid server ip address %s. Disabling %s acl spec \n",argv[i+1],name);
 		    return 0;
 	       }
@@ -606,7 +783,7 @@ int acl_add(char *directive,char **argv,void *setdata){
 	  i+=2;
      }
      
-     new_acl_spec(name,username,port,service,request_type,&client_address,&client_netmask,&server_address);
+     new_acl_spec(name,username,port,service,request_type,family,&client_address,&client_netmask,&server_address);
      
      return 1;
 }
