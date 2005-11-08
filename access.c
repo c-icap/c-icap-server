@@ -28,7 +28,7 @@
 
 
 /*********************************************************************************************/
-/* Default Authenticator  definitions                                                         */
+/* Default Authenticator  definitions                                                        */
 int  default_acl_init(struct icap_server_conf *server_conf);
 void default_release_authenticator();
 int  default_acl_client_access(ci_sockaddr_t *client_address, ci_sockaddr_t *server_address);
@@ -495,6 +495,51 @@ int match_ipv4_connection(acl_spec_t *spec,acl_spec_t *conn_spec){
 
 #ifdef HAVE_IPV6
 int match_ipv6_connection(acl_spec_t *spec,acl_spec_t *conn_spec){
+     /*OK here conn_spec is always our address. If this function called then 
+       conn_spec  is always ipv6 (conn_spec->family=AF_INET6).
+       Now we have 2 cases:
+       1)conn_spec is ipv6 and  spec is ipv6 
+       2)conn_spec is ipv6 and  spec is ipv4
+       
+       I must use post_init module function to convert all specs to ipv6 specs if we are listening 
+       to  ipv6 address in order to have only ipv6 to ipv6 checks.....
+
+      */
+
+     if(spec->port!=0 && spec->port != conn_spec->port)
+	  return 0;
+     
+     if(spec->family==AF_INET6){
+	  if(!acl_ipv6_inaddr_is_zero(spec->hserver_address) && 
+	     !acl_ipv6_inaddr_are_equal(spec->hserver_address, conn_spec->hserver_address))
+	       return 0;
+	  
+	  if( !acl_ipv6_inaddr_is_zero(spec->hclient_address) && !acl_ipv6_inaddr_is_zero(spec->hclient_netmask) &&
+	      !acl_ipv6_inaddr_check_net(spec->hclient_address,conn_spec->hclient_address,spec->hclient_netmask))
+	       return 0;
+	  
+	  return 1;
+     }
+     else{
+	  /*The spec is an ipv4 spec. If we have not an ipv4 mapped address for conn_spec then reject it.....*/
+	  if(!acl_ipv6_inaddr_is_v4mapped(conn_spec->hserver_address)) 
+	       return 0;
+	  
+	  
+	  if(!acl_ipv4_inaddr_is_zero(spec->hserver_address) && 
+	     spec->hserver_address.ipv4_addr != conn_spec->hserver_address.ipv6_addr.s6_addr32[3] )
+	       return 0;
+	  
+	  if( !acl_ipv4_inaddr_is_zero(spec->hclient_address) && 
+	      !acl_ipv4_inaddr_is_zero(spec->hclient_netmask) &&
+	         (spec->hclient_address.ipv4_addr & spec->hclient_netmask.ipv4_addr) 
+	                != (conn_spec->hclient_address.ipv6_addr.s6_addr32[3] & spec->hclient_netmask.ipv4_addr)
+	       )
+	       return 0;
+     
+     }
+
+
      return 0;
 }
 
@@ -503,7 +548,7 @@ int match_ipv6_connection(acl_spec_t *spec,acl_spec_t *conn_spec){
 
 int match_request(acl_spec_t *spec, acl_spec_t *req_spec,int (*match_connection)(acl_spec_t *,acl_spec_t *)){
 
-     if(!match_connection(spec,req_spec))
+     if(!(*match_connection)(spec,req_spec))
 	  return 0;
      if(spec->servicename!=NULL && strcmp(spec->servicename,req_spec->servicename)!=0)
 	  return 0;
