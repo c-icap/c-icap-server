@@ -84,7 +84,7 @@ CI_DECLARE_FUNC(const char *) ci_sockaddr_t_to_host(ci_sockaddr_t *addr, char *h
 
 
 CI_DECLARE_FUNC(int) icap_socket_opts(ci_socket fd, int secs_to_linger);
-CI_DECLARE_FUNC(ci_socket) icap_init_server(int port,int secs_to_linger);
+CI_DECLARE_FUNC(ci_socket) icap_init_server(int port,int *protocol_family,int secs_to_linger);
 
 
 CI_DECLARE_FUNC(int) ci_wait_for_data(ci_socket fd,int secs,int what_wait);

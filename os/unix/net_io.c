@@ -28,7 +28,7 @@
 
 
 #ifdef HAVE_IPV6
-int icap_init_server_ipv6(int port,int secs_to_linger){
+int icap_init_server_ipv6(int port,int *protocol_family,int secs_to_linger){
      int fd;
      struct sockaddr_in6 addr;
   
@@ -54,18 +54,19 @@ int icap_init_server_ipv6(int port,int secs_to_linger){
 	  close(fd);
 	  return CI_SOCKET_ERROR;
      }
+     *protocol_family=AF_INET;
      return fd;
 
 }
 
 #endif
 
-int icap_init_server(int port,int secs_to_linger){
+int icap_init_server(int port,int *protocol_family,int secs_to_linger){
      int fd;
      struct sockaddr_in addr;
 
 #ifdef HAVE_IPV6
-     if((fd=icap_init_server_ipv6(port,secs_to_linger))!=CI_SOCKET_ERROR)
+     if((fd=icap_init_server_ipv6(port,protocol_family,secs_to_linger))!=CI_SOCKET_ERROR)
 	  return fd;
      ci_debug_printf(1,"WARNING! Error bind to an ipv6 address. Trying ipv4...\n");
 #endif
@@ -90,6 +91,7 @@ int icap_init_server(int port,int secs_to_linger){
 	  ci_debug_printf(1,"Error listen .....\n");
 	  return CI_SOCKET_ERROR;
      }
+     *protocol_family=AF_INET;
      return fd;
 }
 

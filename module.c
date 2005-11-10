@@ -520,3 +520,40 @@ int init_modules(){
      return 1;
 }
 
+
+int post_init_modules(){
+     int i;
+     
+//     service_handlers;
+     for(i=0;i<service_handlers.modules_num;i++){
+	  if( ((service_handler_module_t *)service_handlers.modules[i])->post_init_service_handler != NULL )
+	       ((service_handler_module_t *)service_handlers.modules[i])->post_init_service_handler(&CONF);
+     }
+
+//     loggers;
+
+
+//     access_controllers;
+     for(i=0;i<access_controllers.modules_num;i++){
+	  if( ((access_control_module_t *)access_controllers.modules[i])->post_init_access_controller != NULL )
+	       ((access_control_module_t *)access_controllers.modules[i])->post_init_access_controller(&CONF);
+     }
+
+
+
+//     auth_methods;
+     for(i=0;i<auth_methods.modules_num;i++){
+	  if( ((http_auth_method_t *)auth_methods.modules[i])->post_init_auth_method != NULL )
+	       ((http_auth_method_t *)auth_methods.modules[i])->post_init_auth_method(&CONF);
+     }
+
+     //     authenticators;
+     for(i=0;i<authenticators.modules_num;i++){
+	  if( ((authenticator_module_t *)authenticators.modules[i])->post_init_authenticator != NULL )
+	       ((authenticator_module_t *)authenticators.modules[i])->post_init_authenticator(&CONF);
+     }
+     
+     return 1;
+
+
+}

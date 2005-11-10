@@ -88,11 +88,15 @@ int main(int argc,char **argv){
      }
 
  
-     s=icap_init_server(CONF.PORT,MAX_SECS_TO_LINGER); 
+     s=icap_init_server(CONF.PORT,&(CONF.PROTOCOL_FAMILY),MAX_SECS_TO_LINGER); 
 
 
      if(s==CI_SOCKET_ERROR)
 	  return -1;
+
+
+     post_init_modules();
+     post_init_services();
 
      start_server(s);
 

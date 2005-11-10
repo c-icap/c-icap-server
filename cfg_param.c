@@ -35,6 +35,7 @@
 
 struct icap_server_conf CONF={
      1344,/*PORT*/
+     AF_INET,/*SOCK_FAMILY*/
 #ifdef _WIN32
      "c:\\TEMP",/*TMPDIR*/
      "c:\\TEMP\\c-icap.pid",/*PIDFILE*/

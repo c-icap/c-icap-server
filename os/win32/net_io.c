@@ -48,7 +48,7 @@ int windows_init(){
 }
 
 
-ci_socket icap_init_server(int port,int secs_to_linger){
+ci_socket icap_init_server(int port,int *protocol_family,int secs_to_linger){
      ci_socket s;
      int er;
      ci_sockaddr_t addr;
@@ -78,6 +78,7 @@ ci_socket icap_init_server(int port,int secs_to_linger){
 	  ci_debug_printf(1,"Error listen .....\n");
 	  return CI_SOCKET_ERROR;
      }
+     *protocol_family=AF_INET;
      return s;
 }
 

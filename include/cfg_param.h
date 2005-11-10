@@ -24,7 +24,8 @@
 
 
 struct icap_server_conf{
-     int PORT;
+     int  PORT;
+     int  PROTOCOL_FAMILY;
      char *TMPDIR;
      char *PIDFILE;
      char *RUN_USER;

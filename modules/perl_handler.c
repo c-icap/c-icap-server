@@ -85,6 +85,7 @@ service_module_t *load_perl_module(char *service_file){
      service->mod_data=perl_data;
 
      service->mod_init_service=perl_init_service;
+     service->mod_post_init_service=NULL;
      service->mod_close_service=perl_close_service;
      service->mod_init_request_data=perl_init_request_data;
      service->mod_release_request_data=perl_release_request_data;

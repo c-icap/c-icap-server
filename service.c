@@ -100,6 +100,17 @@ service_module_t *find_service(char *service_name){
 }
 
 
+int post_init_services(){
+     int i;
+     for(i=0;i<services_num;i++){
+	  if(service_list[i]->mod_post_init_service !=NULL ){
+	       service_list[i]->mod_post_init_service(service_list[i],&CONF); 
+	  }
+     }
+     return 1;
+     
+}
+
 
 
 /**********************************************************************

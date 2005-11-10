@@ -102,6 +102,7 @@ typedef struct authenticator_module{
 
 
 int init_modules();
+int post_init_modules();
 void * register_module(char *module_file,char *type);
 
 logger_module_t *find_logger(char *name);
