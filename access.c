@@ -30,6 +30,7 @@
 /*********************************************************************************************/
 /* Default Authenticator  definitions                                                        */
 int  default_acl_init(struct icap_server_conf *server_conf);
+int  default_acl_post_init(struct icap_server_conf *server_conf);
 void default_release_authenticator();
 int  default_acl_client_access(ci_sockaddr_t *client_address, ci_sockaddr_t *server_address);
 int  default_acl_request_access(char *dec_user,char *service,int req_type,
@@ -61,7 +62,7 @@ static struct conf_entry acl_conf_variables[]={
 access_control_module_t default_acl={
      "default_acl",
      default_acl_init,
-     NULL,/*post_init*/
+     default_acl_post_init,/*post_init*/
      default_release_authenticator,
      default_acl_client_access,
      default_acl_request_access,
@@ -198,6 +199,8 @@ int access_authenticate_request(request_t *req){
 
 #ifdef HAVE_IPV6
 
+void acl_list_ipv4_to_ipv6();
+
 typedef union acl_inaddr{
      struct in_addr ipv4_addr;
      struct in6_addr ipv6_addr;
@@ -245,7 +248,15 @@ typedef union acl_inaddr{
 #define acl_inaddr_zero(addr) (memset(&(addr),0,sizeof(acl_in_addr_t)))
 #define acl_inaddr_copy(dest,src) (memcpy(&(dest),&(src),sizeof(acl_in_addr_t)))
 
-
+/*We can do this because ipv4_addr in practice exists in s6_addr[0]*/
+#define acl_inaddr_ipv4_to_ipv6(addr)((addr).ipv6_addr.s6_addr32[3]=(addr).ipv4_addr.s_addr,\
+                                       (addr).ipv6_addr.s6_addr32[0]=0,\
+                                       (addr).ipv6_addr.s6_addr32[1]=0,\
+                                       (addr).ipv6_addr.s6_addr32[2]= htonl(0xFFFF))
+#define acl_netmask_ipv4_to_ipv6(addr)((addr).ipv6_addr.s6_addr32[3]=(addr).ipv4_addr.s_addr,\
+                                       (addr).ipv6_addr.s6_addr32[0]= htonl(0xFFFFFFFF),\
+                                       (addr).ipv6_addr.s6_addr32[1]= htonl(0xFFFFFFFF),\
+                                       (addr).ipv6_addr.s6_addr32[2]= htonl(0xFFFFFFFF))
 #else /*if no HAVE_IPV6*/
 
 typedef struct in_addr acl_in_addr_t;
@@ -311,6 +322,16 @@ int default_acl_init(struct icap_server_conf *server_conf){
      acl_access_list.access_entry_last=NULL;
      acl_log_access_list.access_entry_list=NULL;
      acl_log_access_list.access_entry_last=NULL;
+     return 1;
+}
+
+int default_acl_post_init(struct icap_server_conf *server_conf){
+#ifdef HAVE_IPV6
+     if(server_conf->PROTOCOL_FAMILY==AF_INET6){
+	  ci_debug_printf(5,"We are listening to a ipv6 address. Going to change all acl address to ipv6 address!\n");
+	  acl_list_ipv4_to_ipv6();
+     }
+#endif
      return 1;
 }
 
@@ -523,8 +544,8 @@ int match_ipv6_connection(acl_spec_t *spec,acl_spec_t *conn_spec){
        1)conn_spec is ipv6 and  spec is ipv6 
        2)conn_spec is ipv6 and  spec is ipv4
        
-       I must use post_init module function to convert all specs to ipv6 specs if we are listening 
-       to  ipv6 address in order to have only ipv6 to ipv6 checks.....
+       The second case does not any more can happen as we are converting the all ipv4 specs to ipv6 specs
+       if we are listening to an ipv6 address.
 
       */
 
@@ -532,6 +553,17 @@ int match_ipv6_connection(acl_spec_t *spec,acl_spec_t *conn_spec){
 	  return 0;
      
      if(spec->family==AF_INET6){
+	  char ip1[64],ip2[64],mask[64];
+	  ci_inet_ntoa(AF_INET6,&(spec->hclient_netmask.ipv6_addr),mask,64);
+
+	  ci_inet_ntoa(AF_INET6,&(conn_spec->hclient_address.ipv6_addr),ip1,64);
+	  ci_inet_ntoa(AF_INET6,&(conn_spec->hserver_address.ipv6_addr),ip2,64);
+	  ci_debug_printf(9,"To match_ipv6:Going to match %s/%s -> %s\n",ip1,mask,ip2);
+
+	  ci_inet_ntoa(AF_INET6,&(spec->hclient_address.ipv6_addr),ip1,64);
+	  ci_inet_ntoa(AF_INET6,&(spec->hserver_address.ipv6_addr),ip2,64);
+	  ci_debug_printf(9,"match_ipv6:With spec %s/%s -> %s\n",ip1,mask,ip2);
+	  
 	  if(!acl_ipv6_inaddr_is_zero(spec->hserver_address) && 
 	     !acl_ipv6_inaddr_are_equal(spec->hserver_address, conn_spec->hserver_address))
 	       return 0;
@@ -542,23 +574,40 @@ int match_ipv6_connection(acl_spec_t *spec,acl_spec_t *conn_spec){
 	  
 	  return 1;
      }
-     else{
+     else{ /*Does not needed any more, to be removed .............*/
+	  char ip1[64],ip2[64],mask[64];
+	  ci_inet_ntoa(AF_INET,&(spec->hclient_netmask.ipv4_addr),mask,64);
+
+	  ci_inet_ntoa(AF_INET6,&(conn_spec->hclient_address.ipv6_addr),ip1,64);
+	  ci_inet_ntoa(AF_INET6,&(conn_spec->hserver_address.ipv6_addr),ip2,64);
+	  ci_debug_printf(9,"To match_ipv6:Going to match %s/%s -> %s\n",ip1,mask,ip2);
+
+	  ci_inet_ntoa(AF_INET,&(spec->hclient_address.ipv4_addr),ip1,64);
+	  ci_inet_ntoa(AF_INET,&(spec->hserver_address.ipv4_addr),ip2,64);
+	  ci_debug_printf(9,"match_ipv6:With spec %s/%s -> %s\n",ip1,mask,ip2);
+
 	  /*The spec is an ipv4 spec. If we have not an ipv4 mapped address for conn_spec then reject it.....*/
-	  if(!acl_ipv6_inaddr_is_v4mapped(conn_spec->hserver_address)) 
+	  if(!acl_ipv6_inaddr_is_v4mapped(conn_spec->hserver_address)){ 
+	       ci_debug_printf(9,"connection address is not ipv4 mapped reject it\n");
 	       return 0;
-	  
+	  }
 	  
 	  if(!acl_ipv4_inaddr_is_zero(spec->hserver_address) && 
-	     spec->hserver_address.ipv4_addr.s_addr != conn_spec->hserver_address.ipv6_addr.s6_addr32[3] )
+	     spec->hserver_address.ipv4_addr.s_addr != conn_spec->hserver_address.ipv6_addr.s6_addr32[3] ){
+	       ci_debug_printf(9,"connection address does not match the spec, reject it\n");
 	       return 0;
+	  }
+
 	  
 	  if( !acl_ipv4_inaddr_is_zero(spec->hclient_address) && 
 	      !acl_ipv4_inaddr_is_zero(spec->hclient_netmask) &&
 	         (spec->hclient_address.ipv4_addr.s_addr & spec->hclient_netmask.ipv4_addr.s_addr) 
 	                != (conn_spec->hclient_address.ipv6_addr.s6_addr32[3] & spec->hclient_netmask.ipv4_addr.s_addr)
-	       )
+	       ){
+	       ci_debug_printf(9,"connection netmask does not match the spec, reject it\n");
 	       return 0;
-     
+	  }
+	  return 1;
      }
 
 
@@ -651,6 +700,21 @@ void fill_ipv4_addresses( acl_spec_t *a_spec,
 }
 
 #ifdef HAVE_IPV6
+
+void acl_list_ipv4_to_ipv6(){
+     acl_spec_t *spec;
+     if(acl_spec_list==NULL)
+	  return;
+     for(spec=acl_spec_list;spec!=NULL;spec=spec->next){
+	  spec->family=AF_INET6;
+	  acl_inaddr_ipv4_to_ipv6(spec->hclient_address); 
+	  acl_netmask_ipv4_to_ipv6(spec->hclient_netmask);
+	  acl_inaddr_ipv4_to_ipv6(spec->hserver_address);
+	  
+     }
+     return;
+}
+
 
 void fill_ipv6_addresses( acl_spec_t *a_spec,
 			  acl_in_addr_t *client_address,

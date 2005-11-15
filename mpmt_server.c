@@ -378,6 +378,7 @@ void child_main(int sockfd){
 	  do{//Getting requests while we have free servers.....
 	       do{
 		    errno = 0;
+		    claddrlen=sizeof(conn.claddr.sockaddr);
 		    if(((conn.fd = accept(sockfd, (struct sockaddr *)&(conn.claddr.sockaddr), &claddrlen)) == -1) && errno != EINTR){
 			 ci_debug_printf(1,"error accept .... %d\nExiting server ....\n",errno);
 			 exit(-1); //For the moment .......
@@ -386,7 +387,7 @@ void child_main(int sockfd){
 		    if(errno==EINTR && child_data->to_be_killed)
 			 goto end_child_main;
 	       }while(errno==EINTR);
-
+	       claddrlen=sizeof(conn.srvaddr.sockaddr);
 	       getsockname(conn.fd,(struct sockaddr *)&(conn.srvaddr.sockaddr),&claddrlen);
 
 	       ci_fill_sockaddr(&conn.claddr);

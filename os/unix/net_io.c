@@ -54,7 +54,7 @@ int icap_init_server_ipv6(int port,int *protocol_family,int secs_to_linger){
 	  close(fd);
 	  return CI_SOCKET_ERROR;
      }
-     *protocol_family=AF_INET;
+     *protocol_family=AF_INET6;
      return fd;
 
 }
