@@ -312,7 +312,9 @@ struct access_entry_list acl_log_access_list;
 
 int match_ipv4_connection(acl_spec_t *spec,acl_spec_t *conn_spec);
 int match_ipv6_connection(acl_spec_t *spec,acl_spec_t *conn_spec);
-int match_request(acl_spec_t *spec, acl_spec_t *req_spec, int (*match_connection)(acl_spec_t *,acl_spec_t *));
+int (*match_connection)(acl_spec_t *,acl_spec_t *);
+
+int match_request(acl_spec_t *spec, acl_spec_t *req_spec);
 
 
 int default_acl_init(struct icap_server_conf *server_conf){
@@ -330,8 +332,12 @@ int default_acl_post_init(struct icap_server_conf *server_conf){
      if(server_conf->PROTOCOL_FAMILY==AF_INET6){
 	  ci_debug_printf(5,"We are listening to a ipv6 address. Going to change all acl address to ipv6 address!\n");
 	  acl_list_ipv4_to_ipv6();
+	  match_connection=match_ipv6_connection;	  
      }
+     else
 #endif
+	  match_connection=match_ipv4_connection;
+     
      return 1;
 }
 
@@ -342,15 +348,7 @@ void default_release_authenticator(){
 int default_acl_client_access(ci_sockaddr_t *client_address, ci_sockaddr_t *server_address){
      access_entry_t *entry;
      acl_spec_t *spec,conn_spec;
-     int (*match_connection)(acl_spec_t *,acl_spec_t *);
-#ifdef HAVE_IPV6
-     if(server_address->ci_sin_family==AF_INET6)
-	  match_connection=match_ipv6_connection;
-     else
-	  match_connection=match_ipv4_connection;
-#else
-     match_connection=match_ipv4_connection;
-#endif
+
      entry=acl_access_list.access_entry_list;
      if(!entry)
 	  return CI_ACCESS_UNKNOWN;
@@ -389,20 +387,9 @@ int default_acl_request_access(char *dec_user,char *service,
 			       ci_sockaddr_t *server_address){
      access_entry_t *entry;
      acl_spec_t *spec,req_spec;
-     int (*match_connection)(acl_spec_t *,acl_spec_t *);
      entry=acl_access_list.access_entry_list;
      if(!entry)
 	  return CI_ACCESS_UNKNOWN;
-
-
-#ifdef HAVE_IPV6
-     if(server_address->ci_sin_family==AF_INET6)
-	  match_connection=match_ipv6_connection;
-     else
-	  match_connection=match_ipv4_connection;
-#else
-     match_connection=match_ipv4_connection;
-#endif
 
      req_spec.username=dec_user;/*dec_user always non null (required)*/
      req_spec.servicename=service;
@@ -416,7 +403,7 @@ int default_acl_request_access(char *dec_user,char *service,
 
      while(entry){
 	  spec=entry->spec; 
-	  if( match_request(spec,&req_spec,match_connection)){
+	  if( match_request(spec,&req_spec)){
 	       return entry->type;
 	  }
 	  entry=entry->next;
@@ -430,20 +417,10 @@ int default_acl_http_request_access(char *dec_user,char *service,
 			       ci_sockaddr_t *server_address){
      access_entry_t *entry;
      acl_spec_t *spec,req_spec;
-     int (*match_connection)(acl_spec_t *,acl_spec_t *);
      entry=acl_access_list.access_entry_list;
 
      if(!entry)
 	  return CI_ACCESS_UNKNOWN;
-
-#ifdef HAVE_IPV6
-     if(server_address->ci_sin_family==AF_INET6)
-	  match_connection=match_ipv6_connection;
-     else
-	  match_connection=match_ipv4_connection;
-#else
-     match_connection=match_ipv4_connection;
-#endif
 
      req_spec.username=dec_user;/*dec_user always non null (required)*/
      req_spec.servicename=service;
@@ -458,7 +435,7 @@ int default_acl_http_request_access(char *dec_user,char *service,
 
      while(entry){
 	  spec=entry->spec;
-	  if(match_request(spec,&req_spec,match_connection)){
+	  if(match_request(spec,&req_spec)){
 	       return (entry->type==CI_ACCESS_HTTP_AUTH?CI_ACCESS_ALLOW:entry->type);
 	  }
 	  entry=entry->next;
@@ -474,20 +451,10 @@ int default_acl_log_access(char *dec_user,char *service,
 
      access_entry_t *entry;
      acl_spec_t *spec,req_spec;
-     int (*match_connection)(acl_spec_t *,acl_spec_t *);
      entry=acl_log_access_list.access_entry_list;
 
      if(!entry)
 	  return CI_ACCESS_UNKNOWN;
-
-#ifdef HAVE_IPV6
-     if(server_address->ci_sin_family==AF_INET6)
-	  match_connection=match_ipv6_connection;
-     else
-	  match_connection=match_ipv4_connection;
-#else
-     match_connection=match_ipv4_connection;
-#endif
 
      req_spec.username=dec_user;/*dec_user always non null (required)*/
      req_spec.servicename=service;
@@ -502,7 +469,7 @@ int default_acl_log_access(char *dec_user,char *service,
 
      while(entry){
 	  spec=entry->spec; 
-	  if( match_request(spec,&req_spec,match_connection)){
+	  if( match_request(spec,&req_spec)){
 	       return entry->type;
 	  }
 	  entry=entry->next;
@@ -538,86 +505,34 @@ int match_ipv4_connection(acl_spec_t *spec,acl_spec_t *conn_spec){
 
 #ifdef HAVE_IPV6
 int match_ipv6_connection(acl_spec_t *spec,acl_spec_t *conn_spec){
-     /*OK here conn_spec is always our address. If this function called then 
-       conn_spec  is always ipv6 (conn_spec->family=AF_INET6).
-       Now we have 2 cases:
-       1)conn_spec is ipv6 and  spec is ipv6 
-       2)conn_spec is ipv6 and  spec is ipv4
-       
-       The second case does not any more can happen as we are converting the all ipv4 specs to ipv6 specs
-       if we are listening to an ipv6 address.
-
-      */
+/*     char ip1[64],ip2[64],mask[64];
+     ci_inet_ntoa(AF_INET6,&(spec->hclient_netmask.ipv6_addr),mask,64);     
+     ci_inet_ntoa(AF_INET6,&(conn_spec->hclient_address.ipv6_addr),ip1,64);
+     ci_inet_ntoa(AF_INET6,&(conn_spec->hserver_address.ipv6_addr),ip2,64);
+     ci_debug_printf(9,"To match_ipv6:Going to match %s/%s -> %s\n",ip1,mask,ip2);     
+     ci_inet_ntoa(AF_INET6,&(spec->hclient_address.ipv6_addr),ip1,64);
+     ci_inet_ntoa(AF_INET6,&(spec->hserver_address.ipv6_addr),ip2,64);
+     ci_debug_printf(9,"match_ipv6:With spec %s/%s -> %s\n",ip1,mask,ip2);
+*/
 
      if(spec->port!=0 && spec->port != conn_spec->port)
 	  return 0;
      
-     if(spec->family==AF_INET6){
-	  char ip1[64],ip2[64],mask[64];
-	  ci_inet_ntoa(AF_INET6,&(spec->hclient_netmask.ipv6_addr),mask,64);
-
-	  ci_inet_ntoa(AF_INET6,&(conn_spec->hclient_address.ipv6_addr),ip1,64);
-	  ci_inet_ntoa(AF_INET6,&(conn_spec->hserver_address.ipv6_addr),ip2,64);
-	  ci_debug_printf(9,"To match_ipv6:Going to match %s/%s -> %s\n",ip1,mask,ip2);
-
-	  ci_inet_ntoa(AF_INET6,&(spec->hclient_address.ipv6_addr),ip1,64);
-	  ci_inet_ntoa(AF_INET6,&(spec->hserver_address.ipv6_addr),ip2,64);
-	  ci_debug_printf(9,"match_ipv6:With spec %s/%s -> %s\n",ip1,mask,ip2);
-	  
-	  if(!acl_ipv6_inaddr_is_zero(spec->hserver_address) && 
-	     !acl_ipv6_inaddr_are_equal(spec->hserver_address, conn_spec->hserver_address))
-	       return 0;
-	  
-	  if( !acl_ipv6_inaddr_is_zero(spec->hclient_address) && !acl_ipv6_inaddr_is_zero(spec->hclient_netmask) &&
-	      !acl_ipv6_inaddr_check_net(spec->hclient_address,conn_spec->hclient_address,spec->hclient_netmask))
-	       return 0;
-	  
-	  return 1;
-     }
-     else{ /*Does not needed any more, to be removed .............*/
-	  char ip1[64],ip2[64],mask[64];
-	  ci_inet_ntoa(AF_INET,&(spec->hclient_netmask.ipv4_addr),mask,64);
-
-	  ci_inet_ntoa(AF_INET6,&(conn_spec->hclient_address.ipv6_addr),ip1,64);
-	  ci_inet_ntoa(AF_INET6,&(conn_spec->hserver_address.ipv6_addr),ip2,64);
-	  ci_debug_printf(9,"To match_ipv6:Going to match %s/%s -> %s\n",ip1,mask,ip2);
-
-	  ci_inet_ntoa(AF_INET,&(spec->hclient_address.ipv4_addr),ip1,64);
-	  ci_inet_ntoa(AF_INET,&(spec->hserver_address.ipv4_addr),ip2,64);
-	  ci_debug_printf(9,"match_ipv6:With spec %s/%s -> %s\n",ip1,mask,ip2);
-
-	  /*The spec is an ipv4 spec. If we have not an ipv4 mapped address for conn_spec then reject it.....*/
-	  if(!acl_ipv6_inaddr_is_v4mapped(conn_spec->hserver_address)){ 
-	       ci_debug_printf(9,"connection address is not ipv4 mapped reject it\n");
-	       return 0;
-	  }
-	  
-	  if(!acl_ipv4_inaddr_is_zero(spec->hserver_address) && 
-	     spec->hserver_address.ipv4_addr.s_addr != conn_spec->hserver_address.ipv6_addr.s6_addr32[3] ){
-	       ci_debug_printf(9,"connection address does not match the spec, reject it\n");
-	       return 0;
-	  }
-
-	  
-	  if( !acl_ipv4_inaddr_is_zero(spec->hclient_address) && 
-	      !acl_ipv4_inaddr_is_zero(spec->hclient_netmask) &&
-	         (spec->hclient_address.ipv4_addr.s_addr & spec->hclient_netmask.ipv4_addr.s_addr) 
-	                != (conn_spec->hclient_address.ipv6_addr.s6_addr32[3] & spec->hclient_netmask.ipv4_addr.s_addr)
-	       ){
-	       ci_debug_printf(9,"connection netmask does not match the spec, reject it\n");
-	       return 0;
-	  }
-	  return 1;
-     }
-
-
-     return 0;
+     if(!acl_ipv6_inaddr_is_zero(spec->hserver_address) && 
+	!acl_ipv6_inaddr_are_equal(spec->hserver_address, conn_spec->hserver_address))
+	  return 0;
+     
+     if( !acl_ipv6_inaddr_is_zero(spec->hclient_address) && !acl_ipv6_inaddr_is_zero(spec->hclient_netmask) &&
+	 !acl_ipv6_inaddr_check_net(spec->hclient_address,conn_spec->hclient_address,spec->hclient_netmask))
+	  return 0;
+     
+     return 1;
 }
 
 #endif
 
 
-int match_request(acl_spec_t *spec, acl_spec_t *req_spec,int (*match_connection)(acl_spec_t *,acl_spec_t *)){
+int match_request(acl_spec_t *spec, acl_spec_t *req_spec){
 
      if(!(*match_connection)(spec,req_spec))
 	  return 0;
