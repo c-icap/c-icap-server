@@ -611,13 +611,19 @@ int ci_extend_filetype(struct ci_magics_db *db,request_t *req,char *buf,int len,
 	       if(*iscompressed==CI_ENCODE_GZIP || *iscompressed== CI_ENCODE_DEFLATE){
 		    unzipped_buf=malloc(len);   /*Will I implement memory pools? when?????*/
 		    unzipped_buf_len=len;
-		    ci_uncompress(*iscompressed,buf,len,unzipped_buf,&unzipped_buf_len);
+		    if(ci_uncompress(*iscompressed,buf,len,unzipped_buf,&unzipped_buf_len)!=CI_ERROR){
 		    /* 1) unzip and 
 		       2) checkbuf eq to unziped data
 		       3) len eq to unzipped data len
 		    */
-		    checkbuf=unzipped_buf;
-		    len=unzipped_buf_len;
+			 checkbuf=unzipped_buf;
+			 len=unzipped_buf_len;
+		    }
+		    else{
+			 ci_debug_printf(2,"Error uncompressing gzip encoded obejct\n");
+			 free(unzipped_buf);
+			 unzipped_buf=NULL;
+		    }
 	       }
 	  }
 #else
