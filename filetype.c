@@ -16,12 +16,18 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-
+#include "c-icap.h"
 #include <stdio.h>
 #include <ctype.h>
 #include <errno.h>
-#include "c-icap.h"
+
+#ifdef HAVE_ZLIB
+#include <zlib.h>
+#endif
+
+#include "simple_api.h"
 #include "debug.h"
+#include "request.h"
 #include "filetype.h"
 
 
@@ -477,4 +483,177 @@ int ci_filetype(struct ci_magics_db *db,char *buf, int buflen){
      }
      
      return CI_BIN_DATA; /*binary data*/
+}
+
+
+#ifdef HAVE_ZLIB
+/*
+  ci_uncompress function currently copied from the gzip module.
+  This code is duplicated, I did not decide yet the design:
+  Unzipped functionality must implemented as a service or must exists
+  hardcoded in c-icap?
+  However, the zip api must be improved and extended for use from modules.
+  Must be moved to its own file, and I must implement an c-icap memory alocator for it.
+
+  Deflate encoding is not yet implemented. Is not dificult I will setup an lighttp 
+  server just to test it.
+
+*/
+
+#define ZIP_HEAD_CRC     0x02 /* bit 1 set: header CRC present */
+#define ZIP_EXTRA_FIELD  0x04 /* bit 2 set: extra field present */
+#define ZIP_ORIG_NAME    0x08 /* bit 3 set: original file name present */
+#define ZIP_COMMENT      0x10 /* bit 4 set: file comment present */
+
+
+
+int ci_uncompress(int compress_method,char *buf,int len,char *unzipped_buf,int *unzipped_buf_len){
+     int ret,flags,method,temp;
+     z_stream strm;
+     char *in;
+     char *end;
+     strm.zalloc = Z_NULL;
+     strm.zfree = Z_NULL;
+     strm.opaque = Z_NULL;
+     strm.avail_in = 0;
+     strm.next_in = Z_NULL;
+
+     ret = inflateInit2(&strm,-15);
+     if (ret != Z_OK){
+	  ci_debug_printf(1,"Error initializing  zlib (inflateInit2 return:%d)\n",ret);
+	  return CI_ERROR;
+     }
+     end=buf+len;
+     in=buf;
+     
+     method=in[2];
+     flags=in[3];
+     
+     /*
+       we have take what we need.
+       The rest are discard time, xflags and OS code. Skip them. 
+     */
+     in+=10;
+     
+     if ((flags & ZIP_EXTRA_FIELD) != 0) { /* skip the extra field */
+	  temp  =  in[0];
+	  temp +=  ((unsigned int)in[1])<<8;
+	  in+=temp;
+     }
+     /*I must check for lengths!!!! in maybe does not have all gzip header.......*/
+     if ((flags & ZIP_ORIG_NAME) != 0) { /* skip the original file name */
+	  while (*in != 0 && in<end) in++;
+	  in++;
+     }
+     if ((flags & ZIP_COMMENT) != 0) {   /* skip the  comment */
+	  while (*in!=0 && in < end) in++;
+	  in++;
+     }
+     if ((flags & ZIP_HEAD_CRC) != 0) {  /* skip the header crc */
+	  in+=2;     /*Yes, yes I know.....*/
+     }
+
+     if(in>=end){
+	  ci_debug_printf(1,"Not enough data to look in gzipped object\n");
+	  return CI_ERROR;
+     }
+     
+     strm.next_in = in;
+     strm.avail_in=len-(in-buf);
+     
+     strm.avail_out = *unzipped_buf_len;
+     strm.next_out = unzipped_buf;
+     ret = inflate(&strm, Z_NO_FLUSH);
+     inflateEnd(&strm);
+
+     switch (ret) {
+     case Z_NEED_DICT:
+     case Z_DATA_ERROR:
+     case Z_MEM_ERROR:
+
+	  return CI_ERROR;
+     }
+
+     return CI_OK;
+}
+#endif
+
+int ci_extend_filetype(struct ci_magics_db *db,request_t *req,char *buf,int len,int *iscompressed){
+     int file_type;
+     int file_group;
+#ifdef HAVE_ZLIB
+     int unzipped_buf_len=0;
+     char *unzipped_buf=NULL;
+#endif
+     char *checkbuf=buf;
+     char *content_type=NULL,*content_encoding=NULL;
+
+     *iscompressed=CI_ENCODE_NONE;
+
+     if(len<=0)
+	  return  CI_BIN_DATA;
+
+     if(ci_req_type(req)==ICAP_RESPMOD){
+	  content_encoding=ci_respmod_get_header(req,"Content-Encoding");
+	  ci_debug_printf(8,"Content-Encoding :%s\n",content_encoding);
+	  if(content_encoding){
+#ifdef HAVE_ZLIB
+	       /*the following must be faster in the feature......*/
+	       if(strstr(content_encoding,"gzip")!=NULL){ 
+		    *iscompressed=CI_ENCODE_GZIP;
+	       }
+	       else if(strstr(content_encoding,"deflate")!=NULL){
+		    *iscompressed=CI_ENCODE_DEFLATE;
+	       }
+	       else
+		    *iscompressed=CI_ENCODE_UNKNOWN;   
+
+	       if(*iscompressed==CI_ENCODE_GZIP || *iscompressed== CI_ENCODE_DEFLATE){
+		    unzipped_buf=malloc(len);   /*Will I implement memory pools? when?????*/
+		    unzipped_buf_len=len;
+		    ci_uncompress(*iscompressed,buf,len,unzipped_buf,&unzipped_buf_len);
+		    /* 1) unzip and 
+		       2) checkbuf eq to unziped data
+		       3) len eq to unzipped data len
+		    */
+		    checkbuf=unzipped_buf;
+		    len=unzipped_buf_len;
+	       }
+	  }
+#else
+	  *iscompressed=CI_ENCODE_UNKNOWN;
+#endif
+     }
+
+     file_type=ci_filetype(db,checkbuf,len);
+     file_group=ci_data_type_group(db,file_type);
+     
+     ci_debug_printf(7,"File type returned :%s,%s\n",
+		     ci_data_type_name(db,file_type),
+		     ci_data_type_descr(db,file_type));
+     /*The following until we have an internal html recognizer .....*/
+     if( file_group==CI_TEXT_DATA && (content_type=ci_respmod_get_header(req,"Content-Type"))!=NULL){
+	  if(strstr(content_type,"text/html") || 
+	     strstr(content_type,"text/css") ||
+	     strstr(content_type,"text/javascript"))
+	       file_type=CI_HTML_DATA;
+     }
+#ifndef HAVE_ZLIB  /*if we do not have a zlib try to get file info from headers.......*/
+     else if(file_type==ci_get_data_type_id(db,"GZip") && content_encoding!=NULL){
+	  if(content_type && (strstr(content_type,"text/html")
+			      || strstr(content_type,"text/css")
+			      || strstr(content_type,"text/javascript") ))
+	       file_type=CI_HTML_DATA;
+     }
+#endif
+
+
+     ci_debug_printf(7,"The file type now is :%s,%s\n",
+		     ci_data_type_name(db,file_type),
+		     ci_data_type_descr(db,file_type));
+#ifdef HAVE_ZLIB
+     if(unzipped_buf)
+	  free(unzipped_buf);
+#endif
+     return file_type;
 }

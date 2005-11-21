@@ -61,6 +61,8 @@ struct ci_magics_db{
 
 enum {CI_ASCII_DATA,CI_ISO8859_DATA,CI_XASCII_DATA,CI_UTF_DATA,CI_HTML_DATA,CI_BIN_DATA};
 enum {CI_TEXT_DATA,CI_OCTET_DATA};
+enum {CI_ENCODE_NONE=0,CI_ENCODE_GZIP,CI_ENCODE_DEFLATE,CI_ENCODE_UNKNOWN};
+
 
 CI_DECLARE_FUNC(struct ci_magics_db) *ci_magics_db_build(char *filename);
 CI_DECLARE_FUNC(int) ci_magics_db_file_add(struct ci_magics_db *db,char *filename);
@@ -68,5 +70,10 @@ CI_DECLARE_FUNC(int) ci_get_data_type_id(struct ci_magics_db *db,char *name);
 CI_DECLARE_FUNC(int) ci_get_data_group_id(struct ci_magics_db *db,char *group);
 
 CI_DECLARE_FUNC(int) ci_filetype(struct ci_magics_db *db,char *buf, int buflen);
-
+/* compiler does not allow me to define this function here :-(
+   because of request_t .......
+CI_DECLARE_FUNC(int) ci_extend_filetype(struct ci_magics_db *db,
+					request_t *req,
+					char *buf,int len,int *iscompressed);
+*/
 #endif

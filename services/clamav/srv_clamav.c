@@ -384,7 +384,24 @@ int srvclamav_end_of_data_handler(void *data,request_t *req){
 /* Other  functions                                                            */
 
 /* Content-Encoding: gzip*/
+int ci_extend_filetype(struct ci_magics_db *db,
+		       request_t *req,
+		       char *buf,int len,int *iscompressed);
 
+int get_filetype(request_t *req,char *buf,int len){
+     int iscompressed,filetype;
+     filetype=ci_extend_filetype(magic_db,req,buf,len,&iscompressed);
+/*     if iscompressed we do not care becouse clamav can understand zipped objects*/
+
+/*     Yes but what about deflate compression as encoding ??????
+       I don't know, maybe we can modify web-client requests to not send
+       deflate method to Accept-Encoding header  :( .
+       Or decompress internally the file and pass to the 
+       clamav the decompressed data....
+*/
+     return filetype;
+}
+/*
 int get_filetype(request_t *req,char *buf,int len){
      int file_type;
      int file_group;
@@ -410,13 +427,12 @@ int get_filetype(request_t *req,char *buf,int len){
      }
      else if(file_type==ci_get_data_type_id(magic_db,"GZip")){
 	  content_encoding=ci_respmod_get_header(req,"Content-Encoding");
-	  ci_debug_printf(8,"Content-Encoding :%s\n",content_type);
+	  ci_debug_printf(8,"Content-Encoding :%s\n",content_encoding);
 	  if(content_type && content_encoding && (strstr(content_type,"text/html") 
 			                          || strstr(content_type,"text/css") 
 						  || strstr(content_type,"text/javascript") )) 
 	       file_type=CI_HTML_DATA;
      }
-
 
      ci_debug_printf(7,"The file type now is :%s,%s\n",
 		     ci_data_type_name(magic_db,file_type),
@@ -425,7 +441,7 @@ int get_filetype(request_t *req,char *buf,int len){
 
      return file_type;
 }
-
+*/
 
 int must_scanned(int file_type){
      int type,file_group;

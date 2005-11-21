@@ -19,6 +19,7 @@
 
 #include "c-icap.h"
 #include "debug.h"
+#include <fcntl.h>
 #include <pwd.h>
 #include <grp.h>
 #include <errno.h>

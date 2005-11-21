@@ -23,9 +23,6 @@
 #include "c-icap.h"
 #include <stdio.h>
 #include <stdarg.h>
-#include "request.h"
-#include "log.h" 
-#include "cfg_param.h"
 
 
 CI_DECLARE_DATA extern int CI_DEBUG_LEVEL;
@@ -33,7 +30,7 @@ CI_DECLARE_DATA extern int CI_DEBUG_STDOUT;
 
 
 #ifdef _MSC_VER
-CI_DECLARE_DATA extern void (*__vlog_error)(request_t *req, const char *format, va_list ap);
+CI_DECLARE_DATA extern void (*__vlog_error)(void *req, const char *format, va_list ap);
 CI_DECLARE_FUNC(void) __ldebug_printf(int i,const char *format, ...);
 #define ci_debug_printf __ldebug_printf
 

@@ -30,7 +30,7 @@ int CI_DEBUG_STDOUT=0;
 void (*__log_error)(void *req, const char *format,... )=NULL;
 
 #else
-void (*__vlog_error)(request_t *req, const char *format, va_list ap)=NULL;
+void (*__vlog_error)(void *req, const char *format, va_list ap)=NULL;
 void __ldebug_printf(int i,const char *format, ...){
      va_list ap;
      if(i<=CI_DEBUG_LEVEL){ 
