@@ -42,16 +42,16 @@ static int FACILITY=LOG_DAEMON;
 static int ACCESS_PRIORITY=LOG_INFO;
 static int SERVER_PRIORITY=LOG_CRIT;
 
-int SetFacility(char *directive,char **argv,void *setdata);
-int SetPriority(char *directive,char **argv,void *setdata);
-int SetPrefix(char *directive,char **argv,void *setdata);
+int cfg_set_facility(char *directive,char **argv,void *setdata);
+int cfg_set_priority(char *directive,char **argv,void *setdata);
+/*int cfg_set_prefix(char *directive,char **argv,void *setdata);*/
 
 /*Configuration Table .....*/
 static struct conf_entry conf_variables[]={
-     {"Facility",NULL,SetFacility,NULL},
-     {"acces_priority",&ACCESS_PRIORITY,SetPriority,NULL},
-     {"server_priority",&SERVER_PRIORITY,SetPriority,NULL},
-     {"Prefix",&log_ident,setStr,NULL},
+     {"Facility",NULL,cfg_set_facility,NULL},
+     {"acces_priority",&ACCESS_PRIORITY,cfg_set_priority,NULL},
+     {"server_priority",&SERVER_PRIORITY,cfg_set_priority,NULL},
+     {"Prefix",&log_ident,ci_cfg_set_str,NULL},
      {NULL,NULL,NULL,NULL}
 };
 
@@ -68,7 +68,7 @@ CI_DECLARE_DATA logger_module_t module={
 };
 
 
-int SetFacility(char *directive,char **argv,void *setdata){
+int cfg_set_facility(char *directive,char **argv,void *setdata){
      if(argv==NULL || argv[0]==NULL){
 //	  ci_debug_printf(1,"Missing arguments in directive\n");
 	  return 0;
@@ -108,7 +108,7 @@ int SetFacility(char *directive,char **argv,void *setdata){
      return 1;
 }
 
-int SetPriority(char *directive,char **argv,void *setdata){
+int cfg_set_priority(char *directive,char **argv,void *setdata){
      if(argv==NULL || argv[0]==NULL){
 	  ci_debug_printf(1,"Missing arguments in directive\n");
 	  return 0;

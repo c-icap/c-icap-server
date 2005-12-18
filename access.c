@@ -46,15 +46,15 @@ int default_acl_log_access(char *dec_user,char *service,
 
 
 
-int acl_add(char *directive,char **argv,void *setdata);
-int acl_access(char *directive,char **argv,void *setdata);
+int cfg_acl_add(char *directive,char **argv,void *setdata);
+int cfg_acl_access(char *directive,char **argv,void *setdata);
 
 
 
 /*Configuration Table .....*/
 static struct conf_entry acl_conf_variables[]={
-     {"acl",NULL,acl_add,NULL},
-     {"icap_access",NULL,acl_access,NULL},
+     {"acl",NULL,cfg_acl_add,NULL},
+     {"icap_access",NULL,cfg_acl_access,NULL},
      {NULL,NULL,NULL,NULL}
 };
 
@@ -723,7 +723,7 @@ int check_protocol_family(char *ip){
 /********************************************************************/
 /*Configuration functions ...............                           */
 
-int acl_add(char *directive,char **argv,void *setdata){
+int cfg_acl_add(char *directive,char **argv,void *setdata){
      char *name, *username,*service,*str;
      int i,res,request_type;    
      unsigned int port;
@@ -835,7 +835,7 @@ int acl_add(char *directive,char **argv,void *setdata){
 }
 
 
-int acl_access(char *directive,char **argv,void *setdata){
+int cfg_acl_access(char *directive,char **argv,void *setdata){
      int type;
      char *acl_spec;
      struct access_entry_list *tolist;

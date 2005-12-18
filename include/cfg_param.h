@@ -52,11 +52,12 @@ extern struct icap_server_conf CONF;
 
 int register_conf_table(char *name,struct conf_entry *table);
 
-CI_DECLARE_FUNC(int) setStr(char *directive,char **argv,void *setdata);
-CI_DECLARE_FUNC(int) setInt(char *directive,char **argv,void *setdata);
-CI_DECLARE_FUNC(int) setDisable(char *directive,char **argv,void *setdata);
-CI_DECLARE_FUNC(int) setEnable(char *directive,char **argv,void *setdata);
+CI_DECLARE_FUNC(int) ci_cfg_set_str(char *directive,char **argv,void *setdata);
+CI_DECLARE_FUNC(int) ci_cfg_set_int(char *directive,char **argv,void *setdata);
+CI_DECLARE_FUNC(int) ci_cfg_disable(char *directive,char **argv,void *setdata);
+CI_DECLARE_FUNC(int) ci_cfg_enable(char *directive,char **argv,void *setdata);
+CI_DECLARE_FUNC(int) ci_cfg_size_off(char *directive,char **argv,void *setdata);
+CI_DECLARE_FUNC(int) ci_cfg_size_long(char *directive,char **argv,void *setdata);
 CI_DECLARE_FUNC(int) config(int argc, char **argv);
-
 
 #endif

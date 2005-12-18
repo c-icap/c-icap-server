@@ -76,21 +76,18 @@ extern char *ACCESS_LOG_FILE;
 extern logger_module_t *default_logger;
 extern access_control_module_t **used_access_controllers;
 
-int SetDebugLevel(char *directive,char **argv,void *setdata);
-int SetDebugSTDOUT(char *directive,char **argv,void *setdata);
-int SetBodyMaxMem(char *directive,char **argv,void *setdata);
-int LoadMagicFile(char *directive,char **argv,void *setdata);
-int Load_Service(char *directive,char **argv,void *setdata);
-int Load_Module(char *directive,char **argv,void *setdata);
-int SetLogger(char *directive,char **argv,void *setdata);
-int setTmpDir(char *directive,char **argv,void *setdata); 
-int Set_acl_controllers(char *directive,char **argv,void *setdata); 
-/*The following 2 functions defined in access.c file*/
-int acl_add(char *directive,char **argv,void *setdata);
-int acl_access(char *directive,char **argv,void *setdata);
-/****/
-int Set_auth_method(char *directive,char **argv,void *setdata); 
+int cfg_load_magicfile(char *directive,char **argv,void *setdata);
+int cfg_load_service(char *directive,char **argv,void *setdata);
+int cfg_load_module(char *directive,char **argv,void *setdata);
+int cfg_set_logger(char *directive,char **argv,void *setdata);
+int cfg_set_tmp_dir(char *directive,char **argv,void *setdata); 
+int cfg_set_acl_controllers(char *directive,char **argv,void *setdata); 
+int cfg_set_auth_method(char *directive,char **argv,void *setdata); 
 
+/*The following 2 functions defined in access.c file*/
+int cfg_acl_add(char *directive,char **argv,void *setdata);
+int cfg_acl_access(char *directive,char **argv,void *setdata);
+/****/
 
 struct sub_table{
      char *name;
@@ -98,38 +95,38 @@ struct sub_table{
 };
 
 static struct conf_entry conf_variables[]={
-     {"PidFile",&CONF.PIDFILE,setStr,NULL},
-     {"Timeout",(void *)(&TIMEOUT),setInt,NULL},
+     {"PidFile",&CONF.PIDFILE,ci_cfg_set_str,NULL},
+     {"Timeout",(void *)(&TIMEOUT),ci_cfg_set_int,NULL},
      {"KeepAlive",NULL,NULL,NULL},
      {"MaxKeepAliveRequests",NULL,NULL,NULL},
-     {"KeepAliveTimeout",&KEEPALIVE_TIMEOUT,setInt,NULL},
-     {"StartServers",&START_CHILDS,setInt,NULL},
-     {"MaxServers",&MAX_CHILDS,setInt,NULL},
-     {"MinSpareThreads",&MIN_FREE_SERVERS,setInt,NULL},
-     {"MaxSpareThreads",&MAX_FREE_SERVERS,setInt,NULL},
-     {"ThreadsPerChild",&START_SERVERS,setInt,NULL},
+     {"KeepAliveTimeout",&KEEPALIVE_TIMEOUT,ci_cfg_set_int,NULL},
+     {"StartServers",&START_CHILDS,ci_cfg_set_int,NULL},
+     {"MaxServers",&MAX_CHILDS,ci_cfg_set_int,NULL},
+     {"MinSpareThreads",&MIN_FREE_SERVERS,ci_cfg_set_int,NULL},
+     {"MaxSpareThreads",&MAX_FREE_SERVERS,ci_cfg_set_int,NULL},
+     {"ThreadsPerChild",&START_SERVERS,ci_cfg_set_int,NULL},
      {"MaxRequestsPerChild",NULL,NULL,NULL},
-     {"MaxRequestsReallocateMem",&MAX_REQUESTS_BEFORE_REALLOCATE_MEM,setInt,NULL},
-     {"Port",&CONF.PORT,setInt,NULL},
-     {"User",&CONF.RUN_USER,setStr,NULL},
-     {"Group",&CONF.RUN_GROUP,setStr,NULL},
+     {"MaxRequestsReallocateMem",&MAX_REQUESTS_BEFORE_REALLOCATE_MEM,ci_cfg_set_int,NULL},
+     {"Port",&CONF.PORT,ci_cfg_set_int,NULL},
+     {"User",&CONF.RUN_USER,ci_cfg_set_str,NULL},
+     {"Group",&CONF.RUN_GROUP,ci_cfg_set_str,NULL},
      {"ServerAdmin",NULL,NULL,NULL},
      {"ServerName",NULL,NULL,NULL},
-     {"LoadMagicFile",NULL,LoadMagicFile,NULL},
-     {"Logger",&default_logger,SetLogger,NULL},
-     {"ServerLog",&SERVER_LOG_FILE,setStr,NULL},
-     {"AccessLog",&ACCESS_LOG_FILE,setStr,NULL},
-     {"DebugLevel",NULL,SetDebugLevel,NULL}, /*Sets librarys debug level*/
-     {"ServicesDir",&CONF.SERVICES_DIR,setStr,NULL},
-     {"ModulesDir",&CONF.MODULES_DIR,setStr,NULL},
-     {"Service",NULL,Load_Service,NULL},
-     {"Module",NULL,Load_Module,NULL},
-     {"TmpDir",NULL,setTmpDir,NULL},
-     {"MaxMemObject",NULL,SetBodyMaxMem,NULL}, /*Stes librarys body max mem*/
-     {"AclControllers",NULL,Set_acl_controllers,NULL},
-     {"acl",NULL,acl_add,NULL},
-     {"icap_access",NULL,acl_access,NULL},
-     {"AuthMethod",NULL,Set_auth_method,NULL},
+     {"LoadMagicFile",NULL,cfg_load_magicfile,NULL},
+     {"Logger",&default_logger,cfg_set_logger,NULL},
+     {"ServerLog",&SERVER_LOG_FILE,ci_cfg_set_str,NULL},
+     {"AccessLog",&ACCESS_LOG_FILE,ci_cfg_set_str,NULL},
+     {"DebugLevel",&CI_DEBUG_LEVEL,ci_cfg_set_int,NULL}, /*Set library's debug level*/
+     {"ServicesDir",&CONF.SERVICES_DIR,ci_cfg_set_str,NULL},
+     {"ModulesDir",&CONF.MODULES_DIR,ci_cfg_set_str,NULL},
+     {"Service",NULL,cfg_load_service,NULL},
+     {"Module",NULL,cfg_load_module,NULL},
+     {"TmpDir",NULL,cfg_set_tmp_dir,NULL},
+     {"MaxMemObject",&CI_BODY_MAX_MEM,ci_cfg_size_long,NULL}, /*Set library's body max mem*/
+     {"AclControllers",NULL,cfg_set_acl_controllers,NULL},
+     {"acl",NULL,cfg_acl_add,NULL},
+     {"icap_access",NULL,cfg_acl_access,NULL},
+     {"AuthMethod",NULL,cfg_set_auth_method,NULL},
      {NULL,NULL,NULL,NULL}
 };
 
@@ -137,35 +134,6 @@ static struct conf_entry conf_variables[]={
 static struct sub_table *extra_conf_tables=NULL;
 int conf_tables_list_size=0;
 int conf_tables_num=0;
-
-struct options_entry{
-     char *name;
-     char *parameter;
-     void *data;
-     int (*action)(char *name, char **argv,void *setdata);
-     char *msg;
-};
-
-
-#define opt_pre "-" /*For windows will be "/" */
-
-static struct options_entry options[]={
-     {opt_pre"f","filename",&CONF.cfg_file,setStr,"Specify the configuration file"},
-     {opt_pre"N",NULL,&DAEMON_MODE,setDisable,"Do not run as daemon"},
-     {opt_pre"d","level",NULL,SetDebugLevel,"Specify the debug level"},
-     {opt_pre"D",NULL,NULL,SetDebugSTDOUT,"Print debug info to stdout"},
-     {NULL,NULL,NULL,NULL}
-};
-
-struct options_entry *search_options_table(char *directive){
-     int i;
-     for(i=0;options[i].name!=NULL;i++){
-	  if(0==strcmp(directive,options[i].name))
-	       return &options[i];
-     }
-     return NULL;
-}
-
 
 
 struct conf_entry *search_conf_table(struct conf_entry *table,char *varname){
@@ -189,7 +157,7 @@ int register_conf_table(char *name,struct conf_entry *table){
      struct sub_table *new;
      if(!extra_conf_tables)
 	  return 0;
-     if(conf_tables_num==conf_tables_list_size){/*tables list is full reallocating space ......*/
+     if(conf_tables_num==conf_tables_list_size){/*tables list is full, reallocating space ......*/
 	  if(NULL==(new=realloc(extra_conf_tables,conf_tables_list_size+STEPSIZE)))
 	       return 0;
 	  extra_conf_tables=new;
@@ -223,23 +191,7 @@ struct conf_entry *search_variables(char *table,char *varname){
 /************************************************************************/
 /*  Set variables functions                                             */
 
-int SetDebugLevel(char *directive,char **argv,void *setdata){
-     return setInt(directive,argv,&CI_DEBUG_LEVEL);
-}
-
-int SetDebugSTDOUT(char *directive,char **argv,void *setdata){
-     CI_DEBUG_STDOUT=1;
-     return 1;
-}
-
-int SetBodyMaxMem(char *directive,char **argv,void *setdata){
-     setInt(directive,argv,&CI_BODY_MAX_MEM);
-     return 1;
-}
-
-
-
-int Load_Service(char *directive,char **argv,void *setdata){
+int cfg_load_service(char *directive,char **argv,void *setdata){
      if(argv==NULL || argv[0]==NULL || argv[1]==NULL){
 	  ci_debug_printf(1,"Missing arguments in LoadService directive\n");
 	  return 0;
@@ -253,7 +205,7 @@ int Load_Service(char *directive,char **argv,void *setdata){
      return 1;
 }
 
-int Load_Module(char *directive,char **argv,void *setdata){
+int cfg_load_module(char *directive,char **argv,void *setdata){
      if(argv==NULL || argv[0]==NULL || argv[1]==NULL){
 	  ci_debug_printf(1,"Missing arguments in LoadModule directive\n");
 	  return 0;
@@ -269,7 +221,7 @@ int Load_Module(char *directive,char **argv,void *setdata){
 
 
 
-int LoadMagicFile(char *directive,char **argv,void *setdata){
+int cfg_load_magicfile(char *directive,char **argv,void *setdata){
      char *db_file;
      if(argv==NULL || argv[0]==NULL){
 	  return 0;
@@ -285,7 +237,7 @@ int LoadMagicFile(char *directive,char **argv,void *setdata){
 }
 
 
-int SetLogger(char *directive,char **argv,void *setdata){
+int cfg_set_logger(char *directive,char **argv,void *setdata){
      logger_module_t *logger;
      if(argv==NULL || argv[0]==NULL){
 	  ci_debug_printf(1,"Missing arguments in directive\n");
@@ -299,7 +251,7 @@ int SetLogger(char *directive,char **argv,void *setdata){
      return 1;
 }
 
-int setTmpDir(char *directive,char **argv,void *setdata){
+int cfg_set_tmp_dir(char *directive,char **argv,void *setdata){
      int len;
      if(argv == NULL || argv[0] == NULL){
 	  return 0;
@@ -326,7 +278,7 @@ int setTmpDir(char *directive,char **argv,void *setdata){
      return 1;
 }
 
-int Set_acl_controllers(char *directive,char **argv,void *setdata){
+int cfg_set_acl_controllers(char *directive,char **argv,void *setdata){
      int i,k,argc,ret;
      access_control_module_t *acl_mod;
      if(argv == NULL || argv[0] == NULL){
@@ -357,7 +309,7 @@ int Set_acl_controllers(char *directive,char **argv,void *setdata){
 }
 
 
-int Set_auth_method(char *directive,char **argv,void *setdata){
+int cfg_set_auth_method(char *directive,char **argv,void *setdata){
      char *method=NULL;
      if(argv == NULL || argv[0] == NULL || argv[1] == NULL){
 	  return 0;
@@ -506,6 +458,42 @@ int parse_file(char *conf_file){
 
      fclose(f_conf);
      return 1;
+}
+
+
+/****************************************************************/
+/* Command line options implementation, function and structures */
+
+struct options_entry{
+     char *name;
+     char *parameter;
+     void *data;
+     int (*action)(char *name, char **argv,void *setdata);
+     char *msg;
+};
+
+
+/* #ifdef _WIN32 */
+/* #define opt_pre "/"  */
+/* #else */
+#define opt_pre "-" 
+/* #endif */
+
+static struct options_entry options[]={
+     {opt_pre"f","filename",&CONF.cfg_file,ci_cfg_set_str,"Specify the configuration file"},
+     {opt_pre"N",NULL,&DAEMON_MODE,ci_cfg_disable,"Do not run as daemon"},
+     {opt_pre"d","level",&CI_DEBUG_LEVEL,ci_cfg_set_int,"Specify the debug level"},
+     {opt_pre"D",NULL, &CI_DEBUG_STDOUT,ci_cfg_enable,"Print debug info to stdout"},
+     {NULL,NULL,NULL,NULL}
+};
+
+struct options_entry *search_options_table(char *directive){
+     int i;
+     for(i=0;options[i].name!=NULL;i++){
+	  if(0==strcmp(directive,options[i].name))
+	       return &options[i];
+     }
+     return NULL;
 }
 
 

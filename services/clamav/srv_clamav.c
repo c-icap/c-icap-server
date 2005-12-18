@@ -69,31 +69,38 @@ int srvclamav_write(void *data, char *buf,int len ,int iseof,request_t *req);
 int srvclamav_read(void *data,char *buf,int len,request_t *req);
 
 /*Configuration Functions*/
-int SetScanFileTypes(char *directive,char **argv,void *setdata);
-int SetPercentBytes(char *directive,char **argv,void *setdata);
-int SetObjectSize(char *directive,char **argv,void *setdata);
-int SetUIntObjectSize(char *directive,char **argv,void *setdata);
-int SetTMPDir(char *directive,char **argv,void *setdata);
+int cfg_ScanFileTypes(char *directive,char **argv,void *setdata);
+int cfg_SendPercentBytes(char *directive,char **argv,void *setdata);
+int cfg_ClamAvTmpDir(char *directive,char **argv,void *setdata);
 
 /*General functions*/
 int get_filetype(request_t *req,char *buf,int len);
 
+
+/*It is dangerous to pass directly fields of the limits structure in conf_variables,
+  becouse in the feature some of this fields will change type (from int to unsigned int 
+  or from long to long long etc)
+  I must use global variables and use the post_init_service function to fill the 
+  limits structure.
+  But, OK let it go for the time ....
+*/
+
 /*Configuration Table .....*/
 static struct conf_entry conf_variables[]={
-     {"SendPercentData",NULL,SetPercentBytes,NULL},
-     {"ScanFileTypes",NULL,SetScanFileTypes,NULL},
-     {"MaxObjectSize",&MAX_OBJECT_SIZE,SetObjectSize,NULL},
-     {"StartSendPercentDataAfter",&START_SEND_AFTER,SetObjectSize,NULL},
-     {"ClamAvMaxRecLevel",&limits.maxreclevel,setInt,NULL},
-     {"ClamAvMaxFilesInArchive",&limits.maxfiles,setInt,NULL},
+     {"SendPercentData",NULL,cfg_SendPercentBytes,NULL},
+     {"ScanFileTypes",NULL,cfg_ScanFileTypes,NULL},
+     {"MaxObjectSize",&MAX_OBJECT_SIZE,ci_cfg_size_off,NULL},
+     {"StartSendPercentDataAfter",&START_SEND_AFTER,ci_cfg_size_off,NULL},
+     {"ClamAvMaxRecLevel",&limits.maxreclevel,ci_cfg_set_int,NULL},
+     {"ClamAvMaxFilesInArchive",&limits.maxfiles,ci_cfg_set_int,NULL},
 /*     {"ClamAvBzipMemLimit",NULL,setBoolean,NULL},*/
-     {"ClamAvMaxFileSizeInArchive",&limits.maxfilesize,SetUIntObjectSize,NULL},
-     {"ClamAvTmpDir",NULL,SetTMPDir,NULL},
+     {"ClamAvMaxFileSizeInArchive",&limits.maxfilesize,ci_cfg_size_long,NULL},
+     {"ClamAvTmpDir",NULL,cfg_ClamAvTmpDir,NULL},
 #ifdef VIRALATOR_MODE
-     {"VirSaveDir",&VIR_SAVE_DIR,setStr,NULL},
-     {"VirHTTPServer",&VIR_HTTP_SERVER,setStr,NULL},
-     {"VirUpdateTime",&VIR_UPDATE_TIME,setInt,NULL},
-     {"VirScanFileTypes",NULL,SetScanFileTypes,NULL},
+     {"VirSaveDir",&VIR_SAVE_DIR,ci_cfg_set_str,NULL},
+     {"VirHTTPServer",&VIR_HTTP_SERVER,ci_cfg_set_str,NULL},
+     {"VirUpdateTime",&VIR_UPDATE_TIME,ci_cfg_set_int,NULL},
+     {"VirScanFileTypes",NULL,cfg_ScanFileTypes,NULL},
 #endif
      {NULL,NULL,NULL,NULL}
 };
@@ -486,7 +493,7 @@ void generate_error_page(av_req_data_t *data,request_t *req){
 /****************************************************************************************/
 /*Configuration Functions                                                               */
 
-int SetScanFileTypes(char *directive,char **argv,void *setdata){
+int cfg_ScanFileTypes(char *directive,char **argv,void *setdata){
      int i,id;
      int type=NO_SCAN;
      if(strcmp(directive,"ScanFileTypes")==0)
@@ -520,7 +527,7 @@ int SetScanFileTypes(char *directive,char **argv,void *setdata){
 }
 
 
-int SetPercentBytes(char *directive,char **argv,void *setdata){
+int cfg_SendPercentBytes(char *directive,char **argv,void *setdata){
    int val=0;
    char *end;
    if(argv==NULL || argv[0]==NULL){
@@ -540,66 +547,8 @@ int SetPercentBytes(char *directive,char **argv,void *setdata){
 }
 
 
-int SetObjectSize(char *directive,char **argv,void *setdata){
-     ci_off_t val=0;
-     char *end;
-     if(argv==NULL || argv[0]==NULL){
-          ci_debug_printf(1,"Missing arguments in directive:%s\n",directive);
-          return 0;
-     }
-     
-     if(setdata==NULL)
-          return 0;
-     errno=0;
-     val=ci_strto_off_t(argv[0],&end,10);
 
-     if((val==0 && errno!=0) || val <0)
-	  return 0;
-
-     if(*end=='k' || *end=='K')
-	  val=val*1024;
-     else if(*end=='m' || *end=='M')
-	  val=val*1024*1024;
-
-
-     if(val>0)
-          *((ci_off_t*)setdata)=val;
-     ci_debug_printf(1,"Setting parameter :%s=%"PRINTF_OFF_T"\n",directive,val);
-     return val;
-}
-
-
-int SetUIntObjectSize(char *directive,char **argv,void *setdata){
-     unsigned int val=0;
-     char *end;
-     if(argv==NULL || argv[0]==NULL){
-          ci_debug_printf(1,"Missing arguments in directive:%s\n",directive);
-          return 0;
-     }
-     
-     if(setdata==NULL)
-          return 0;
-     errno=0;
-     val=strtoul(argv[0],&end,10);
-
-     if((val==0 && errno!=0) || val <0)
-	  return 0;
-
-     if(*end=='k' || *end=='K')
-	  val=val*1024;
-     else if(*end=='m' || *end=='M')
-	  val=val*1024*1024;
-
-
-     if(val>0)
-          *((unsigned int*)setdata)=val;
-     ci_debug_printf(1,"Setting parameter :%s=%d\n",directive,val);
-     return val;
-}
-
-
-
-int SetTMPDir(char *directive,char **argv,void *setdata){
+int cfg_ClamAvTmpDir(char *directive,char **argv,void *setdata){
      int val=0;
      struct stat stat_buf;
      if(argv==NULL || argv[0]==NULL){
