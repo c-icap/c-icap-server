@@ -59,6 +59,11 @@ typedef struct ci_sockaddr{
 #define CI_MAXHOSTNAMELEN 64
 #define CI_IPLEN      18
 
+#ifdef HAVE_IPV6
+#define CI_SOCKADDR_SIZE sizeof(struct sockaddr_storage)
+#else
+#define CI_SOCKADDR_SIZE sizeof(struct sockaddr_in)
+#endif
 
 enum { wait_for_read, wait_for_write}; 
 

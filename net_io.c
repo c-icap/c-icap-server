@@ -56,15 +56,7 @@ const char *ci_sockaddr_t_to_ip(ci_sockaddr_t *addr, char *ip,int maxlen){
 
 
 const char *ci_sockaddr_t_to_host(ci_sockaddr_t *addr, char *hname, int maxhostlen){
-     struct hostent *hent;
-     hent = gethostbyaddr(addr->ci_sin_addr, addr->ci_inaddr_len, addr->ci_sin_family);
-     if(hent == NULL){
-	  /* Use the ip address as the hostname */
-	  ci_sockaddr_t_to_ip(addr,hname,maxhostlen);
-     }
-     else{
-	  strncpy(hname, hent->h_name, maxhostlen);
-     }
+     getnameinfo(&(addr->sockaddr), CI_SOCKADDR_SIZE,hname,maxhostlen-1,NULL,0,0);
      return (const char *)hname;
 }
 
