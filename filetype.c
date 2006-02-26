@@ -625,10 +625,10 @@ int ci_extend_filetype(struct ci_magics_db *db,request_t *req,char *buf,int len,
 			 unzipped_buf=NULL;
 		    }
 	       }
-	  }
 #else
-	  *iscompressed=CI_ENCODE_UNKNOWN;
+	       *iscompressed=CI_ENCODE_UNKNOWN;
 #endif
+	  }
      }
 
      file_type=ci_filetype(db,checkbuf,len);
