@@ -1,3 +1,4 @@
+echo `date +"%d%m%y"` > VERSION.m4
 aclocal
 autoconf
 autoheader

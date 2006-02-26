@@ -35,8 +35,8 @@ c_icap_DEPENDENCIES=libicapapi.la
 c_icap_CFLAGS= -Iinclude/ -DCONFDIR=\"$(CONFIGDIR)\" -DMODSDIR=\"$(MODULESDIR)\" \
                           -DSERVDIR=\"$(SERVICESDIR)\" -DLOGDIR=\"$(LOGDIR)\"
 
-c_icap_LDADD = -lpthread libicapapi.la @DL_ADD_FLAG@
-c_icap_LDFLAGS = -rdynamic -rpath @libdir@
+c_icap_LDADD = @THREADS_LDADD@ libicapapi.la @DL_ADD_FLAG@
+c_icap_LDFLAGS = -rdynamic -rpath @libdir@ @THREADS_LDFLAGS@
 
 
 
@@ -48,7 +48,8 @@ icap_client_LDFLAGS = -rdynamic -rpath @libdir@
 
 icap_stretch_SOURCES = icap-stretch.c
 icap_stretch_CFLAGS= -Iinclude/
-icap_stretch_LDADD = -lpthread @DL_ADD_FLAG@
+icap_stretch_LDADD = @THREADS_LDADD@ @DL_ADD_FLAG@
+icap_stretch_LDFLAGS= @THREADS_LDFLAGS@
 
 INCS = access.h body.h cfg_param.h c-icap.h ci_threads.h debug.h header.h log.h module.h\
        net_io.h proc_mutex.h proc_threads_queues.h request.h service.h shared_mem.h simple_api.h util.h filetype.h
