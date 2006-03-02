@@ -4,7 +4,51 @@
 #include "debug.h"
 
 
+/* Command line options implementation, function and structures */
 
+void ci_args_usage(char *progname,struct options_entry *options){
+     int i;
+     printf("Usage : \n");
+     printf("%s",progname);
+     for(i=0;options[i].name!=NULL;i++)
+	  printf(" [%s %s]",options[i].name,(options[i].parameter==NULL?"":options[i].parameter));
+     printf("\n\n");
+     for(i=0;options[i].name!=NULL;i++)
+	  printf("%s %s\t\t: %s\n",options[i].name,(options[i].parameter==NULL?"\t":options[i].parameter),
+		 options[i].msg);
+
+}
+
+
+struct options_entry *search_options_table(char *directive,struct options_entry *options){
+     int i;
+     for(i=0;options[i].name!=NULL;i++){
+	  if(0==strcmp(directive,options[i].name))
+	       return &options[i];
+     }
+     return NULL;
+}
+
+
+int ci_args_apply(int argc, char **argv,struct options_entry *options){
+     int i;
+     struct options_entry *entry;
+     for(i=1;i<argc;i++){
+	  if((entry=search_options_table(argv[i],options))==NULL)
+	       return 0;
+	  if(entry->parameter){
+	       if(++i>=argc)
+		    return 0;
+	       (*(entry->action))(entry->name,argv+i,entry->data);
+	  }
+	  else
+	       (*(entry->action))(entry->name,NULL,entry->data);
+     }
+     return 1;
+}
+
+
+/*Various functions for setting parameters from command line or config file */
 
 int ci_cfg_set_int(char *directive,char **argv,void *setdata){
      int val=0;

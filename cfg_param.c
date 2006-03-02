@@ -464,14 +464,6 @@ int parse_file(char *conf_file){
 /****************************************************************/
 /* Command line options implementation, function and structures */
 
-struct options_entry{
-     char *name;
-     char *parameter;
-     void *data;
-     int (*action)(char *name, char **argv,void *setdata);
-     char *msg;
-};
-
 
 /* #ifdef _WIN32 */
 /* #define opt_pre "/"  */
@@ -487,58 +479,18 @@ static struct options_entry options[]={
      {NULL,NULL,NULL,NULL}
 };
 
-struct options_entry *search_options_table(char *directive){
-     int i;
-     for(i=0;options[i].name!=NULL;i++){
-	  if(0==strcmp(directive,options[i].name))
-	       return &options[i];
-     }
-     return NULL;
-}
 
-
-int check_opts(int argc, char **argv){
-     int i;
-     struct options_entry *entry;
-     for(i=1;i<argc;i++){
-	  if((entry=search_options_table(argv[i]))==NULL)
-	       return 0;
-	  if(entry->parameter){
-	       if(++i>=argc)
-		    return 0;
-	       (*(entry->action))(entry->name,argv+i,entry->data);
-	  }
-	  else
-	       (*(entry->action))(entry->name,NULL,entry->data);
-     }
-     return 1;
-}
-
-void usage(char *progname){
-     int i;
-     printf("Usage : ");
-     printf("%s",progname);
-     for(i=0;options[i].name!=NULL;i++)
-	  printf(" [%s %s]",options[i].name,(options[i].parameter==NULL?"":options[i].parameter));
-     printf("\n\n");
-     for(i=0;options[i].name!=NULL;i++)
-	  printf("%s %s\t\t: %s\n",options[i].name,(options[i].parameter==NULL?"\t":options[i].parameter),
-		 options[i].msg);
-
-}
 
 int config(int argc, char **argv){
-
      
-     if(!check_opts(argc,argv)){
-	  ci_debug_printf(1,"Error in command line options");
-	  usage(argv[0]);
+     if(!ci_args_apply(argc,argv,options)){
+	  ci_debug_printf(1,"Error in command line options\n");
+	  ci_args_usage(argv[0],options);
 	  exit(-1);
      }
-	  
 
      if(!parse_file(CONF.cfg_file)){
-	  ci_debug_printf(1,"Error opening/parsing config file");
+	  ci_debug_printf(1,"Error opening/parsing config file\n");
 	  exit(0);
      }
 /*     parse_file("c-icap.conf");*/

@@ -46,9 +46,20 @@ struct conf_entry{
      char *msg;
 };
 
+
 #ifndef CI_BUILD_LIB
 extern struct icap_server_conf CONF;
 #endif
+
+/* Command line options implementation structure */
+struct options_entry{
+     char *name;
+     char *parameter;
+     void *data;
+     int (*action)(char *name, char **argv,void *setdata);
+     char *msg;
+};
+
 
 int register_conf_table(char *name,struct conf_entry *table);
 
@@ -59,5 +70,10 @@ CI_DECLARE_FUNC(int) ci_cfg_enable(char *directive,char **argv,void *setdata);
 CI_DECLARE_FUNC(int) ci_cfg_size_off(char *directive,char **argv,void *setdata);
 CI_DECLARE_FUNC(int) ci_cfg_size_long(char *directive,char **argv,void *setdata);
 CI_DECLARE_FUNC(int) config(int argc, char **argv);
+
+
+CI_DECLARE_FUNC(void) ci_args_usage(char *progname,struct options_entry *options);
+CI_DECLARE_FUNC(int)  ci_args_apply(int argc, char **argv,struct options_entry *options);
+
 
 #endif
