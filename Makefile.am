@@ -12,13 +12,13 @@ SUBDIRS =  . modules services
 lib_LTLIBRARIES=libicapapi.la
 bin_PROGRAMS = c-icap icap-client icap-stretch
 
-UTIL_SOURCES=os/unix/net_io.c os/unix/proc_mutex.c os/unix/shared_mem.c os/unix/utilfunc.c os/unix/proc_utils.c
+UTIL_SOURCES=net_io.c os/unix/net_io.c os/unix/proc_mutex.c os/unix/shared_mem.c os/unix/utilfunc.c os/unix/proc_utils.c
 
 
 
 libicapapi_la_SOURCES=  header.c body.c base64.c simple_api.c \
                           filetype.c debug.c cfg_lib.c  $(UTIL_SOURCES)
-c_icap_SOURCES = aserver.c request.c cfg_param.c net_io.c \
+c_icap_SOURCES = aserver.c request.c cfg_param.c \
                    proc_threads_queues.c http_auth.c \
                    access.c log.c service.c module.c  mpmt_server.c  
 
