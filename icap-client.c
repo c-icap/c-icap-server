@@ -22,17 +22,14 @@
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/ioctl.h>
 #include <stdarg.h>
 #include "request.h"
-
+#include "net_io.h"
+#include "cfg_param.h"
+#include "debug.h"
  
-char *servername;
-char *modulename;
+//char *servername;
+//char *modulename;
 
 int icap_write(int fd, const void *buf,size_t count){
      int bytes=0;
@@ -74,6 +71,11 @@ void dofile(int fd,char *filename,char *savefilename){
      int len;
      f=fopen(filename,"r");
 
+     if(f==NULL){
+	 printf("FATAL no such file :%s\n",filename);
+	 exit(-1);
+     }
+
      str=buf;
 
      printf("Sending :\n");
@@ -107,46 +109,114 @@ void dofile(int fd,char *filename,char *savefilename){
 
 }
 
+char *icap_server="localhost";
+char *input_file=NULL;
+char *output_file=NULL;
+int RESPMOD=1;
+
+static struct options_entry options[]={
+     {"-i","icap_servername",&icap_server,ci_cfg_set_str,"The icap server name"},
+     {"-f","filename",&input_file,ci_cfg_set_str,"Send this file to the icap server.\nDefault is to send an options request"},
+     {"-o","filename",&output_file,ci_cfg_set_str,"Save output to this file.\nDefault is to send to the stdout"},
+     {"-req",NULL,&RESPMOD,ci_cfg_disable,"Send a request modification instead of responce modification"},
+     {"-d","level", &CI_DEBUG_LEVEL,ci_cfg_enable,"Print debug info to stdout"},
+     {NULL,NULL,NULL,NULL}
+};
+
+void log_errors(request_t *req, const char *format,... ){
+     va_list ap;
+     va_start(ap,format);
+     vfprintf(stderr,format,ap);
+     va_end(ap);
+}
+
+void vlog_errors(request_t *req, const char *format, va_list ap){
+    vfprintf(stderr,format,ap);
+}
+
+int ci_host_to_sockaddr_t(char *servername,ci_sockaddr_t *addr){
+    int ret=0;
+    struct addrinfo hints,*res;
+    memset(&hints,0,sizeof(hints));
+    hints.ai_family=PF_INET;
+    hints.ai_socktype=SOCK_STREAM;
+    hints.ai_protocol=0;
+    if((ret=getaddrinfo(servername,NULL,&hints,&res))!=0){
+	ci_debug_printf(1,"Error geting addrinfo return was:%d\n",ret);
+	return 0;
+    }
+    //fill the addr..... and 
+    memcpy(addr,res->ai_addr,CI_SOCKADDR_SIZE);
+    freeaddrinfo(res);
+    return 1;
+}
+
+
+ci_connection_t *ci_connect_to(char *servername,int port){
+    ci_connection_t *connection=malloc(sizeof(ci_connection_t));
+    char hostname[CI_MAXHOSTNAMELEN+1];
+    int addrlen=0;
+    if(!connection)
+	return NULL;
+    connection->fd = socket(AF_INET, SOCK_STREAM, 0);
+    if(connection->fd == -1){
+	ci_debug_printf(1,"Error oppening socket ....\n");
+	free(connection);
+	return NULL;
+    }
+
+    if(!ci_host_to_sockaddr_t(servername,&(connection->srvaddr))){
+	free(connection);
+	return NULL;	
+    }
+    
+    connection->srvaddr.sockaddr.sin_port=htons(port);
+
+    if(connect(connection->fd, (struct sockaddr *)&(connection->srvaddr.sockaddr), CI_SOCKADDR_SIZE)){
+	ci_sockaddr_t_to_host(&(connection->srvaddr), hostname, CI_MAXHOSTNAMELEN);
+	ci_debug_printf(1,"Error connecting to socket (host: %s) .....\n",hostname);
+	free(connection);
+	return NULL;
+    }
+     
+    addrlen=CI_SOCKADDR_SIZE;
+    getsockname(connection->fd,(struct sockaddr *)&(connection->claddr.sockaddr),&addrlen);
+    ci_fill_sockaddr(&(connection->claddr));
+    ci_fill_sockaddr(&(connection->srvaddr));
+
+    return connection;
+}
+
 
 
 
 int main(int argc, char **argv){
-     int fd;
-     struct sockaddr_in addr;
-     struct hostent *hent;
-     char *filename;
+//     int fd;
      int port=1344;
+     ci_connection_t *conn;
 
-     if(argc<3){
-	  printf("Usage:\n%s servername module filename ...\n",argv[0]);
-	  exit(1);
+     CI_DEBUG_LEVEL=1; /*Default debug level is 1*/
+
+     if(!ci_args_apply(argc,argv,options)){
+	 ci_args_usage(argv[0],options);
+	 exit(-1);
      }
 
-     servername=argv[1];
-     modulename=argv[2];
-     filename=argv[3];
-     
-     fd = socket(AF_INET, SOCK_STREAM, 0);
-     if(fd == -1){
-	  printf("Error oppening socket ....\n");
-	  exit( -1);
-     }
-     
-     hent = gethostbyname(servername);
-     if(hent == NULL)
-	  addr.sin_addr.s_addr = inet_addr(servername);
-     else
-	  memcpy(&addr.sin_addr, hent->h_addr, hent->h_length);
-     addr.sin_family = AF_INET;
-     addr.sin_port = htons(port);
-     if(connect(fd, (struct sockaddr *)&addr, sizeof(addr))){
-	  printf("Error connecting to socket .....\n");
-	  exit(-1);
+#if ! defined(_WIN32)
+     __log_error=(void(*)(void *, const char *,... ))log_errors; /*set c-icap library log  function*/
+#else
+     __vlog_error=vlog_errors; /*set c-icap library  log function for win32.....*/
+#endif
+
+
+     if(!(conn=ci_connect_to(icap_server,port))){
+	 ci_debug_printf(1,"Failed to connect to icap server.....\n");
+	 exit(-1);
      }
 
 
-     dofile(fd,filename,NULL);
+     dofile(conn->fd,input_file,NULL);
 
-     close(fd);      
+     close(conn->fd);      
      return 0;
 }
