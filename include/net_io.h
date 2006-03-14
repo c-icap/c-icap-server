@@ -75,7 +75,7 @@ typedef struct ci_connection{
 
 
 
-CI_DECLARE_FUNC(void) ci_fill_sockaddr(ci_sockaddr_t *s_addr);
+CI_DECLARE_FUNC(void) ci_fill_sockaddr(ci_sockaddr_t *addr);
 CI_DECLARE_FUNC(int) ci_inet_aton(int af,const char *cp, void *inp);
 CI_DECLARE_FUNC(const char *) ci_inet_ntoa(int af,const void *src,char *dst,int cnt);
 

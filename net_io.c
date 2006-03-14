@@ -25,26 +25,26 @@
 
 
 #ifdef HAVE_IPV6
-void ci_fill_sockaddr(ci_sockaddr_t *s_addr){     
-     s_addr->ci_sin_family=s_addr->sockaddr.ss_family; 
-     if(s_addr->ci_sin_family==AF_INET6){
-	  s_addr->ci_sin_port= ((struct sockaddr_in6 *)&(s_addr->sockaddr))->sin6_port;
-	  s_addr->ci_sin_addr=&(((struct sockaddr_in6 *)&(s_addr->sockaddr))->sin6_addr);
-	  s_addr->ci_inaddr_len=sizeof(struct in6_addr);
+void ci_fill_sockaddr(ci_sockaddr_t *addr){     
+     addr->ci_sin_family=addr->sockaddr.ss_family; 
+     if(addr->ci_sin_family==AF_INET6){
+	  addr->ci_sin_port= ((struct sockaddr_in6 *)&(addr->sockaddr))->sin6_port;
+	  addr->ci_sin_addr=&(((struct sockaddr_in6 *)&(addr->sockaddr))->sin6_addr);
+	  addr->ci_inaddr_len=sizeof(struct in6_addr);
      }
      else{
-	  s_addr->ci_sin_port= ((struct sockaddr_in *)&(s_addr->sockaddr))->sin_port;
-	  s_addr->ci_sin_addr=&(((struct sockaddr_in *)&(s_addr->sockaddr))->sin_addr);
-	  s_addr->ci_inaddr_len=sizeof(struct in_addr);
+	  addr->ci_sin_port= ((struct sockaddr_in *)&(addr->sockaddr))->sin_port;
+	  addr->ci_sin_addr=&(((struct sockaddr_in *)&(addr->sockaddr))->sin_addr);
+	  addr->ci_inaddr_len=sizeof(struct in_addr);
      }
 }
 
 #else
-void ci_fill_sockaddr(ci_sockaddr_t *s_addr){     
-     s_addr->ci_sin_family=s_addr->sockaddr.sin_family; 
-     s_addr->ci_sin_port= s_addr->sockaddr.sin_port;
-     s_addr->ci_sin_addr=&(s_addr->sockaddr.sin_addr);
-     s_addr->ci_inaddr_len=sizeof(struct in_addr);
+void ci_fill_sockaddr(ci_sockaddr_t *addr){     
+     addr->ci_sin_family=addr->sockaddr.sin_family; 
+     addr->ci_sin_port= addr->sockaddr.sin_port;
+     addr->ci_sin_addr=&(addr->sockaddr.sin_addr);
+     addr->ci_inaddr_len=sizeof(struct in_addr);
 }
 
 #endif
@@ -54,11 +54,6 @@ const char *ci_sockaddr_t_to_ip(ci_sockaddr_t *addr, char *ip,int maxlen){
      return ci_inet_ntoa(addr->ci_sin_family,addr->ci_sin_addr,ip,maxlen);
 }
 
-
-const char *ci_sockaddr_t_to_host(ci_sockaddr_t *addr, char *hname, int maxhostlen){
-     getnameinfo(&(addr->sockaddr), CI_SOCKADDR_SIZE,hname,maxhostlen-1,NULL,0,0);
-     return (const char *)hname;
-}
 
 /*
   Needed check in configure.in for inet_pton and inet_ntop ?

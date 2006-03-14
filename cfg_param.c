@@ -80,6 +80,9 @@ int cfg_load_magicfile(char *directive,char **argv,void *setdata);
 int cfg_load_service(char *directive,char **argv,void *setdata);
 int cfg_load_module(char *directive,char **argv,void *setdata);
 int cfg_set_logger(char *directive,char **argv,void *setdata);
+int cfg_set_debug_level(char *directive,char **argv,void *setdata);
+int cfg_set_debug_stdout(char *directive,char **argv,void *setdata);
+int cfg_set_body_maxmem(char *directive,char **argv,void *setdata);
 int cfg_set_tmp_dir(char *directive,char **argv,void *setdata); 
 int cfg_set_acl_controllers(char *directive,char **argv,void *setdata); 
 int cfg_set_auth_method(char *directive,char **argv,void *setdata); 
@@ -116,13 +119,13 @@ static struct conf_entry conf_variables[]={
      {"Logger",&default_logger,cfg_set_logger,NULL},
      {"ServerLog",&SERVER_LOG_FILE,ci_cfg_set_str,NULL},
      {"AccessLog",&ACCESS_LOG_FILE,ci_cfg_set_str,NULL},
-     {"DebugLevel",&CI_DEBUG_LEVEL,ci_cfg_set_int,NULL}, /*Set library's debug level*/
+     {"DebugLevel",NULL,cfg_set_debug_level,NULL}, /*Set library's debug level*/
      {"ServicesDir",&CONF.SERVICES_DIR,ci_cfg_set_str,NULL},
      {"ModulesDir",&CONF.MODULES_DIR,ci_cfg_set_str,NULL},
      {"Service",NULL,cfg_load_service,NULL},
      {"Module",NULL,cfg_load_module,NULL},
      {"TmpDir",NULL,cfg_set_tmp_dir,NULL},
-     {"MaxMemObject",&CI_BODY_MAX_MEM,ci_cfg_size_long,NULL}, /*Set library's body max mem*/
+     {"MaxMemObject",NULL,cfg_set_body_maxmem,NULL}, /*Set library's body max mem*/
      {"AclControllers",NULL,cfg_set_acl_controllers,NULL},
      {"acl",NULL,cfg_acl_add,NULL},
      {"icap_access",NULL,cfg_acl_access,NULL},
@@ -190,6 +193,21 @@ struct conf_entry *search_variables(char *table,char *varname){
  
 /************************************************************************/
 /*  Set variables functions                                             */
+/* 
+   The following tree functions refered to non constant variables so
+   the compilers in Win32 have problem to appeared in static arrays
+*/
+int cfg_set_debug_level(char *directive,char **argv,void *setdata){
+    return ci_cfg_set_int(directive,argv,&CI_DEBUG_LEVEL);
+}
+
+int cfg_set_debug_stdout(char *directive,char **argv,void *setdata){
+    return ci_cfg_enable(directive,argv,&CI_DEBUG_STDOUT);
+}
+
+int cfg_set_body_maxmem(char *directive,char **argv,void *setdata){
+    return ci_cfg_size_long(directive,argv,&CI_BODY_MAX_MEM);
+}
 
 int cfg_load_service(char *directive,char **argv,void *setdata){
      if(argv==NULL || argv[0]==NULL || argv[1]==NULL){
@@ -474,8 +492,8 @@ int parse_file(char *conf_file){
 static struct options_entry options[]={
      {opt_pre"f","filename",&CONF.cfg_file,ci_cfg_set_str,"Specify the configuration file"},
      {opt_pre"N",NULL,&DAEMON_MODE,ci_cfg_disable,"Do not run as daemon"},
-     {opt_pre"d","level",&CI_DEBUG_LEVEL,ci_cfg_set_int,"Specify the debug level"},
-     {opt_pre"D",NULL, &CI_DEBUG_STDOUT,ci_cfg_enable,"Print debug info to stdout"},
+     {opt_pre"d","level",NULL,cfg_set_debug_level,"Specify the debug level"},
+     {opt_pre"D",NULL, NULL,cfg_set_debug_stdout,"Print debug info to stdout"},
      {NULL,NULL,NULL,NULL}
 };
 

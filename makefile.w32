@@ -1,6 +1,3 @@
-
-
-
 !include <win32.mak>
 !include "c_icap.mak"
 
@@ -13,7 +10,6 @@ MOD_DLL_ENTRY=../../os/win32/dll_entry.obj
 
 c_icap_OBJS = request.obj proc_threads_queues.obj  aserver.obj winnt_server.obj  module.obj service.obj log.obj access.obj cfg_param.obj http_auth.obj
 
-
 all: c_icap.Dll c-icap.exe sub_modules
 
 .c.obj:
@@ -25,7 +21,6 @@ c_icap.Dll:
 
 c-icap.exe: $(c_icap_OBJS) 
 	$(link) $(ldebug) $(conlflags) $(conlibsdll) user32.lib c_icap.lib $** /OUT:c-icap.exe 
-
 
 # The following not needed any more.
 #$(LIBOS):    
@@ -45,5 +40,7 @@ sub_modules:
 clean:
 	del *.obj *.exe *.lib *.dll os\win32\*.obj os\win32\*.lib
 	@for %%d in ($(MODULES)) do (cd %%d && @$(MAKE) -f makefile.w32 clean & cd ..\..\ )
+
+
 
 	

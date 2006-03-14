@@ -1,4 +1,3 @@
-
 !include <win32.mak>
 
 all: srv_echo.Dll
@@ -11,3 +10,4 @@ srv_echo.Dll: srv_echo.obj
 
 clean:
 	del *.obj *.exe *.lib
+

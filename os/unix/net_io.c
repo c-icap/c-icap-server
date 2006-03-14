@@ -27,6 +27,12 @@
 #include "net_io.h"
 
 
+const char *ci_sockaddr_t_to_host(ci_sockaddr_t *addr, char *hname, int maxhostlen){
+     getnameinfo(&(addr->sockaddr), CI_SOCKADDR_SIZE,hname,maxhostlen-1,NULL,0,0);
+     return (const char *)hname;
+}
+
+
 #ifdef HAVE_IPV6
 int icap_init_server_ipv6(int port,int *protocol_family,int secs_to_linger){
      int fd;

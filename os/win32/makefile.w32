@@ -1,22 +1,26 @@
-
 !include <win32.mak>
 
-
 UTILS_OBJS=shared_mem.obj proc_mutex.obj net_io.obj threads.obj utilfunc.obj
-
 
 all: dll_entry.obj utils.lib
 
 .c.obj:
+
 	$(cc) -I..\..\include -I..\..\ $(cdebug) $(cflags) $(cvarsdll) -I. -DCI_BUILD_LIB -DUNICODE $*.c
+
 # Previous line is the correct if we include utils.lib in c_icap.dll
+
 #	$(cc) -I..\..\include -I..\..\ $(cdebug) $(cflags) $(cvarsmt) -I. -DUNICODE $*.c
 
 
+
 utils.lib: $(UTILS_OBJS)
+
 		echo "Do not make the lib so nothing to do....."
+
 #		$(link) /LIB  $(linkdebug) -out:$*.lib $** $(EXTRA_LIBS)
 
 
 clean:
+
 	del *.obj *.exe *.lib

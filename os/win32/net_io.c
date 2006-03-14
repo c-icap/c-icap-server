@@ -27,6 +27,16 @@
 int icap_socket_opts(ci_socket fd,int secs_to_linger);
 
 
+const char *ci_sockaddr_t_to_host(ci_sockaddr_t *addr, char *hname, int maxhostlen){
+   /*
+    getnameinfo(&(addr->sockaddr), CI_SOCKADDR_SIZE,hname,maxhostlen-1,NULL,0,0);
+    return (const char *)hname;
+     */
+    return NULL;
+}
+
+
+
 int windows_init(){
      WORD wVersionRequested;
      WSADATA wsaData;
@@ -51,7 +61,7 @@ int windows_init(){
 ci_socket icap_init_server(int port,int *protocol_family,int secs_to_linger){
      ci_socket s;
      int er;
-     ci_sockaddr_t addr;
+     struct sockaddr_in addr;
 
      if(!windows_init()){
 	  ci_debug_printf(1,"Error initialize windows sockets...\n");

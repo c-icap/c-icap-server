@@ -1,4 +1,3 @@
-
 !include <win32.mak>
 !include "c_icap.mak"
 
@@ -13,4 +12,6 @@ LIBUTIL=os\win32\shared_mem.obj os\win32\proc_mutex.obj os\win32\net_io.obj os\w
 
 c_icap.Dll: $(LIBICAPOBJS) $(LIBUTIL) $(DLL_ENTRY)
 	$(link) $(ldebug) $(dlllflags) -def:c_icap.def -out:$*.Dll $**  Ws2_32.lib kernel32.lib $(DLL_ENTRY)  $(EXTRA_LIBS)
+
+
 
