@@ -297,7 +297,7 @@ char *replace_header(ci_header_list_t *h, char *header, char *newval){
 }
 
 
-void preparetosend(ci_header_list_t *h){/*Put the \r\n sequence at the end of each header before sending...... */
+void ci_headers_pack(ci_header_list_t *h){/*Put the \r\n sequence at the end of each header before sending...... */
      int i=0,len=0;
      for(i=0;i<h->used;i++){
 	  len=strlen(h->headers[i]);
@@ -320,6 +320,55 @@ void preparetosend(ci_header_list_t *h){/*Put the \r\n sequence at the end of ea
 	  h->bufused++;
      }
 }
+
+
+int ci_headers_unpack(ci_header_list_t *h){  
+     int len;
+     char **newspace;
+     char *shead,*ebuf, *str;
+     
+     if(h->bufused<2) /*????????????*/
+	  return EC_400;
+
+     ebuf=h->buf+h->bufused-2;
+     /* ebuf now must indicate the last \r\n so: */
+     if(*ebuf!='\r' && *ebuf!='\n'){ /*Some sites return (this is bug ) a simple '\n' as end of header ..... */
+	  ci_debug_printf(3,"Parse error. The end chars are %c %c (%d %d) not the \\r \n",
+		       *ebuf,*(ebuf+1),(unsigned int)*ebuf,(unsigned int)*(ebuf+1));
+	  return EC_400; /*Bad request ....*/
+     }
+     *ebuf='\0'; 
+     shead=h->buf;
+     
+     h->headers[0]=h->buf;
+     h->used=1;
+     
+     for(str=h->buf;str<ebuf;str++){ /*Construct index of headers*/
+	  if( (*str=='\r' && *(str+1)=='\n') || (*str== '\n') ){ /*   handle the case that headers 
+                                                                      seperated with a '\n' only */
+	       *str='\0';
+	       if(h->size<=h->used){  /*  Resize the headers index space ........*/
+		    len=h->size+HEADERSTARTSIZE;
+		    newspace=realloc(h->headers,len*sizeof(char *));
+		    if(!newspace){
+			 ci_debug_printf(1,"Server Error:Error allocation memory \n");
+			 return EC_500;
+		    }
+		    h->headers=newspace;
+	       }
+	       str++;
+	       if(*str=='\n') str++;         /*   handle the case that headers seperated with a '\n' only */
+	       h->headers[h->used]=str;
+	       h->used++;
+	  }
+	  else if (*str=='\0') /*Then we have a problem. This char is important for end of string mark......*/
+	       *str=' ';
+	  
+     }/*OK headers index construction ......*/
+
+     return EC_100;
+}
+
 
 /********************************************************************************************/
 /*             Entities List                                                                */
@@ -408,5 +457,4 @@ int sizeofencaps(ci_encaps_entity_t *e){
   }
   return 0;
 }
-
 

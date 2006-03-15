@@ -85,8 +85,8 @@ CI_DECLARE_FUNC(void) destroy_encaps_entity(ci_encaps_entity_t *e);
 CI_DECLARE_FUNC(int) get_encaps_type(char *buf,int *val,char **endpoint);
 CI_DECLARE_FUNC(int)  get_method(char *buf);
 
-CI_DECLARE_FUNC(int) sizeofheader(ci_header_list_t *h);
-CI_DECLARE_FUNC(int) sizeofencaps(ci_encaps_entity_t *e);
-CI_DECLARE_FUNC(void) preparetosend(ci_header_list_t *h);
-
+CI_DECLARE_FUNC(int)  sizeofheader(ci_header_list_t *h);
+CI_DECLARE_FUNC(int)  sizeofencaps(ci_encaps_entity_t *e);
+CI_DECLARE_FUNC(void) ci_headers_pack(ci_header_list_t *h);
+CI_DECLARE_FUNC(int)  ci_headers_unpack(ci_header_list_t *h);
 #endif

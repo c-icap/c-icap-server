@@ -94,7 +94,7 @@ static void exit_normaly(){
      while((srv=threads_list[i])!=NULL){
 	  if(srv->current_req){
 	       close_connection(srv->current_req->connection);
-	       destroy_request(srv->current_req);
+	       ci_request_destroy(srv->current_req);
 	  }
 	  free(srv);
 	  threads_list[i]=NULL;
@@ -285,7 +285,7 @@ int thread_main(server_decl_t *srv){
 	  do{
 	       if((request_status=process_request(srv->current_req))<0){
 		    ci_debug_printf(5,"Process request timeout or interupted....\n");
-		    reset_request(srv->current_req);
+		    ci_request_reset(srv->current_req);
 		    break;//
 	       }
 	       srv->served_requests++;
@@ -304,7 +304,7 @@ int thread_main(server_decl_t *srv){
 	      
                ci_debug_printf(8,"Keep-alive:%d\n",srv->current_req->keepalive); 
 	       if(srv->current_req->keepalive && check_for_keepalive_data(srv->current_req->connection->fd)){
-		    reset_request(srv->current_req);
+		    ci_request_reset(srv->current_req);
 		    ci_debug_printf(8,"Server %d going to serve new request from client(keep-alive) \n",
 				 srv->srv_id);
 	       }
@@ -320,7 +320,7 @@ int thread_main(server_decl_t *srv){
 	  }
 	  if(srv->served_requests_no_reallocation > MAX_REQUESTS_BEFORE_REALLOCATE_MEM){
 	       ci_debug_printf(5,"Max requests reached, reallocate memory and buffers .....\n");
-	       destroy_request(srv->current_req);
+	       ci_request_destroy(srv->current_req);
 	       srv->current_req=NULL;
 	       srv->served_requests_no_reallocation=0;
 	  }

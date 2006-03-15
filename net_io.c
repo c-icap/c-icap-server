@@ -49,6 +49,24 @@ void ci_fill_sockaddr(ci_sockaddr_t *addr){
 
 #endif
 
+#ifdef HAVE_IPV6
+
+void ci_sockaddr_set_port(ci_sockaddr_t *addr,int port){
+     if (addr->sockaddr.ss_family==AF_INET) 
+	  ((struct sockaddr_in *)&(addr->sockaddr))->sin_port=htons(port); 
+     else 
+	  ((struct sockaddr_in6 *)&(addr->sockaddr))->sin6_port=htons(port);
+}
+
+#else
+
+void ci_sockaddr_set_port(ci_sockaddr_t *addr,int port){
+     addr->sockaddr.sin_port=htons(port);
+     /*(addr).ci_sin_port=htons(port);*/;
+}
+#endif
+
+
 
 const char *ci_sockaddr_t_to_ip(ci_sockaddr_t *addr, char *ip,int maxlen){
      return ci_inet_ntoa(addr->ci_sin_family,addr->ci_sin_addr,ip,maxlen);

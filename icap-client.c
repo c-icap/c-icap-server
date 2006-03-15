@@ -31,85 +31,135 @@
 //char *servername;
 //char *modulename;
 
-int icap_write(int fd, const void *buf,size_t count){
-     int bytes=0;
-     int remains=count;
-     char *b= (char *)buf;
-     
-     while(remains>0){ //write until count bytes written
-          do{
-               bytes=write(fd,b,remains);
-          }while(bytes==-1 && errno==EINTR);
-	  
-          if(bytes<0)
-               return bytes;
-          b=b+bytes;//points to remaining bytes......
-          remains=remains-bytes;
-     }//Ok......
-     return count;
+int TIMEOUT=300;
+
+
+
+
+int create_request(request_t *req,char *servername,char *service,int reqtype){
+    char buf[256];    
+
+    if(reqtype!=ICAP_OPTIONS && reqtype!=ICAP_REQMOD && reqtype!=ICAP_RESPMOD)
+	return CI_ERROR;
+
+    req->type=reqtype;
+    snprintf(buf,255,"%s icap://%s/%s ICAP/1.0",
+	     ci_method_string(reqtype),servername,service);
+    buf[255]='\0';
+    add_header(req->head,buf);
+    snprintf(buf,255,"Host: %s",servername);
+    buf[255]='\0';
+    add_header(req->head,buf);
+    add_header(req->head,"User-Agent: C-ICAP-Client-Library/0.1");
+    return CI_OK;
+}
+
+int ci_get_request_options(request_t *req,ci_header_list_t *h){
+    char *pstr;
+
+    if((pstr=get_header_value(h, "Preview"))!=NULL){
+	req->preview=strtol(pstr,NULL,10);
+	if(req->preview<0)
+	    req->preview=0;
+    }
+    else
+	req->preview=0;
+
+    
+    req->allow204=0;
+    if((pstr=get_header_value(h, "Allow"))!=NULL){
+	if(strtol(pstr,NULL,10) == 204)
+	    req->allow204=1;
+    }
+
+    req->keepalive=1;
+    if((pstr=get_header_value(h, "Connection"))!=NULL && strncmp(pstr,"close",5)==0){
+	req->keepalive=0;
+    }
+
+    /*Moreover we are interested for the followings*/
+    if((pstr=get_header_value(h, "Transfer-Preview"))!=NULL){
+	/*Not implemented yet*/
+    }
+
+    if((pstr=get_header_value(h, "Transfer-Ignore"))!=NULL){
+	/*Not implemented yet*/
+    }
+	
+    if((pstr=get_header_value(h, "Transfer-Complete"))!=NULL){
+	/*Not implemented yet*/
+    }
+
+    /*
+      The headers Max-Connections and  Options-TTL are not needed in this client 
+      but if this functions moves to a general client api must be implemented
+    */
+    
+    return CI_OK;
 }
 
 
-int readline(char *buf,int max,FILE *f){
-     char c;
-     int i=0;
-     while((c=getc(f))!=EOF){
-	  buf[i]=c;
-	  i++;
-	  if(c=='\n'|| i>=max)
-	       return i;
+
+int send_request(request_t *req){
+    char *buf;
+    int remains,ret;
+
+    ci_headers_pack(req->head);
+    remains=sizeofheader(req->head);
+    buf=req->head->buf;
+    while(remains){
+	ret=ci_write(req->connection->fd,buf,remains,0);
+	buf+=ret;
+	remains-=ret;
+    }
+    return 1;
+}
+
+int get_responce(request_t *req){
+    char buf[512];
+    int i,len;
+    printf("\n\n---RESPONCE----\n");
+    ci_read_icap_header(req,req->responce_head,0);
+    ci_headers_unpack(req->responce_head);
+    ci_get_request_options(req,req->responce_head);
+
+    printf("OPTIONS:\n");
+    printf("\tAllow 204:%s\n\tPreview:%d\n\tKeep alive:%s\n",
+	   (req->allow204?"Yes":"No"),
+	   req->preview,
+	   (req->keepalive?"Yes":"No")
+	   );
+
+    printf("HEADERS:\n");
+    
+    for(i=0;i<req->responce_head->used;i++){
+	printf("\t%s\n",req->responce_head->headers[i]);
+    }
+    printf("BODY:\n");
+     while((len=ci_read(req->connection->fd,buf,512,0))>0){
+	 buf[len]='\0';
+	 printf("\t%s",buf);
      }
-     return 0;
+     return 1;
 }
 
 
-
-void dofile(int fd,char *filename,char *savefilename){
-     char buf[1024];
-     char *str;
-     FILE *f;
-     int len;
-     f=fopen(filename,"r");
-
-     if(f==NULL){
-	 printf("FATAL no such file :%s\n",filename);
-	 exit(-1);
-     }
-
-     str=buf;
-
-     printf("Sending :\n");
-     while((len=readline(str,511,f))>0){
-	  if(len>1){
-	       str[len-1]='\r';
-	       str[len]='\n';
-	       str[len+1]='\0';
-	       len++;
-	  }
-	  else{
-	       strcpy(str,"\r\n");
-	       len=2;
-	  }
-	  printf("\t %s ",str);
-	  str+=len;
-     }
-     strcpy(str,"\r\n");
-     str+=2;
-     
-     fclose(f);
-     len=str-buf;
-     icap_write(fd,buf,len);
-
-     printf("\n\nRESPONCE: ");
-     while((len=read(fd,buf,512))>0){
-	  buf[len]='\0';
-//	  printf("(BYTES=%d)\n%s",len,buf);
-	  printf("%s",buf);
-     }
-
+int get_options(request_t *req,char *icap_server,char *service){
+    
+    if(CI_OK!=create_request(req,icap_server,service,ICAP_OPTIONS))
+	return CI_ERROR;
+    send_request(req);
+    ci_read_icap_header(req,req->responce_head,0);
+    ci_headers_unpack(req->responce_head);
+    ci_get_request_options(req,req->responce_head);
+    
+    return CI_OK;
 }
+
+
 
 char *icap_server="localhost";
+char *service="echo";
 char *input_file=NULL;
 char *output_file=NULL;
 int RESPMOD=1;
@@ -134,11 +184,11 @@ void vlog_errors(request_t *req, const char *format, va_list ap){
     vfprintf(stderr,format,ap);
 }
 
-int ci_host_to_sockaddr_t(char *servername,ci_sockaddr_t *addr){
+int ci_host_to_sockaddr_t(char *servername,ci_sockaddr_t *addr,int proto){
     int ret=0;
     struct addrinfo hints,*res;
     memset(&hints,0,sizeof(hints));
-    hints.ai_family=PF_INET;
+    hints.ai_family=proto;
     hints.ai_socktype=SOCK_STREAM;
     hints.ai_protocol=0;
     if((ret=getaddrinfo(servername,NULL,&hints,&res))!=0){
@@ -146,31 +196,30 @@ int ci_host_to_sockaddr_t(char *servername,ci_sockaddr_t *addr){
 	return 0;
     }
     //fill the addr..... and 
-    memcpy(addr,res->ai_addr,CI_SOCKADDR_SIZE);
+    memcpy(&(addr->sockaddr),res->ai_addr,CI_SOCKADDR_SIZE);
     freeaddrinfo(res);
     return 1;
 }
 
 
-ci_connection_t *ci_connect_to(char *servername,int port){
+ci_connection_t *ci_connect_to(char *servername,int port,int proto){
     ci_connection_t *connection=malloc(sizeof(ci_connection_t));
     char hostname[CI_MAXHOSTNAMELEN+1];
     int addrlen=0;
     if(!connection)
 	return NULL;
-    connection->fd = socket(AF_INET, SOCK_STREAM, 0);
+    connection->fd = socket(proto, SOCK_STREAM, 0);
     if(connection->fd == -1){
 	ci_debug_printf(1,"Error oppening socket ....\n");
 	free(connection);
 	return NULL;
     }
 
-    if(!ci_host_to_sockaddr_t(servername,&(connection->srvaddr))){
+    if(!ci_host_to_sockaddr_t(servername,&(connection->srvaddr),proto)){
 	free(connection);
 	return NULL;	
     }
-    
-    connection->srvaddr.sockaddr.sin_port=htons(port);
+    ci_sockaddr_set_port(&(connection->srvaddr),port);
 
     if(connect(connection->fd, (struct sockaddr *)&(connection->srvaddr.sockaddr), CI_SOCKADDR_SIZE)){
 	ci_sockaddr_t_to_host(&(connection->srvaddr), hostname, CI_MAXHOSTNAMELEN);
@@ -183,17 +232,34 @@ ci_connection_t *ci_connect_to(char *servername,int port){
     getsockname(connection->fd,(struct sockaddr *)&(connection->claddr.sockaddr),&addrlen);
     ci_fill_sockaddr(&(connection->claddr));
     ci_fill_sockaddr(&(connection->srvaddr));
-
+    
+    ci_netio_init(connection->fd);
     return connection;
 }
 
 
 
+int do_send_file_request(request_t *req,char *icap_server,char *service,char *file){
+
+    if(CI_OK!=create_request(req,icap_server,service,ICAP_RESPMOD))
+	return CI_ERROR;
+    
+    send_request(req);
+    ci_read_icap_header(req,req->responce_head,0/*timeout 0 = for ever*/);
+    ci_headers_unpack(req->responce_head);
+    ci_get_request_options(req,req->responce_head);
+    
+    return CI_OK;
+    
+}
+
+
 
 int main(int argc, char **argv){
 //     int fd;
-     int port=1344;
+     int i,port=1344;
      ci_connection_t *conn;
+     request_t *req;
 
      CI_DEBUG_LEVEL=1; /*Default debug level is 1*/
 
@@ -209,14 +275,32 @@ int main(int argc, char **argv){
 #endif
 
 
-     if(!(conn=ci_connect_to(icap_server,port))){
+     if(!(conn=ci_connect_to(icap_server,port,AF_INET))){
 	 ci_debug_printf(1,"Failed to connect to icap server.....\n");
 	 exit(-1);
      }
 
+     req=ci_request_alloc(conn);
 
-     dofile(conn->fd,input_file,NULL);
+     get_options(req,icap_server,service);
 
+
+     if(!input_file){
+	 printf("OPTIONS:\n");
+	 printf("\tAllow 204:%s\n\tPreview:%d\n\tKeep alive:%s\n",
+		(req->allow204?"Yes":"No"),
+		req->preview,
+		(req->keepalive?"Yes":"No")
+	     );
+	 printf("HEADERS:\n");
+	 for(i=0;i<req->responce_head->used;i++){
+	     printf("\t%s\n",req->responce_head->headers[i]);
+	 }
+     }
+     else{
+	 ci_request_reset(req);
+	 do_send_file_request(req,icap_server,service,input_file);
+     }
      close(conn->fd);      
      return 0;
 }

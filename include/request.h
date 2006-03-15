@@ -32,6 +32,7 @@ enum RESPONCE_STATUS {SEND_NOTHING=0, SEND_RESPHEAD, SEND_HEAD1, SEND_HEAD2, SEN
 
 /*enum BODY_RESPONCE_STATUS{ CHUNK_DEF=1,CHUNK_BODY,CHUNK_END};*/
 
+#define READSIZE 256
 
 #define CI_OK       1
 #define CI_ERROR   -1
@@ -40,11 +41,11 @@ enum RESPONCE_STATUS {SEND_NOTHING=0, SEND_RESPHEAD, SEND_HEAD1, SEND_HEAD2, SEN
 #define EXTRA_CHUNK_SIZE 30
 #define MAX_USERNAME_LEN 255
 
-struct buf{
+struct ci_buf{
      char *buf;
      int size;
      int used;
-} buf_t;
+} ci_buf_t;
 
 
 struct service_module;
@@ -61,7 +62,7 @@ typedef struct request{
      int keepalive;
      int allow204;
      int hasbody;
-     struct buf preview_data;
+     struct ci_buf preview_data;
      struct service_module *current_service_mod;
      ci_header_list_t *head;
      ci_header_list_t *responce_head;
@@ -81,12 +82,6 @@ typedef struct request{
      unsigned int chunk_bytes_read;
      unsigned int write_to_module_pending;
 
-//     int next_block_len;
-//     int getdata_status;     
-//     char chunk_defs_buf[10];
-//     char *pstr_chunk_defs;
-//     char remain_chunk_defs_bytes;
-//     int body_responce_status;
      int responce_status;
      char *pstrblock_responce;
      int remain_send_block_bytes;
@@ -95,16 +90,29 @@ typedef struct request{
 #define lock_data(req) (req->data_locked=1)
 #define unlock_data(req) (req->data_locked=0)
 
-
+/*This functions needed in server (mpmt_server.c ) */
 request_t *newrequest(ci_connection_t *connection);
 void destroy_request(request_t *req);
 int recycle_request(request_t *req,ci_connection_t *connection);
 void reset_request(request_t *req);
 int process_request(request_t *);
 
-/*Tool functions .........*/
-int move_entity_to_trash(request_t *req,int pos);
+/*********************************************/
+/*Buffer functions (I do not know if they must included in ci library....) */
+CI_DECLARE_FUNC(void)  ci_buf_init(struct ci_buf *buf);
+CI_DECLARE_FUNC(void)  ci_buf_reset(struct ci_buf *buf);
+CI_DECLARE_FUNC(int)   ci_buf_mem_alloc(struct ci_buf *buf,int size);
+CI_DECLARE_FUNC(void)  ci_buf_mem_free(struct ci_buf *buf);
+CI_DECLARE_FUNC(int)   ci_buf_write(struct ci_buf *buf,char *data,int len);
+CI_DECLARE_FUNC(int)   ci_buf_reset_size(struct ci_buf *buf,int req_size);
+
 
 /***************/
+/*API functions ......*/
+CI_DECLARE_FUNC(request_t *)  ci_request_alloc(ci_connection_t *connection);
+CI_DECLARE_FUNC(void)         ci_request_reset(request_t *req);
+CI_DECLARE_FUNC(void)         ci_request_destroy(request_t *req);
+CI_DECLARE_FUNC(int)          ci_request_delete_entity(request_t *req,int pos);
+CI_DECLARE_FUNC(int)          ci_read_icap_header(request_t *req,ci_header_list_t *h,int timeout);
 
 #endif

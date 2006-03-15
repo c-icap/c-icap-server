@@ -34,8 +34,7 @@
 #include "cfg_param.h"
 
 #define STARTBUF 1024
-#define STEPBUF 1024
-#define READSIZE 256
+
 
 extern int TIMEOUT;
 
@@ -45,78 +44,9 @@ extern int TIMEOUT;
 #define wait_for_outgoing_data(fd) ci_wait_for_data(fd,TIMEOUT,wait_for_write)
 
 
-
-/* struct buf functions*/
-void buf_init(struct buf *buf){
-     buf->buf=NULL;
-     buf->size=0;
-     buf->used=0;
-}
-
-void buf_reset(struct buf *buf){
-     buf->used=0;
-}
-
-int buf_mem_alloc(struct buf *buf,int size){
-     if(!(buf->buf=malloc(size*sizeof(char))))
-	  return 0;
-     buf->size=size;
-     buf->used=0;
-     return size;
-}
-
-void buf_mem_free(struct buf *buf){
-     free(buf->buf);
-     buf->buf=NULL;
-     buf->size=0;
-     buf->used=0;
-}
-
-
-int buf_write(struct buf *buf,char *data,int len){
-     if(len > (buf->size-buf->used))
-	  return -1;
-     memcpy(buf->buf,data,len);
-     buf->used+=len;
-     return len;
-}
-
-int buf_reset_size(struct buf *buf,int req_size){
-     if(buf->size > req_size)
-	  return req_size;
-     if(buf->buf)
-	  free(buf->buf);
-     return buf_mem_alloc(buf,req_size);
-}
-
 /**/
 
 void send_headers_block(request_t *req,ci_header_list_t *responce_head);
-
-int move_entity_to_trash(request_t *req,int pos){
-     int type=0;
-     if(!req->entities[pos])
-	  return 0;
-     
-     type=req->entities[pos]->type;
-     if(type> ICAP_OPT_BODY || type<0){ //?????????
-	  destroy_encaps_entity(req->entities[pos]);
-	  req->entities[pos]=NULL;
-	  return 0;
-     }
-     
-     if(req->trash_entities[type]!=NULL){
-	  ci_debug_printf(3,"ERROR!!!!! There is an entity of type %d to trash..... ", type);
-	  destroy_encaps_entity(req->trash_entities[type]);
-     }
-     req->trash_entities[type]=req->entities[pos];     
-     if(req->trash_entities[type]->type==ICAP_REQ_HDR || req->trash_entities[type]->type==ICAP_RES_HDR){
-	  if(req->trash_entities[type]->entity)
-	       reset_header(req->trash_entities[type]->entity);
-     }
-     req->entities[pos]=NULL;
-     return 1;
-}
 
 
 ci_encaps_entity_t *alloc_an_entity(request_t *req,int type,int val){
@@ -144,225 +74,37 @@ ci_encaps_entity_t *alloc_an_entity(request_t *req,int type,int val){
 
 request_t *newrequest(ci_connection_t *connection){
      request_t *req;
-     int i,access;
+     int access;
+     ci_connection_t *conn;
 
      if((access=access_check_client(connection))==CI_ACCESS_DENY){ /*Check for client access */
 	  icap_write(connection->fd,FORBITTEN_STR,strlen(FORBITTEN_STR));
 	  return NULL; /*Or something that means authentication error*/
      }
      
-
-     req=(request_t *)malloc(sizeof(request_t));
-     req->connection=(ci_connection_t *)malloc(sizeof(ci_connection_t));
-     memcpy(req->connection,connection,sizeof(ci_connection_t));
-     req->user[0]='\0';
+     conn=(ci_connection_t *)malloc(sizeof(ci_connection_t));
+     memcpy(conn, connection,sizeof(ci_connection_t));
+     req=ci_request_alloc(conn);
 
      req->access_type=access;
-
-     req->service=NULL;
-     req->current_service_mod=NULL;
-     req->service_data=NULL;
-     req->args=NULL;
-     req->type=-1;
-     req->preview=0;
-     buf_init(&(req->preview_data));
-
-     req->keepalive=1; /*Keep alive connection is the default behaviour for icap protocol.*/
-     req->allow204=0;
-     req->hasbody=0;
-     req->eof_received=0;
-     
-     req->head=mk_header();
-     req->responce_head=mk_header();
-     req->responce_status=SEND_NOTHING;
-
-
-     req->pstrblock_read=NULL;
-     req->pstrblock_read_len=0;
-     req->current_chunk_len=0;
-     req->chunk_bytes_read=0;
-     req->write_to_module_pending=0;
-
-     req->pstrblock_responce=NULL;
-     req->remain_send_block_bytes=0;
-     req->data_locked=1;
-     
-     for(i=0;i<5;i++) //
-	  req->entities[i]=NULL;
-     for(i=0;i<7;i++) //
-	  req->trash_entities[i]=NULL;
-     
-     return req;
+     return  req;
 }
 
-void destroy_request(request_t *req){
-     int i;
-     free(req->service);
-     free(req->args);
-     free(req->connection);
-     buf_mem_free(&(req->preview_data));
-     destroy_header(req->head);
-     destroy_header(req->responce_head);
-     for(i=0;req->entities[i]!=NULL;i++) 
-	  destroy_encaps_entity(req->entities[i]);
-
-     for(i=0;i<7;i++){
-	  if(req->trash_entities[i])
-	       destroy_encaps_entity(req->trash_entities[i]);
-     }
-  
-     free(req);
-}
 
 int recycle_request(request_t *req,ci_connection_t *connection){
-     int i,access;
+     int access;
 
-/*   
-     req->connection->fd=fd;
-     strncpy(req->clientname,clientname,CI_MAXHOSTNAMELEN);
-     req->clientname[CI_MAXHOSTNAMELEN]='\0';
-     icap_getsockhost(fd,req->server,CI_MAXHOSTNAMELEN);
-     req->server[CI_MAXHOSTNAMELEN]='\0';
-
-*/
      if((access=access_check_client(connection))==CI_ACCESS_DENY){ /*Check for client access */
 	  icap_write(connection->fd,FORBITTEN_STR,strlen(FORBITTEN_STR));
 	  return 0; /*Or something that means authentication error*/
      }
-
      req->access_type=access;
-     
+     ci_request_reset(req);
      memcpy(req->connection,connection,sizeof(ci_connection_t));
-     req->user[0]='\0';
-     free(req->service);
-     free(req->args);
-     buf_reset(&(req->preview_data));
-     
-     req->service=NULL;
-     req->current_service_mod=NULL;
-     req->service_data=NULL;
-     req->args=NULL;
-     req->type=-1;
-     req->preview=0;
-     req->keepalive=1; /*Keep alive connection is the default behaviour for icap protocol.*/
-     req->allow204=0;
-     req->hasbody=0;
-     reset_header(req->head);
-     reset_header(req->responce_head);
-     req->eof_received=0;
-
-     req->responce_status=SEND_NOTHING;
-
-     req->pstrblock_read=NULL;
-     req->pstrblock_read_len=0;
-     req->current_chunk_len=0;
-     req->chunk_bytes_read=0;
-     req->pstrblock_responce=NULL;
-     req->remain_send_block_bytes=0;
-     req->write_to_module_pending=0;
-
-     req->data_locked=1;
-
-     for(i=0;req->entities[i]!=NULL;i++) {
-	  move_entity_to_trash(req,i);
-     }
      return 1;
 }
 
-/*reset_request simply reset request to use it with tunneled requests
-  The req->access_type must not be reset!!!!!
-*/
-void reset_request(request_t *req){
-     int i;
-     free(req->service);
-     free(req->args);
-     /*     memset(req->connections,0,sizeof(ci_connection)) */ /*Not really needed...*/
 
-     req->service=NULL;
-     req->current_service_mod=NULL;
-     req->service_data=NULL;
-     req->args=NULL;
-     req->type=-1;
-     req->preview=0;
-     buf_reset(&(req->preview_data));
-
-     req->keepalive=1; /*Keep alive connection is the default behaviour for icap protocol.*/
-     req->allow204=0;
-     req->hasbody=0;
-     reset_header(req->head);
-     reset_header(req->responce_head);
-     req->eof_received=0;
-     req->responce_status=SEND_NOTHING;
-
-     req->pstrblock_read=NULL;
-     req->pstrblock_read_len=0;
-     req->current_chunk_len=0;
-     req->chunk_bytes_read=0;
-     req->pstrblock_responce=NULL;
-     req->remain_send_block_bytes=0;
-     req->write_to_module_pending=0;
-     req->data_locked=1;
-
-     for(i=0;req->entities[i]!=NULL;i++) {
-	  move_entity_to_trash(req,i);
-     }
-
-}
-
-int checkrealloc(char **buf,int *size,int used,int mustadded){
-     char *newbuf;
-     int len;
-     if(*size-used < mustadded ){
-	  len=*size+STEPBUF;
-	  newbuf=realloc(*buf,len); 
-	  if(!newbuf){
-	       return EC_500;
-	  }
-	  *buf=newbuf;
-	  *size=*size+STEPBUF;
-     }
-     return 0;
-}
-
-int read_startheader(request_t *req,ci_header_list_t *h){
-     int bytes,request_status=0,i,eoh=0,startsearch=0,readed=0;
-     char *buf_end;
-
-     if(req->pstrblock_read_len>0){
-	  checkrealloc(&(h->buf),&(h->bufsize),req->pstrblock_read_len,READSIZE);
-	  memcpy(h->buf,req->pstrblock_read,req->pstrblock_read_len);
-	  buf_end=h->buf+req->pstrblock_read_len;
-	  readed=req->pstrblock_read_len;
-	  startsearch=(readed>3?-3:-readed);/*must include the last 3 chars from prievius readed bytes*/
-     }else{
-	  buf_end=h->buf;
-	  readed=0;
-     }
-     
-     while((bytes=icap_read(req->connection->fd,buf_end,READSIZE))>0){
-	  readed+=bytes;
-	  for(i=startsearch;i<bytes-3;i++){ /*search for end of header....*/
-	       if(strncmp(buf_end+i,"\r\n\r\n",4)==0){
-		    buf_end=buf_end+i+2;
-		    eoh=1;
-		    break;
-	       }
-	  }
-	  if(eoh) break;
-	  
-	  if((request_status=checkrealloc(&(h->buf),&(h->bufsize),readed,READSIZE))!=0)
-	       break;
-	  buf_end=h->buf+readed; 	       
-	  if(startsearch>-3) 
-	       startsearch=(readed>3?-3:-readed); /*Including the last 3 char ellements .......*/
-     }
-     if(bytes<0)
-	  return bytes;
-     h->bufused=buf_end - h->buf; /* -1 ;*/
-     req->pstrblock_read=buf_end+2; /*after the \r\n\r\n. We keep the first \r\n and the other dropped....*/
-     req->pstrblock_read_len=readed-h->bufused-2; /*the 2 of the 4 characters \r\n\r\n and the '\0' character*/
-     return request_status;
-}
 
 int read_encaps_header(request_t *req,ci_header_list_t *h,int size){
      int bytes=0,remains,readed=0;
@@ -470,60 +212,12 @@ int process_encapsulated(request_t *req,char *buf){
 }
 
 
-int construct_index(ci_header_list_t *h){
-     int len;
-     char **newspace;
-     char *shead,*ebuf, *str;
-     
-     if(h->bufused<2) /*????????????*/
-	  return EC_400;
-
-     ebuf=h->buf+h->bufused-2;
-     /* ebuf now must indicate the last \r\n so: */
-     if(*ebuf!='\r' && *ebuf!='\n'){ /*Some sites return (this is bug ) a simple '\n' as end of header ..... */
-	  ci_debug_printf(3,"Parse error. The end chars are %c %c (%d %d) not the \\r \n",
-		       *ebuf,*(ebuf+1),(unsigned int)*ebuf,(unsigned int)*(ebuf+1));
-	  return EC_400; /*Bad request ....*/
-     }
-     *ebuf='\0'; 
-     shead=h->buf;
-     
-     h->headers[0]=h->buf;
-     h->used=1;
-     
-     for(str=h->buf;str<ebuf;str++){ /*Construct index of headers*/
-	  if( (*str=='\r' && *(str+1)=='\n') || (*str== '\n') ){ /*   handle the case that headers 
-                                                                      seperated with a '\n' only */
-	       *str='\0';
-	       if(h->size<=h->used){  /*  Resize the headers index space ........*/
-		    len=h->size+HEADERSTARTSIZE;
-		    newspace=realloc(h->headers,len*sizeof(char *));
-		    if(!newspace){
-			 ci_debug_printf(1,"Server Error:Error allocation memory \n");
-			 return EC_500;
-		    }
-		    h->headers=newspace;
-	       }
-	       str++;
-	       if(*str=='\n') str++;         /*   handle the case that headers seperated with a '\n' only */
-	       h->headers[h->used]=str;
-	       h->used++;
-	  }
-	  else if (*str=='\0') /*Then we have a problem. This char is important for end of string mark......*/
-	       *str=' ';
-	  
-     }/*OK headers index construction ......*/
-
-     return EC_100;
-}
-
-
 int parse_header(request_t *req){
      int i,request_status=0,result;
      ci_header_list_t *h;
 
      h=req->head;
-     if((request_status=read_startheader(req,h))<0)
+     if((request_status=ci_read_icap_header(req,h,TIMEOUT))<0)
 	  return request_status;
 
      if( (result=get_method(h->buf))>=0){
@@ -533,7 +227,7 @@ int parse_header(request_t *req){
      else
 	  return EC_400;
 
-     if((request_status=construct_index(h))!=EC_100)
+     if((request_status=ci_headers_unpack(h))!=EC_100)
 	  return request_status;
      
      for(i=1;i<h->used;i++){
@@ -541,7 +235,7 @@ int parse_header(request_t *req){
 	       result=strtol(h->headers[i]+9,NULL,10);
 	       if(errno!= EINVAL && errno!= ERANGE){
 		    req->preview=result;
-		    buf_reset_size(&(req->preview_data),result+100);
+		    ci_buf_reset_size(&(req->preview_data),result+100);
 	       }
 	  }
 	  else if(strncmp("Encapsulated: ",h->headers[i],14)==0)
@@ -577,7 +271,7 @@ int parse_encaps_headers(request_t *req){
 	  if((request_status=read_encaps_header(req,(ci_header_list_t *)e->entity,size))!=EC_100)
 	       return request_status;
 
-	  if((request_status=construct_index((ci_header_list_t *)e->entity))!=EC_100)
+	  if((request_status=ci_headers_unpack((ci_header_list_t *)e->entity))!=EC_100)
 	       return request_status;
      }
      return EC_100;
@@ -1064,7 +758,7 @@ int mk_responce_header(request_t *req){
 
      if(req->type==ICAP_RESPMOD){
 	  if(e_list[0]->type==ICAP_REQ_HDR){
-	       move_entity_to_trash(req,0);
+	       ci_request_delete_entity(req,0);
 	       e_list[0]=e_list[1];
 	       e_list[1]=e_list[2];
 	       e_list[2]=NULL;
@@ -1108,7 +802,7 @@ int mk_responce_header(request_t *req){
 void send_headers_block(request_t *req,ci_header_list_t *responce_head){
      int i,remains;
      char *pstrbuf;
-     preparetosend(responce_head);
+     ci_headers_pack(responce_head);
      remains=responce_head->bufused;
      pstrbuf=responce_head->buf;
      while(remains>0){
@@ -1119,76 +813,6 @@ void send_headers_block(request_t *req,ci_header_list_t *responce_head){
      
 }
 
-/*****************************************************************/
-/* Old functions to send responce                                */
-/* This functions use the blocked version of icap_write   
-   so until you write a chunk you can not  do anything else (eg read data)     
-  */
-/*
-void send_end_sequence(request_t *req){
-     icap_write(req->connection->fd,"0\r\n\r\n",5);
-}
-
-wri send_body_chunk(request_t *req,void *b){
-     char *pstrbuf,chunk_def[30];
-     int len,ret;
-     int (*get_posdata)(void *,char **,int);  
-//     get_posdata=b->get_posdata;
-     get_posdata=req->current_service_mod->mod_get_posdata;
-     len=(*get_posdata)(b,&pstrbuf,512);
-     
-     if(len<=0)
-	  return 0;
-
-     snprintf(chunk_def,30,"%x\r\n",len);
-     ret=icap_write(req->connection->fd,chunk_def,strlen(chunk_def));
-
-     if(ret>0)
-	  ret=icap_write(req->connection->fd,pstrbuf,len);
-     if(ret>0)
-	  ret=icap_write(req->connection->fd,"\r\n",2);
-
-     if(ret<0){
-	  ci_debug_printf(1,"error writing to socket ending connection.");
-	  req->keepalive=0;
-	  return ret;
-     }
-     return ret;
-}
-
-int send_body_responce(request_t *req,void *b){
-     int ret;
-     while((ret=send_body_chunk(req,b))!=0)
-	  if(ret<0) return CI_ERROR;
-
-     send_end_sequence(req);
-     return CI_OK;
-}
-
-int responce_old(request_t *req,void *b){
-     int i;
-     ci_encaps_entity_t **e;
-
-     if(!mk_responce_header(req,b))
-	  return EC_500;
-
-     e=req->entities;
-     send_headers_block(req,req->responce_head);
-
-     for(i=0;e[i]!=NULL;i++){
-	  if(e[i]->type==ICAP_REQ_HDR || e[i]->type==ICAP_RES_HDR)
-	       send_headers_block(req,( ci_header_list_t *)e[i]->entity);
-     }
-
-     if(b)
-	  send_body_responce(req,b);
-     else{
-	  icap_write(req->connection->fd,"\r\n",2);
-     }
-  
-     return EC_100;
-}
-*/
 /****************************************************************/
 /* New  functions to send responce */
 
@@ -1197,7 +821,7 @@ const char *eof_str="0\r\n\r\n";
 
 
 int start_send_header_block(request_t *req,ci_header_list_t *rh){
-     preparetosend(rh);
+     ci_headers_pack(rh);
      req->pstrblock_responce=rh->buf;
      req->remain_send_block_bytes=rh->bufused;
      return rh->bufused;

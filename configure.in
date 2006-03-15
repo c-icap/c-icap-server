@@ -39,6 +39,7 @@ CFLAGS="$CFLAGS -Wall"
 
 dnl Checking for posix threads libraries.....
 
+
 case "$host_os" in
      linux*)
 	CFLAGS="-D_REENTRANT $CFLAGS"
