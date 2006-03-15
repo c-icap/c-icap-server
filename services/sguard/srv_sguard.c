@@ -26,16 +26,16 @@
 
 
 
-int sguard_init_service(service_module_t *serv,struct icap_server_conf *server_conf);
-void *sguard_init_request_data(service_module_t *serv,request_t *req);
-/*void sguard_end_of_headers_handler(void *data,request_t *req);*/
-int sguard_process(void *data,request_t *);
-int sguard_check_preview(void *data,char *preview_data,int preview_data_len, request_t *);
-int sguard_write(void *data, char *buf,int len ,int iseof,request_t *req);
-int sguard_read(void *data,char *buf,int len,request_t *req);
+int    url_check_init_service(service_module_t *serv,struct icap_server_conf *server_conf);
+void * url_check_init_request_data(service_module_t *serv,request_t *req);
+void   url_check_release_data(void *data);
+int    url_check_process(void *data,request_t *);
+int    url_check_check_preview(void *data,char *preview_data,int preview_data_len, request_t *);
+int    url_check_write(void *data, char *buf,int len ,int iseof,request_t *req);
+int    url_check_read(void *data,char *buf,int len,request_t *req);
 
 
-char *sguard_options[]={
+char *url_check_options[]={
      "Allow: 204",
      "Transfer-Preview: *",
      "Encapsulated: null-body=0",
@@ -45,66 +45,132 @@ char *sguard_options[]={
 
 //service_module echo={
 CI_DECLARE_MOD_DATA service_module_t service={
-     "sguard",
-     "Sguard demo service",
+     "url_check",
+     "Url_Check demo service",
      ICAP_REQMOD,
-     sguard_options,
+     url_check_options,
      NULL,/* Options body*/
-     sguard_init_service, /* init_service*/
+     url_check_init_service, /* init_service*/
      NULL,/*post_init_service*/
      NULL, /*close_Service*/
-     sguard_init_request_data,/* init_request_data*/
-     (void (*)(void *))ci_membuf_free, /*Release request data*/
-
-/*     sguard_end_of_headers_handler,*/
-     sguard_check_preview,
-     sguard_process,
-     sguard_write,
-     sguard_read,
+     url_check_init_request_data,/* init_request_data*/
+     url_check_release_data, /*Release request data*/
+     url_check_check_preview,
+     url_check_process,
+     url_check_write,
+     url_check_read,
      NULL,
      NULL
 };
 
 
-int sguard_init_service(service_module_t *serv,struct icap_server_conf *server_conf){
-     printf("Initialization of sguard module......\n");
+struct url_check_data{
+    struct ci_membuf *body;
+};
+
+enum http_methods {HTTP_UNKNOWN=0,HTTP_GET, HTTP_POST};
+
+struct http_info{
+    int http_major;
+    int http_minor;
+    int method;
+    char site[CI_MAXHOSTNAMELEN+1];
+    char page[1024]; /*I think it is enough*/
+};
+
+
+int url_check_init_service(service_module_t *serv,struct icap_server_conf *server_conf){
+     printf("Initialization of url_check module......\n");
      return CI_OK;
 }
 
 
-void *sguard_init_request_data(service_module_t *serv,request_t *req){
-     if(ci_req_hasbody(req))
-	  return ci_membuf_new();
-     return NULL;
+void *url_check_init_request_data(service_module_t *serv,request_t *req){
+    struct url_check_data *uc=malloc(sizeof(struct url_check_data));
+    uc->body=NULL;
+    return uc; /*Get from a pool of pre-allocated structs better......*/
 }
 
 
-
-
-void get_http_info(request_t *req,ci_header_list_t *req_header /*, struct httpInfo *s */){
+void url_check_release_data(void *data){
+    struct url_check_data *uc=data;
+    if(uc->body)
+	ci_membuf_free(uc->body);
+    free(uc); /*Return object to pool.....*/
 }
 
 
+int get_http_info(request_t *req,ci_header_list_t *req_header , struct http_info *httpinf){
+    char *str;
+    int i;
+    str=req_header->headers[0];
+    if(str[0]=='g' || str[0]=='G') /*Get request....*/
+	httpinf->method=HTTP_GET;
+    else if(str[0]=='p' || str[0]=='P') /*post request....*/
+	httpinf->method=HTTP_POST;
+    else{
+	httpinf->method=HTTP_UNKNOWN;
+	return 0;
+    }
+    if((str=strchr(str,' '))==NULL) /*The request must have the form:GETPOST page HTTP/X.X */
+	return 0;
+    i=0;
+    while(*str!=' ' && *str!='\0' && i<1022) /*copy page to the struct.*/
+	httpinf->page[i++]=*str++;
+    httpinf->page[i]='\0';
 
-int sguard_check_preview(void *data,char *preview_data,int preview_data_len, request_t *req){
+    if(*str!=' ') /*Where is the protocol info?????*/
+	return 0;
+    str++;
+    if(*str!='H' || *(str+4)!='/') /*Not in HTTP/X.X form*/
+	return 0;
+    str+=5;
+    httpinf->http_major=strtol(str,&str,10);
+    if(*str!='.')
+	return 0;
+    str++;
+    httpinf->http_minor=strtol(str,&str,10);
 
-     ci_header_list_t* req_header;
-
-     ci_reqmod_add_header(req,"Via: C-ICAP  0.01/sguard");
-     if((req_header=ci_reqmod_headers(req))!=NULL){
-	  get_http_info(req,req_header /*,&httpinf*/);
-     }
-     
-     unlock_data(req);
-     
-     if(preview_data)
-	  ci_membuf_write(data,preview_data,preview_data_len,ci_req_hasalldata(req));
-     return EC_100;
+    /*Now get the site name*/
+    str=get_header_value(req_header,"Host");
+    strncpy(httpinf->site,str,CI_MAXHOSTNAMELEN);
+    httpinf->site[CI_MAXHOSTNAMELEN]='\0';
+    
+    return 1;
 }
 
 
+int url_check_check_preview(void *data,char *preview_data,int preview_data_len, request_t *req){
+    ci_header_list_t* req_header;
+    struct url_check_data *uc=data;
+    struct http_info httpinf;
 
-int sguard_process(void *b,request_t *req){
+    ci_reqmod_add_header(req,"Via: C-ICAP  0.01/url_check");/*This type of headers must moved to global*/
+    if((req_header=ci_reqmod_headers(req))==NULL) /*It is not possible but who knows .....*/
+	return CI_ERROR;
+
+    get_http_info(req,req_header, &httpinf);
+    
+    if(1)/*we like header*/
+	return EC_204;
+
+     /*Else the URL is not a good one so....*/
+    uc->body=ci_membuf_new();
+    ci_respmod_create(req,1); /*Build the responce headers*/
+    ci_respmod_add_header(req,"HTTP/1.1 200 OK");
+    ci_respmod_add_header(req,"Server: C-ICAP");
+    ci_respmod_add_header(req,"Connection: close");
+    ci_respmod_add_header(req,"Content-Type: text/html");
+    ci_respmod_add_header(req,"Content-Language: en");
+    
+    ci_membuf_write(uc->body,"<H1>Permition deny!<H1>",23,1);
+    
+    unlock_data(req);
+    return EC_100;
+}
+
+
+int url_check_process(void *b,request_t *req){
 
 /*
 	  printf("Buffer size=%d, Data size=%d\n ",
@@ -113,11 +179,16 @@ int sguard_process(void *b,request_t *req){
      return CI_MOD_DONE;     
 }
 
-int sguard_write(void *data, char *buf,int len ,int iseof,request_t *req){
-     return ci_membuf_write(data,buf,len,iseof);
+
+int url_check_write(void *data, char *buf,int len ,int iseof,request_t *req){
+    return len;
 }
 
-int sguard_read(void *data,char *buf,int len,request_t *req){
-     return ci_membuf_read(data,buf,len);
+
+int url_check_read(void *data,char *buf,int len,request_t *req){
+    struct url_check_data *uc=data;
+    if(uc->body)
+	return ci_membuf_read(uc->body,buf,len);
+    return CI_EOF;
 }
 
