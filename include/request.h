@@ -62,6 +62,7 @@ typedef struct request{
      int keepalive;
      int allow204;
      int hasbody;
+     int responce_hasbody;
      struct ci_buf preview_data;
      struct service_module *current_service_mod;
      ci_header_list_t *head;
@@ -112,7 +113,8 @@ CI_DECLARE_FUNC(int)   ci_buf_reset_size(struct ci_buf *buf,int req_size);
 CI_DECLARE_FUNC(request_t *)  ci_request_alloc(ci_connection_t *connection);
 CI_DECLARE_FUNC(void)         ci_request_reset(request_t *req);
 CI_DECLARE_FUNC(void)         ci_request_destroy(request_t *req);
-CI_DECLARE_FUNC(int)          ci_request_delete_entity(request_t *req,int pos);
+CI_DECLARE_FUNC(ci_encaps_entity_t *) ci_request_alloc_entity(request_t *req,int type,int val);
+CI_DECLARE_FUNC(int)          ci_request_release_entity(request_t *req,int pos);
 CI_DECLARE_FUNC(int)          ci_read_icap_header(request_t *req,ci_header_list_t *h,int timeout);
 
 #endif

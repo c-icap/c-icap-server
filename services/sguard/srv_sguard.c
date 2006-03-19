@@ -62,10 +62,9 @@ CI_DECLARE_MOD_DATA service_module_t service={
      NULL,
      NULL
 };
-
-
+ 
 struct url_check_data{
-    struct ci_membuf *body;
+     ci_cached_file_t *body;
 };
 
 enum http_methods {HTTP_UNKNOWN=0,HTTP_GET, HTTP_POST};
@@ -95,7 +94,7 @@ void *url_check_init_request_data(service_module_t *serv,request_t *req){
 void url_check_release_data(void *data){
     struct url_check_data *uc=data;
     if(uc->body)
-	ci_membuf_free(uc->body);
+	ci_cached_file_destroy(uc->body);
     free(uc); /*Return object to pool.....*/
 }
 
@@ -103,68 +102,114 @@ void url_check_release_data(void *data){
 int get_http_info(request_t *req,ci_header_list_t *req_header , struct http_info *httpinf){
     char *str;
     int i;
+
+        /*Now get the site name*/
+    str=get_header_value(req_header,"Host");
+    strncpy(httpinf->site,str,CI_MAXHOSTNAMELEN);
+    httpinf->site[CI_MAXHOSTNAMELEN]='\0';
+
     str=req_header->headers[0];
     if(str[0]=='g' || str[0]=='G') /*Get request....*/
 	httpinf->method=HTTP_GET;
     else if(str[0]=='p' || str[0]=='P') /*post request....*/
 	httpinf->method=HTTP_POST;
     else{
-	httpinf->method=HTTP_UNKNOWN;
+	 httpinf->method=HTTP_UNKNOWN;
 	return 0;
     }
-    if((str=strchr(str,' '))==NULL) /*The request must have the form:GETPOST page HTTP/X.X */
-	return 0;
+    if((str=strchr(str,' '))==NULL){ /*The request must have the form:GETPOST page HTTP/X.X */
+	 return 0;
+    }
+    while(*str==' ') str++;
     i=0;
     while(*str!=' ' && *str!='\0' && i<1022) /*copy page to the struct.*/
 	httpinf->page[i++]=*str++;
     httpinf->page[i]='\0';
 
-    if(*str!=' ') /*Where is the protocol info?????*/
-	return 0;
-    str++;
-    if(*str!='H' || *(str+4)!='/') /*Not in HTTP/X.X form*/
-	return 0;
+    if(*str!=' '){ /*Where is the protocol info?????*/
+	 return 0;
+    }
+    while(*str==' ') str++;
+    if(*str!='H' || *(str+4)!='/'){ /*Not in HTTP/X.X form*/
+	 return 0;
+    }
     str+=5;
     httpinf->http_major=strtol(str,&str,10);
-    if(*str!='.')
-	return 0;
+    if(*str!='.'){
+	 return 0;
+    }
     str++;
     httpinf->http_minor=strtol(str,&str,10);
 
-    /*Now get the site name*/
-    str=get_header_value(req_header,"Host");
-    strncpy(httpinf->site,str,CI_MAXHOSTNAMELEN);
-    httpinf->site[CI_MAXHOSTNAMELEN]='\0';
     
     return 1;
 }
 
+int check_destination(struct http_info *httpinf){
+     ci_debug_printf(9,"URL  to host %s\n",httpinf->site);
+     ci_debug_printf(9,"URL  page %s\n",httpinf->page);
+     
+//    if(strcmp("www.in.gr",httpinf->site)!=0)/*we like header*/
+//      return 0;
+
+    if(strstr(httpinf->page,"images/")!=NULL)
+	 return 0;
+
+    return 1;
+}
+
+char *error_message="<H1>Permition deny!<H1>";
 
 int url_check_check_preview(void *data,char *preview_data,int preview_data_len, request_t *req){
     ci_header_list_t* req_header;
     struct url_check_data *uc=data;
     struct http_info httpinf;
+    int allow=1;
 
     ci_reqmod_add_header(req,"Via: C-ICAP  0.01/url_check");/*This type of headers must moved to global*/
     if((req_header=ci_reqmod_headers(req))==NULL) /*It is not possible but who knows .....*/
 	return CI_ERROR;
 
     get_http_info(req,req_header, &httpinf);
-    
-    if(1)/*we like header*/
-	return EC_204;
 
-     /*Else the URL is not a good one so....*/
-    uc->body=ci_membuf_new();
-    ci_respmod_create(req,1); /*Build the responce headers*/
-    ci_respmod_add_header(req,"HTTP/1.1 200 OK");
-    ci_respmod_add_header(req,"Server: C-ICAP");
-    ci_respmod_add_header(req,"Connection: close");
-    ci_respmod_add_header(req,"Content-Type: text/html");
-    ci_respmod_add_header(req,"Content-Language: en");
-    
-    ci_membuf_write(uc->body,"<H1>Permition deny!<H1>",23,1);
-    
+    ci_debug_printf(9,"URL  to host %s\n",httpinf.site);
+    ci_debug_printf(9,"URL  page %s\n",httpinf.page);
+
+    allow=check_destination(&httpinf);
+
+
+    if(!allow){
+	 /*The URL is not a good one so....*/
+	 ci_debug_printf(9,"Oh!!! we are going to deny this site.....\n");
+
+	 uc->body=ci_cached_file_new(strlen(error_message)+10);
+	 ci_request_create_respmod(req,1); /*Build the responce headers*/
+
+	 ci_respmod_add_header(req,"HTTP/1.1 403 OK");/*Send an 403 Forbidden http responce to web client*/
+	 ci_respmod_add_header(req,"Server: C-ICAP");
+	 ci_respmod_add_header(req,"Content-Type: text/html");
+	 ci_respmod_add_header(req,"Content-Language: en");
+	 
+	 ci_cached_file_write(uc->body,error_message,strlen(error_message),1);
+
+    }
+    else{
+	 /*if we are inside preview negotiation or client allow204 responces oudsite of preview then*/
+	 if(preview_data || ci_req_allow204(req)) 
+	      return EC_204;
+	 
+	 /*
+	   Squid does not support preview of data in reqmod requests neither 204 responces outside preview
+	   so we need to read all the body if exists and send it back to squid.
+	   Allocate a new body for it 
+	 */
+	 if(ci_req_hasbody(req)){
+	      int clen=ci_content_lenght(req)+100;
+	      uc->body=ci_cached_file_new(clen);
+	 }
+
+    }
+
     unlock_data(req);
     return EC_100;
 }
@@ -181,14 +226,21 @@ int url_check_process(void *b,request_t *req){
 
 
 int url_check_write(void *data, char *buf,int len ,int iseof,request_t *req){
-    return len;
+     struct url_check_data *uc=data;
+     if(uc->body){
+	  return ci_cached_file_write(uc->body,buf,len,iseof);
+     }
+     return CI_ERROR;
 }
 
 
 int url_check_read(void *data,char *buf,int len,request_t *req){
     struct url_check_data *uc=data;
-    if(uc->body)
-	return ci_membuf_read(uc->body,buf,len);
+    int bytes;
+    if(uc->body){
+	bytes=ci_cached_file_read(uc->body,buf,len);
+	return bytes;
+    }
     return CI_EOF;
 }
 

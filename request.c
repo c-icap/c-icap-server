@@ -49,27 +49,6 @@ extern int TIMEOUT;
 void send_headers_block(request_t *req,ci_header_list_t *responce_head);
 
 
-ci_encaps_entity_t *alloc_an_entity(request_t *req,int type,int val){
-     ci_encaps_entity_t *e=NULL;
-     
-     if(type> ICAP_OPT_BODY || type<0){ //
-	  return NULL;
-     }
-     
-     if(req->trash_entities[type]){
-	  e=req->trash_entities[type];	  
-	  req->trash_entities[type]=NULL;
-	  e->type=type;
-	  e->start=val;
-	  ci_debug_printf(8,"Get entity from trash....\n");
-	  return e;
-     }
-     
-     //Else there is no available entity to trash_entities so make a new....
-     ci_debug_printf(8,"Allocate a new entity of type %d\n",type);
-     return mk_encaps_entity(type,val);
-}
-
 #define FORBITTEN_STR "ICAP/1.0 403 Forbidden\r\n\r\n"
 
 request_t *newrequest(ci_connection_t *connection){
@@ -204,7 +183,7 @@ int process_encapsulated(request_t *req,char *buf){
 	       break;
 	  if(type==ICAP_NULL_BODY)
 	       hasbody=0; /*We have not a body*/
-	  req->entities[num++]=alloc_an_entity(req,type,val);
+	  req->entities[num++]=ci_request_alloc_entity(req,type,val);
 	  pos=end;/* points after the value of entity....*/
      }
      req->hasbody=hasbody;
@@ -758,7 +737,7 @@ int mk_responce_header(request_t *req){
 
      if(req->type==ICAP_RESPMOD){
 	  if(e_list[0]->type==ICAP_REQ_HDR){
-	       ci_request_delete_entity(req,0);
+	       ci_request_release_entity(req,0);
 	       e_list[0]=e_list[1];
 	       e_list[1]=e_list[2];
 	       e_list[2]=NULL;
@@ -864,7 +843,7 @@ int start_send_body_chunk(request_t *req){
      char tmpbuf[EXTRA_CHUNK_SIZE];
      int (*readdata)(void *data,char *,int,struct request *);
 
-     if(!req->hasbody)
+     if(!req->responce_hasbody)
 	  return CI_EOF;
 
      readdata=req->current_service_mod->mod_readdata;
@@ -893,7 +872,7 @@ int start_send_body_chunk(request_t *req){
 
 int send_body_data(request_t *req){
      int ret=0;
-     if(!req->hasbody)
+     if(!req->responce_hasbody)
 	  return CI_EOF;
 
      if((ret=send_current_block_data(req))!=0){
@@ -981,10 +960,21 @@ int send_body_data(request_t *req, void *b){
 }
 */
 
+int resp_check_body(request_t *req){
+     int i;
+     ci_encaps_entity_t **e=req->entities;
+     for(i=0;e[i]!=NULL;i++)
+          if(e[i]->type==ICAP_NULL_BODY)
+               return 0;
+     return 1;
+}
+
 
 int start_send_data(request_t *req){
     if(!mk_responce_header(req))
 	  return CI_ERROR;
+    
+    req->responce_hasbody=resp_check_body(req);
     start_send_header_block(req,req->responce_head);
     req->responce_status=SEND_RESPHEAD;
     return CI_OK;
@@ -1010,7 +1000,7 @@ int send_some_data(request_t *req){
 	       req->responce_status=status;
 	       // return ret=send_current_block_data(req); /**/
 	  }
-	  else if(req->hasbody){ /*end of headers, going to send body now.A body always follows the res_hdr or req_hdr..... */
+	  else if(req->responce_hasbody){ /*end of headers, going to send body now.A body always follows the res_hdr or req_hdr..... */
 	       req->responce_status=SEND_BODY;
 	       start_send_body_chunk(req);
 	  }
@@ -1192,6 +1182,10 @@ int process_request(request_t *req){
 	  }
 	  else if(req->current_service_mod->mod_check_preview_handler){
 		    res=req->current_service_mod->mod_check_preview_handler(req->service_data,NULL,0,req);
+		    if(req->allow204 && res==EC_204){
+			 ec_responce(req,EC_204);
+			 break; //Need no any modification.
+		    }
 	  }
 
 	  if(req->hasbody && preview_status>=0){

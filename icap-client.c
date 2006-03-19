@@ -99,20 +99,88 @@ int ci_get_request_options(request_t *req,ci_header_list_t *h){
 }
 
 
-
-int send_request(request_t *req){
-    char *buf;
-    int remains,ret;
-
-    ci_headers_pack(req->head);
-    remains=sizeofheader(req->head);
-    buf=req->head->buf;
+int ci_writen(int fd,char *buf,int len,int timeout){
+    int ret=0,remains;
+    remains=len;
     while(remains){
-	ret=ci_write(req->connection->fd,buf,remains,0);
+	if((ret=ci_write(fd,buf,remains,timeout))<0)
+	    return ret;
 	buf+=ret;
 	remains-=ret;
     }
-    return 1;
+    return len;
+}
+
+
+void ci_request_pack(request_t *req){
+    ci_encaps_entity_t **elist,*e;
+    char buf[256]; 
+
+     elist=req->entities;
+
+     if(elist[0]!=NULL)
+	 elist[0]->start=0;
+     
+     if(elist[1]!=NULL){
+	 elist[1]->start=sizeofencaps(elist[0]);
+     }
+
+     if(elist[2]!=NULL){
+	 elist[2]->start=sizeofencaps(elist[1])+elist[1]->start;
+     }
+
+     
+     if(elist[0]==NULL){
+	 sprintf(buf,"Encapsulated: null-body=0");
+     }
+     else if(elist[2]!=NULL){
+	 sprintf(buf,"Encapsulated: %s=%d, %s=%d, %s=%d",
+		 ci_encaps_entity_string(elist[0]->type),elist[0]->start,
+		 ci_encaps_entity_string(elist[1]->type),elist[1]->start,
+		 ci_encaps_entity_string(elist[2]->type),elist[2]->start);
+     }
+     else if(elist[1]!=NULL){
+	 sprintf(buf,"Encapsulated: %s=%d, %s=%d",
+		 ci_encaps_entity_string(elist[0]->type),elist[0]->start,
+		 ci_encaps_entity_string(elist[1]->type),elist[1]->start);
+     }
+     else{ /*Only req->entities[0] exists*/
+	 sprintf(buf,"Encapsulated: %s=%d",
+		  ci_encaps_entity_string(elist[0]->type),elist[0]->start);
+     }
+     add_header(req->head,buf);
+     
+     while((e=*elist++)!=NULL){
+	 if(e->type==ICAP_REQ_HDR || e->type==ICAP_RES_HDR)
+	     ci_headers_pack(( ci_header_list_t *)e->entity);
+     }
+     /*e_list is not usable now !!!!!!! */
+     ci_headers_pack(req->head);
+}
+
+
+int send_request(request_t *req){
+    int ret;
+    ci_encaps_entity_t **elist,*e;
+    ci_header_list_t *headers;
+//    ci_headers_pack(req->head);
+    
+    ci_request_pack(req);
+    ret=ci_writen(req->connection->fd,req->head->buf,sizeofheader(req->head),0);
+
+    elist=req->entities;
+    while((e=*elist++)!=NULL){
+	if(e->type==ICAP_REQ_HDR || e->type==ICAP_RES_HDR){
+	    headers=( ci_header_list_t *)e->entity;
+	    ret=ci_writen(req->connection->fd,headers->buf,sizeofheader(headers),0);
+	}
+    }
+
+    if(req->preview>0 && req->preview_data.used >0 ){
+	ret=ci_writen(req->connection->fd,req->preview_data.buf,req->preview_data.used,0);
+    }
+
+    return ret;
 }
 
 int get_responce(request_t *req){
@@ -245,12 +313,11 @@ int do_send_file_request(request_t *req,char *icap_server,char *service,char *fi
 	return CI_ERROR;
     
     send_request(req);
+
     ci_read_icap_header(req,req->responce_head,0/*timeout 0 = for ever*/);
     ci_headers_unpack(req->responce_head);
-    ci_get_request_options(req,req->responce_head);
     
-    return CI_OK;
-    
+    return CI_OK;    
 }
 
 

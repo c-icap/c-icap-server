@@ -133,8 +133,46 @@ int ci_read_icap_header(request_t *req,ci_header_list_t *h,int timeout){
      return request_status;
 }
 
+/*
+Valid forms of encapsulated entities
 
-int ci_request_delete_entity(request_t *req,int pos){
+   REQMOD  request  encapsulated_list: [reqhdr] reqbody
+   REQMOD  response encapsulated_list: {[reqhdr] reqbody} |
+                                       {[reshdr] resbody}
+   RESPMOD request  encapsulated_list: [reqhdr] [reshdr] resbody
+   RESPMOD response encapsulated_list: [reshdr] resbody
+   OPTIONS request  encapsulated_list: [optbody]
+   OPTIONS response encapsulated_list: optbody
+
+TODO: 
+   The following function must chech request and if the encapsulated entity is valid
+   must put it to the right position in req->entities .........
+*/
+
+//alloc_an_entity
+ci_encaps_entity_t *ci_request_alloc_entity(request_t *req,int type,int val){
+     ci_encaps_entity_t *e=NULL;
+     
+     if(type> ICAP_OPT_BODY || type<0){ //
+	  return NULL;
+     }
+     
+     if(req->trash_entities[type]){
+	  e=req->trash_entities[type];	  
+	  req->trash_entities[type]=NULL;
+	  e->type=type;
+	  e->start=val;
+	  ci_debug_printf(8,"Get entity from trash....\n");
+	  return e;
+     }
+     
+     //Else there is no available entity to trash_entities so make a new....
+     ci_debug_printf(8,"Allocate a new entity of type %d\n",type);
+     return mk_encaps_entity(type,val);
+}
+
+
+int ci_request_release_entity(request_t *req,int pos){
      int type=0;
      if(!req->entities[pos])
 	  return 0;
@@ -181,6 +219,7 @@ request_t *ci_request_alloc(ci_connection_t *connection){
      req->keepalive=1; /*Keep alive connection is the default behaviour for icap protocol.*/
      req->allow204=0;
      req->hasbody=0;
+     req->responce_hasbody=0;
      req->eof_received=0;
      
      req->head=mk_header();
@@ -228,6 +267,7 @@ void ci_request_reset(request_t *req){
      req->keepalive=1; /*Keep alive connection is the default behaviour for icap protocol.*/
      req->allow204=0;
      req->hasbody=0;
+     req->responce_hasbody=0;
      reset_header(req->head);
      reset_header(req->responce_head);
      req->eof_received=0;
@@ -243,7 +283,7 @@ void ci_request_reset(request_t *req){
      req->data_locked=1;
 
      for(i=0;req->entities[i]!=NULL;i++) {
-	  ci_request_delete_entity(req,i);
+	  ci_request_release_entity(req,i);
      }
 
 }

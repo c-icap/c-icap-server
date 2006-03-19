@@ -22,7 +22,7 @@
 
 
 /*
-int ci_req_hasbody(request_t *req){
+int ci_resp_check_body(request_t *req){
      int i;
      ci_encaps_entity_t **e=req->entities;
      for(i=0;e[i]!=NULL;i++)
@@ -64,43 +64,31 @@ int   ci_respmod_reset_headers(request_t *req){
      return 1;
 }
 
-ci_header_list_t *  ci_respmod_build_headers(request_t *req){
-     ci_encaps_entity_t **e_list,*e;
-     if(ci_respmod_headers(req)){
-	  return NULL;
-     }
-     e_list=req->entities;
-     if(e_list[0]==NULL){
-	  e_list[0]=mk_encaps_entity(ICAP_RES_HDR,0);
-	  e=e_list[0];
-     }
-     else if(e_list[1]==NULL){
-	  e_list[1]=mk_encaps_entity(ICAP_RES_HDR,0);
-	  e=e_list[1];
-     }
-     else{
-	  e_list[2]=e_list[1];
-	  e_list[1]=mk_encaps_entity(ICAP_RES_HDR,0);
-	  e=e_list[1];
-     }
-     return (ci_header_list_t*)e->entity;
-}
-
-int  ci_respmod_create(request_t *req, int hasbody){
-     int i;
+/*
+ This function will be used when we want to responce with an error message
+ to an reqmod request or respmod request.
+ ICAP  rfc says that we must responce as:
+ REQMOD  response encapsulated_list: {[reshdr] resbody}
+ RESPMOD response encapsulated_list: [reshdr] resbody
+ 
+ */
+int  ci_request_create_respmod(request_t *req, int hasbody){
+     int i=0;
      ci_encaps_entity_t **e_list;
      e_list=req->entities;
 
-     for(i=0;i<3;i++){
+     for(i=0;i<4;i++){
           if(req->entities[i]){
-               destroy_encaps_entity(req->entities[i]);
-	       req->entities[i]=NULL;
+	       ci_request_release_entity(req,i);
 	  }
      }
-     req->entities[0]=mk_encaps_entity(ICAP_RES_HDR,0);
+
+     req->entities[0]=ci_request_alloc_entity(req,ICAP_RES_HDR,0);
      if(hasbody)
-          req->entities[1]=mk_encaps_entity(ICAP_RES_BODY,0);
-     
+	  req->entities[1]=ci_request_alloc_entity(req,ICAP_RES_BODY,0);
+     else
+	  req->entities[1]=ci_request_alloc_entity(req,ICAP_NULL_BODY,0);
+
      return 1;
 }
 
@@ -160,8 +148,11 @@ char *ci_reqmod_get_header(request_t *req,char *head_name){
 ci_off_t ci_content_lenght(request_t *req){
      ci_header_list_t *heads;
      char *val;
-     if(!(heads=ci_respmod_headers(req)))
-	  return 0;
+     if(!(heads=ci_respmod_headers(req))){
+	  /*Then maybe is a reqmod reauest, try to get request headers*/
+	  if(!(heads=ci_reqmod_headers(req)))
+	       return 0;
+     }
      if(!(val=get_header_value(heads,"Content-Length")))
 	  return 0;
      return ci_strto_off_t(val,NULL,10);
