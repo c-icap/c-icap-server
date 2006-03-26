@@ -332,7 +332,7 @@ int ci_cached_file_read(ci_cached_file_t *body,char *buf,int len){
      }
      else{ /*?????????????????????????????? */
 	  bytes=0;
-	  ci_debug_printf(9,"Readed 0, %d %d\n",body->readpos,body->endpos);
+	  ci_debug_printf(9,"Readed 0, %"PRINTF_OFF_T" %"PRINTF_OFF_T"\n",body->readpos,body->endpos);
      }
      return bytes;
 }
