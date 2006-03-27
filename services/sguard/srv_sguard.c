@@ -38,7 +38,6 @@ int    url_check_read(void *data,char *buf,int len,request_t *req);
 char *url_check_options[]={
      "Allow: 204",
      "Transfer-Preview: *",
-     "Encapsulated: null-body=0",
      NULL
 };
 

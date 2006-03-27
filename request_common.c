@@ -133,6 +133,59 @@ int ci_read_icap_header(request_t *req,ci_header_list_t *h,int timeout){
      return request_status;
 }
 
+
+void ci_request_pack(request_t *req){
+    ci_encaps_entity_t **elist,*e;
+    char buf[256]; 
+
+    if(req->is_client_request && req->preview>0){
+	 sprintf(buf,"Preview: %d",req->preview);
+	 add_header(req->head,buf);
+    }
+    
+    elist=req->entities;
+    
+    if(elist[0]!=NULL)
+	elist[0]->start=0;
+     
+    if(elist[1]!=NULL){
+	elist[1]->start=sizeofencaps(elist[0]);
+     }
+
+     if(elist[2]!=NULL){
+	 elist[2]->start=sizeofencaps(elist[1])+elist[1]->start;
+     }
+
+     
+     if(elist[0]==NULL){
+	 sprintf(buf,"Encapsulated: null-body=0");
+     }
+     else if(elist[2]!=NULL){
+	 sprintf(buf,"Encapsulated: %s=%d, %s=%d, %s=%d",
+		 ci_encaps_entity_string(elist[0]->type),elist[0]->start,
+		 ci_encaps_entity_string(elist[1]->type),elist[1]->start,
+		 ci_encaps_entity_string(elist[2]->type),elist[2]->start);
+     }
+     else if(elist[1]!=NULL){
+	 sprintf(buf,"Encapsulated: %s=%d, %s=%d",
+		 ci_encaps_entity_string(elist[0]->type),elist[0]->start,
+		 ci_encaps_entity_string(elist[1]->type),elist[1]->start);
+     }
+     else{ /*Only req->entities[0] exists*/
+	 sprintf(buf,"Encapsulated: %s=%d",
+		  ci_encaps_entity_string(elist[0]->type),elist[0]->start);
+     }
+     add_header(req->head,buf);
+     
+     while((e=*elist++)!=NULL){
+	 if(e->type==ICAP_REQ_HDR || e->type==ICAP_RES_HDR)
+	     ci_headers_pack(( ci_header_list_t *)e->entity);
+     }
+     /*e_list is not usable now !!!!!!! */
+     ci_headers_pack(req->head);
+}
+
+
 /*
 Valid forms of encapsulated entities
 
@@ -213,6 +266,7 @@ request_t *ci_request_alloc(ci_connection_t *connection){
      req->service_data=NULL;
      req->args=NULL;
      req->type=-1;
+     req->is_client_request=0;
      req->preview=0;
      ci_buf_init(&(req->preview_data));
 
@@ -223,7 +277,6 @@ request_t *ci_request_alloc(ci_connection_t *connection){
      req->eof_received=0;
      
      req->head=mk_header();
-     req->responce_head=mk_header();
      req->responce_status=SEND_NOTHING;
 
 
@@ -261,6 +314,7 @@ void ci_request_reset(request_t *req){
      req->service_data=NULL;
      req->args=NULL;
      req->type=-1;
+     req->is_client_request=0;
      req->preview=0;
      ci_buf_reset(&(req->preview_data));
 
@@ -269,7 +323,6 @@ void ci_request_reset(request_t *req){
      req->hasbody=0;
      req->responce_hasbody=0;
      reset_header(req->head);
-     reset_header(req->responce_head);
      req->eof_received=0;
      req->responce_status=SEND_NOTHING;
 
@@ -302,7 +355,6 @@ void ci_request_destroy(request_t *req){
      
      ci_buf_mem_free(&(req->preview_data));
      destroy_header(req->head);
-     destroy_header(req->responce_head);
      for(i=0;req->entities[i]!=NULL;i++) 
 	  destroy_encaps_entity(req->entities[i]);
 

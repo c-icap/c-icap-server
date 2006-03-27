@@ -109,7 +109,6 @@ static struct conf_entry conf_variables[]={
 char *srvclamav_options[]={
      "Preview: 1024",
      "Transfer-Preview: *",
-     "Encapsulated: null-body=0",
      NULL
 };
 

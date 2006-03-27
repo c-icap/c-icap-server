@@ -37,7 +37,6 @@ char *echo_options[]={
      "Preview: 1024",
      "Allow: 204",
      "Transfer-Preview: *",
-     "Encapsulated: null-body=0",
      NULL
 };
 
