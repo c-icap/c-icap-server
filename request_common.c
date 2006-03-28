@@ -59,7 +59,7 @@ void ci_buf_mem_free(struct ci_buf *buf){
 int ci_buf_write(struct ci_buf *buf,char *data,int len){
      if(len > (buf->size-buf->used))
 	  return -1;
-     memcpy(buf->buf,data,len);
+     memcpy(buf->buf+buf->used,data,len);
      buf->used+=len;
      return len;
 }

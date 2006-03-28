@@ -257,13 +257,7 @@ int parse_encaps_headers(request_t *req){
 }
 
 int write_preview_data( void *notused,char *data,int len,int iseof,struct request *req){
-     if(len > (req->preview_data.size-req->preview_data.used)){
-	  ci_debug_printf(3,"Parse error.Preview data has size bigger than headers defines");
-	  return -1;
-     }
-     memcpy(req->preview_data.buf,data,len);
-     req->preview_data.used+=len;
-     return len;
+    return ci_buf_write(&(req->preview_data),data,len);
 }
 
 
@@ -380,14 +374,93 @@ int get_chunk_data(request_t *req){
      return ret_status;
 }
 
+
 /*
-  Reads from network must be moved from get_chunk_def and get_chunk_data to the following function
-  The read from client must done at the beggining of this function and if more data needed
-  the function must return with a status code (something like NEEDS_MORE_DATA).
+  Reads from network must be moved from get_chunk_def and get_chunk_data to the two 
+  following functions.
+  The read from client must done at the beggining of these functions and if more 
+  data needed the function must return with a status code 
+  (something like NEEDS_MORE_DATA).
   It can be done for at least get_chunk_data becouse  all the reads are at the 
   begining of req->rbuf 
   for get_next_chunk_def the req->pstrblock_read_len can be used .....
 */
+
+
+int read_preview_data(request_t *req){
+    int ret,ret_status=CI_OK;
+     do{
+	 /*if we have read all chunks data get next chunk definition */
+	 if(req->current_chunk_len<=req->chunk_bytes_read)
+	     if((ret_status=get_next_chunk_def(req))!=CI_OK)
+		 return CI_ERROR;
+	 
+	 if((ret_status=get_chunk_data(req))!=CI_OK)
+	     return CI_ERROR;
+
+	 if((ret=ci_buf_write(&(req->preview_data),req->pstrblock_read,req->write_to_module_pending))<0)
+	     return CI_ERROR;
+	 
+	 req->pstrblock_read+=req->write_to_module_pending;
+	 req->pstrblock_read_len-=req->write_to_module_pending;
+	 req->write_to_module_pending=0;
+
+     }while(req->current_chunk_len!=0);
+
+
+
+     if(req->current_chunk_len==0){/*eochunk is filled ....*/
+	   if(strncmp(req->pstrblock_read,"0\r\n\r\n",5)==0){ 
+		    ret_status=CI_OK;
+	       }
+	       else if(strncmp(req->pstrblock_read,"0; ieof\r\n\r\n",11)==0){
+		    req->eof_received=1;
+		    ret_status=CI_EOF;
+	       }
+     }
+
+     req->pstrblock_read=NULL; 
+     req->pstrblock_read_len=0;
+     if(req->eof_received)
+	 return CI_EOF;
+     return CI_OK;
+}
+
+
+int read_chunk_data(request_t *req){
+     int wbytes,ret_status=CI_OK;
+     int (*writedata)(void *, char *,int,int,struct request*);
+     writedata=req->current_service_mod->mod_writedata;
+
+     if(!req->write_to_module_pending){
+	 /*if we have read all chunk data get next chunk definition*/
+	 if(req->current_chunk_len<=req->chunk_bytes_read)
+	     if((ret_status=get_next_chunk_def(req))!=CI_OK)
+		 return CI_ERROR;
+     }
+     else{
+	 wbytes=(*writedata)(req->service_data,req->pstrblock_read,req->write_to_module_pending,0,req);
+	 req->pstrblock_read+=wbytes;
+	 req->pstrblock_read_len-=wbytes;
+	 req->write_to_module_pending-=wbytes;
+     }
+
+     if(req->write_to_module_pending ==0 ) /*In practice we are blocking until service read the data*/
+	 if((ret_status=get_chunk_data(req))!=CI_OK)
+	     return CI_ERROR;
+
+     if(req->current_chunk_len==0){
+	  ret_status=CI_EOF;
+	  req->pstrblock_read=NULL;
+	  req->pstrblock_read_len=0;
+	  req->eof_received=1;
+	  writedata=req->current_service_mod->mod_writedata;
+	  (*writedata)(req->service_data,NULL,0,1,req);/*simply mark the eof*/
+     }
+
+     return ret_status;
+}
+
 
 int get_preview_or_chunk_data(request_t *req, int preview_operation){
      int wbytes,ret_status=CI_OK;
