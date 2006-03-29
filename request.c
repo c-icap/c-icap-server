@@ -275,10 +275,11 @@ int get_next_chunk_def(request_t *req){
 	       req->pstrblock_read=req->rbuf;
 	       continue;
 	  }
+
 	  /*At this point the start must point to the start of a chunk eg to a "123\r\n"*/
 	  errno=0;
 	  req->current_chunk_len=strtol(req->pstrblock_read,&end,16); /*Must verified!!!!!!*/
-/*	  printf("New chunk size :%d,count:%d, nextlen:%d\n",chunkbytes,count,req->pstrblock_read_len);*/
+/*	  ci_debug_printf(9,"New chunk size :%d,end:%s, nextlen:%d\n",req->current_chunk_len,end,req->pstrblock_read_len);*/
 	  if(req->current_chunk_len==0 && req->pstrblock_read==end ){ /*Oh .... an error ...*/
 	       ci_debug_printf(5,"Parse error:count=%d,start=%s\n",req->pstrblock_read_len,req->pstrblock_read);
 	       return CI_ERROR; 
@@ -297,7 +298,6 @@ int get_next_chunk_def(request_t *req){
 	  /*But the "\r\n at the end of line must verified and an error must returned...... TODO"*/
 	  break;
      }
-
 
      if(req->current_chunk_len==0){ /*we have reach the end and we have at least 3 bytes readed .....*/
 	  if(strncmp(req->pstrblock_read,"0\r\n",3)!=0 && strncmp(req->pstrblock_read,"0; ",3)!=0 ){
@@ -338,6 +338,9 @@ int get_next_chunk_def(request_t *req){
 int get_chunk_data(request_t *req){
      int len,ret_status=CI_OK,remains=0;
 
+     if(req->current_chunk_len==0) /*Nothing to do so leave the function*/
+	 return CI_OK;
+
      remains=req->current_chunk_len-req->chunk_bytes_read;
      if(remains){
 	  req->pstrblock_read=req->rbuf;
@@ -370,7 +373,6 @@ int get_chunk_data(request_t *req){
 	  req->pstrblock_read_len=req->pstrblock_read_len-len;
 	  /*continue;*/
      }
-     
      return ret_status;
 }
 
@@ -487,10 +489,13 @@ int get_preview_or_chunk_data(request_t *req, int preview_operation){
 	       req->pstrblock_read_len-=wbytes;
 	       req->write_to_module_pending-=wbytes;
 	  }
+	  
+	  if(req->current_chunk_len==0)
+	      break;
+
 	  if(req->write_to_module_pending ==0 ) /*In practice we are blocking until service read the data*/
 	       if((ret_status=get_chunk_data(req))!=CI_OK)
 		    return CI_ERROR;
-
      }while(preview_operation && req->current_chunk_len!=0);
 
      if(preview_operation){

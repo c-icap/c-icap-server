@@ -342,7 +342,7 @@ int do_send_file_request(request_t *req,char *icap_server,char *service,void *da
 	    ci_debug_printf(1,"I am getting preview responce %s\n",req->head->buf);
 
 	    sscanf(req->head->buf,"ICAP/%d.%d %d",&v1,&v2,&preview_status);
-	    printf("Responce was with status:%d (:%s)\n",preview_status,req->head->buf);
+	    ci_debug_printf(1,"Responce was with status:%d (:%s)\n",preview_status,req->head->buf);
 	}
 
 	if(preview_status!=204){
@@ -361,12 +361,12 @@ int do_send_file_request(request_t *req,char *icap_server,char *service,void *da
 	ci_read_icap_header(req,req->head,128/*timeout 0 = for ever*/);
 	ci_headers_unpack(req->head);
 	sscanf(req->head->buf,"ICAP/%d.%d %d",&v1,&v2,&preview_status);
-	printf("Responce was with status:%d (:%s)\n",preview_status,req->head->buf);
+	ci_debug_printf(1,"Responce was with status:%d (:%s)\n",preview_status,req->head->buf);
 	/*read encups headers */
 	/*read the rest body .......*/
 	if(preview_status!=204){
 	    printf("OK reading headers\nBody READ:\n");
-	    while((ret=ci_read(req->connection->fd,buf,512,0))>0){
+	    while((ret=ci_read(req->connection->fd,buf,512,60))>0){
 		buf[ret]='\0';
 		printf("\t%s",buf);
 	    }
