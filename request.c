@@ -368,7 +368,7 @@ int get_chunk_data(request_t *req){
 	  if((req->pstrblock_read_len=icap_read(req->connection->fd,req->rbuf,BUFSIZE))<0){ 
 	       ci_debug_printf(5,"Error reading data (count=%d),case 3\n",req->pstrblock_read_len);
 	       return CI_ERROR;
-	  } /*if len==2 and count==1 we have a problem here .........*/
+	  } 
 	  req->pstrblock_read=(req->rbuf)+len;
 	  req->pstrblock_read_len=req->pstrblock_read_len-len;
 	  /*continue;*/
@@ -396,12 +396,15 @@ int read_preview_data(request_t *req){
 	 if(req->current_chunk_len<=req->chunk_bytes_read)
 	     if((ret_status=get_next_chunk_def(req))!=CI_OK)
 		 return CI_ERROR;
-	 
-	 if((ret_status=get_chunk_data(req))!=CI_OK)
-	     return CI_ERROR;
 
+	 if(req->current_chunk_len==0)
+	      break;
+
+	 if((ret_status=get_chunk_data(req))!=CI_OK)
+	      return CI_ERROR;
+	 
 	 if((ret=ci_buf_write(&(req->preview_data),req->pstrblock_read,req->write_to_module_pending))<0)
-	     return CI_ERROR;
+	      return CI_ERROR;
 	 
 	 req->pstrblock_read+=req->write_to_module_pending;
 	 req->pstrblock_read_len-=req->write_to_module_pending;
@@ -429,7 +432,7 @@ int read_preview_data(request_t *req){
 }
 
 
-int read_chunk_data(request_t *req){
+int read_chunked_data(request_t *req){
      int wbytes,ret_status=CI_OK;
      int (*writedata)(void *, char *,int,int,struct request*);
      writedata=req->current_service_mod->mod_writedata;
