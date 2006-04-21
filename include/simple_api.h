@@ -30,7 +30,7 @@
 #define ci_req_type(req) (req->type)
 #define ci_req_preview_size(req) (req->preview) /*The preview data size*/
 #define ci_req_allow204(req)    (req->allow204)
-#define ci_req_sent_data(req)(req->responce_status) /*if icap server has sent data
+#define ci_req_sent_data(req)(req->send_status) /*if icap server has sent data
                                                       to client */
 #define ci_req_hasalldata(req)(req->eof_received)
 

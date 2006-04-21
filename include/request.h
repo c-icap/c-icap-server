@@ -28,17 +28,21 @@
 //enum REQUEST_STATUS { WAIT,SERVED };
 
 enum GETDATA_STATUS {GET_NOTHING=0,GET_HEADERS,GET_PREVIEW,GET_BODY};
-enum RESPONCE_STATUS {SEND_NOTHING=0, SEND_RESPHEAD, SEND_HEAD1, SEND_HEAD2, SEND_HEAD3, SEND_BODY, SEND_EOF };
+enum SENDDATA_STATUS {SEND_NOTHING=0, SEND_RESPHEAD, SEND_HEAD1, SEND_HEAD2, SEND_HEAD3, SEND_BODY, SEND_EOF };
 
 /*enum BODY_RESPONCE_STATUS{ CHUNK_DEF=1,CHUNK_BODY,CHUNK_END};*/
 
 #define READSIZE 256
 
-#define CI_OK       1
-#define CI_ERROR   -1
-#define CI_EOF     -2
-#define  MAX_CHUNK_SIZE 512
-#define EXTRA_CHUNK_SIZE 30
+
+#define CI_OK          1
+#define CI_NEEDS_MORE  2
+
+#define CI_ERROR      -1
+#define CI_EOF        -2
+
+#define MAX_CHUNK_SIZE   512
+#define EXTRA_CHUNK_SIZE  30
 #define MAX_USERNAME_LEN 255
 
 struct ci_buf{
@@ -83,7 +87,7 @@ typedef struct request{
      unsigned int chunk_bytes_read;
      unsigned int write_to_module_pending;
 
-     int responce_status;
+     int send_status;
      char *pstrblock_responce;
      int remain_send_block_bytes;
 } request_t;
@@ -97,6 +101,9 @@ void destroy_request(request_t *req);
 int recycle_request(request_t *req,ci_connection_t *connection);
 void reset_request(request_t *req);
 int process_request(request_t *);
+int parse_chunk_data(request_t *req, char **wdata);
+int net_data_read(request_t *req,int timeout);
+
 
 /*********************************************/
 /*Buffer functions (I do not know if they must included in ci library....) */

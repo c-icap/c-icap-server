@@ -65,7 +65,9 @@ typedef struct ci_sockaddr{
 #define CI_SOCKADDR_SIZE sizeof(struct sockaddr_in)
 #endif
 
-enum { wait_for_read, wait_for_write}; 
+#define wait_for_read       0x1
+#define wait_for_write      0x2
+#define wait_for_readwrite  0x3 
 
 typedef struct ci_connection{
      ci_socket fd;

@@ -137,7 +137,7 @@ int ci_netio_init(ci_socket s){
 }
 
 
-
+/*
 int ci_wait_for_data(ci_socket fd,int secs,int what_wait){
      fd_set fds,*rfds,*wfds;
      struct timeval tv;
@@ -167,6 +167,49 @@ int ci_wait_for_data(ci_socket fd,int secs,int what_wait){
      }
      return 0;
 }
+*/
+
+
+int ci_wait_for_data(int fd,int secs,int what_wait){
+     fd_set rfds,wfds,*preadfds,*pwritefds;
+     struct timeval tv;
+     int ret=0;
+
+     if(secs>=0){
+	  tv.tv_sec=secs;
+	  tv.tv_usec=0;
+     }
+
+     preadfds=NULL;
+     pwritefds=NULL;
+
+     if(what_wait & wait_for_read){
+	  FD_ZERO(&rfds);
+	  FD_SET(fd,&rfds);
+	  preadfds=&rfds;
+     }
+
+     if(what_wait & wait_for_write){
+	  FD_ZERO(&wfds);
+	  FD_SET(fd,&wfds);
+	  pwritefds=&wfds;
+     }
+
+     if((ret=select(fd+1,preadfds,pwritefds,NULL,(secs>=0?&tv:NULL)))>0){
+	  ret=0;
+	  if(preadfds && FD_ISSET(fd,preadfds))
+	       ret=wait_for_read;
+	  if(pwritefds && FD_ISSET(fd,pwritefds))
+	       ret=ret|wait_for_write;
+	  return ret;
+     }
+
+     if(ret<0){
+	  ci_debug_printf(5,"Fatal error while waiting for new data....\n");
+     }
+     return 0;
+}
+
 
 
 int ci_read(ci_socket fd,void *buf,size_t count,int timeout){

@@ -34,7 +34,7 @@
 #include "cfg_param.h"
 
 #define STARTBUF 1024
-
+#define STEPBUF (2*READSIZE)
 
 extern int TIMEOUT;
 
@@ -83,6 +83,57 @@ int recycle_request(request_t *req,ci_connection_t *connection){
      return 1;
 }
 
+
+/*this function check if there is enough space in buffer buf ....*/
+int check_realloc(char **buf,int *size,int used,int mustadded){
+     char *newbuf;
+     int len;
+     if(*size-used < mustadded ){
+	  len=*size+STEPBUF;
+	  newbuf=realloc(*buf,len); 
+	  if(!newbuf){
+	       return EC_500;
+	  }
+	  *buf=newbuf;
+	  *size=*size+STEPBUF;
+     }
+     return 0;
+}
+
+
+
+/*Must be moved to header.c as ci_header_unpack......*/
+int ci_read_icap_header(request_t *req,ci_header_list_t *h,int timeout){
+     int bytes,request_status=0,i,eoh=0,startsearch=0,readed=0;
+     char *buf_end;
+
+     buf_end=h->buf;
+     readed=0;
+     
+     while((bytes=ci_read(req->connection->fd,buf_end,READSIZE,timeout))>0){
+	  readed+=bytes;
+	  for(i=startsearch;i<bytes-3;i++){ /*search for end of header....*/
+	       if(strncmp(buf_end+i,"\r\n\r\n",4)==0){
+		    buf_end=buf_end+i+2;
+		    eoh=1;
+		    break;
+	       }
+	  }
+	  if(eoh) break;
+	  
+	  if((request_status=check_realloc(&(h->buf),&(h->bufsize),readed,READSIZE))!=0)
+	       break;
+	  buf_end=h->buf+readed; 	       
+	  if(startsearch>-3) 
+	       startsearch=(readed>3?-3:-readed); /*Including the last 3 char ellements .......*/
+     }
+     if(bytes<0)
+	  return bytes;
+     h->bufused=buf_end - h->buf; /* -1 ;*/
+     req->pstrblock_read=buf_end+2; /*after the \r\n\r\n. We keep the first \r\n and the other dropped....*/
+     req->pstrblock_read_len=readed-h->bufused-2; /*the 2 of the 4 characters \r\n\r\n and the '\0' character*/
+     return request_status;
+}
 
 
 int read_encaps_header(request_t *req,ci_header_list_t *h,int size){
@@ -256,283 +307,38 @@ int parse_encaps_headers(request_t *req){
      return EC_100;
 }
 
-int write_preview_data( void *notused,char *data,int len,int iseof,struct request *req){
-    return ci_buf_write(&(req->preview_data),data,len);
-}
-
-
-int get_next_chunk_def(request_t *req){
-     char *end/*,eofchunk[15]*/;
-     int i,remains=0,len;
-     int ret_status=CI_OK;
-
-     while(1){
-	  if(req->pstrblock_read_len<=0){
-	       if((req->pstrblock_read_len=icap_read(req->connection->fd,req->rbuf,BUFSIZE))<0){
-		    ci_debug_printf(5,"Error reading from client: count=%d, case 1\n",req->pstrblock_read_len);
-		    return CI_ERROR; 
-	       }
-	       req->pstrblock_read=req->rbuf;
-	       continue;
-	  }
-
-	  /*At this point the start must point to the start of a chunk eg to a "123\r\n"*/
-	  errno=0;
-	  req->current_chunk_len=strtol(req->pstrblock_read,&end,16); /*Must verified!!!!!!*/
-/*	  ci_debug_printf(9,"New chunk size :%d,end:%s, nextlen:%d\n",req->current_chunk_len,end,req->pstrblock_read_len);*/
-	  if(req->current_chunk_len==0 && req->pstrblock_read==end ){ /*Oh .... an error ...*/
-	       ci_debug_printf(5,"Parse error:count=%d,start=%s\n",req->pstrblock_read_len,req->pstrblock_read);
-	       return CI_ERROR; 
-	  }
-	  if(end-req->pstrblock_read+2>=req->pstrblock_read_len){ /*If we have not enough data for chunk length line eg 123\r\n*/
-	       len=req->pstrblock_read_len; 
-	       for(i=0;i<len;i++) *((req->rbuf)+i)=*(req->pstrblock_read+i); /*... put the current data to the begining of buf ....*/
-	       if((req->pstrblock_read_len=icap_read(req->connection->fd,(req->rbuf)+len,BUFSIZE-len))<0){ /*... read some data...*/
-		    ci_debug_printf(5,"Error reading data (count=%d) , case 2\n",req->pstrblock_read_len);
-		    return CI_ERROR; 
-	       }
-	       req->pstrblock_read_len+=len;/* ... (size of data is readed plus old )...*/
-	       req->pstrblock_read=req->rbuf; /* ... and try again.*/
-	       continue;  
-	  }
-	  /*But the "\r\n at the end of line must verified and an error must returned...... TODO"*/
-	  break;
-     }
-
-     if(req->current_chunk_len==0){ /*we have reach the end and we have at least 3 bytes readed .....*/
-	  if(strncmp(req->pstrblock_read,"0\r\n",3)!=0 && strncmp(req->pstrblock_read,"0; ",3)!=0 ){
-	       end[2]='\0';
-	       ci_debug_printf(10,"Ending with end chunk(count :%d):%s %s\n",
-			    req->pstrblock_read_len,req->pstrblock_read,end);  
-	       return CI_ERROR;
-	  } 
-	  if(req->pstrblock_read_len>11)/* !!!!!!!parse error!!!!!!!!! */
-	       return CI_ERROR;
-	  
-	  remains=(*end==';'?11-req->pstrblock_read_len:5-req->pstrblock_read_len);
-	  /*The end sequence must be "0\r\n\r\n" or "0; ieof" the second  handled later ...*/
-	  if(remains){ /*Can happen count <5 and must read some more bytes for keeping alive.....*/
-	       if(req->pstrblock_read!=req->rbuf){   /*Copy bytes at the beggining of rbuf .......*/
-		    for(i=0;i<req->pstrblock_read_len;i++) *((req->rbuf)+i)=*(req->pstrblock_read+i);
-		    req->pstrblock_read=req->rbuf;
-	       }
-	       for(i=0;i<remains;i++)
-		    icap_read(req->connection->fd,&(req->pstrblock_read[req->pstrblock_read_len+i]),1);
-	       
-	  }
-	  req->pstrblock_read_len=req->pstrblock_read_len+remains;
-	  req->chunk_bytes_read=0;
-     }
-     else{
-	  req->pstrblock_read_len=req->pstrblock_read_len-(end+2-req->pstrblock_read);
-	  req->pstrblock_read=end+2;  /*Skip the F\r\n where F is the hex number*/
-	  if(req->current_chunk_len>req->pstrblock_read_len)
-	       req->chunk_bytes_read=req->pstrblock_read_len;
-	  else
-	       req->chunk_bytes_read=req->current_chunk_len;
-     }
-     req->write_to_module_pending=req->chunk_bytes_read;
-     return ret_status;
-} 
-
-int get_chunk_data(request_t *req){
-     int len,ret_status=CI_OK,remains=0;
-
-     if(req->current_chunk_len==0) /*Nothing to do so leave the function*/
-	 return CI_OK;
-
-     remains=req->current_chunk_len-req->chunk_bytes_read;
-     if(remains){
-	  req->pstrblock_read=req->rbuf;
-	  if((req->pstrblock_read_len=icap_read(req->connection->fd,req->rbuf,BUFSIZE))<0){ 
-	       ci_debug_printf(5,"Error reading data (count=%d),case 2\n",req->pstrblock_read_len);
-	       return CI_ERROR;
-	  }
-	  len=(remains<req->pstrblock_read_len?remains:req->pstrblock_read_len);
-	  req->chunk_bytes_read+=len;
-	  ci_debug_printf(10,"Pendings bytes to be written to module :%d \n",len);
-	  req->write_to_module_pending=len;
-	  return CI_OK;
-     }
-
-
-     /*req->pstrblock_read_len>=len always (I think)...........*/
-     if(req->pstrblock_read_len>=2){ /*In this case include the \r\n sequence*/
-	  req->pstrblock_read=req->pstrblock_read+2;
-	  req->pstrblock_read_len=req->pstrblock_read_len-2;
-     }
-     else{/* req->current_chunk_len<= req->pstrblock_read_len < req->current_chunk_len+2. 
-	     All the \r\n sequence or a part ("\r") 
-	     included in the next read*/
-	  len=2-req->pstrblock_read_len; /*len is now the length of the remains bytes of \r\n sequence (1 or 2)*/
-	  if((req->pstrblock_read_len=icap_read(req->connection->fd,req->rbuf,BUFSIZE))<0){ 
-	       ci_debug_printf(5,"Error reading data (count=%d),case 3\n",req->pstrblock_read_len);
-	       return CI_ERROR;
-	  } 
-	  req->pstrblock_read=(req->rbuf)+len;
-	  req->pstrblock_read_len=req->pstrblock_read_len-len;
-	  /*continue;*/
-     }
-     return ret_status;
-}
-
-
-/*
-  Reads from network must be moved from get_chunk_def and get_chunk_data to the two 
-  following functions.
-  The read from client must done at the beggining of these functions and if more 
-  data needed the function must return with a status code 
-  (something like NEEDS_MORE_DATA).
-  It can be done for at least get_chunk_data becouse  all the reads are at the 
-  begining of req->rbuf 
-  for get_next_chunk_def the req->pstrblock_read_len can be used .....
-*/
-
-
 int read_preview_data(request_t *req){
-    int ret,ret_status=CI_OK;
-     do{
-	 /*if we have read all chunks data get next chunk definition */
-	 if(req->current_chunk_len<=req->chunk_bytes_read)
-	     if((ret_status=get_next_chunk_def(req))!=CI_OK)
-		 return CI_ERROR;
+    int ret;
+    char *wdata;
 
-	 if(req->current_chunk_len==0)
-	      break;
-
-	 if((ret_status=get_chunk_data(req))!=CI_OK)
-	      return CI_ERROR;
-	 
-	 if((ret=ci_buf_write(&(req->preview_data),req->pstrblock_read,req->write_to_module_pending))<0)
-	      return CI_ERROR;
-	 
-	 req->pstrblock_read+=req->write_to_module_pending;
-	 req->pstrblock_read_len-=req->write_to_module_pending;
-	 req->write_to_module_pending=0;
-
-     }while(req->current_chunk_len!=0);
-
-
-
-     if(req->current_chunk_len==0){/*eochunk is filled ....*/
-	   if(strncmp(req->pstrblock_read,"0\r\n\r\n",5)==0){ 
-		    ret_status=CI_OK;
-	       }
-	       else if(strncmp(req->pstrblock_read,"0; ieof\r\n\r\n",11)==0){
-		    req->eof_received=1;
-		    ret_status=CI_EOF;
-	       }
-     }
-
-     req->pstrblock_read=NULL; 
-     req->pstrblock_read_len=0;
-     if(req->eof_received)
-	 return CI_EOF;
-     return CI_OK;
-}
-
-
-int read_chunked_data(request_t *req){
-     int wbytes,ret_status=CI_OK;
-     int (*writedata)(void *, char *,int,int,struct request*);
-     writedata=req->current_service_mod->mod_writedata;
-
-     if(!req->write_to_module_pending){
-	 /*if we have read all chunk data get next chunk definition*/
-	 if(req->current_chunk_len<=req->chunk_bytes_read)
-	     if((ret_status=get_next_chunk_def(req))!=CI_OK)
-		 return CI_ERROR;
-     }
-     else{
-	 wbytes=(*writedata)(req->service_data,req->pstrblock_read,req->write_to_module_pending,0,req);
-	 req->pstrblock_read+=wbytes;
-	 req->pstrblock_read_len-=wbytes;
-	 req->write_to_module_pending-=wbytes;
-     }
-
-     if(req->write_to_module_pending ==0 ) /*In practice we are blocking until service read the data*/
-	 if((ret_status=get_chunk_data(req))!=CI_OK)
-	     return CI_ERROR;
-
-     if(req->current_chunk_len==0){
-	  ret_status=CI_EOF;
-	  req->pstrblock_read=NULL;
-	  req->pstrblock_read_len=0;
-	  req->eof_received=1;
-	  writedata=req->current_service_mod->mod_writedata;
-	  (*writedata)(req->service_data,NULL,0,1,req);/*simply mark the eof*/
-     }
-
-     return ret_status;
-}
-
-
-int get_preview_or_chunk_data(request_t *req, int preview_operation){
-     int wbytes,ret_status=CI_OK;
-     int (*writedata)(void *, char *,int,int,struct request*);
-
-     do{
-	  if(req->pstrblock_read_len<0){
-	       ci_debug_printf(10,"\n!!!!!!!!!!!!!!!!!!!!\n WHY negative  pstrblocklen??????????\n\n");
-	  }
-
-	  if(preview_operation)
-	       writedata=write_preview_data; /*write to preview buffer ...... */
-	  else
-	       writedata=req->current_service_mod->mod_writedata;
-
-
-	  if(!req->write_to_module_pending){
-	       if((ret_status=get_next_chunk_def(req))!=CI_OK)
+    req->current_chunk_len=0;
+    req->chunk_bytes_read=0;
+    req->write_to_module_pending=0;
+    while((ret=net_data_read(req,TIMEOUT))!=CI_ERROR){
+	  do{
+	       if((ret=parse_chunk_data(req,&wdata))==CI_ERROR){
+		    ci_debug_printf(1,"Error parsing chunks, current chunk len: %d readed:%d, str:%s\n",
+				    req->current_chunk_len,
+				    req->chunk_bytes_read,
+				    req->pstrblock_read);
 		    return CI_ERROR;
-	  }
-	  else{
-	       wbytes=(*writedata)(req->service_data,req->pstrblock_read,req->write_to_module_pending,0,req);
-	       req->pstrblock_read+=wbytes;
-	       req->pstrblock_read_len-=wbytes;
-	       req->write_to_module_pending-=wbytes;
-	  }
-	  
-	  if(req->current_chunk_len==0)
-	      break;
-
-	  if(req->write_to_module_pending ==0 ) /*In practice we are blocking until service read the data*/
-	       if((ret_status=get_chunk_data(req))!=CI_OK)
+	       }
+	       if(ci_buf_write(&(req->preview_data),wdata,req->write_to_module_pending)<0)
 		    return CI_ERROR;
-     }while(preview_operation && req->current_chunk_len!=0);
+	       req->write_to_module_pending=0;
 
-     if(preview_operation){
-	  if(req->current_chunk_len==0){/*eochunk is filled ....*/
-	       if(strncmp(req->pstrblock_read,"0\r\n\r\n",5)==0){ 
-		    ret_status=CI_OK;
+	       if(ret==CI_EOF){
+		    req->pstrblock_read=NULL;
+		    req->pstrblock_read_len=0;
+		    if(req->eof_received)
+			 return CI_EOF;
+		    return CI_OK;
 	       }
-	       else if(strncmp(req->pstrblock_read,"0; ieof\r\n\r\n",11)==0){
-		    req->eof_received=1;
-		    ret_status=CI_EOF;
-	       }
-	  }
-
-	  req->pstrblock_read=NULL; 
-	  req->pstrblock_read_len=0;
-	  if(req->eof_received)
-	       return CI_EOF;
-	  return CI_OK;
-     } 
-
-     if(req->current_chunk_len==0){
-	  ret_status=CI_EOF;
-	  req->pstrblock_read=NULL;
-	  req->pstrblock_read_len=0;
-	  req->eof_received=1;
-	  writedata=req->current_service_mod->mod_writedata;
-	  (*writedata)(req->service_data,NULL,0,1,req);
+	  }while(ret!=CI_NEEDS_MORE);
      }
 
-     return ret_status;
+     return CI_ERROR;
 }
-
-
-
 
 void ec_responce(request_t *req,int ec){
      char buf[256];
@@ -542,10 +348,6 @@ void ec_responce(request_t *req,int ec){
      buf[255]='\0';
      icap_write(req->connection->fd,buf,strlen(buf));
 }
-
-
-
-
 
 int mk_responce_header(request_t *req){
      ci_header_list_t *head;
@@ -609,68 +411,39 @@ int send_current_block_data(request_t *req){
      return req->remain_send_block_bytes;
 }
 
-/* This version of body send functions, copys the chunk to a buffer
-and then tries to send the chunk
-the declaration 
- char writebuf[MAX_CHUNK_SIZE+30]; 
-must added struct request_t  and the method
-int get_available_data_size(request_t *req,void *b)
-must added to struct module;
 
-But, declarations in struct request_t
-     char chunk_defs_buf[10];
-     char *pstr_chunk_defs;
-     char remain_chunk_defs_bytes;  
-can removed and the same for the method 
-     int  get_posdata(struct body *,char**,int) 
-in the body 
-
-*/
-
-int start_send_body_chunk(request_t *req){
-     int chunksize,def_bytes;
+int format_body_chunk(request_t *req){
+     int def_bytes;
      char *wbuf=NULL;
      char tmpbuf[EXTRA_CHUNK_SIZE];
-     int (*readdata)(void *data,char *,int,struct request *);
 
      if(!req->responce_hasbody)
 	  return CI_EOF;
 
-     readdata=req->current_service_mod->mod_readdata;
+     if(req->remain_send_block_bytes>0){
 
-     wbuf=req->wbuf+EXTRA_CHUNK_SIZE;/*Let size of EXTRA_CHUNK_SIZE space in the beggining of chunk*/
-     if((chunksize=(*readdata)(req->service_data,wbuf,MAX_CHUNK_SIZE,req)) <=0){
-/*	  ci_debug_printf(1,"No data to send or eof reached (%d,).......\n",chunksize);*/
-	  req->remain_send_block_bytes=0;
-	  return chunksize; /*Must be 0 or CI_EOF */
+	  wbuf=req->wbuf+EXTRA_CHUNK_SIZE+req->remain_send_block_bytes; 
+                          /*Put the "\r\n" sequence at the end of chunk*/
+	  *(wbuf++)='\r';
+	  *wbuf='\n';
+	  
+	  def_bytes=snprintf(tmpbuf,EXTRA_CHUNK_SIZE,"%x\r\n",req->remain_send_block_bytes);
+	  wbuf=req->wbuf+EXTRA_CHUNK_SIZE-def_bytes;  /*Copy the chunk define in the beggining of chunk .....*/
+	  memcpy(wbuf,tmpbuf,def_bytes);
+	  
+	  req->pstrblock_responce=wbuf;
+	  req->remain_send_block_bytes+=def_bytes+2;     
      }
-
-     wbuf+=chunksize; /*Put the "\r\n" sequence at the end of chunk*/
-     *(wbuf++)='\r';
-     *wbuf='\n';
-
-     def_bytes=snprintf(tmpbuf,EXTRA_CHUNK_SIZE,"%x\r\n",chunksize);
-     wbuf=req->wbuf+EXTRA_CHUNK_SIZE-def_bytes;  /*Copy the chunk define in the beggining of chunk .....*/
-     memcpy(wbuf,tmpbuf,def_bytes);
-     
-     req->pstrblock_responce=wbuf;
-     req->remain_send_block_bytes=def_bytes+chunksize+2;     
-
-     return req->remain_send_block_bytes;
-}
-
-
-int send_body_data(request_t *req){
-     int ret=0;
-     if(!req->responce_hasbody)
+     else if(req->remain_send_block_bytes==CI_EOF){
+	  strcpy(req->wbuf,"0\r\n\r\n");
+	  req->pstrblock_responce=req->wbuf;
+	  req->remain_send_block_bytes=5;     
 	  return CI_EOF;
-
-     if((ret=send_current_block_data(req))!=0){
-	  return ret;
      }
-     ret=start_send_body_chunk(req);
-     return ret;
+
+     return CI_OK;
 }
+
 
 
 int resp_check_body(request_t *req){
@@ -682,33 +455,44 @@ int resp_check_body(request_t *req){
      return 1;
 }
 
+/*
+The 
+if((ret=send_current_block_data(req))!=0)
+  return ret;
 
-int start_send_data(request_t *req){
-    if(!mk_responce_header(req))
-	  return CI_ERROR;
-    
-    req->responce_hasbody=resp_check_body(req);
+must called after this function....
+*/
 
-    req->pstrblock_responce=req->head->buf;
-    req->remain_send_block_bytes=req->head->bufused;
-
-
-    req->responce_status=SEND_RESPHEAD;
-    return CI_OK;
-}
-
-
-int send_some_data(request_t *req){
-     int i,ret,status;
+int update_send_status(request_t *req){
+     int i,status;
      ci_encaps_entity_t *e;
 
-     if((status=req->responce_status)<SEND_HEAD3){
-	  ret=send_current_block_data(req);
-	  if(ret!=0)
-	       return ret;
-	  status++;
+     if(req->send_status==SEND_NOTHING){ //If nothing has send start sending....
+	  if(!mk_responce_header(req)){
+	       ci_debug_printf(1,"Error constructing the responce headers!\n");
+	       return CI_ERROR;
+	  }
+	  req->responce_hasbody=resp_check_body(req);
+	  
+	  req->pstrblock_responce=req->head->buf;
+	  req->remain_send_block_bytes=req->head->bufused;
+	  req->send_status=SEND_RESPHEAD;
+	  return CI_OK;
      }
 
+     if(req->send_status==SEND_EOF){
+	  if(req->remain_send_block_bytes==0)
+	       return CI_EOF;
+	  else
+	       return CI_OK;
+     }
+     if(req->send_status==SEND_BODY){
+	  return CI_OK;
+     }
+
+     if((status=req->send_status)<SEND_HEAD3){
+	  status++;
+     }
 
      if(status>SEND_RESPHEAD && status < SEND_BODY){ /*status is SEND_HEAD1 SEND_HEAD2 or SEND_HEAD3    */
 	  i=status-SEND_HEAD1;                      /*We have to send next headers block ....*/
@@ -717,105 +501,201 @@ int send_some_data(request_t *req){
 	       req->pstrblock_responce=((ci_header_list_t *)e->entity)->buf;
 	       req->remain_send_block_bytes=((ci_header_list_t *)e->entity)->bufused;
 
-	       req->responce_status=status;
-	       // return ret=send_current_block_data(req); /**/
+	       req->send_status=status;
+	       return CI_OK;
 	  }
 	  else if(req->responce_hasbody){ /*end of headers, going to send body now.A body always follows the res_hdr or req_hdr..... */
-	       req->responce_status=SEND_BODY;
-	       start_send_body_chunk(req);
+	       req->send_status=SEND_BODY;
+	       return CI_OK;
 	  }
 	  else{
-	       req->responce_status=SEND_EOF;
-//	       req->pstrblock_responce=(char *)eol_str;
-//	       req->remain_send_block_bytes=2;
+	       req->send_status=SEND_EOF;
 	       req->pstrblock_responce=(char *)NULL;
 	       req->remain_send_block_bytes=0;
 	       return CI_EOF;
 	  }
      }
-     
 
-     if(req->responce_status==SEND_BODY){
-	  if((ret=send_body_data(req))==CI_EOF){
-	       status=req->responce_status=SEND_EOF;
-	       req->pstrblock_responce=(char *)eof_str;
-	       req->remain_send_block_bytes=5;	       
-//	       return req->remains_send_block_bytes; /*Don't do it try to send eof_str now.......*/
-	  }
-	  else
-	       return ret;
-     }
-
-     if(req->responce_status==SEND_EOF){
-	  if((ret=send_current_block_data(req))!=0)
-	       return ret;
-	  if(ret==0){
-	       return CI_EOF;
-	  }
-     }
-//     ci_debug_printf(1,"Can not be reached ....I thing .... (status=%d, req->responce_status=%d)\n",
-//     status,req->responce_status);
-     return req->remain_send_block_bytes; /*Can not be reached (I thing)......*/
+     return CI_ERROR; /*Can not be reached (I thing)......*/
 }
+
+int service_io(request_t *req,char *rdata,int *rdatalen,char *wdata,int *wdatalen,int iseof){
+     int (*writedata)(void *, char *,int,int,struct request*);
+     int (*readdata)(void *data,char *,int,struct request *);
+     writedata=req->current_service_mod->mod_writedata;
+     readdata=req->current_service_mod->mod_readdata;
+
+     *wdatalen=(*writedata)(req->service_data,wdata,*wdatalen,iseof,req);
+     *rdatalen=(*readdata)(req->service_data,rdata,*rdatalen,req);
+
+     if(*wdatalen<0 || *rdatalen==CI_ERROR)
+	  return CI_ERROR;
+     
+     return CI_OK;
+}
+
+int get_send_body(request_t *req){
+     char *wchunkdata=NULL,*rchunkdata=NULL;
+     int ret,parse_chunk_ret;
+     int action=0, rchunkisfull=0,service_eof=0,wbytes,rbytes;
+     int (*writedata)(void *, char *,int,int,struct request*);
+     int (*readdata)(void *data,char *,int,struct request *);
+     
+     writedata=req->current_service_mod->mod_writedata;
+     readdata=req->current_service_mod->mod_readdata;
+     
+     action=wait_for_read;
+     req->send_status=SEND_NOTHING;
+
+     do{
+	  ret=0;
+	  if(action){
+	       if((ret=ci_wait_for_data(req->connection->fd,TIMEOUT,action))==0)
+		    break;
+
+	       if(ret&wait_for_read){
+		    if(net_data_read(req,0)==CI_ERROR)
+			 return CI_ERROR;
+	       }
+	       if(ret&wait_for_write){
+		    if(!req->data_locked && req->send_status==SEND_NOTHING ){
+			 update_send_status(req);
+		    }
+		    send_current_block_data(req);
+	       }
+	  }
+
+	  if(req->remain_send_block_bytes==0){
+	       if(update_send_status(req)==CI_ERROR)
+		    return CI_ERROR;
+	       // if(update_send_status==CI_EOF)/*earlier responce from icap server???...*/
+	  }
+	  
+	  /*In the following loop, parses the chunks from readed data
+	    and try to write data to the service.
+	    At the same time reads the data from module and try to fill
+	    the req->wbuf
+	   */
+	  parse_chunk_ret=0;
+	  do{
+	       if(req->pstrblock_read_len!=0 && req->write_to_module_pending==0){
+		    if((parse_chunk_ret=parse_chunk_data(req,&wchunkdata))==CI_ERROR){
+			 ci_debug_printf(1,"Error parsing chunks!\n");
+			 return CI_ERROR;
+		    }
+		    
+		    if(parse_chunk_ret==CI_EOF)
+			 req->eof_received=1;
+	       }
+	       
+	       if(wchunkdata && req->write_to_module_pending)
+		    wbytes=req->write_to_module_pending;
+	       else
+		    wbytes=0;
+	       
+	       if(req->send_status==SEND_BODY && !service_eof){
+		    if(req->remain_send_block_bytes==0){
+			 /*Leave space for chunk spec..*/
+			 rchunkdata=req->wbuf+EXTRA_CHUNK_SIZE; 
+			 req->pstrblock_responce=rchunkdata; /*does not needed!*/
+			 rchunkisfull=0;
+		    }
+		    if(MAX_CHUNK_SIZE-req->remain_send_block_bytes>0){
+			 rbytes=MAX_CHUNK_SIZE-req->remain_send_block_bytes;		    
+		    }
+		    else{
+			 rchunkisfull=1;
+			 rbytes=0;
+		    }
+	       }
+	       else
+		    rbytes=0;
+	       
+	       if(service_io(req,rchunkdata,&rbytes,wchunkdata,&wbytes,req->eof_received)==CI_ERROR)
+		    return CI_ERROR;
+	       if(wbytes){
+		    wchunkdata+=wbytes;
+		    req->write_to_module_pending-=wbytes;
+	       }
+	       if(rbytes>0){
+		    rchunkdata+=rbytes;
+		    req->remain_send_block_bytes+=rbytes;
+	       }
+	       else if(rbytes==CI_EOF)
+		    service_eof=1;
+	       
+	  }while(req->pstrblock_read_len!=0 && parse_chunk_ret!=CI_NEEDS_MORE && !rchunkisfull);
+	  
+	  action=0;
+	  if(!req->write_to_module_pending){
+	       action=wait_for_read;
+	       wchunkdata=NULL;
+	  }
+	  
+	  if(req->send_status==SEND_BODY){
+	       if(req->remain_send_block_bytes==0 && service_eof==1)
+		    req->remain_send_block_bytes=CI_EOF;
+	       
+	       if((format_body_chunk(req)) == CI_EOF)
+		    req->send_status=SEND_EOF;
+	  }
+
+	  if(req->remain_send_block_bytes){
+	       action=action|wait_for_write;
+	  }
+	  
+     }while(!req->eof_received && action);
+
+     if(req->eof_received)
+	  return CI_OK;
+
+     if(!action){
+	  ci_debug_printf(1,"Bug in the service. Please report to the servive author!!!!\n");
+     }else{
+	  ci_debug_printf(5,"Error reading from network......\n");
+     }
+     return CI_ERROR;
+}
+
 
 
 int rest_responce(request_t *req){
      int ret=0;
-
-     if(req->responce_status==SEND_EOF && req->remain_send_block_bytes==0){
+     int (*readdata)(void *data,char *,int,struct request *);
+     readdata=req->current_service_mod->mod_readdata;
+     
+     if(req->send_status==SEND_EOF && req->remain_send_block_bytes==0){
 	  ci_debug_printf(5,"OK sending all data\n");
 	  return CI_OK;
      }
-
-     if(req->responce_status==SEND_NOTHING){ //If nothing has send start sending....
-	  if((ret=start_send_data(req))==CI_ERROR){
-	       ci_debug_printf(3,"Error sending data in rest_responce\n");
-	       return CI_ERROR;
-	  }
-     }
-     
      do{
-	  if((ret=wait_for_outgoing_data(req->connection->fd))<=0){
-	       ci_debug_printf(1,"Timeout sending data. Ending .......\n");
-	       return CI_ERROR; /*Or something that mean timeout better ..........*/
+	  while(req->remain_send_block_bytes>0){
+	       if((ret=wait_for_outgoing_data(req->connection->fd))<=0){
+		    ci_debug_printf(1,"Timeout sending data. Ending .......\n");
+		    return CI_ERROR; 
+	       }
+	       send_current_block_data(req);
 	  }
-     }while((ret=send_some_data(req))>=0);
+	  
+	  if(req->send_status==SEND_BODY && req->remain_send_block_bytes==0){
+	       req->pstrblock_responce=req->wbuf+EXTRA_CHUNK_SIZE; /*Leave space for chunk spec..*/
+	       req->remain_send_block_bytes=(*readdata)(req->service_data,req->pstrblock_responce,
+							MAX_CHUNK_SIZE,req);
+	       if(req->remain_send_block_bytes==CI_ERROR)/*CI_EOF of CI_ERROR, stop sending....*/
+		    return CI_ERROR;
 
+	       if((ret=format_body_chunk(req))==CI_EOF){
+		    req->send_status=SEND_EOF;
+	       }
+	  }
+	  
+     }while((ret=update_send_status(req))>=0); /*CI_EOF is < 0*/
 
      if(ret==CI_ERROR)
 	  return ret;
 
      return CI_OK;
 }
-
-
-int get_send_body(request_t *req){
-     int ret,get_data_ret;
-
-     req->responce_status=SEND_NOTHING;
-     while((get_data_ret=get_preview_or_chunk_data(req,0))==CI_OK){
-	  ci_debug_printf(10,"OK getting data...\n");
-	  if(!(req->data_locked)){
-	       if(req->responce_status==SEND_NOTHING){
-		    if((ret=start_send_data(req))==CI_ERROR){
-			 ci_debug_printf(1,"Error start sending data!!!!!\n");
-			 return CI_ERROR;
-		    }
-	       }
-	       if((ret=send_some_data(req))<0)
-		    return CI_ERROR;
-	  }
-	  else{
-	      /* ci_debug_printf(10,"Not ready to send data yet\n");*/
-	  }
-     }
-     if(get_data_ret==CI_EOF){ //we have read all data.........
-	  return CI_OK;
-     }
-     ci_debug_printf(5,"What the hell hapens??????? (ret:%d)",get_data_ret);
-     return CI_ERROR;
-}
-
 
 void options_responce(request_t *req){
      char buf[256];
@@ -863,19 +743,23 @@ void options_responce(request_t *req){
      req->pstrblock_responce=head->buf;
      req->remain_send_block_bytes=head->bufused;
      
-     send_current_block_data(req);
-
+     do{
+	  if((wait_for_outgoing_data(req->connection->fd))<=0){
+	       ci_debug_printf(1,"Timeout sending data. Ending .......\n");
+	       return; 
+	  }
+	  send_current_block_data(req);
+	  
+     }while(req->remain_send_block_bytes>0);
+	  
 //     if(responce_body)
 //	  send_body_responce(req,responce_body);
 
 }
 
-
-
 int process_request(request_t *req){
 //     void *b;
      int res,preview_status=0,auth_status=CI_ACCESS_ALLOW;
-
 
      res=parse_header(req);
 
@@ -901,10 +785,6 @@ int process_request(request_t *req){
 	  return CI_ERROR; /*Or something that means authentication error*/
      }
   
-
-//     debug_print_request(req);
-
-
      if(!req->current_service_mod){
 	  ci_debug_printf(1,"Service not found\n");
 	  ec_responce(req,EC_404);
@@ -925,11 +805,9 @@ int process_request(request_t *req){
      case ICAP_REQMOD:
      case ICAP_RESPMOD:
 	  preview_status=0;
-/*	  if(req->current_service_mod->mod_end_of_headers_handler){
-	       req->current_service_mod->mod_end_of_headers_handler(req->service_data,req);
-	       }*/
 	  if(req->hasbody && req->preview>0 ){
-	       if((preview_status=get_preview_or_chunk_data(req,1))==CI_ERROR){
+	       /*if((preview_status=get_preview_or_chunk_data(req,1))==CI_ERROR){*/
+	       if((preview_status=read_preview_data(req))==CI_ERROR){
 		    ci_debug_printf(5,"An error occured while reading preview data (propably timeout)\n");
 		    ec_responce(req,EC_408);
 		    /*Responce with error.....*/
@@ -962,7 +840,7 @@ int process_request(request_t *req){
 	  }
 
 	  if(req->hasbody && preview_status>=0){
-	       ci_debug_printf(9,"Going to get_send_data.....\n");
+	       ci_debug_printf(10,"Going to get_send_data.....\n");
 	       res=get_send_body(req);
 	       if(res!=CI_OK){
 		    ci_debug_printf(5,"An error occured. Parse error or the client closed the connection (res:%d, preview status:%d)\n",res,preview_status);
