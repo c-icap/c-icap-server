@@ -103,8 +103,8 @@ CI_DECLARE_FUNC(ci_socket) icap_init_server(int port,int *protocol_family,int se
 
 CI_DECLARE_FUNC(int) ci_wait_for_data(ci_socket fd,int secs,int what_wait);
 
-#define ci_wait_for_incomming_data(fd,timeout) ci_wait_for_data(fd,timeout,wait_for_read); 
-#define ci_wait_for_outgoing_data(fd,timeout) ci_wait_for_data(fd,timeout,wait_for_write); 
+#define ci_wait_for_incomming_data(fd,timeout) ci_wait_for_data(fd,timeout,wait_for_read)
+#define ci_wait_for_outgoing_data(fd,timeout) ci_wait_for_data(fd,timeout,wait_for_write)
 
 CI_DECLARE_FUNC(int) ci_netio_init(ci_socket fd);
 CI_DECLARE_FUNC(int) ci_read(ci_socket fd,void *buf,size_t count,int timeout);

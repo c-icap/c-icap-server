@@ -87,7 +87,7 @@ typedef struct request{
      unsigned int chunk_bytes_read;
      unsigned int write_to_module_pending;
 
-     int send_status;
+     int status;
      char *pstrblock_responce;
      int remain_send_block_bytes;
 } request_t;
@@ -102,7 +102,7 @@ int recycle_request(request_t *req,ci_connection_t *connection);
 void reset_request(request_t *req);
 int process_request(request_t *);
 int parse_chunk_data(request_t *req, char **wdata);
-int net_data_read(request_t *req,int timeout);
+int net_data_read(request_t *req);
 
 
 /*********************************************/

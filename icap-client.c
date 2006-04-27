@@ -41,7 +41,7 @@ request_t *ci_client_request(ci_connection_t *conn,char *server,char *service){
 }
 
 
-void ci_request_client_reuse(request_t *req){
+void ci_client_request_reuse(request_t *req){
      int i;
 
      if(req->args)
@@ -56,7 +56,7 @@ void ci_request_client_reuse(request_t *req){
      req->responce_hasbody=0;
      reset_header(req->head);
      req->eof_received=0;
-     req->send_status=SEND_NOTHING;
+     req->status=0;
 
      req->pstrblock_read=NULL;
      req->pstrblock_read_len=0;
@@ -154,36 +154,42 @@ int ci_writen(int fd,char *buf,int len,int timeout){
 
 
 int ci_send_request_headers(request_t *req,int has_eof){
-    int ret;
     ci_encaps_entity_t **elist,*e;
     ci_header_list_t *headers;
-    
+    int bytes;
+
     ci_request_pack(req);
-    ret=ci_writen(req->connection->fd,req->head->buf,req->head->bufused,TIMEOUT);
+    if(ci_writen(req->connection->fd,req->head->buf,req->head->bufused,TIMEOUT)<0)
+	 return CI_ERROR;
 
     elist=req->entities;
     while((e=*elist++)!=NULL){
 	if(e->type==ICAP_REQ_HDR || e->type==ICAP_RES_HDR){
 	    headers=( ci_header_list_t *)e->entity;
-	    ret=ci_writen(req->connection->fd,headers->buf,headers->bufused,TIMEOUT);
+	    if(ci_writen(req->connection->fd,headers->buf,headers->bufused,TIMEOUT)<0)
+		 return CI_ERROR;
 	}
     }
 
     if(req->preview>0 && req->preview_data.used >0 ){
-	ret=sprintf(req->wbuf,"%x\r\n",req->preview);
-	ret=ci_writen(req->connection->fd,req->wbuf,ret,TIMEOUT);
-	ret=ci_writen(req->connection->fd,req->preview_data.buf,req->preview,TIMEOUT);
+	bytes=sprintf(req->wbuf,"%x\r\n",req->preview);
+	if(ci_writen(req->connection->fd,req->wbuf,bytes,TIMEOUT)<0)
+	     return CI_ERROR;
+	if(ci_writen(req->connection->fd,req->preview_data.buf,req->preview,TIMEOUT)<0)
+	     return CI_ERROR;
 	if(has_eof){
-	    ret=ci_writen(req->connection->fd,"\r\n0; ieof\r\n\r\n",13,TIMEOUT);
-	    req->send_status=SEND_EOF;
+	     if(ci_writen(req->connection->fd,"\r\n0; ieof\r\n\r\n",13,TIMEOUT)<0)
+		  return CI_ERROR;
+	    req->eof_received=1;
+	    
 	}
 	else{
-	    ret=ci_writen(req->connection->fd,"\r\n0\r\n\r\n",7,TIMEOUT);
-	    req->send_status=SEND_BODY;
+	     if(ci_writen(req->connection->fd,"\r\n0\r\n\r\n",7,TIMEOUT)<0)
+		  return CI_ERROR;
 	}
     }
 
-    return ret;
+    return CI_OK;
 }
 
 #define STEPBUF (2*READSIZE)
@@ -265,7 +271,7 @@ int process_encapsulated(request_t *req,char *buf){
 int read_encaps_header(request_t *req,ci_header_list_t *h,int size){
      int bytes=0,remains,readed=0;
      char *buf_end=NULL;
-     printf("Going to read header with size:%d\n",size);
+     printf("Going to read header of size:%d\n",size);
      if(!set_size_header(h,size))
 	  return EC_500;
      buf_end=h->buf;
@@ -446,13 +452,14 @@ int prepere_body_chunk(request_t *req,void *data, int (*readdata)(void *data,cha
 }
 
 
+
 int send_get_data( request_t *req,
 		   void *data_source,int (*source_read)(void *,char *,int,request_t *),
 		   void *data_dest,  int (*dest_write) (void *,char *,int,request_t *)
 ){
      int ret,v1,v2,status,bytes;
      char *buf,*val;
-     if(req->send_status!=SEND_EOF){
+     if(!req->eof_received){
 	  while( prepere_body_chunk(req,data_source,source_read)>0){
 	       ret=ci_writen(req->connection->fd,req->pstrblock_responce,req->remain_send_block_bytes,TIMEOUT);
 	  }
@@ -460,8 +467,6 @@ int send_get_data( request_t *req,
 	  
 	  ci_debug_printf(5,"OK sending body\n");
 
-	  /*Reseting responce headers*/
-	  reset_header(req->head);
 	  /*And reading the new .....*/
 	  ci_read_icap_header(req,req->head,TIMEOUT);
 	  ci_headers_unpack(req->head);
@@ -487,7 +492,9 @@ int send_get_data( request_t *req,
      req->current_chunk_len=0;
      req->chunk_bytes_read=0;
      req->write_to_module_pending=0;
-     while((ret=net_data_read(req,TIMEOUT))!=CI_ERROR){
+     while(ci_wait_for_incomming_data(req->connection->fd,TIMEOUT)){
+	  if((ret=net_data_read(req))==CI_ERROR)
+	       return CI_ERROR;
 	  do{
 	       if((ret=parse_chunk_data(req,&buf))==CI_ERROR){
 		    ci_debug_printf(1,"Error parsing chunks, current chunk len: %d readed:%d, str:%s\n",
@@ -567,9 +574,11 @@ int do_send_file_request(request_t *req,
 	 
 	 sscanf(req->head->buf,"ICAP/%d.%d %d",&v1,&v2,&preview_status);
 	 ci_debug_printf(1,"Responce was with status:%d \n",preview_status);
-	 if(req->send_status==SEND_EOF && preview_status==200){
+	 if(req->eof_received && preview_status==200){
 	      ci_headers_unpack(req->head);
 	 }
+	 else
+	      reset_header(req->head);
     }  
     
     if(preview_status==204)
@@ -580,8 +589,6 @@ int do_send_file_request(request_t *req,
     
     return CI_OK;    
 }
-
-
 
 int fileread(void *fd,char *buf,int len,request_t *req){
     int ret;
@@ -594,7 +601,6 @@ int filewrite(void *fd,char *buf,int len,request_t *req){
     ret=write(*(int *)fd,buf,len);
     return ret;
 }
-
 
 int main(int argc, char **argv){
      int fd_in,fd_out;
@@ -657,7 +663,7 @@ int main(int argc, char **argv){
 
 
 
-	 ci_request_client_reuse(req);
+	 ci_client_request_reuse(req);
 
 	 ci_debug_printf(1,"Preview:%d keepalive:%d,allow204:%d\n",
 			 req->preview,req->keepalive,req->allow204);

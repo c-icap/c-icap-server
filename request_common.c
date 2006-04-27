@@ -216,7 +216,7 @@ request_t *ci_request_alloc(ci_connection_t *connection){
      req->eof_received=0;
      
      req->head=mk_header();
-     req->send_status=SEND_NOTHING;
+     req->status=SEND_NOTHING;
 
 
      req->pstrblock_read=NULL;
@@ -265,7 +265,7 @@ void ci_request_reset(request_t *req){
      req->responce_hasbody=0;
      reset_header(req->head);
      req->eof_received=0;
-     req->send_status=SEND_NOTHING;
+     req->status=SEND_NOTHING;
 
      req->pstrblock_read=NULL;
      req->pstrblock_read_len=0;
@@ -426,7 +426,7 @@ int parse_chunk_data(request_t *req, char **wdata){
     return CI_OK;
 }
 
-int net_data_read(request_t *req,int timeout){
+int net_data_read(request_t *req){
     int bytes;
   
     if(req->pstrblock_read!=req->rbuf){
@@ -443,9 +443,9 @@ int net_data_read(request_t *req,int timeout){
 	return CI_ERROR;
     }
 
-    if((bytes=ci_read(req->connection->fd,
-		      req->rbuf+req->pstrblock_read_len,
-		      bytes,timeout))<0){ /*... read some data...*/
+    if((bytes=ci_read_nonblock(req->connection->fd,
+			       req->rbuf+req->pstrblock_read_len,
+			       bytes))<0){ /*... read some data...*/
 	ci_debug_printf(5,"Error reading data (read return=%d) \n",bytes);
 	return CI_ERROR; 
     }
