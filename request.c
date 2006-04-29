@@ -33,8 +33,6 @@
 #include "util.h"
 #include "cfg_param.h"
 
-#define STARTBUF 1024
-#define STEPBUF (2*READSIZE)
 
 extern int TIMEOUT;
 
@@ -83,26 +81,30 @@ int recycle_request(request_t *req,ci_connection_t *connection){
      return 1;
 }
 
+/*Here we want to read in small blocks icap header becouse in most cases
+ it will not bigger than 512-1024 bytes.
+ So we are going to do small reads and small increments in icap headers size,
+ to save some space and keep small the number of over-read bytes
+*/
+#define ICAP_HEADER_READSIZE 512
 
 /*this function check if there is enough space in buffer buf ....*/
-int check_realloc(char **buf,int *size,int used,int mustadded){
+int icap_header_check_realloc(char **buf,int *size,int used,int mustadded){
      char *newbuf;
      int len;
      if(*size-used < mustadded ){
-	  len=*size+STEPBUF;
+	  len=*size+ICAP_HEADER_READSIZE;
 	  newbuf=realloc(*buf,len); 
 	  if(!newbuf){
 	       return EC_500;
 	  }
 	  *buf=newbuf;
-	  *size=*size+STEPBUF;
+	  *size=*size+ICAP_HEADER_READSIZE;
      }
      return 0;
 }
 
 
-
-/*Must be moved to header.c as ci_header_unpack......*/
 int ci_read_icap_header(request_t *req,ci_header_list_t *h,int timeout){
      int bytes,request_status=0,i,eoh=0,startsearch=0,readed=0;
      char *buf_end;
@@ -110,7 +112,7 @@ int ci_read_icap_header(request_t *req,ci_header_list_t *h,int timeout){
      buf_end=h->buf;
      readed=0;
      
-     while((bytes=ci_read(req->connection->fd,buf_end,READSIZE,timeout))>0){
+     while((bytes=ci_read(req->connection->fd,buf_end,ICAP_HEADER_READSIZE,timeout))>0){
 	  readed+=bytes;
 	  for(i=startsearch;i<bytes-3;i++){ /*search for end of header....*/
 	       if(strncmp(buf_end+i,"\r\n\r\n",4)==0){
@@ -121,7 +123,7 @@ int ci_read_icap_header(request_t *req,ci_header_list_t *h,int timeout){
 	  }
 	  if(eoh) break;
 	  
-	  if((request_status=check_realloc(&(h->buf),&(h->bufsize),readed,READSIZE))!=0)
+	  if((request_status=icap_header_check_realloc(&(h->buf),&(h->bufsize),readed,ICAP_HEADER_READSIZE))!=0)
 	       break;
 	  buf_end=h->buf+readed; 	       
 	  if(startsearch>-3) 

@@ -178,16 +178,18 @@ void destroy_header(ci_header_list_t *h){
 
 int set_size_header(ci_header_list_t *h, int size){
      char * newbuf;
+     int new_size;
      if(size<h->bufsize)
 	  return 1;
-     
-     newbuf=realloc(h->buf,size*sizeof(char));
+     /*Allocate buffer of size multiple of HEADSBUFSIZE*/
+     new_size=(size/HEADSBUFSIZE+1)*HEADSBUFSIZE;
+     newbuf=realloc(h->buf,new_size*sizeof(char));
      if(!newbuf){
 	  ci_debug_printf(1,"Server Error:Error allocation memory \n");
 	  return 0;
      }
      h->buf=newbuf;
-     h->bufsize=size;
+     h->bufsize=new_size;
      return 1;
 }
 

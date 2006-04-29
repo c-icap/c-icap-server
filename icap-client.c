@@ -23,6 +23,7 @@
 #include <string.h>
 #include <errno.h>
 #include <stdarg.h>
+#include <ctype.h>
 #include "request.h"
 #include "net_io.h"
 #include "cfg_param.h"
@@ -192,58 +193,51 @@ int ci_send_request_headers(request_t *req,int has_eof){
     return CI_OK;
 }
 
-#define STEPBUF (2*READSIZE)
 /*this function check if there is enough space in buffer buf ....*/
 int check_realloc(char **buf,int *size,int used,int mustadded){
      char *newbuf;
      int len;
-     if(*size-used < mustadded ){
-	  len=*size+STEPBUF;
+     while(*size-used < mustadded ){
+	  len=*size+HEADSBUFSIZE;
 	  newbuf=realloc(*buf,len); 
 	  if(!newbuf){
 	       return EC_500;
 	  }
 	  *buf=newbuf;
-	  *size=*size+STEPBUF;
+	  *size=*size+HEADSBUFSIZE;
      }
-     return 0;
+     return CI_OK;
 }
 
 
-
-/*Must be moved to header.c as ci_header_unpack......*/
-int ci_read_icap_header(request_t *req,ci_header_list_t *h,int timeout){
-     int bytes,request_status=0,i,eoh=0,startsearch=0,readed=0;
-     char *buf_end;
-
-     buf_end=h->buf;
-     readed=0;
+int parse_icap_header(request_t *req,ci_header_list_t *h){
+     int readed=0,eoh=0;;
+     char *buf,*end;
+     if(req->pstrblock_read_len<4)/*we need 4 bytes for the end of headers "\r\n\r\n" string*/
+	  return CI_NEEDS_MORE;
+     if((end=strstr(req->pstrblock_read,"\r\n\r\n"))!=NULL){
+	  readed=end-req->pstrblock_read+4;
+	  eoh=1;
+     }
+     else
+	  readed=req->pstrblock_read_len-3;
      
-     while((bytes=ci_read(req->connection->fd,buf_end,READSIZE,timeout))>0){
-	  readed+=bytes;
-	  for(i=startsearch;i<bytes-3;i++){ /*search for end of header....*/
-	       if(strncmp(buf_end+i,"\r\n\r\n",4)==0){
-		    buf_end=buf_end+i+2;
-		    eoh=1;
-		    break;
-	       }
-	  }
-	  if(eoh) break;
-	  
-	  if((request_status=check_realloc(&(h->buf),&(h->bufsize),readed,READSIZE))!=0)
-	       break;
-	  buf_end=h->buf+readed; 	       
-	  if(startsearch>-3) 
-	       startsearch=(readed>3?-3:-readed); /*Including the last 3 char ellements .......*/
-     }
-     if(bytes<0)
-	  return bytes;
-     h->bufused=buf_end - h->buf; /* -1 ;*/
-     req->pstrblock_read=buf_end+2; /*after the \r\n\r\n. We keep the first \r\n and the other dropped....*/
-     req->pstrblock_read_len=readed-h->bufused-2; /*the 2 of the 4 characters \r\n\r\n and the '\0' character*/
-     return request_status;
-}
+     if(check_realloc(&(h->buf),&(h->bufsize),h->bufused,readed)!=CI_OK)
+	  return CI_ERROR;
+     
+     buf=h->buf+h->bufused;
+     memcpy(buf,req->pstrblock_read,readed);
+     h->bufused+=readed;
+     req->pstrblock_read+=readed;
+     req->pstrblock_read_len-=readed;
+     
+     if(!eoh)
+	  return CI_NEEDS_MORE;
 
+     h->bufused-=2; /*We keep the first \r\n  of the eohead sequence and the other dropped
+		      So stupid but for the time never mind....*/
+     return CI_OK;
+}
 
 int process_encapsulated(request_t *req,char *buf){
      char *start;
@@ -268,65 +262,41 @@ int process_encapsulated(request_t *req,char *buf){
 }
 
 
-int read_encaps_header(request_t *req,ci_header_list_t *h,int size){
-     int bytes=0,remains,readed=0;
+int parse_encaps_header(request_t *req,ci_header_list_t *h,int size){
+     int remains,readed=0;
      char *buf_end=NULL;
-     printf("Going to read header of size:%d\n",size);
-     if(!set_size_header(h,size))
-	  return EC_500;
-     buf_end=h->buf;
-     
+
+//     readed=h->bufused;
+     remains=size-h->bufused;
+     if(remains<0)/*is it possible ?????*/
+	  return CI_ERROR;
+     if(remains==0)
+	  return CI_OK;
+
      if(req->pstrblock_read_len>0){
-	  readed=(size>req->pstrblock_read_len?req->pstrblock_read_len:size);
+	  readed=(remains>req->pstrblock_read_len?req->pstrblock_read_len:remains);
 	  memcpy(h->buf,req->pstrblock_read,readed);
-	  buf_end=h->buf+readed;
-	  if(size<=req->pstrblock_read_len){/*We have readed all this header.......*/
-	       req->pstrblock_read=(req->pstrblock_read)+readed;
-	       req->pstrblock_read_len=(req->pstrblock_read_len)-readed;
-	  }
-	  else{
-	       req->pstrblock_read=NULL;
-	       req->pstrblock_read_len=0;
-	  }
-     }
+	  h->bufused+=readed;
+	  req->pstrblock_read=(req->pstrblock_read)+readed;
+	  req->pstrblock_read_len=(req->pstrblock_read_len)-readed;
 
-     remains=size-readed;
-     while(remains>0){
-	  if((bytes=ci_read(req->connection->fd,buf_end,remains,TIMEOUT))<0)
-	       return bytes;
-	  remains-=bytes;
-	  buf_end+=bytes;
      }
+     
+     if(h->bufused<size)
+	  return CI_NEEDS_MORE;
 
-     h->bufused=buf_end - h->buf; // -1 ;
+     buf_end=h->buf+h->bufused;
      if(strncmp(buf_end-4,"\r\n\r\n",4)==0){
 	  h->bufused-=2; /*eat the last 2 bytes of "\r\n\r\n"*/
+	  return CI_OK;
      }
-     return EC_100;
-}
-
-int read_encaps_headers(request_t *req){  
-     int size,i,request_status=0;
-     ci_encaps_entity_t *e=NULL;
-     for(i=0;(e=req->entities[i])!=NULL;i++){
-	  if(e->type>ICAP_RES_HDR) //res_body,req_body or opt_body so the end of the headers.....
-	       return EC_100;
-
-	  if(req->entities[i+1]==NULL)
-	       return EC_400;
-
-	  size=req->entities[i+1]->start-e->start;
-
-	  if((request_status=read_encaps_header(req,(ci_header_list_t *)e->entity,size))!=EC_100)
-	       return request_status;
-
-	  if((request_status=ci_headers_unpack((ci_header_list_t *)e->entity))!=EC_100)
-	       return request_status;
+     else{
+	  ci_debug_printf(1,"Error parsing encapsulated headers,"
+			  "no \\r\\n\\r\\n at the end of headers:%s!\n",buf_end);
+	  return CI_ERROR;
      }
-     return EC_100;
+     
 }
-
-
 
 
 int get_options(request_t *req){
@@ -335,7 +305,14 @@ int get_options(request_t *req){
 	return CI_ERROR;
     ci_send_request_headers(req,0);
     reset_header(req->head);
-    ci_read_icap_header(req,req->head,128);
+
+//    ci_read_icap_header(req,req->head,128);
+    do{
+	ci_wait_for_incomming_data(req->connection->fd,TIMEOUT);
+	if(net_data_read(req)==CI_ERROR)
+	     return CI_ERROR;
+    }while(parse_icap_header(req,req->head)==CI_NEEDS_MORE);
+
     ci_headers_unpack(req->head);
     ci_get_request_options(req,req->head);
 
@@ -452,49 +429,63 @@ int prepere_body_chunk(request_t *req,void *data, int (*readdata)(void *data,cha
 }
 
 
-
-int send_get_data( request_t *req,
-		   void *data_source,int (*source_read)(void *,char *,int,request_t *),
-		   void *data_dest,  int (*dest_write) (void *,char *,int,request_t *)
-){
-     int ret,v1,v2,status,bytes;
+int parse_incoming_data(request_t *req,void *data_dest,  int (*dest_write) (void *,char *,int,request_t *)){
+     int ret,v1,v2,status,bytes,size;
      char *buf,*val;
-     if(!req->eof_received){
-	  while( prepere_body_chunk(req,data_source,source_read)>0){
-	       ret=ci_writen(req->connection->fd,req->pstrblock_responce,req->remain_send_block_bytes,TIMEOUT);
-	  }
-	  ret=ci_writen(req->connection->fd,"0\r\n\r\n",5,TIMEOUT);
-	  
-	  ci_debug_printf(5,"OK sending body\n");
+     ci_header_list_t *resp_heads;
 
+     if(req->status==GET_NOTHING){
 	  /*And reading the new .....*/
-	  ci_read_icap_header(req,req->head,TIMEOUT);
-	  ci_headers_unpack(req->head);
+	  ret=parse_icap_header(req,req->head);
+	  if(ret!=CI_OK)
+	       return ret;
 	  sscanf(req->head->buf,"ICAP/%d.%d %d",&v1,&v2,&status);
-	  ci_debug_printf(1,"Responce was with status:%d \n",status);
+	  ci_debug_printf(1,"Responce was with status:%d \n",status);	  
+	  ci_headers_unpack(req->head);
+
+	  if((val=search_header(req->head,"Encapsulated"))==NULL){
+	       ci_debug_printf(1,"No encapsulated entities!\n");
+	       return CI_ERROR;
+	  }
+	  process_encapsulated(req,val);
+
+	  if(!req->entities[0] || !req->entities[1])
+	       return CI_ERROR;
+	  size=req->entities[1]->start-req->entities[0]->start;
+	  resp_heads=req->entities[0]->entity;
+	  if(!set_size_header(resp_heads,size))
+	       return CI_ERROR;
+
+
+	  req->status=GET_HEADERS;
+//	  return CI_NEEDS_MORE;
      }
 
      /*read encups headers */
      
-     if((val=search_header(req->head,"Encapsulated"))==NULL){
-	  ci_debug_printf(1,"No encapsulated entities!\n");
-	  return CI_OK;
+     /*Non option responce has 2 entities: 
+          "req-headers [req-body|null-body]" or resp-headers [resp-body||null-body]   
+       So here parse_encaps_header will be called for one headers block
+     */
+
+     if(req->status==GET_HEADERS){
+	  size=req->entities[1]->start-req->entities[0]->start;
+	  resp_heads=req->entities[0]->entity;
+	  if((ret=parse_encaps_header(req,resp_heads,size))!=CI_OK)
+	       return ret;
+
+     
+	  ci_headers_unpack(resp_heads);
+	  ci_debug_printf(5,"OK reading headers boing to read body\n");
+
+	  /*reseting body chunks related variables*/	  
+	  req->current_chunk_len=0;
+	  req->chunk_bytes_read=0;
+	  req->write_to_module_pending=0;	       
+	  req->status=SEND_BODY;
      }
-     process_encapsulated(req,val);
      
-     
-     ret=read_encaps_headers(req);
-     ci_debug_printf(5,"Read_encaps_headers return:%d\n",ret);
-     /*read the rest body .......*/
-     
-     ci_debug_printf(5,"OK reading headers\nBody READ:\n");
-     
-     req->current_chunk_len=0;
-     req->chunk_bytes_read=0;
-     req->write_to_module_pending=0;
-     while(ci_wait_for_incomming_data(req->connection->fd,TIMEOUT)){
-	  if((ret=net_data_read(req))==CI_ERROR)
-	       return CI_ERROR;
+     if(req->status==SEND_BODY){
 	  do{
 	       if((ret=parse_chunk_data(req,&buf))==CI_ERROR){
 		    ci_debug_printf(1,"Error parsing chunks, current chunk len: %d readed:%d, str:%s\n",
@@ -514,24 +505,75 @@ int send_get_data( request_t *req,
 	       }
 
 	       if(ret==CI_EOF){
+		    req->status=GET_EOF;
 		    return CI_OK;
 	       }
 	  }while(ret!=CI_NEEDS_MORE);
+	  
+	  return CI_NEEDS_MORE;
      }
+     
+     return CI_OK;
+}
 
-     if(ret==CI_ERROR){
-	  ci_debug_printf(1,"Error reading from net!\n");
-	  return CI_ERROR;
+const char *eof_str="0\r\n\r\n";
+
+int send_get_data( request_t *req,
+		   void *data_source,int (*source_read)(void *,char *,int,request_t *),
+		   void *data_dest,  int (*dest_write) (void *,char *,int,request_t *)
+){
+     int io_ret,read_status,bytes,io_action;
+     if(!req->eof_received){
+	  io_action=wait_for_readwrite;
+     }
+     else
+	  io_action=wait_for_read;
+     
+     while(io_action && (io_ret=ci_wait_for_data(req->connection->fd,TIMEOUT,io_action))){
+	  if(io_ret&wait_for_write){
+	       if(req->remain_send_block_bytes==0){
+		    if(prepere_body_chunk(req,data_source,source_read)<=0){
+			 req->eof_received=1;
+			 req->pstrblock_responce=eof_str;
+			 req->remain_send_block_bytes=5;
+		    }
+	       }
+	       bytes=ci_write_nonblock(req->connection->fd,
+				     req->pstrblock_responce,req->remain_send_block_bytes);
+	       if(bytes<0)
+		    return CI_ERROR;
+	       req->pstrblock_responce+=bytes;
+	       req->remain_send_block_bytes-=bytes;
+	  }
+	  
+	  if(req->eof_received && req->remain_send_block_bytes==0)
+	       io_action=0;
+	  else
+	       io_action=wait_for_write;
+
+
+	  if(io_ret&wait_for_read){
+	       if(net_data_read(req)==CI_ERROR)
+		    return CI_ERROR;
+	       
+	       if((read_status=parse_incoming_data(req,data_dest,dest_write))==CI_ERROR)
+		    return CI_ERROR;	       
+	  }
+	  
+	  if(req->status!=GET_EOF)
+	       io_action|=wait_for_read;
+
      }
      return CI_OK;
 }
+
 
 
 int do_send_file_request(request_t *req,
 			 void *data_source,int (*source_read)(void *,char *,int,request_t *),
 			 void *data_dest,  int (*dest_write) (void *,char *,int,request_t *)){
     int ret,v1,v2,remains,pre_eof=0,preview_status;
-    char *buf;
+    char *buf,*val;
     
     if(CI_OK!=create_request(req,req->req_server,req->service,ICAP_RESPMOD)){
 	ci_debug_printf(1,"Error making respmod request ....\n");
@@ -553,6 +595,8 @@ int do_send_file_request(request_t *req,
 	req->preview-=remains;
 	req->preview_data.used=req->preview;
     }
+    if(pre_eof)
+	req->eof_received=1;
 
     /*Adding the */
     ci_request_create_respmod(req,1);
@@ -566,16 +610,26 @@ int do_send_file_request(request_t *req,
     
     reset_header(req->head);
     preview_status=100;
-    printf("waiting for preview\n");\
+    printf("waiting for preview (preview size is:%d)\n",req->preview);
 
     if(req->preview>0){/*we must wait for ICAP responce here.....*/
-	 ci_read_icap_header(req,req->head,TIMEOUT);
-	 ci_debug_printf(1,"I am getting preview responce %s\n",req->head->buf);
+
+	 do{
+	     ci_wait_for_incomming_data(req->connection->fd,TIMEOUT);
+	     if(net_data_read(req)==CI_ERROR)
+		  return CI_ERROR;
+	 }while(parse_icap_header(req,req->head)==CI_NEEDS_MORE);
 	 
 	 sscanf(req->head->buf,"ICAP/%d.%d %d",&v1,&v2,&preview_status);
 	 ci_debug_printf(1,"Responce was with status:%d \n",preview_status);
 	 if(req->eof_received && preview_status==200){
+	      req->status=GET_HEADERS;
 	      ci_headers_unpack(req->head);
+	      if((val=search_header(req->head,"Encapsulated"))==NULL){
+		   ci_debug_printf(1,"No encapsulated entities!\n");
+		   return CI_ERROR;
+	      }
+	      process_encapsulated(req,val);	      
 	 }
 	 else
 	      reset_header(req->head);

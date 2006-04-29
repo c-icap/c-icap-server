@@ -68,9 +68,9 @@ typedef struct ci_encaps_entity{
 } ci_encaps_entity_t;
 
 
-#define BUFSIZE 4096
-#define HEADERSTARTSIZE 30
-#define HEADSBUFSIZE 256
+#define BUFSIZE          4096
+#define HEADERSTARTSIZE  64
+#define HEADSBUFSIZE     BUFSIZE
 
 CI_DECLARE_FUNC(ci_header_list_t *) mk_header();
 CI_DECLARE_FUNC(void)    destroy_header(ci_header_list_t *);
