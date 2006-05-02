@@ -25,9 +25,12 @@
 #include <stdarg.h>
 #include <ctype.h>
 #include "request.h"
+#include "simple_api.h"
 #include "net_io.h"
 #include "cfg_param.h"
 #include "debug.h"
+
+/*Some of the following code will be moved to the icap library*/
  
 int TIMEOUT=300;
 
@@ -320,33 +323,6 @@ int get_options(request_t *req){
 }
 
 
-
-char *icap_server="localhost";
-char *service="echo";
-char *input_file=NULL;
-char *output_file=NULL;
-int RESPMOD=1;
-
-static struct options_entry options[]={
-     {"-i","icap_servername",&icap_server,ci_cfg_set_str,"The icap server name"},
-     {"-f","filename",&input_file,ci_cfg_set_str,"Send this file to the icap server.\nDefault is to send an options request"},
-     {"-o","filename",&output_file,ci_cfg_set_str,"Save output to this file.\nDefault is to send to the stdout"},
-     {"-req",NULL,&RESPMOD,ci_cfg_disable,"Send a request modification instead of responce modification"},
-     {"-d","level", &CI_DEBUG_LEVEL,ci_cfg_enable,"Print debug info to stdout"},
-     {NULL,NULL,NULL,NULL}
-};
-
-void log_errors(request_t *req, const char *format,... ){
-     va_list ap;
-     va_start(ap,format);
-     vfprintf(stderr,format,ap);
-     va_end(ap);
-}
-
-void vlog_errors(request_t *req, const char *format, va_list ap){
-    vfprintf(stderr,format,ap);
-}
-
 int ci_host_to_sockaddr_t(char *servername,ci_sockaddr_t *addr,int proto){
     int ret=0;
     struct addrinfo hints,*res;
@@ -355,7 +331,7 @@ int ci_host_to_sockaddr_t(char *servername,ci_sockaddr_t *addr,int proto){
     hints.ai_socktype=SOCK_STREAM;
     hints.ai_protocol=0;
     if((ret=getaddrinfo(servername,NULL,&hints,&res))!=0){
-	ci_debug_printf(1,"Error geting addrinfo return was:%d\n",ret);
+	ci_debug_printf(1,"Error geting addrinfo\n");
 	return 0;
     }
     //fill the addr..... and 
@@ -401,14 +377,14 @@ ci_connection_t *ci_connect_to(char *servername,int port,int proto){
 }
 
 
-int prepere_body_chunk(request_t *req,void *data, int (*readdata)(void *data,char *,int,struct request *)){
+int prepere_body_chunk(request_t *req,void *data, int (*readdata)(void *data,char *,int)){
      int chunksize,def_bytes;
      char *wbuf=NULL;
      char tmpbuf[EXTRA_CHUNK_SIZE];
 
      
      wbuf=req->wbuf+EXTRA_CHUNK_SIZE;/*Let size of EXTRA_CHUNK_SIZE space in the beggining of chunk*/
-     if((chunksize=(*readdata)(data,wbuf,MAX_CHUNK_SIZE,req)) <=0){
+     if((chunksize=(*readdata)(data,wbuf,MAX_CHUNK_SIZE)) <=0){
 /*	  ci_debug_printf(1,"No data to send or eof reached (%d,).......\n",chunksize);*/
 	  req->remain_send_block_bytes=0;
 	  return chunksize; /*Must be 0 or CI_EOF */
@@ -429,7 +405,7 @@ int prepere_body_chunk(request_t *req,void *data, int (*readdata)(void *data,cha
 }
 
 
-int parse_incoming_data(request_t *req,void *data_dest,  int (*dest_write) (void *,char *,int,request_t *)){
+int parse_incoming_data(request_t *req,void *data_dest,  int (*dest_write) (void *,char *,int)){
      int ret,v1,v2,status,bytes,size;
      char *buf,*val;
      ci_header_list_t *resp_heads;
@@ -440,7 +416,7 @@ int parse_incoming_data(request_t *req,void *data_dest,  int (*dest_write) (void
 	  if(ret!=CI_OK)
 	       return ret;
 	  sscanf(req->head->buf,"ICAP/%d.%d %d",&v1,&v2,&status);
-	  ci_debug_printf(1,"Responce was with status:%d \n",status);	  
+	  ci_debug_printf(3,"Responce was with status:%d \n",status);	  
 	  ci_headers_unpack(req->head);
 
 	  if((val=search_header(req->head,"Encapsulated"))==NULL){
@@ -496,7 +472,7 @@ int parse_incoming_data(request_t *req,void *data_dest,  int (*dest_write) (void
 	       }
 
 	       while(req->write_to_module_pending>0){
-		    bytes=(*dest_write)(data_dest,buf,req->write_to_module_pending,req);
+		    bytes=(*dest_write)(data_dest,buf,req->write_to_module_pending);
 		    if(bytes<0){
 			 ci_debug_printf(1,"Error writing to output file!\n");
 			 return CI_ERROR;
@@ -519,8 +495,8 @@ int parse_incoming_data(request_t *req,void *data_dest,  int (*dest_write) (void
 const char *eof_str="0\r\n\r\n";
 
 int send_get_data( request_t *req,
-		   void *data_source,int (*source_read)(void *,char *,int,request_t *),
-		   void *data_dest,  int (*dest_write) (void *,char *,int,request_t *)
+		   void *data_source,int (*source_read)(void *,char *,int),
+		   void *data_dest,  int (*dest_write) (void *,char *,int)
 ){
      int io_ret,read_status,bytes,io_action;
      if(!req->eof_received){
@@ -534,7 +510,7 @@ int send_get_data( request_t *req,
 	       if(req->remain_send_block_bytes==0){
 		    if(prepere_body_chunk(req,data_source,source_read)<=0){
 			 req->eof_received=1;
-			 req->pstrblock_responce=eof_str;
+			 req->pstrblock_responce=(char *)eof_str;
 			 req->remain_send_block_bytes=5;
 		    }
 	       }
@@ -570,8 +546,8 @@ int send_get_data( request_t *req,
 
 
 int do_send_file_request(request_t *req,
-			 void *data_source,int (*source_read)(void *,char *,int,request_t *),
-			 void *data_dest,  int (*dest_write) (void *,char *,int,request_t *)){
+			 void *data_source,int (*source_read)(void *,char *,int),
+			 void *data_dest,  int (*dest_write) (void *,char *,int)){
     int ret,v1,v2,remains,pre_eof=0,preview_status;
     char *buf,*val;
     
@@ -585,7 +561,7 @@ int do_send_file_request(request_t *req,
 	buf=req->preview_data.buf;
 	remains=req->preview;
 	while(remains && ! pre_eof){  /*Getting the preview data*/
-	    if((ret=(*source_read)(data_source,buf,remains,req))<=0){
+	    if((ret=(*source_read)(data_source,buf,remains))<=0){
 		pre_eof=1;
 		break;
 	    }
@@ -603,14 +579,11 @@ int do_send_file_request(request_t *req,
     ci_respmod_add_header(req,"Filetype: Unknown");
     ci_respmod_add_header(req,"User: chtsanti");
     
-    printf("Going to send what we have\n");
     ci_send_request_headers(req,pre_eof);
-    printf("OK sending headers\n");
     /*send body*/
     
     reset_header(req->head);
     preview_status=100;
-    printf("waiting for preview (preview size is:%d)\n",req->preview);
 
     if(req->preview>0){/*we must wait for ICAP responce here.....*/
 
@@ -621,7 +594,7 @@ int do_send_file_request(request_t *req,
 	 }while(parse_icap_header(req,req->head)==CI_NEEDS_MORE);
 	 
 	 sscanf(req->head->buf,"ICAP/%d.%d %d",&v1,&v2,&preview_status);
-	 ci_debug_printf(1,"Responce was with status:%d \n",preview_status);
+	 ci_debug_printf(3,"Responce was with status:%d \n",preview_status);
 	 if(req->eof_received && preview_status==200){
 	      req->status=GET_HEADERS;
 	      ci_headers_unpack(req->head);
@@ -644,25 +617,83 @@ int do_send_file_request(request_t *req,
     return CI_OK;    
 }
 
-int fileread(void *fd,char *buf,int len,request_t *req){
+
+
+void print_headers(request_t *req){
+     int i;
+     int type;
+     ci_header_list_t *headers;
+     ci_debug_printf(1,"\nICAP HEADERS:\n");
+     for(i=0;i<req->head->used;i++){
+	  ci_debug_printf(1,"\t%s\n",req->head->headers[i]);
+     }
+     ci_debug_printf(1,"\n");
+
+     if((headers=ci_respmod_headers(req))==NULL){
+	  headers=ci_reqmod_headers(req);
+	  type=ICAP_REQMOD;
+     }else
+	  type=ICAP_RESPMOD;
+     
+     if(headers){
+	  ci_debug_printf(1,"%s HEADERS:\n",ci_method_string(type));
+	  for(i=0;i<req->head->used;i++){
+	       if(headers->headers[i])
+		    ci_debug_printf(1,"\t%s\n",headers->headers[i]);
+	  }
+	  ci_debug_printf(1,"\n");     
+     }
+}
+
+
+int fileread(void *fd,char *buf,int len){
     int ret;
     ret=read(*(int *)fd,buf,len);
     return ret;
 }
 
-int filewrite(void *fd,char *buf,int len,request_t *req){
+int filewrite(void *fd,char *buf,int len){
     int ret;
     ret=write(*(int *)fd,buf,len);
     return ret;
 }
 
+char *icap_server="localhost";
+char *service="echo";
+char *input_file=NULL;
+char *output_file=NULL;
+int RESPMOD=1;
+int verbose=0;
+
+static struct options_entry options[]={
+     {"-i","icap_servername",&icap_server,ci_cfg_set_str,"The icap server name"},
+     {"-f","filename",&input_file,ci_cfg_set_str,"Send this file to the icap server.\nDefault is to send an options request"},
+     {"-o","filename",&output_file,ci_cfg_set_str,"Save output to this file.\nDefault is to send to the stdout"},
+     {"-req",NULL,&RESPMOD,ci_cfg_disable,"Send a request modification instead of responce modification"},
+     {"-d","level", &CI_DEBUG_LEVEL,ci_cfg_set_int,"debug level info to stdout"},
+     {"-v",NULL,&verbose,ci_cfg_enable,"Print responce headers"},
+     {NULL,NULL,NULL,NULL}
+};
+
+void log_errors(request_t *req, const char *format,... ){
+     va_list ap;
+     va_start(ap,format);
+     vfprintf(stderr,format,ap);
+     va_end(ap);
+}
+
+void vlog_errors(request_t *req, const char *format, va_list ap){
+    vfprintf(stderr,format,ap);
+}
+
 int main(int argc, char **argv){
      int fd_in,fd_out;
-     int i,ret,port=1344;
+     int ret,port=1344;
+     char ip[CI_IPLEN];
      ci_connection_t *conn;
      request_t *req;
 
-     CI_DEBUG_LEVEL=10; /*Default debug level is 1*/
+     CI_DEBUG_LEVEL=1; /*Default debug level is 1*/
 
      if(!ci_args_apply(argc,argv,options)){
 	 ci_args_usage(argv[0],options);
@@ -684,55 +715,59 @@ int main(int argc, char **argv){
      req=ci_client_request(conn,icap_server,service);
 
      get_options(req);
-     ci_debug_printf(1,"OK done with options!\n");
-
+     ci_debug_printf(10,"OK done with options!\n");
+     ci_conn_remote_ip(conn,ip);
+     ci_debug_printf(1,"\nICAP server:%s, ip:%s, port:%d\n\n",icap_server,ip,port);
      if(!input_file){
-	 printf("OPTIONS:\n");
-	 printf("\tAllow 204:%s\n\tPreview:%d\n\tKeep alive:%s\n",
-		(req->allow204?"Yes":"No"),
-		req->preview,
-		(req->keepalive?"Yes":"No")
-	     );
-	 printf("HEADERS:\n");
-	 for(i=0;i<req->head->used;i++){
-	     printf("\t%s\n",req->head->headers[i]);
-	 }
+	  ci_debug_printf(1,"OPTIONS:\n");
+	  ci_debug_printf(1,"\tAllow 204: %s\n\tPreview: %d\n\tKeep alive: %s\n",
+			  (req->allow204?"Yes":"No"),
+			  req->preview,
+			  (req->keepalive?"Yes":"No")
+	       );
+	  print_headers(req);
      }
      else{
-	 if((fd_in=open(input_file,O_RDONLY))<0){
-	     ci_debug_printf(1,"Error openning file %s\n",input_file);
-	     exit(-1);
-	 }
+	  if((fd_in=open(input_file,O_RDONLY))<0){
+	       ci_debug_printf(1,"Error openning file %s\n",input_file);
+	       exit(-1);
+	  }
+	  
+	  if(output_file){
+	       if((fd_out=open(output_file,O_CREAT|O_RDWR|O_EXCL,S_IRWXU|S_IRGRP))<0){
+		    ci_debug_printf(1,"Error opening output file %s\n",output_file);
+		    exit(-1);
+	       }
+	  }
+	  else{
+	       fd_out=fileno(stdout);
+	  }
+	  
+	  
+	  
+	  ci_client_request_reuse(req);
+	  
+	  ci_debug_printf(10,"Preview:%d keepalive:%d,allow204:%d\n",
+			  req->preview,req->keepalive,req->allow204);
+	  
+	  ci_debug_printf(10,"OK allocating request going to send request\n");
+	  ret=do_send_file_request(req,
+				   &fd_in,(int (*)(void *,char *,int))fileread,
+				   &fd_out,(int (*)(void *,char *,int))filewrite
+	       );
+	  close(fd_in);
+	  close(fd_out);
 
-	 if(output_file){
-	      if((fd_out=open(output_file,O_CREAT|O_RDWR|O_EXCL,S_IRWXU|S_IRGRP))<0){
-		   ci_debug_printf(1,"Error opening output file %s\n",output_file);
-		   perror("WHAT:");
-		   exit(-1);
-	      }
-	 }
-	 else{
-	      fd_out=fileno(stdout);
-	 }
+	  if(ret==204){
+	       ci_debug_printf(1,"No modification needed (Allow 204 responce)\n");
+	       if(output_file)
+		    unlink(output_file);
+	  }
+	  else if(verbose)
+	       print_headers(req);
 
-
-
-	 ci_client_request_reuse(req);
-
-	 ci_debug_printf(1,"Preview:%d keepalive:%d,allow204:%d\n",
-			 req->preview,req->keepalive,req->allow204);
-
-	 ci_debug_printf(1,"OK allocating request going to send request\n");
-	 ret=do_send_file_request(req,
-			      &fd_in,(int (*)(void *,char *,int,request_t *))fileread,
-			      &fd_out,(int (*)(void *,char *,int,request_t *))filewrite
-			      );
-	 close(fd_in);
-	 close(fd_out);
-
-	 if(ret==204)
-	      unlink(output_file);
-	 ci_debug_printf(1, "Done\n");
+	  
+	  ci_debug_printf(2, "Done\n");
      }
      close(conn->fd);      
      return 0;

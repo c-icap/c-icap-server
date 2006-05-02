@@ -36,12 +36,6 @@
 
 extern int TIMEOUT;
 
-#define icap_write_nonblock ci_write_nonblock
-#define icap_write(fd,buf,count) ci_write(fd,buf,count,TIMEOUT)
-#define icap_read(fd,buf,count) ci_read(fd,buf,count,TIMEOUT)
-#define wait_for_outgoing_data(fd) ci_wait_for_data(fd,TIMEOUT,wait_for_write)
-
-
 /**/
 
 void send_headers_block(request_t *req,ci_header_list_t *responce_head);
@@ -55,7 +49,7 @@ request_t *newrequest(ci_connection_t *connection){
      ci_connection_t *conn;
 
      if((access=access_check_client(connection))==CI_ACCESS_DENY){ /*Check for client access */
-	  icap_write(connection->fd,FORBITTEN_STR,strlen(FORBITTEN_STR));
+	  ci_write(connection->fd,FORBITTEN_STR,strlen(FORBITTEN_STR),TIMEOUT);
 	  return NULL; /*Or something that means authentication error*/
      }
      
@@ -72,7 +66,7 @@ int recycle_request(request_t *req,ci_connection_t *connection){
      int access;
 
      if((access=access_check_client(connection))==CI_ACCESS_DENY){ /*Check for client access */
-	  icap_write(connection->fd,FORBITTEN_STR,strlen(FORBITTEN_STR));
+	  ci_write(connection->fd,FORBITTEN_STR,strlen(FORBITTEN_STR),TIMEOUT);
 	  return 0; /*Or something that means authentication error*/
      }
      req->access_type=access;
@@ -162,7 +156,7 @@ int read_encaps_header(request_t *req,ci_header_list_t *h,int size){
 
      remains=size-readed;
      while(remains>0){
-	  if((bytes=icap_read(req->connection->fd,buf_end,remains))<0)
+	  if((bytes=ci_read(req->connection->fd,buf_end,remains,TIMEOUT))<0)
 	       return bytes;
 	  remains-=bytes;
 	  buf_end+=bytes;
@@ -350,7 +344,7 @@ void ec_responce(request_t *req,int ec){
 	      ci_error_code(ec),
 	      ci_error_code_string(ec));
      buf[255]='\0';
-     icap_write(req->connection->fd,buf,strlen(buf));
+     ci_write(req->connection->fd,buf,strlen(buf),TIMEOUT);
 }
 
 int mk_responce_header(request_t *req){
@@ -406,7 +400,7 @@ int send_current_block_data(request_t *req){
      int bytes;
      if(req->remain_send_block_bytes==0)
 	  return 0;
-     if((bytes=icap_write_nonblock(req->connection->fd,req->pstrblock_responce,req->remain_send_block_bytes))<0){
+     if((bytes=ci_write_nonblock(req->connection->fd,req->pstrblock_responce,req->remain_send_block_bytes))<0){
 	  ci_debug_printf(5,"Error writing to server (errno:%d)",errno);
 	  return CI_ERROR;
      }
@@ -542,11 +536,6 @@ int get_send_body(request_t *req){
      char *wchunkdata=NULL,*rchunkdata=NULL;
      int ret,parse_chunk_ret;
      int action=0, rchunkisfull=0,service_eof=0,wbytes,rbytes;
-     int (*writedata)(void *, char *,int,int,struct request*);
-     int (*readdata)(void *data,char *,int,struct request *);
-     
-     writedata=req->current_service_mod->mod_writedata;
-     readdata=req->current_service_mod->mod_readdata;
      
      action=wait_for_read;
      req->status=SEND_NOTHING;
@@ -674,7 +663,7 @@ int rest_responce(request_t *req){
      }
      do{
 	  while(req->remain_send_block_bytes>0){
-	       if((ret=wait_for_outgoing_data(req->connection->fd))<=0){
+	       if((ret=ci_wait_for_data(req->connection->fd,TIMEOUT,wait_for_write))<=0){
 		    ci_debug_printf(1,"Timeout sending data. Ending .......\n");
 		    return CI_ERROR; 
 	       }
@@ -748,7 +737,7 @@ void options_responce(request_t *req){
      req->remain_send_block_bytes=head->bufused;
      
      do{
-	  if((wait_for_outgoing_data(req->connection->fd))<=0){
+	  if((ci_wait_for_data(req->connection->fd,TIMEOUT,wait_for_write))<=0){
 	       ci_debug_printf(1,"Timeout sending data. Ending .......\n");
 	       return; 
 	  }
@@ -762,7 +751,6 @@ void options_responce(request_t *req){
 }
 
 int process_request(request_t *req){
-//     void *b;
      int res,preview_status=0,auth_status=CI_ACCESS_ALLOW;
 
      res=parse_header(req);
