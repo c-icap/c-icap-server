@@ -96,13 +96,13 @@ typedef struct request{
 
 /*This functions needed in server (mpmt_server.c ) */
 request_t *newrequest(ci_connection_t *connection);
-void destroy_request(request_t *req);
 int recycle_request(request_t *req,ci_connection_t *connection);
-void reset_request(request_t *req);
 int process_request(request_t *);
-int parse_chunk_data(request_t *req, char **wdata);
-int net_data_read(request_t *req);
 
+/*Functions used in both server and icap-client library*/
+CI_DECLARE_FUNC(int) parse_chunk_data(request_t *req, char **wdata);
+CI_DECLARE_FUNC(int) net_data_read(request_t *req);
+CI_DECLARE_FUNC(int) process_encapsulated(request_t *req,char *buf);
 
 /*********************************************/
 /*Buffer functions (I do not know if they must included in ci library....) */
@@ -113,8 +113,9 @@ CI_DECLARE_FUNC(void)  ci_buf_mem_free(struct ci_buf *buf);
 CI_DECLARE_FUNC(int)   ci_buf_write(struct ci_buf *buf,char *data,int len);
 CI_DECLARE_FUNC(int)   ci_buf_reset_size(struct ci_buf *buf,int req_size);
 
-
 /***************/
+/*API defines */
+#define ci_service_data(req) ((req)->service_data)
 /*API functions ......*/
 CI_DECLARE_FUNC(request_t *)  ci_request_alloc(ci_connection_t *connection);
 CI_DECLARE_FUNC(void)         ci_request_reset(request_t *req);
@@ -123,5 +124,19 @@ CI_DECLARE_FUNC(void)         ci_request_pack(request_t *req);
 CI_DECLARE_FUNC(ci_encaps_entity_t *) ci_request_alloc_entity(request_t *req,int type,int val);
 CI_DECLARE_FUNC(int)          ci_request_release_entity(request_t *req,int pos);
 CI_DECLARE_FUNC(int)          ci_read_icap_header(request_t *req,ci_headers_list_t *h,int timeout);
+
+/*ICAP client api*/
+CI_DECLARE_FUNC(request_t *)  ci_client_request(ci_connection_t *conn,char *server,char *service);
+CI_DECLARE_FUNC(void)         ci_client_request_reuse(request_t *req);
+CI_DECLARE_FUNC(int)          ci_client_get_server_options(request_t *req,int timeout);
+CI_DECLARE_FUNC(ci_connection_t *)  ci_client_connect_to(char *servername,int port,int proto);
+CI_DECLARE_FUNC(int)          ci_client_icapfilter(request_t *req,
+						   int timeout,
+						   ci_headers_list_t *headers,
+						   void *data_source,
+						   int (*source_read)(void *,char *,int),
+						   void *data_dest,  
+						   int (*dest_write) (void *,char *,int));
+
 
 #endif

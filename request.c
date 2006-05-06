@@ -215,28 +215,6 @@ int parse_request(request_t *req,char *buf){
 }
 
 
-int process_encapsulated(request_t *req,char *buf){
-     char *start;
-     char *pos;
-     char *end;
-     int type=0,num=0,val=0;
-     int hasbody=1;/*Assume that we have a resbody or reqbody or optbody*/
-     start=buf+14;
-     pos=start;
-     while(*pos!='\0'){
-	  while(!isalpha(*pos) && *pos!='\0') pos++;
-	  type=get_encaps_type(pos,&val,&end);
-	  if(num>5) /*In practice there is an error here .... */
-	       break;
-	  if(type==ICAP_NULL_BODY)
-	       hasbody=0; /*We have not a body*/
-	  req->entities[num++]=ci_request_alloc_entity(req,type,val);
-	  pos=end;/* points after the value of entity....*/
-     }
-     req->hasbody=hasbody;
-     return 0;
-}
-
 int  get_method(char *buf){
   if(!strncmp(buf,"OPTIONS",7)){
     return ICAP_OPTIONS;
@@ -531,26 +509,17 @@ int update_send_status(request_t *req){
      return CI_ERROR; /*Can not be reached (I thing)......*/
 }
 
-int service_io(request_t *req,char *rdata,int *rdatalen,char *wdata,int *wdatalen,int iseof){
-     int (*writedata)(void *, char *,int,int,struct request*);
-     int (*readdata)(void *data,char *,int,struct request *);
-     writedata=req->current_service_mod->mod_writedata;
-     readdata=req->current_service_mod->mod_readdata;
-
-     *wdatalen=(*writedata)(req->service_data,wdata,*wdatalen,iseof,req);
-     *rdatalen=(*readdata)(req->service_data,rdata,*rdatalen,req);
-
-     if(*wdatalen<0 || *rdatalen==CI_ERROR)
-	  return CI_ERROR;
-     
-     return CI_OK;
-}
-
+ 
 int get_send_body(request_t *req){
      char *wchunkdata=NULL,*rchunkdata=NULL;
      int ret,parse_chunk_ret;
+     int (*service_io)(char *rbuf,int *rlen,char *wbuf,int *wlen,int iseof, struct request *);
      int action=0, rchunkisfull=0,service_eof=0,wbytes,rbytes;
-     
+
+     service_io=req->current_service_mod->mod_service_io;
+     if(!service_io)
+	  return CI_ERROR;
+
      action=wait_for_read;
      req->status=SEND_NOTHING;
 
@@ -618,7 +587,7 @@ int get_send_body(request_t *req){
 	       else
 		    rbytes=0;
 	       
-	       if(service_io(req,rchunkdata,&rbytes,wchunkdata,&wbytes,req->eof_received)==CI_ERROR)
+	       if((*service_io)(rchunkdata,&rbytes,wchunkdata,&wbytes,req->eof_received,req)==CI_ERROR)
 		    return CI_ERROR;
 	       if(wbytes){
 		    wchunkdata+=wbytes;
@@ -668,8 +637,12 @@ int get_send_body(request_t *req){
 
 int rest_responce(request_t *req){
      int ret=0;
-     int (*readdata)(void *data,char *,int,struct request *);
-     readdata=req->current_service_mod->mod_readdata;
+     int (*service_io)(char *rbuf,int *rlen,char *wbuf,int *wlen,int iseof, struct request *);
+     service_io=req->current_service_mod->mod_service_io;
+
+     if(!service_io)
+	  return CI_ERROR;
+
      
      if(req->status==SEND_EOF && req->remain_send_block_bytes==0){
 	  ci_debug_printf(5,"OK sending all data\n");
@@ -686,8 +659,9 @@ int rest_responce(request_t *req){
 	  
 	  if(req->status==SEND_BODY && req->remain_send_block_bytes==0){
 	       req->pstrblock_responce=req->wbuf+EXTRA_CHUNK_SIZE; /*Leave space for chunk spec..*/
-	       req->remain_send_block_bytes=(*readdata)(req->service_data,req->pstrblock_responce,
-							MAX_CHUNK_SIZE,req);
+	       req->remain_send_block_bytes=MAX_CHUNK_SIZE;
+	       service_io(req->pstrblock_responce,&(req->remain_send_block_bytes),NULL,NULL,1,req);
+
 	       if(req->remain_send_block_bytes==CI_ERROR)/*CI_EOF of CI_ERROR, stop sending....*/
 		    return CI_ERROR;
 
@@ -820,8 +794,7 @@ int process_request(request_t *req){
 		    break;
 	       }
 	       else if(req->current_service_mod->mod_check_preview_handler){
-		    res=req->current_service_mod->mod_check_preview_handler(req->service_data,
-									    req->preview_data.buf,
+		    res=req->current_service_mod->mod_check_preview_handler(req->preview_data.buf,
 									    req->preview_data.used,
 									    req);
 		    if(res==EC_204){
@@ -838,7 +811,7 @@ int process_request(request_t *req){
 	       }
 	  }
 	  else if(req->current_service_mod->mod_check_preview_handler){
-		    res=req->current_service_mod->mod_check_preview_handler(req->service_data,NULL,0,req);
+		    res=req->current_service_mod->mod_check_preview_handler(NULL,0,req);
 		    if(req->allow204 && res==EC_204){
 			 ec_responce(req,EC_204);
 			 break; //Need no any modification.
@@ -855,7 +828,7 @@ int process_request(request_t *req){
 	  }
 	  
 	  if (req->current_service_mod->mod_end_of_data_handler){
-	       req->current_service_mod->mod_end_of_data_handler(req->service_data,req);
+	       req->current_service_mod->mod_end_of_data_handler(req);
 /*	       while( req->current_service_mod->mod_end_of_data_handler(req,b)== CI_MOD_NOT_READY){
 		    //can send some data here .........
 		    }

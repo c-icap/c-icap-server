@@ -29,10 +29,11 @@
 int    url_check_init_service(service_module_t *serv,struct icap_server_conf *server_conf);
 void * url_check_init_request_data(service_module_t *serv,request_t *req);
 void   url_check_release_data(void *data);
-int    url_check_process(void *data,request_t *);
-int    url_check_check_preview(void *data,char *preview_data,int preview_data_len, request_t *);
-int    url_check_write(void *data, char *buf,int len ,int iseof,request_t *req);
-int    url_check_read(void *data,char *buf,int len,request_t *req);
+int    url_check_process(request_t *);
+int    url_check_check_preview(char *preview_data,int preview_data_len,request_t *);
+int    url_check_io(char *rbuf,int *rlen,char *wbuf,int *wlen,int iseof,request_t *req);
+//int    url_check_write(char *buf,int len ,int iseof,request_t *req);
+//int    url_check_read(char *buf,int len,request_t *req);
 
 
 char *url_check_options[]={
@@ -56,8 +57,7 @@ CI_DECLARE_MOD_DATA service_module_t service={
      url_check_release_data, /*Release request data*/
      url_check_check_preview,
      url_check_process,
-     url_check_write,
-     url_check_read,
+     url_check_io,
      NULL,
      NULL
 };
@@ -159,9 +159,9 @@ int check_destination(struct http_info *httpinf){
 
 char *error_message="<H1>Permition deny!<H1>";
 
-int url_check_check_preview(void *data,char *preview_data,int preview_data_len, request_t *req){
+int url_check_check_preview(char *preview_data,int preview_data_len, request_t *req){
     ci_headers_list_t* req_header;
-    struct url_check_data *uc=data;
+    struct url_check_data *uc=ci_service_data(req);
     struct http_info httpinf;
     int allow=1;
 
@@ -214,7 +214,7 @@ int url_check_check_preview(void *data,char *preview_data,int preview_data_len, 
 }
 
 
-int url_check_process(void *b,request_t *req){
+int url_check_process(request_t *req){
 
 /*
 	  printf("Buffer size=%d, Data size=%d\n ",
@@ -223,23 +223,25 @@ int url_check_process(void *b,request_t *req){
      return CI_MOD_DONE;     
 }
 
+int url_check_io(char *rbuf,int *rlen,char *wbuf,int *wlen,int iseof,request_t *req){
+     int ret;
+     struct url_check_data *uc=ci_service_data(req);
+     if(!uc->body)
+	  return CI_ERROR;
 
-int url_check_write(void *data, char *buf,int len ,int iseof,request_t *req){
-     struct url_check_data *uc=data;
-     if(uc->body){
-	  return ci_cached_file_write(uc->body,buf,len,iseof);
+     ret=CI_OK;     
+     if(wbuf && wlen){
+	  *wlen=ci_cached_file_write(uc->body,wbuf,*wlen,iseof);
+	  if(*wlen==CI_ERROR)
+	       ret=CI_ERROR;
      }
-     return CI_ERROR;
-}
-
-
-int url_check_read(void *data,char *buf,int len,request_t *req){
-    struct url_check_data *uc=data;
-    int bytes;
-    if(uc->body){
-	bytes=ci_cached_file_read(uc->body,buf,len);
-	return bytes;
-    }
-    return CI_EOF;
+     
+     if(rbuf && rlen){
+	  *rlen=ci_cached_file_read(uc->body,rbuf,*rlen);
+	  if(*rlen==CI_ERROR)
+	       ret=CI_ERROR;
+     }
+     
+     return ret;
 }
 

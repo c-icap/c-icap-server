@@ -25,11 +25,12 @@
 #include "debug.h"
 
 int echo_init_service(service_module_t *serv,struct icap_server_conf *server_conf);
-int echo_check_preview_handler(void *data,char *preview_data,int preview_data_len, request_t *);
-int echo_end_of_data_handler(void *b,request_t *req);
+int echo_check_preview_handler(char *preview_data,int preview_data_len, request_t *);
+int echo_end_of_data_handler(request_t *req);
 void *echo_init_request_data(service_module_t *serv,request_t *req);
-int echo_write(void *data, char *buf,int len ,int iseof,request_t *req);
-int echo_read(void *data,char *buf,int len,request_t *req);
+int echo_io(char *rbuf,int *rlen,char *wbuf,int *wlen ,int iseof,request_t *req);
+//int echo_write(char *buf,int len ,int iseof,request_t *req);
+//int echo_read(char *buf,int len,request_t *req);
 
 
 char *echo_options[]={
@@ -53,8 +54,7 @@ CI_DECLARE_MOD_DATA service_module_t service={
      (void (*)(void *))ci_membuf_free, /*release request data*/
      echo_check_preview_handler,
      echo_end_of_data_handler,
-     echo_write, 
-     echo_read,
+     echo_io,
      NULL,
      NULL
 };
@@ -76,8 +76,9 @@ void *echo_init_request_data(service_module_t *serv,request_t *req){
 
 
 static int whattodo=0;
-int echo_check_preview_handler(void *data,char *preview_data,int preview_data_len, request_t *req){
+int echo_check_preview_handler(char *preview_data,int preview_data_len, request_t *req){
      int content_len;
+     ci_membuf_t *data=ci_service_data(req);
      content_len=ci_content_lenght(req);
      ci_debug_printf(10,"We expect to read :%d body data\n",content_len);
 
@@ -103,18 +104,37 @@ int echo_check_preview_handler(void *data,char *preview_data,int preview_data_le
 }
 
 
-int echo_end_of_data_handler(void *b,request_t *req){
+int echo_end_of_data_handler(request_t *req){
 
      return CI_MOD_DONE;     
 }
 
+int echo_io(char *rbuf,int *rlen,char *wbuf,int *wlen ,int iseof,request_t *req){
+     int ret;
+     ci_membuf_t *data=ci_service_data(req);
+     ret=CI_OK;
 
-int echo_write(void *data, char *buf,int len ,int iseof,request_t *req){
+     if(wbuf && wlen){
+	  *wlen=ci_membuf_write(data,wbuf,*wlen,iseof);
+	  if(*wlen<0)
+	       ret=CI_ERROR;
+     }
+     
+     if(rbuf && rlen){
+	  *rlen=ci_membuf_read(data,rbuf,*rlen);
+     }
+     
+     return ret;
+}
+/*
+int echo_write(char *buf,int len ,int iseof,request_t *req){
+     ci_membuf_t *data=ci_service_data(req);
      return ci_membuf_write(data,buf,len,iseof);
 }
 
-int echo_read(void *data,char *buf,int len,request_t *req){
+int echo_read(char *buf,int len,request_t *req){
+     ci_membuf_t *data=ci_service_data(req);
      return ci_membuf_read(data,buf,len);
 }
 
-
+*/

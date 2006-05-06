@@ -60,13 +60,11 @@ int VIR_UPDATE_TIME=15;
 
 int srvclamav_init_service(service_module_t *this,struct icap_server_conf *server_conf);
 void srvclamav_close_service(service_module_t *this);
-void srvclamav_end_of_headers_handler(void *data,request_t *req);
-int srvclamav_check_preview_handler(void *data, char *preview_data,int preview_data_len, request_t *);
-int srvclamav_end_of_data_handler(void  *data,request_t *);
+int srvclamav_check_preview_handler(char *preview_data,int preview_data_len, request_t *);
+int srvclamav_end_of_data_handler(request_t *);
 void *srvclamav_init_request_data(service_module_t *serv,request_t *req);
 void srvclamav_release_request_data(void *data);
-int srvclamav_write(void *data, char *buf,int len ,int iseof,request_t *req);
-int srvclamav_read(void *data,char *buf,int len,request_t *req);
+int srvclamav_io(char *rbuf,int *rlen,char *wbuf,int *wlen ,int iseof,request_t *req);
 
 /*Configuration Functions*/
 int cfg_ScanFileTypes(char *directive,char **argv,void *setdata);
@@ -126,8 +124,7 @@ CI_DECLARE_MOD_DATA service_module_t service={
      srvclamav_release_request_data, /*release request data*/
      srvclamav_check_preview_handler,
      srvclamav_end_of_data_handler,
-     srvclamav_write,
-     srvclamav_read,
+     srvclamav_io,
      conf_variables,
      NULL
 };
@@ -220,9 +217,10 @@ void srvclamav_release_request_data(void *data){
 }
 
 
-int srvclamav_check_preview_handler(void *data,char *preview_data,int preview_data_len, request_t *req){
+int srvclamav_check_preview_handler(char *preview_data,int preview_data_len, request_t *req){
      ci_off_t content_size=0;
      int file_type;
+     av_req_data_t * data=ci_service_data(req);
 
     if(ci_req_type(req)==ICAP_RESPMOD){
 	  ci_respmod_add_header(req,"Via: C-ICAP  0.01/ClamAV Antivirus");
@@ -239,7 +237,7 @@ int srvclamav_check_preview_handler(void *data,char *preview_data,int preview_da
 
      /*Going to determine the file type ....... */
      file_type=get_filetype(req,preview_data,preview_data_len);
-     if((((av_req_data_t *)data)->must_scanned=must_scanned(file_type))==0){
+     if((data->must_scanned=must_scanned(file_type))==0){
 	  ci_debug_printf(8,"Not in \"must scanned list\".Allow it...... \n");
 	  return EC_204;
      }
@@ -247,9 +245,9 @@ int srvclamav_check_preview_handler(void *data,char *preview_data,int preview_da
      content_size=ci_content_lenght(req);
 #ifdef VIRALATOR_MODE
      /*Lets see ...........*/
-     if(((av_req_data_t *)data)->must_scanned==VIR_SCAN && ci_req_type(req)==ICAP_RESPMOD){
+     if(data->must_scanned==VIR_SCAN && ci_req_type(req)==ICAP_RESPMOD){
 	  init_vir_mode_data(req,data);
-	  ((av_req_data_t *)data)->expected_size=content_size;
+	  data->expected_size=content_size;
      }
      else{
 #endif    
@@ -261,94 +259,107 @@ int srvclamav_check_preview_handler(void *data,char *preview_data,int preview_da
 	       return EC_204;
 	  }
 	  
-	  ((av_req_data_t *)data)->body=ci_simple_file_new(content_size); 
+	  data->body=ci_simple_file_new(content_size); 
 
 	  if(SEND_PERCENT_BYTES>=0 && START_SEND_AFTER==0){
 	       ci_req_unlock_data(req); /*Icap server can send data before all body has received*/
 	       /*Let ci_simple_file api to control the percentage of data.For the beggining no data can send..*/
-	       ci_simple_file_lock_all(((av_req_data_t *)data)->body);
+	       ci_simple_file_lock_all(data->body);
 	  }
 #ifdef VIRALATOR_MODE
      }
 #endif
-     if(!((av_req_data_t *)data)->body)/*Memory allocation or something else .....*/
+     if(!data->body)/*Memory allocation or something else .....*/
 	  return CI_ERROR;
 
-     ci_simple_file_write(((av_req_data_t *)data)->body, preview_data,preview_data_len ,ci_req_hasalldata(req));
+     ci_simple_file_write(data->body, preview_data,preview_data_len ,ci_req_hasalldata(req));
      return EC_100;
 }
 
 
 
-int srvclamav_write(void *data, char *buf,int len ,int iseof,request_t *req){
+int srvclamav_write(char *buf,int len ,int iseof,request_t *req){
      /*We can put here scanning hor jscripts and html and raw data ......*/
      int allow_transfer;
-     if(data){
-
-	  if(((av_req_data_t *)data)->must_scanned==NO_SCAN
+     av_req_data_t * data=ci_service_data(req);
+     if(!data)
+	  return CI_ERROR;
+	  
+     if(data->must_scanned==NO_SCAN
 #ifdef VIRALATOR_MODE
-	     || ((av_req_data_t *)data)->must_scanned==VIR_SCAN
+	|| data->must_scanned==VIR_SCAN
 #endif
-	       ){/*if must not scanned then simply write the data and exit.....*/
-	       return ci_simple_file_write(((av_req_data_t *)data)->body, buf,len ,iseof);
-	  }
-
-	  if( ci_simple_file_size(((av_req_data_t *)data)->body) >= MAX_OBJECT_SIZE){
-	       ((av_req_data_t *)data)->must_scanned=0;
-	       ci_req_unlock_data(req); /*Allow ICAP to send data before receives the EOF.......*/
-	       ci_simple_file_unlock_all(((av_req_data_t *)data)->body);/*Unlock all body data to continue send them.....*/
-	  }                                    /*else Allow transfer SEND_PERCENT_BYTES of the data*/
-	  else if(SEND_PERCENT_BYTES && START_SEND_AFTER < ci_simple_file_size(((av_req_data_t *)data)->body)){	 
-	       ci_req_unlock_data(req);
-	       allow_transfer=(SEND_PERCENT_BYTES*(((av_req_data_t *)data)->body->endpos+len))/100;
-	       ci_simple_file_unlock(((av_req_data_t *)data)->body,allow_transfer);
-	  }
-	  return ci_simple_file_write(((av_req_data_t *)data)->body, buf,len ,iseof);
+	  ){/*if must not scanned then simply write the data and exit.....*/
+	  return ci_simple_file_write(data->body, buf,len ,iseof);
      }
-     return -1;
+     
+     if( ci_simple_file_size(data->body) >= MAX_OBJECT_SIZE){
+	  data->must_scanned=0;
+	  ci_req_unlock_data(req); /*Allow ICAP to send data before receives the EOF.......*/
+	  ci_simple_file_unlock_all(data->body);/*Unlock all body data to continue send them.....*/
+     }                                    /*else Allow transfer SEND_PERCENT_BYTES of the data*/
+     else if(SEND_PERCENT_BYTES && START_SEND_AFTER < ci_simple_file_size(data->body)){	 
+	  ci_req_unlock_data(req);
+	  allow_transfer=(SEND_PERCENT_BYTES*(data->body->endpos+len))/100;
+	  ci_simple_file_unlock(data->body,allow_transfer);
+     }
+     return ci_simple_file_write(data->body, buf,len ,iseof);
 }
 
 
 
-int srvclamav_read(void *data,char *buf,int len,request_t *req){
+int srvclamav_read(char *buf,int len,request_t *req){
      int bytes;
-
+     av_req_data_t * data=ci_service_data(req);
+     if(!data)
+	  return CI_ERROR;
 
 #ifdef VIRALATOR_MODE
-     if(((av_req_data_t *)data)->must_scanned==VIR_SCAN){
-	  return send_vir_mode_page((av_req_data_t *)data,buf,len,req);
+     if(data->must_scanned==VIR_SCAN){
+	  return send_vir_mode_page(data,buf,len,req);
      }
 #endif
 
-
-     if(((av_req_data_t *)data)->virus_name!=NULL &&  
-	               ((av_req_data_t *)data)->error_page==0) {
+     if(data->virus_name!=NULL &&  data->error_page==0) {
 	  /*Inform user. Q:How? Maybe with a mail......*/
 	  return CI_EOF;    /* Do not send more data if a virus found and data has sent (readpos!=0)*/
      }
      /*if a virus found and no data sent, an inform page has already generated*/
      
-     if(((av_req_data_t *)data)->error_page)
-	  return ci_membuf_read(((av_req_data_t *)data)->error_page,buf,len);
+     if(data->error_page)
+	  return ci_membuf_read(data->error_page,buf,len);
      
-     if(data){
-	  bytes=ci_simple_file_read(((av_req_data_t *)data)->body,buf,len);
-	  return bytes;
-     }
-     return -1;
+     bytes=ci_simple_file_read(data->body,buf,len);
+     return bytes;
 }
 
+int srvclamav_io(char *rbuf,int *rlen,char *wbuf,int *wlen ,int iseof,request_t *req){
+     int ret=CI_OK;
+     if(wbuf && wlen){
+	  *wlen=srvclamav_write(wbuf,*wlen,iseof,req);
+	  if(*wlen<0)
+	       ret=CI_OK;
+     }
+     if(rbuf && rlen){
+	  *rlen=srvclamav_read(rbuf,*rlen,req);
+     }
 
-int srvclamav_end_of_data_handler(void *data,request_t *req){
-     ci_simple_file_t *body=(data?((av_req_data_t *)data)->body:NULL);
+     return CI_OK;
+}
+
+int srvclamav_end_of_data_handler(request_t *req){
+     av_req_data_t * data=ci_service_data(req);
+     ci_simple_file_t *body;
      const char *virname;
      int ret=0;
      unsigned long scanned_data=0;
 
-     if(!data || !body)
+     if(!data || !data->body)
 	  return CI_MOD_DONE;
+     
+     body=data->body;
 
-     if(((av_req_data_t *)data)->must_scanned==NO_SCAN){/*If exceeds the MAX_OBJECT_SIZE for example ......  */
+     if(data->must_scanned==NO_SCAN){/*If exceeds the MAX_OBJECT_SIZE for example ......  */
 	  ci_simple_file_unlock_all(body); /*Unlock all data to continue send them . Not really needed here....*/
 	  return CI_MOD_DONE;     
      }
@@ -364,9 +375,9 @@ int srvclamav_end_of_data_handler(void *data,request_t *req){
 
      if(ret==CL_VIRUS){
 	  ci_debug_printf(1,"VIRUS DETECTED:%s.\nTake action.......\n ",virname);
-	  ((av_req_data_t *)data)->virus_name=virname;
+	  data->virus_name=virname;
 	  if(!ci_req_sent_data(req)) /*If no data had sent we can send an error page  */
-	       generate_error_page((av_req_data_t *)data,req);
+	       generate_error_page(data,req);
 	  else
 	       ci_debug_printf(3,"Simply not send other data\n");
      }
@@ -374,7 +385,7 @@ int srvclamav_end_of_data_handler(void *data,request_t *req){
 	  ci_debug_printf(1,"srvClamAv module:An error occured while scanning the data\n");
      }
      
-     if(((av_req_data_t *)data)->must_scanned==VIR_SCAN){
+     if(data->must_scanned==VIR_SCAN){
 	  endof_data_vir_mode(data,req);
      }
      
@@ -407,47 +418,6 @@ int get_filetype(request_t *req,char *buf,int len){
 */
      return filetype;
 }
-/*
-int get_filetype(request_t *req,char *buf,int len){
-     int file_type;
-     int file_group;
-     char *content_type=NULL,*content_encoding=NULL;
-
-     if(ci_req_type(req)==ICAP_RESPMOD){
-	  content_type=ci_respmod_get_header(req,"Content-Type");
-	  ci_debug_printf(8,"File type: %s\n",(content_type!=NULL?content_type:"Unknown") );
-     }     
-	  
-     file_type=ci_filetype(magic_db,buf,len);
-     file_group=ci_data_type_group(magic_db,file_type);
-
-     ci_debug_printf(7,"File type returned :%s,%s\n",
-		     ci_data_type_name(magic_db,file_type),
-		     ci_data_type_descr(magic_db,file_type));
-     
-
-     if( file_group==CI_TEXT_DATA && content_type!=NULL){
-	  if(strstr(content_type,"text/html") || strstr(content_type,"text/css") ||
-	                                           strstr(content_type,"text/javascript"))
-	       file_type=CI_HTML_DATA;
-     }
-     else if(file_type==ci_get_data_type_id(magic_db,"GZip")){
-	  content_encoding=ci_respmod_get_header(req,"Content-Encoding");
-	  ci_debug_printf(8,"Content-Encoding :%s\n",content_encoding);
-	  if(content_type && content_encoding && (strstr(content_type,"text/html") 
-			                          || strstr(content_type,"text/css") 
-						  || strstr(content_type,"text/javascript") )) 
-	       file_type=CI_HTML_DATA;
-     }
-
-     ci_debug_printf(7,"The file type now is :%s,%s\n",
-		     ci_data_type_name(magic_db,file_type),
-		     ci_data_type_descr(magic_db,file_type));
-	  
-
-     return file_type;
-}
-*/
 
 int must_scanned(int file_type){
      int type,file_group;

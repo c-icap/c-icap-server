@@ -46,12 +46,13 @@ struct  service_module{
      void *(*mod_init_request_data)(service_module_t *this,struct request *);
      void (*mod_release_request_data)(void *module_data);
 
-/*     void (*mod_end_of_headers_handler)(void *module_data,struct request *);*/
-     int (*mod_check_preview_handler)(void *module_data,char *preview_data,int preview_data_len,struct request*);
-     int (*mod_end_of_data_handler)(void *module_data,struct request*);
+     int (*mod_check_preview_handler)(char *preview_data,int preview_data_len,struct request*);
+     int (*mod_end_of_data_handler)(struct request*);
+  
+     int (*mod_service_io)(char *rbuf,int *rlen,char *wbuf,int *wlen,int iseof, struct request *);
      
-     int (*mod_writedata)(void *module_data, char *buf,int len,int iseof,struct request *);
-     int (*mod_readdata)(void *module_data,char *buf,int len,struct request *);
+//     int (*mod_writedata)(char *buf,int len,int iseof,struct request *);
+//     int (*mod_readdata)(char *buf,int len,struct request *);
      struct conf_entry *mod_conf_table;
      void *mod_data;
 };

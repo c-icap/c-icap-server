@@ -55,13 +55,10 @@ void *perl_init_request_data(service_module_t *this,struct request *);
 void perl_release_request_data(void *data);
 
 
-int perl_check_preview_handler(void *data,char *preview_data,int preview_data_len,struct request*);
-int perl_end_of_data_handler(void *data,struct request*);
+int perl_check_preview_handler(char *preview_data,int preview_data_len,struct request*);
+int perl_end_of_data_handler(struct request*);
+int perl_service_io(char *rbuf,int *rlen,char *wbuf,int *wlen,int iseof,struct request *req);
      
-
-int perl_writedata(void *data, char *,int,int,struct request*);
-int perl_readdata(void *data,char *,int,struct request*);
-
 
 int init_perl_handler(struct icap_server_conf *server_conf){
      return 0;
@@ -91,9 +88,8 @@ service_module_t *load_perl_module(char *service_file){
      service->mod_release_request_data=perl_release_request_data;
      service->mod_check_preview_handler= perl_check_preview_handler;
      service->mod_end_of_data_handler=perl_end_of_data_handler;
+     service->mod_service_io=perl_service_io;
 
-     service->mod_writedata=perl_writedata;
-     service->mod_readdata=perl_readdata;
 
      service->mod_name=strdup("perl_test");
      service->mod_type=ICAP_REQMOD|ICAP_RESPMOD;
@@ -123,19 +119,17 @@ void perl_release_request_data(void *data){
 }
 
 
-int perl_check_preview_handler(void *data,char *preview_data,int preview_data_len,struct request *req){
+int perl_check_preview_handler(char *preview_data,int preview_data_len,struct request *req){
      return EC_500;
 }
 
-int perl_end_of_data_handler(void *data,struct request *req){
+int perl_end_of_data_handler(struct request *req){
      return 0;
 }
      
 
-int perl_writedata(void *data, char *buf,int len,int iseof,struct request *req){
-     return 0;
-}
-
-int perl_readdata(void *data,char *buf,int len,struct request *req){
-     return 0;
+int perl_service_io(char *rbuf,int *rlen,char *wbuf,int *wlen,int iseof,struct request *req){
+     *rlen=0;
+     *wlen=0;
+     return CI_OK;
 }
