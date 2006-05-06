@@ -79,7 +79,7 @@ void ci_request_pack(request_t *req){
 
     if(req->is_client_request && req->preview>0){
 	 sprintf(buf,"Preview: %d",req->preview);
-	 add_header(req->head,buf);
+	 ci_headers_add(req->head,buf);
     }
     
     elist=req->entities;
@@ -114,11 +114,11 @@ void ci_request_pack(request_t *req){
 	 sprintf(buf,"Encapsulated: %s=%d",
 		  ci_encaps_entity_string(elist[0]->type),elist[0]->start);
      }
-     add_header(req->head,buf);
+     ci_headers_add(req->head,buf);
      
      while((e=*elist++)!=NULL){
 	 if(e->type==ICAP_REQ_HDR || e->type==ICAP_RES_HDR)
-	     ci_headers_pack(( ci_header_list_t *)e->entity);
+	     ci_headers_pack(( ci_headers_list_t *)e->entity);
      }
      /*e_list is not usable now !!!!!!! */
      ci_headers_pack(req->head);
@@ -183,7 +183,7 @@ int ci_request_release_entity(request_t *req,int pos){
      req->trash_entities[type]=req->entities[pos];     
      if(req->trash_entities[type]->type==ICAP_REQ_HDR || req->trash_entities[type]->type==ICAP_RES_HDR){
 	  if(req->trash_entities[type]->entity)
-	       reset_header(req->trash_entities[type]->entity);
+	       ci_headers_reset(req->trash_entities[type]->entity);
      }
      req->entities[pos]=NULL;
      return 1;
@@ -215,7 +215,7 @@ request_t *ci_request_alloc(ci_connection_t *connection){
      req->responce_hasbody=0;
      req->eof_received=0;
      
-     req->head=mk_header();
+     req->head=ci_headers_make();
      req->status=SEND_NOTHING;
 
 
@@ -263,7 +263,7 @@ void ci_request_reset(request_t *req){
      req->allow204=0;
      req->hasbody=0;
      req->responce_hasbody=0;
-     reset_header(req->head);
+     ci_headers_reset(req->head);
      req->eof_received=0;
      req->status=SEND_NOTHING;
 
@@ -295,7 +295,7 @@ void ci_request_destroy(request_t *req){
 	 free(req->connection);
      
      ci_buf_mem_free(&(req->preview_data));
-     destroy_header(req->head);
+     ci_headers_destroy(req->head);
      for(i=0;req->entities[i]!=NULL;i++) 
 	  destroy_encaps_entity(req->entities[i]);
 

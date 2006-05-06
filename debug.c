@@ -76,7 +76,7 @@ void debug_print_request(request_t *req){
 	  ci_debug_printf(1,"\t %s header at %d\n",
 		       ci_encaps_entity_string(req->entities[i]->type),req->entities[i]->start);
 	  if(req->entities[i]->type<ICAP_REQ_BODY){
-	       ci_header_list_t *h=(ci_header_list_t *)req->entities[i]->entity;
+	       ci_headers_list_t *h=(ci_headeris_list_t *)req->entities[i]->entity;
 	       ci_debug_printf(1,"\t\t HEADERS : \n");
 	       for(j=0;j<h->used;j++){
 		    ci_debug_printf(1,"\t\t\t%d. %s\n",j,h->headers[j]);

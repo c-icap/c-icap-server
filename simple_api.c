@@ -33,23 +33,23 @@ int ci_resp_check_body(request_t *req){
 */
 
 
-ci_header_list_t* ci_respmod_headers(request_t *req){
+ci_headers_list_t* ci_respmod_headers(request_t *req){
      int i;
      ci_encaps_entity_t **e_list;
      e_list=req->entities;
      for(i=0;e_list[i]!=NULL&& i<3;i++){ /*It is the first or second ellement*/
 	  if( e_list[i]->type==ICAP_RES_HDR )
-	       return (ci_header_list_t*) e_list[i]->entity;
+	       return (ci_headers_list_t*) e_list[i]->entity;
 	  
      }
      return NULL;
 }
 
-ci_header_list_t* ci_reqmod_headers(request_t *req){
+ci_headers_list_t* ci_reqmod_headers(request_t *req){
      ci_encaps_entity_t **e_list;
      e_list=req->entities;
      if(e_list[0]!=NULL && e_list[0]->type==ICAP_REQ_HDR ) /*It is always the first ellement*/
-	  return (ci_header_list_t*) e_list[0]->entity;
+	  return (ci_headers_list_t*) e_list[0]->entity;
           
      return NULL;
 }
@@ -57,10 +57,10 @@ ci_header_list_t* ci_reqmod_headers(request_t *req){
 
 
 int   ci_respmod_reset_headers(request_t *req){
-     ci_header_list_t *heads;
+     ci_headers_list_t *heads;
      if(!(heads=ci_respmod_headers(req)))
 	  return 0;
-     reset_header(heads);
+     ci_headers_reset(heads);
      return 1;
 }
 
@@ -94,72 +94,72 @@ int  ci_request_create_respmod(request_t *req, int hasbody){
 
 
 char * ci_respmod_add_header(request_t *req,char *header){
-     ci_header_list_t *heads;
+     ci_headers_list_t *heads;
      if(!(heads=ci_respmod_headers(req)))
 	  return NULL;
-     return add_header(heads,header);
+     return ci_headers_add(heads,header);
 }
 
 
 char * ci_reqmod_add_header(request_t *req,char *header){
-     ci_header_list_t *heads;
+     ci_headers_list_t *heads;
      if(!(heads=ci_reqmod_headers(req)))
 	  return NULL;
-     return add_header(heads,header);
+     return ci_headers_add(heads,header);
 }
 
 int ci_respmod_remove_header(request_t *req,char *header){
-     ci_header_list_t *heads;
+     ci_headers_list_t *heads;
      if(!(heads=ci_respmod_headers(req)))
 	  return 0;
-     return remove_header(heads,header);
+     return ci_headers_remove(heads,header);
 }
 
 
 int ci_reqmod_remove_header(request_t *req,char *header){
-     ci_header_list_t *heads;
+     ci_headers_list_t *heads;
      if(!(heads=ci_reqmod_headers(req)))
 	  return 0;
-     return remove_header(heads,header);
+     return ci_headers_remove(heads,header);
 }
 
 
 char *ci_respmod_get_header(request_t *req,char *head_name){
-     ci_header_list_t *heads;
+     ci_headers_list_t *heads;
      char *val;
      if(!(heads=ci_respmod_headers(req)))
 	  return NULL;
-     if(!(val=get_header_value(heads,head_name)))
+     if(!(val=ci_headers_value(heads,head_name)))
 	  return NULL;
      return val;
 }
 
 char *ci_reqmod_get_header(request_t *req,char *head_name){
-     ci_header_list_t *heads;
+     ci_headers_list_t *heads;
      char *val;
      if(!(heads=ci_reqmod_headers(req)))
 	  return NULL;
-     if(!(val=get_header_value(heads,head_name)))
+     if(!(val=ci_headers_value(heads,head_name)))
 	  return NULL;
      return val;
 }
 
 
 ci_off_t ci_content_lenght(request_t *req){
-     ci_header_list_t *heads;
+     ci_headers_list_t *heads;
      char *val;
      if(!(heads=ci_respmod_headers(req))){
 	  /*Then maybe is a reqmod reauest, try to get request headers*/
 	  if(!(heads=ci_reqmod_headers(req)))
 	       return 0;
      }
-     if(!(val=get_header_value(heads,"Content-Length")))
+     if(!(val=ci_headers_value(heads,"Content-Length")))
 	  return 0;
      return ci_strto_off_t(val,NULL,10);
 }
 
 char *ci_http_request(request_t *req){
-     ci_header_list_t *heads;
+     ci_headers_list_t *heads;
      if(!(heads=ci_reqmod_headers(req)))
 	  return NULL;
      return heads->headers[0];

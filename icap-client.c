@@ -58,7 +58,7 @@ void ci_client_request_reuse(request_t *req){
 
      req->hasbody=0;
      req->responce_hasbody=0;
-     reset_header(req->head);
+     ci_headers_reset(req->head);
      req->eof_received=0;
      req->status=0;
 
@@ -90,18 +90,18 @@ int create_request(request_t *req,char *servername,char *service,int reqtype){
     snprintf(buf,255,"%s icap://%s/%s ICAP/1.0",
 	     ci_method_string(reqtype),servername,service);
     buf[255]='\0';
-    add_header(req->head,buf);
+    ci_headers_add(req->head,buf);
     snprintf(buf,255,"Host: %s",servername);
     buf[255]='\0';
-    add_header(req->head,buf);
-    add_header(req->head,"User-Agent: C-ICAP-Client-Library/0.1");
+    ci_headers_add(req->head,buf);
+    ci_headers_add(req->head,"User-Agent: C-ICAP-Client-Library/0.1");
     return CI_OK;
 }
 
-int ci_get_request_options(request_t *req,ci_header_list_t *h){
+int ci_get_request_options(request_t *req,ci_headers_list_t *h){
     char *pstr;
 
-    if((pstr=get_header_value(h, "Preview"))!=NULL){
+    if((pstr=ci_headers_value(h, "Preview"))!=NULL){
 	req->preview=strtol(pstr,NULL,10);
 	if(req->preview<0)
 	    req->preview=0;
@@ -111,26 +111,26 @@ int ci_get_request_options(request_t *req,ci_header_list_t *h){
 
     
     req->allow204=0;
-    if((pstr=get_header_value(h, "Allow"))!=NULL){
+    if((pstr=ci_headers_value(h, "Allow"))!=NULL){
 	if(strtol(pstr,NULL,10) == 204)
 	    req->allow204=1;
     }
 
     req->keepalive=1;
-    if((pstr=get_header_value(h, "Connection"))!=NULL && strncmp(pstr,"close",5)==0){
+    if((pstr=ci_headers_value(h, "Connection"))!=NULL && strncmp(pstr,"close",5)==0){
 	req->keepalive=0;
     }
 
     /*Moreover we are interested for the followings*/
-    if((pstr=get_header_value(h, "Transfer-Preview"))!=NULL){
+    if((pstr=ci_headers_value(h, "Transfer-Preview"))!=NULL){
 	/*Not implemented yet*/
     }
 
-    if((pstr=get_header_value(h, "Transfer-Ignore"))!=NULL){
+    if((pstr=ci_headers_value(h, "Transfer-Ignore"))!=NULL){
 	/*Not implemented yet*/
     }
 	
-    if((pstr=get_header_value(h, "Transfer-Complete"))!=NULL){
+    if((pstr=ci_headers_value(h, "Transfer-Complete"))!=NULL){
 	/*Not implemented yet*/
     }
 
@@ -159,7 +159,7 @@ int ci_writen(int fd,char *buf,int len,int timeout){
 
 int ci_send_request_headers(request_t *req,int has_eof){
     ci_encaps_entity_t **elist,*e;
-    ci_header_list_t *headers;
+    ci_headers_list_t *headers;
     int bytes;
 
     ci_request_pack(req);
@@ -169,7 +169,7 @@ int ci_send_request_headers(request_t *req,int has_eof){
     elist=req->entities;
     while((e=*elist++)!=NULL){
 	if(e->type==ICAP_REQ_HDR || e->type==ICAP_RES_HDR){
-	    headers=( ci_header_list_t *)e->entity;
+	    headers=( ci_headers_list_t *)e->entity;
 	    if(ci_writen(req->connection->fd,headers->buf,headers->bufused,TIMEOUT)<0)
 		 return CI_ERROR;
 	}
@@ -213,7 +213,7 @@ int check_realloc(char **buf,int *size,int used,int mustadded){
 }
 
 
-int parse_icap_header(request_t *req,ci_header_list_t *h){
+int parse_icap_header(request_t *req,ci_headers_list_t *h){
      int readed=0,eoh=0;;
      char *buf,*end;
      if(req->pstrblock_read_len<4)/*we need 4 bytes for the end of headers "\r\n\r\n" string*/
@@ -265,7 +265,7 @@ int process_encapsulated(request_t *req,char *buf){
 }
 
 
-int parse_encaps_header(request_t *req,ci_header_list_t *h,int size){
+int parse_encaps_header(request_t *req,ci_headers_list_t *h,int size){
      int remains,readed=0;
      char *buf_end=NULL;
 
@@ -307,7 +307,7 @@ int get_options(request_t *req){
     if(CI_OK!=create_request(req,req->req_server,req->service,ICAP_OPTIONS))
 	return CI_ERROR;
     ci_send_request_headers(req,0);
-    reset_header(req->head);
+    ci_headers_reset(req->head);
 
 //    ci_read_icap_header(req,req->head,128);
     do{
@@ -408,7 +408,7 @@ int prepere_body_chunk(request_t *req,void *data, int (*readdata)(void *data,cha
 int parse_incoming_data(request_t *req,void *data_dest,  int (*dest_write) (void *,char *,int)){
      int ret,v1,v2,status,bytes,size;
      char *buf,*val;
-     ci_header_list_t *resp_heads;
+     ci_headers_list_t *resp_heads;
 
      if(req->status==GET_NOTHING){
 	  /*And reading the new .....*/
@@ -419,7 +419,7 @@ int parse_incoming_data(request_t *req,void *data_dest,  int (*dest_write) (void
 	  ci_debug_printf(3,"Responce was with status:%d \n",status);	  
 	  ci_headers_unpack(req->head);
 
-	  if((val=search_header(req->head,"Encapsulated"))==NULL){
+	  if((val=ci_headers_search(req->head,"Encapsulated"))==NULL){
 	       ci_debug_printf(1,"No encapsulated entities!\n");
 	       return CI_ERROR;
 	  }
@@ -429,7 +429,7 @@ int parse_incoming_data(request_t *req,void *data_dest,  int (*dest_write) (void
 	       return CI_ERROR;
 	  size=req->entities[1]->start-req->entities[0]->start;
 	  resp_heads=req->entities[0]->entity;
-	  if(!set_size_header(resp_heads,size))
+	  if(!ci_headers_setsize(resp_heads,size))
 	       return CI_ERROR;
 
 
@@ -546,9 +546,10 @@ int send_get_data( request_t *req,
 
 
 int do_send_file_request(request_t *req,
+			 ci_headers_list_t *headers,
 			 void *data_source,int (*source_read)(void *,char *,int),
 			 void *data_dest,  int (*dest_write) (void *,char *,int)){
-    int ret,v1,v2,remains,pre_eof=0,preview_status;
+    int i,ret,v1,v2,remains,pre_eof=0,preview_status;
     char *buf,*val;
     
     if(CI_OK!=create_request(req,req->req_server,req->service,ICAP_RESPMOD)){
@@ -574,15 +575,15 @@ int do_send_file_request(request_t *req,
     if(pre_eof)
 	req->eof_received=1;
 
-    /*Adding the */
+    /*Add the user supplied headers*/
     ci_request_create_respmod(req,1);
-    ci_respmod_add_header(req,"Filetype: Unknown");
-    ci_respmod_add_header(req,"User: chtsanti");
-    
+    for(i=0;i<headers->used;i++){
+	 ci_respmod_add_header(req,headers->headers[i]);
+    }
     ci_send_request_headers(req,pre_eof);
     /*send body*/
     
-    reset_header(req->head);
+    ci_headers_reset(req->head);
     preview_status=100;
 
     if(req->preview>0){/*we must wait for ICAP responce here.....*/
@@ -598,14 +599,14 @@ int do_send_file_request(request_t *req,
 	 if(req->eof_received && preview_status==200){
 	      req->status=GET_HEADERS;
 	      ci_headers_unpack(req->head);
-	      if((val=search_header(req->head,"Encapsulated"))==NULL){
+	      if((val=ci_headers_search(req->head,"Encapsulated"))==NULL){
 		   ci_debug_printf(1,"No encapsulated entities!\n");
 		   return CI_ERROR;
 	      }
 	      process_encapsulated(req,val);	      
 	 }
 	 else
-	      reset_header(req->head);
+	      ci_headers_reset(req->head);
     }  
     
     if(preview_status==204)
@@ -622,7 +623,7 @@ int do_send_file_request(request_t *req,
 void print_headers(request_t *req){
      int i;
      int type;
-     ci_header_list_t *headers;
+     ci_headers_list_t *headers;
      ci_debug_printf(1,"\nICAP HEADERS:\n");
      for(i=0;i<req->head->used;i++){
 	  ci_debug_printf(1,"\t%s\n",req->head->headers[i]);
@@ -692,6 +693,7 @@ int main(int argc, char **argv){
      char ip[CI_IPLEN];
      ci_connection_t *conn;
      request_t *req;
+     ci_headers_list_t *headers;
 
      CI_DEBUG_LEVEL=1; /*Default debug level is 1*/
 
@@ -751,7 +753,14 @@ int main(int argc, char **argv){
 			  req->preview,req->keepalive,req->allow204);
 	  
 	  ci_debug_printf(10,"OK allocating request going to send request\n");
+
+	  headers=ci_headers_make();
+	  ci_headers_add(headers,"Filetype: Unknown");
+	  ci_headers_add(headers,"User: chtsanti");
+	  
+
 	  ret=do_send_file_request(req,
+				   headers,
 				   &fd_in,(int (*)(void *,char *,int))fileread,
 				   &fd_out,(int (*)(void *,char *,int))filewrite
 	       );

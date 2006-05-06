@@ -26,7 +26,7 @@
 
 
 
-const char *CI_CommonHeaders[]={
+const char *ci_common_headers[]={
   "Cache-Control",
   "Connection",
   "Date",
@@ -40,7 +40,7 @@ const char *CI_CommonHeaders[]={
 
 
 
-const char *CI_Methods[]={
+const char *ci_methods[]={
      "",        /*0x00*/
      "OPTIONS", /*0x01*/
      "REQMOD",  /*0x02*/
@@ -49,7 +49,7 @@ const char *CI_Methods[]={
 };
 
 
-const char *CI_RequestHeaders[]={
+const char *ci_request_headers[]={
   "Authorization",
   "Allow",
   "From",
@@ -60,13 +60,13 @@ const char *CI_RequestHeaders[]={
   "Preview"
 };
 
-const char *CI_ResponceHeaders[]={
+const char *ci_responce_headers[]={
   "Server",
   /*ICAP spacific headers*/
   "ISTag"
 };
 
-const char *CI_OptionsHeaders[]={
+const char *ci_options_headers[]={
   "Methods",
   "Service",
   "ISTag",
@@ -84,7 +84,7 @@ const char *CI_OptionsHeaders[]={
 };
 
 
-const struct ci_error_code CI_ErrorCodes[]={
+const struct ci_error_code ci_error_codes[]={
   {100,"Continue"}, /*Continue after ICAP Preview*/
   {204,"Unmodified"}, /*No modifications needed */
   {400,"Bad request"}, /*Bad request*/
@@ -122,7 +122,7 @@ const char *ci_error_code_string(int ec){
 */
 
 
-const char *CI_EncapsEntities[]={
+const char *ci_encaps_entities[]={
   "req-hdr",
   "res-hdr",
   "req-body",
@@ -146,9 +146,9 @@ const char *ci_encaps_entity_string(int e){
 }
 #endif
 
-ci_header_list_t  *mk_header(){
-  ci_header_list_t *h;
-  h=malloc(sizeof(ci_header_list_t));
+ci_headers_list_t  *ci_headers_make(){
+  ci_headers_list_t *h;
+  h=malloc(sizeof(ci_headers_list_t));
   if(!h)
        return NULL;
 
@@ -168,7 +168,7 @@ ci_header_list_t  *mk_header(){
   return h;
 }
 
-void destroy_header(ci_header_list_t *h){
+void ci_headers_destroy(ci_headers_list_t *h){
   free(h->headers);
   free(h->buf);
   free(h);
@@ -176,7 +176,7 @@ void destroy_header(ci_header_list_t *h){
 
 
 
-int set_size_header(ci_header_list_t *h, int size){
+int ci_headers_setsize(ci_headers_list_t *h, int size){
      char * newbuf;
      int new_size;
      if(size<h->bufsize)
@@ -193,12 +193,12 @@ int set_size_header(ci_header_list_t *h, int size){
      return 1;
 }
 
-void reset_header(ci_header_list_t *h){
+void ci_headers_reset(ci_headers_list_t *h){
      h->used=0;
      h->bufused=0;
 }
 
-char *add_header(ci_header_list_t *h, char *line){
+char *ci_headers_add(ci_headers_list_t *h, char *line){
   char *newhead, **newspace, *newbuf;
   int len,linelen;
   int i=0;
@@ -237,7 +237,7 @@ char *add_header(ci_header_list_t *h, char *line){
 }
 
 
-char * search_header(ci_header_list_t *h, char *header){
+char * ci_headers_search(ci_headers_list_t *h, char *header){
      int i;
      for(i=0;i<h->used;i++){
 	  if(strncasecmp(h->headers[i],header,strlen(header))==0)
@@ -246,9 +246,9 @@ char * search_header(ci_header_list_t *h, char *header){
      return NULL;
 }
 
-char *get_header_value(ci_header_list_t *h, char *header){
+char *ci_headers_value(ci_headers_list_t *h, char *header){
      char *phead;
-     if(!(phead=search_header(h, header)))
+     if(!(phead=ci_headers_search(h, header)))
 	  return NULL;
      while(*phead!='\0' && *phead!=':') phead++;
      if(*phead!=':')
@@ -258,7 +258,7 @@ char *get_header_value(ci_header_list_t *h, char *header){
      return phead;
 }
 
-int remove_header(ci_header_list_t *h, char *header){
+int ci_headers_remove(ci_headers_list_t *h, char *header){
      char *phead;
      int i,j,header_len,rest_len;
      for(i=0;i<h->used;i++){
@@ -294,12 +294,12 @@ int remove_header(ci_header_list_t *h, char *header){
      return 0;
 }
 
-char *replace_header(ci_header_list_t *h, char *header, char *newval){
+char *ci_headers_replace(ci_headers_list_t *h, char *header, char *newval){
      return NULL;
 }
 
 
-void ci_headers_pack(ci_header_list_t *h){/*Put the \r\n sequence at the end of each header before sending...... */
+void ci_headers_pack(ci_headers_list_t *h){/*Put the \r\n sequence at the end of each header before sending...... */
      int i=0,len=0;
      for(i=0;i<h->used;i++){
 	  len=strlen(h->headers[i]);
@@ -324,7 +324,7 @@ void ci_headers_pack(ci_header_list_t *h){/*Put the \r\n sequence at the end of 
 }
 
 
-int ci_headers_unpack(ci_header_list_t *h){  
+int ci_headers_unpack(ci_headers_list_t *h){  
      int len;
      char **newspace;
      char *shead,*ebuf, *str;
@@ -385,7 +385,7 @@ ci_encaps_entity_t *mk_encaps_entity(int type,int val){
   h->start=val;
   h->type=type;
   if(type==ICAP_REQ_HDR || type==ICAP_RES_HDR)
-    h->entity=mk_header();
+    h->entity=ci_headers_make();
   else
     h->entity=NULL;
   return h;
@@ -393,7 +393,7 @@ ci_encaps_entity_t *mk_encaps_entity(int type,int val){
 
 void destroy_encaps_entity(ci_encaps_entity_t *e){
   if(e->type==ICAP_REQ_HDR || e->type==ICAP_RES_HDR){
-    destroy_header((ci_header_list_t *)e->entity);
+    ci_headers_destroy((ci_headers_list_t *)e->entity);
   }
   else
     free(e->entity);
@@ -426,36 +426,21 @@ int get_encaps_type(char *buf,int *val,char **endpoint){
 }
 
 
-
-
-int  get_method(char *buf){
-  if(!strncmp(buf,"OPTIONS",7)){
-    return ICAP_OPTIONS;
-  }
-  else if(!strncmp(buf,"REQMOD",6)){
-    return ICAP_REQMOD;
-  }
-  else if(!strncmp(buf,"RESPMOD",7)){
-    return ICAP_RESPMOD;
-  }
-  else{
-    return -1;
-  }
-}
-
-
-int sizeofheader(ci_header_list_t *h){
+int sizeofheader(ci_headers_list_t *h){
   int size=0,i;
   for(i=0;i<h->used;i++){
     size+=strlen(h->headers[i])+2;
   }
   size+=2; /*The sequence \r\n at the end of header*/
   return size;
+/*
+  we not a simple return h->bufused ? (to be check it....)
+ */
 }
 
 int sizeofencaps(ci_encaps_entity_t *e){
   if(e->type==ICAP_REQ_HDR || e->type==ICAP_RES_HDR){
-    return sizeofheader((ci_header_list_t *)e->entity);
+    return sizeofheader((ci_headers_list_t *)e->entity);
   }
   return 0;
 }

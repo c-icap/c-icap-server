@@ -90,7 +90,7 @@ Logger file_logger
 
 ServicesDir @prefix@/lib/c_icap
 Service echo_module srv_echo.so
-Service squard_module srv_sguard.so
+Service url_check_module srv_url_check.so
 Service antivirus_module srv_clamav.so
 
 

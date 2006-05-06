@@ -38,7 +38,7 @@ extern int TIMEOUT;
 
 /**/
 
-void send_headers_block(request_t *req,ci_header_list_t *responce_head);
+void send_headers_block(request_t *req,ci_headers_list_t *responce_head);
 
 
 #define FORBITTEN_STR "ICAP/1.0 403 Forbidden\r\n\r\n"
@@ -99,7 +99,7 @@ int icap_header_check_realloc(char **buf,int *size,int used,int mustadded){
 }
 
 
-int ci_read_icap_header(request_t *req,ci_header_list_t *h,int timeout){
+int ci_read_icap_header(request_t *req,ci_headers_list_t *h,int timeout){
      int bytes,request_status=0,i,eoh=0,startsearch=0,readed=0;
      char *buf_end;
 
@@ -132,11 +132,11 @@ int ci_read_icap_header(request_t *req,ci_header_list_t *h,int timeout){
 }
 
 
-int read_encaps_header(request_t *req,ci_header_list_t *h,int size){
+int read_encaps_header(request_t *req,ci_headers_list_t *h,int size){
      int bytes=0,remains,readed=0;
      char *buf_end=NULL;
 
-     if(!set_size_header(h,size))
+     if(!ci_headers_setsize(h,size))
 	  return EC_500;
      buf_end=h->buf;
      
@@ -237,10 +237,24 @@ int process_encapsulated(request_t *req,char *buf){
      return 0;
 }
 
+int  get_method(char *buf){
+  if(!strncmp(buf,"OPTIONS",7)){
+    return ICAP_OPTIONS;
+  }
+  else if(!strncmp(buf,"REQMOD",6)){
+    return ICAP_REQMOD;
+  }
+  else if(!strncmp(buf,"RESPMOD",7)){
+    return ICAP_RESPMOD;
+  }
+  else{
+    return -1;
+  }
+}
 
 int parse_header(request_t *req){
      int i,request_status=0,result;
-     ci_header_list_t *h;
+     ci_headers_list_t *h;
 
      h=req->head;
      if((request_status=ci_read_icap_header(req,h,TIMEOUT))<0)
@@ -294,10 +308,10 @@ int parse_encaps_headers(request_t *req){
 
 	  size=req->entities[i+1]->start-e->start;
 
-	  if((request_status=read_encaps_header(req,(ci_header_list_t *)e->entity,size))!=EC_100)
+	  if((request_status=read_encaps_header(req,(ci_headers_list_t *)e->entity,size))!=EC_100)
 	       return request_status;
 
-	  if((request_status=ci_headers_unpack((ci_header_list_t *)e->entity))!=EC_100)
+	  if((request_status=ci_headers_unpack((ci_headers_list_t *)e->entity))!=EC_100)
 	       return request_status;
      }
      return EC_100;
@@ -348,31 +362,31 @@ void ec_responce(request_t *req,int ec){
 }
 
 int mk_responce_header(request_t *req){
-     ci_header_list_t *head;
+     ci_headers_list_t *head;
      ci_encaps_entity_t **e_list;
 //     time_t t;
 
      //  struct mem_body *responce_body=NULL;
 
      head=req->head;
-     reset_header(req->head);
-     add_header(head,"ICAP/1.0 200 OK");
+     ci_headers_reset(req->head);
+     ci_headers_add(head,"ICAP/1.0 200 OK");
 
 //     snprintf(buf,255,"Server: C-Icap server 0.01/%s",((str=req->current_service_mod->service)?str:""));
 //     buf[255]='\0';
-//     add_header(responce_head,buf);
+//     ci_headers_add(responce_head,buf);
      if(req->keepalive)
-	  add_header(head,"Connection: keep-alive");
+	  ci_headers_add(head,"Connection: keep-alive");
      else
-	  add_header(head,"Connection: close");
-     add_header(head,"ISTag: \"5BDEEEA9-12E4-2\"" );
+	  ci_headers_add(head,"Connection: close");
+     ci_headers_add(head,"ISTag: \"5BDEEEA9-12E4-2\"" );
 
      /* DATE e****************************/
 //     time(&t);
 //     sprintf(buf,"Date: %s",asctime(localtime(&t)));
 //     buf[strlen(buf)-1]='\0'; /*Eat the \n at the end of the asctime returned string*/
-//     add_header(responce_head,buf);
-//     add_header(responce_head,"Connection: close");
+//     ci_headers_add(responce_head,buf);
+//     ci_headers_add(responce_head,"Connection: close");
   
      e_list=req->entities;
      if(req->type==ICAP_RESPMOD){
@@ -496,8 +510,8 @@ int update_send_status(request_t *req){
 	  i=status-SEND_HEAD1;                      /*We have to send next headers block ....*/
 	  if((e=req->entities[i])!=NULL && (e->type==ICAP_REQ_HDR || e->type==ICAP_RES_HDR)){
 
-	       req->pstrblock_responce=((ci_header_list_t *)e->entity)->buf;
-	       req->remain_send_block_bytes=((ci_header_list_t *)e->entity)->bufused;
+	       req->pstrblock_responce=((ci_headers_list_t *)e->entity)->buf;
+	       req->remain_send_block_bytes=((ci_headers_list_t *)e->entity)->bufused;
 
 	       req->status=status;
 	       return CI_OK;
@@ -693,12 +707,12 @@ int rest_responce(request_t *req){
 void options_responce(request_t *req){
      char buf[256];
      char *str;
-     ci_header_list_t *head;
+     ci_headers_list_t *head;
      int i;
      head=req->head;
 
-     reset_header(head);
-     add_header(head,"ICAP/1.0 200 OK");
+     ci_headers_reset(head);
+     ci_headers_add(head,"ICAP/1.0 200 OK");
      strcpy(buf,"Methods: ");
      if(ci_method_support(req->current_service_mod->mod_type,ICAP_RESPMOD)){
 	  strcat(buf,"RESPMOD");
@@ -709,14 +723,14 @@ void options_responce(request_t *req){
 	  strcat(buf,"REQMOD");
      }
      
-     add_header(head,buf);
-     // add_header(head,(req->current_service_mod->type==ICAP_RESPMOD?"Methods: RESPMOD":"Methods: REQMOD"));
+     ci_headers_add(head,buf);
+     // ci_headers_add(head,(req->current_service_mod->type==ICAP_RESPMOD?"Methods: RESPMOD":"Methods: REQMOD"));
      snprintf(buf,255,"Service: C-Icap server 0.01/%s",((str=req->current_service_mod->mod_short_descr)?str:""));
      buf[255]='\0';
-     add_header(head,buf);
-     add_header(head,"ISTag: \"5BDEEEA9-12E4-2\"" );
-     add_header(head,"Max-Connections: 20");
-     add_header(head,"Options-TTL: 3600");
+     ci_headers_add(head,buf);
+     ci_headers_add(head,"ISTag: \"5BDEEEA9-12E4-2\"" );
+     ci_headers_add(head,"Max-Connections: 20");
+     ci_headers_add(head,"Options-TTL: 3600");
      /* DATE e****************************/
      /* time(&t);*/
      // sprintf(buf,"Date: %s",asctime(localtime(&t)));
@@ -724,12 +738,12 @@ void options_responce(request_t *req){
 /*     ctime_r(&t,buf+strlen(buf));*/
      ci_strtime(buf+strlen(buf));
      buf[strlen(buf)-1]='\0'; /*Eat the \n at the end of the ctime returned string*/
-     add_header(head,buf);
+     ci_headers_add(head,buf);
      /********/
 
      if(req->current_service_mod->mod_options_header){
 	  for(i=0;(str=req->current_service_mod->mod_options_header[i])!=NULL&& i<30;i++)/*the i<30 for error handling...*/
-	       add_header(head,str);
+	       ci_headers_add(head,str);
      }
      ci_request_pack(req);
 

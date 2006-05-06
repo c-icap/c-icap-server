@@ -1,9 +1,9 @@
 
-#SUBDIRS = sguard echo clamav
+#SUBDIRS = url_check echo clamav
 
 #SUBDIRS = @BUILD_SERVICES@
 
-SUBDIRS=echo sguard
+SUBDIRS=echo url_check
 
 if USECLAMAV
 SUBDIRS += clamav

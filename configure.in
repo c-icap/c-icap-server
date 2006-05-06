@@ -318,4 +318,4 @@ AM_CONDITIONAL(ISCYGWIN,[test a"$iscygwin" != a])
 AM_CONDITIONAL(USEPERL,[test a"$perlcore" != a])
 AM_CONDITIONAL(USECLAMAV,[test a"$clamav" != ano])
 
-AC_OUTPUT([Makefile c-icap.conf services/Makefile services/echo/Makefile services/sguard/Makefile services/clamav/Makefile modules/Makefile])
+AC_OUTPUT([Makefile c-icap.conf services/Makefile services/echo/Makefile services/url_check/Makefile services/clamav/Makefile modules/Makefile])

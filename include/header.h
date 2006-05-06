@@ -29,16 +29,16 @@ enum ci_request_headers { ICAP_AUTHORIZATION, ICAP_ALLOW,
                       };
 
 
-extern const char *CI_CommonHeaders[];
-extern const char *CI_RequestHeaders[];
-extern const char *CI_ResponceHeaders[];
-extern const char *CI_OptionsHeaders[];
+extern const char *ci_common_headers[];
+extern const char *ci_request_headers[];
+extern const char *ci_responce_headers[];
+extern const char *ci_options_headers[];
 
 
 enum ci_encapsulated_entities {ICAP_REQ_HDR, ICAP_RES_HDR,
 			       ICAP_REQ_BODY, ICAP_RES_BODY,
 			       ICAP_NULL_BODY,ICAP_OPT_BODY };
-CI_DECLARE_DATA extern const char *CI_EncapsEntities[];
+CI_DECLARE_DATA extern const char *ci_encaps_entities[];
 
 #ifdef __CYGWIN__
 
@@ -46,19 +46,19 @@ const char *ci_encaps_entity_string(int e);
 
 #else
 
-#define ci_encaps_entity_string(e) (e<=ICAP_OPT_BODY&&e>=ICAP_REQ_HDR?CI_EncapsEntities[e]:"UNKNOWN")
+#define ci_encaps_entity_string(e) (e<=ICAP_OPT_BODY&&e>=ICAP_REQ_HDR?ci_encaps_entities[e]:"UNKNOWN")
 
 #endif 
 
 
-typedef struct ci_header_list{
+typedef struct ci_headers_list{
      int size;
      int used;
      char **headers;
      int bufsize;
      int bufused;
      char *buf;
-} ci_header_list_t;
+} ci_headers_list_t;
 
 
 typedef struct ci_encaps_entity{
@@ -72,21 +72,20 @@ typedef struct ci_encaps_entity{
 #define HEADERSTARTSIZE  64
 #define HEADSBUFSIZE     BUFSIZE
 
-CI_DECLARE_FUNC(ci_header_list_t *) mk_header();
-CI_DECLARE_FUNC(void)    destroy_header(ci_header_list_t *);
-CI_DECLARE_FUNC(int)     set_size_header(ci_header_list_t *h, int size);
-CI_DECLARE_FUNC(char *)  add_header(ci_header_list_t *h, char *line);
-CI_DECLARE_FUNC(int)     remove_header(ci_header_list_t *h, char *header);
-CI_DECLARE_FUNC(char *)  search_header(ci_header_list_t *h, char *header);
-CI_DECLARE_FUNC(char *)  get_header_value(ci_header_list_t *h, char *header);
-CI_DECLARE_FUNC(void)    reset_header(ci_header_list_t *h);
+CI_DECLARE_FUNC(ci_headers_list_t *) ci_headers_make();
+CI_DECLARE_FUNC(void)    ci_headers_destroy(ci_headers_list_t *);
+CI_DECLARE_FUNC(int)     ci_headers_setsize(ci_headers_list_t *h, int size);
+CI_DECLARE_FUNC(char *)  ci_headers_add(ci_headers_list_t *h, char *line);
+CI_DECLARE_FUNC(int)     ci_headers_remove(ci_headers_list_t *h, char *header);
+CI_DECLARE_FUNC(char *)  ci_headers_search(ci_headers_list_t *h, char *header);
+CI_DECLARE_FUNC(char *)  ci_headers_value(ci_headers_list_t *h, char *header);
+CI_DECLARE_FUNC(void)    ci_headers_reset(ci_headers_list_t *h);
 CI_DECLARE_FUNC(ci_encaps_entity_t) *mk_encaps_entity(int type,int val);
 CI_DECLARE_FUNC(void) destroy_encaps_entity(ci_encaps_entity_t *e);
 CI_DECLARE_FUNC(int) get_encaps_type(char *buf,int *val,char **endpoint);
-CI_DECLARE_FUNC(int)  get_method(char *buf);
 
-CI_DECLARE_FUNC(int)  sizeofheader(ci_header_list_t *h);
+CI_DECLARE_FUNC(int)  sizeofheader(ci_headers_list_t *h);
 CI_DECLARE_FUNC(int)  sizeofencaps(ci_encaps_entity_t *e);
-CI_DECLARE_FUNC(void) ci_headers_pack(ci_header_list_t *h);
-CI_DECLARE_FUNC(int)  ci_headers_unpack(ci_header_list_t *h);
+CI_DECLARE_FUNC(void) ci_headers_pack(ci_headers_list_t *h);
+CI_DECLARE_FUNC(int)  ci_headers_unpack(ci_headers_list_t *h);
 #endif

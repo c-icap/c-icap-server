@@ -1,0 +1,15 @@
+!include <win32.mak>
+
+all: srv_url_check.Dll
+
+.c.obj:
+	$(cc) /I..\..\include /I..\..\ $(cdebug) $(cflags) $(cvarsdll) -I. -DCI_BUILD_MODULE -DUNICODE $*.c
+
+srv_url_check.Dll: srv_url_check.obj
+	$(link) $(linkdebug) $(dlllflags) /LIBPATH:..\..\ c_icap.lib -def:srv_url_check.def -out:$*.Dll $** $(DLL_ENTRY)  $(EXTRA_LIBS)
+
+clean:
+	del *.obj *.dll *.lib
+
+
+

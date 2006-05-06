@@ -69,7 +69,7 @@ typedef struct request{
      int responce_hasbody;
      struct ci_buf preview_data;
      struct service_module *current_service_mod;
-     ci_header_list_t *head;
+     ci_headers_list_t *head;
      ci_encaps_entity_t *entities[5];//At most 3 and 1 for termination.....
      ci_encaps_entity_t *trash_entities[7];
 
@@ -122,6 +122,6 @@ CI_DECLARE_FUNC(void)         ci_request_destroy(request_t *req);
 CI_DECLARE_FUNC(void)         ci_request_pack(request_t *req);
 CI_DECLARE_FUNC(ci_encaps_entity_t *) ci_request_alloc_entity(request_t *req,int type,int val);
 CI_DECLARE_FUNC(int)          ci_request_release_entity(request_t *req,int pos);
-CI_DECLARE_FUNC(int)          ci_read_icap_header(request_t *req,ci_header_list_t *h,int timeout);
+CI_DECLARE_FUNC(int)          ci_read_icap_header(request_t *req,ci_headers_list_t *h,int timeout);
 
 #endif

@@ -24,7 +24,6 @@
 #include "simple_api.h"
 #include "debug.h"
 
-//int echo_options_responce(service_module_t *,request_t *,ci_header_list_t *);
 int echo_init_service(service_module_t *serv,struct icap_server_conf *server_conf);
 int echo_check_preview_handler(void *data,char *preview_data,int preview_data_len, request_t *);
 int echo_end_of_data_handler(void *b,request_t *req);

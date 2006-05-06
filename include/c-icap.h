@@ -116,10 +116,10 @@ typedef off_t ci_off_t;
 #define ICAP_REQMOD    0x02
 #define ICAP_RESPMOD   0x04
 
-CI_DECLARE_DATA extern const char *CI_Methods[];
+CI_DECLARE_DATA extern const char *ci_methods[];
 
 #define ci_method_support(METHOD, METHOD_DEF) (METHOD&METHOD_DEF)
-#define ci_method_string(method) (method<=ICAP_RESPMOD && method>=ICAP_OPTIONS ?CI_Methods[method]:"UNKNOWN")
+#define ci_method_string(method) (method<=ICAP_RESPMOD && method>=ICAP_OPTIONS ?ci_methods[method]:"UNKNOWN")
 
 
 enum ci_error_codes { EC_100, EC_204, EC_400, 
@@ -133,9 +133,9 @@ typedef struct ci_error_code{
   char *str;
 } ci_error_code_t;
 
-CI_DECLARE_DATA extern const struct ci_error_code CI_ErrorCodes[];
-#define ci_error_code(ec) (ec>=EC_100&&ec<=EC_500?CI_ErrorCodes[ec].code:1000)
-#define ci_error_code_string(ec) (ec>=EC_100&&ec<=EC_500?CI_ErrorCodes[ec].str:"UNKNOWN ERROR CODE")
+CI_DECLARE_DATA extern const struct ci_error_code ci_error_codes[];
+#define ci_error_code(ec) (ec>=EC_100&&ec<=EC_500?ci_error_codes[ec].code:1000)
+#define ci_error_code_string(ec) (ec>=EC_100&&ec<=EC_500?ci_error_codes[ec].str:"UNKNOWN ERROR CODE")
 
 
 #define ICAP_EOL "\r\n"

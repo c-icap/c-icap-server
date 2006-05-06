@@ -110,7 +110,7 @@ int access_check_request(request_t *req){
      if(!used_access_controllers)
 	  return CI_ACCESS_ALLOW;
 
-     user=get_header_value(req->head,"X-Authenticated-User");
+     user=ci_headers_value(req->head,"X-Authenticated-User");
      if(user){
 	  ci_base64_decode(user,req->user,MAX_USERNAME_LEN);
      }
@@ -142,7 +142,7 @@ int access_check_logging(request_t *req){
      if(!used_access_controllers)
 	  return CI_ACCESS_DENY;
 
-     user=get_header_value(req->head,"X-Authenticated-User");
+     user=ci_headers_value(req->head,"X-Authenticated-User");
      if(user){
 	  ci_base64_decode(user,req->user,MAX_USERNAME_LEN);
      }

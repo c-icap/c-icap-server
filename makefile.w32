@@ -2,7 +2,7 @@
 !include "c_icap.mak"
 
 LIBOS=os\win32\~
-MODULES=services\echo\ services\sguard\
+MODULES=services\echo\ services\url_check\
 
 ALL_DIRS=$(LIBOS)
 DLL_ENTRY=os/win32/dll_entry.obj
