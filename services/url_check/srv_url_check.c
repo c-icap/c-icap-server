@@ -235,6 +235,8 @@ int url_check_io(char *rbuf,int *rlen,char *wbuf,int *wlen,int iseof,request_t *
 	  if(*wlen==CI_ERROR)
 	       ret=CI_ERROR;
      }
+     else if(iseof)
+	  ci_cached_file_write(uc->body,NULL,0,iseof);
      
      if(rbuf && rlen){
 	  *rlen=ci_cached_file_read(uc->body,rbuf,*rlen);

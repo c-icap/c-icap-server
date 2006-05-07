@@ -29,8 +29,6 @@ int echo_check_preview_handler(char *preview_data,int preview_data_len, request_
 int echo_end_of_data_handler(request_t *req);
 void *echo_init_request_data(service_module_t *serv,request_t *req);
 int echo_io(char *rbuf,int *rlen,char *wbuf,int *wlen ,int iseof,request_t *req);
-//int echo_write(char *buf,int len ,int iseof,request_t *req);
-//int echo_read(char *buf,int len,request_t *req);
 
 
 char *echo_options[]={
@@ -119,6 +117,8 @@ int echo_io(char *rbuf,int *rlen,char *wbuf,int *wlen ,int iseof,request_t *req)
 	  if(*wlen<0)
 	       ret=CI_ERROR;
      }
+     else if(iseof)
+	  ci_membuf_write(data,NULL,0,iseof);
      
      if(rbuf && rlen){
 	  *rlen=ci_membuf_read(data,rbuf,*rlen);
@@ -126,15 +126,3 @@ int echo_io(char *rbuf,int *rlen,char *wbuf,int *wlen ,int iseof,request_t *req)
      
      return ret;
 }
-/*
-int echo_write(char *buf,int len ,int iseof,request_t *req){
-     ci_membuf_t *data=ci_service_data(req);
-     return ci_membuf_write(data,buf,len,iseof);
-}
-
-int echo_read(char *buf,int len,request_t *req){
-     ci_membuf_t *data=ci_service_data(req);
-     return ci_membuf_read(data,buf,len);
-}
-
-*/
