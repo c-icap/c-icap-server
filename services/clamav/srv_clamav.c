@@ -340,10 +340,11 @@ int srvclamav_io(char *rbuf,int *rlen,char *wbuf,int *wlen ,int iseof,request_t 
 	  if(*wlen<0)
 	       ret=CI_OK;
      }
+     else if(iseof)
+	  srvclamav_write(NULL,0,iseof,req);
      if(rbuf && rlen){
 	  *rlen=srvclamav_read(rbuf,*rlen,req);
      }
-
      return CI_OK;
 }
 

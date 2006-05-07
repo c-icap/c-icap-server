@@ -560,8 +560,10 @@ int get_send_body(request_t *req){
 			 return CI_ERROR;
 		    }
 		    
-		    if(parse_chunk_ret==CI_EOF)
+		    if(parse_chunk_ret==CI_EOF){
+			 printf("Ok eof received\n");
 			 req->eof_received=1;
+		    }
 	       }
 	       
 	       if(wchunkdata && req->write_to_module_pending)
@@ -664,6 +666,8 @@ int rest_responce(request_t *req){
 
 	       if(req->remain_send_block_bytes==CI_ERROR)/*CI_EOF of CI_ERROR, stop sending....*/
 		    return CI_ERROR;
+	       if(req->remain_send_block_bytes==0)
+		    break;
 
 	       if((ret=format_body_chunk(req))==CI_EOF){
 		    req->status=SEND_EOF;
@@ -835,7 +839,6 @@ int process_request(request_t *req){
 */
 	  }
 	  unlock_data(req);
-
 	  if((res=rest_responce(req))!=CI_OK)
 	       ci_debug_printf(5,"An error occured while sending rest responce. The client closed the connection (res:%d)\n",res);
 	  
