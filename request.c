@@ -560,10 +560,8 @@ int get_send_body(request_t *req){
 			 return CI_ERROR;
 		    }
 		    
-		    if(parse_chunk_ret==CI_EOF){
-			 printf("Ok eof received\n");
+		    if(parse_chunk_ret==CI_EOF)
 			 req->eof_received=1;
-		    }
 	       }
 	       
 	       if(wchunkdata && req->write_to_module_pending)

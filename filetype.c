@@ -48,9 +48,6 @@ struct ci_data_group predefined_groups[]={
      {"",""}
 };
 
-
-
-
 struct ci_magic_record{
      int offset;
      unsigned char magic[MAGIC_SIZE+1];
@@ -60,10 +57,6 @@ struct ci_magic_record{
      char descr[DESCR_SIZE+1];
 };
 
-
-
-
-
 #define DECLARE_ARRAY_FUNCTIONS(structure,array,type,size) int array##_init(structure *db){ \
                                                      if((db->array=malloc(size*sizeof(type)))==NULL) \
 	                                                  return 0; \
@@ -72,13 +65,11 @@ struct ci_magic_record{
                                                      return 1; \
                                                     }
 
-
 #define CHECK_SIZE(db,array,type,size)   if(db->array##_num >= db->array##_size){\
 	                                           if((newdata=realloc(db->array,db->array##_size+size*sizeof(type)))==NULL)\
 	                                                     return -1;\
 	                                            db->array =newdata;\
                                         }
-
 
 DECLARE_ARRAY_FUNCTIONS(struct ci_magics_db,types,struct ci_data_type,50)
 DECLARE_ARRAY_FUNCTIONS(struct ci_magics_db,groups,struct ci_data_group,15)
@@ -98,7 +89,6 @@ int types_add(struct ci_magics_db *db, char *name,char *descr,int group){
      db->types[indx].group=group;
      return indx;
 }
-
 
 int groups_add(struct ci_magics_db *db, char *name,char *descr){
      struct ci_data_group *newdata;
@@ -129,10 +119,6 @@ int magics_add(struct ci_magics_db *db,int offset,char *magic,int len,int type){
      
      return indx;
 }
-
-
-
-
 
 int ci_get_data_type_id(struct ci_magics_db *db,char *name){
      int i=0;
@@ -258,7 +244,6 @@ void ci_magics_db_release(struct ci_magics_db *db){
      free(db);
 }
 
-
 int ci_magics_db_file_add(struct ci_magics_db *db,char *filename){
      int type,group,ret;
      struct ci_magic_record record;
@@ -291,7 +276,6 @@ int ci_magics_db_file_add(struct ci_magics_db *db,char *filename){
 
 }
 
-
 struct ci_magics_db *ci_magics_db_build(char *filename){
      struct ci_magics_db *db;
 
@@ -300,7 +284,6 @@ struct ci_magics_db *ci_magics_db_build(char *filename){
 	  ci_magics_db_file_add(db,filename);
      return db;
 }
-
 
 int check_magics(struct ci_magics_db *db,char *buf, int buflen){
      int i;
@@ -423,7 +406,6 @@ int isUTF8(char *c,int size){
      return r_size;
 }
 
-
 int check_unicode(unsigned char *buf,int buflen){
      int i,ret=0;
      int endian=0;
@@ -465,9 +447,6 @@ int check_unicode(unsigned char *buf,int buflen){
      return CI_UTF_DATA;
 }
 
-
-
-
 int ci_filetype(struct ci_magics_db *db,char *buf, int buflen){
      int ret;
 
@@ -504,8 +483,6 @@ int ci_filetype(struct ci_magics_db *db,char *buf, int buflen){
 #define ZIP_EXTRA_FIELD  0x04 /* bit 2 set: extra field present */
 #define ZIP_ORIG_NAME    0x08 /* bit 3 set: original file name present */
 #define ZIP_COMMENT      0x10 /* bit 4 set: file comment present */
-
-
 
 int ci_uncompress(int compress_method,char *buf,int len,char *unzipped_buf,int *unzipped_buf_len){
      int ret;
