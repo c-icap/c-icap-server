@@ -427,15 +427,18 @@ int get_encaps_type(char *buf,int *val,char **endpoint){
 
 
 int sizeofheader(ci_headers_list_t *h){
-  int size=0,i;
+/*
+  int size=0,i; 
   for(i=0;i<h->used;i++){
     size+=strlen(h->headers[i])+2;
   }
-  size+=2; /*The sequence \r\n at the end of header*/
+  size+=2; 
   return size;
+*/
 /*
-  we not a simple return h->bufused ? (to be check it....)
+  why not a simple return h->bufused ? (to be check for bugs....)
  */
+     return h->bufused+2;
 }
 
 int sizeofencaps(ci_encaps_entity_t *e){

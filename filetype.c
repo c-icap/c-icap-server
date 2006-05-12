@@ -508,58 +508,22 @@ int ci_filetype(struct ci_magics_db *db,char *buf, int buflen){
 
 
 int ci_uncompress(int compress_method,char *buf,int len,char *unzipped_buf,int *unzipped_buf_len){
-     int ret,flags,method,temp;
+     int ret;
      z_stream strm;
-     char *in;
-     char *end;
      strm.zalloc = Z_NULL;
      strm.zfree = Z_NULL;
      strm.opaque = Z_NULL;
      strm.avail_in = 0;
      strm.next_in = Z_NULL;
 
-     ret = inflateInit2(&strm,-15);
+     ret = inflateInit2(&strm,32+15);/*MAX_WBITS + 32 for both deflate and gzip decompress*/
      if (ret != Z_OK){
 	  ci_debug_printf(1,"Error initializing  zlib (inflateInit2 return:%d)\n",ret);
 	  return CI_ERROR;
      }
-     end=buf+len;
-     in=buf;
-     
-     method=in[2];
-     flags=in[3];
-     
-     /*
-       we have take what we need.
-       The rest are discard time, xflags and OS code. Skip them. 
-     */
-     in+=10;
-     
-     if ((flags & ZIP_EXTRA_FIELD) != 0) { /* skip the extra field */
-	  temp  =  in[0];
-	  temp +=  ((unsigned int)in[1])<<8;
-	  in+=temp;
-     }
-     /*I must check for lengths!!!! in maybe does not have all gzip header.......*/
-     if ((flags & ZIP_ORIG_NAME) != 0) { /* skip the original file name */
-	  while (*in != 0 && in<end) in++;
-	  in++;
-     }
-     if ((flags & ZIP_COMMENT) != 0) {   /* skip the  comment */
-	  while (*in!=0 && in < end) in++;
-	  in++;
-     }
-     if ((flags & ZIP_HEAD_CRC) != 0) {  /* skip the header crc */
-	  in+=2;     /*Yes, yes I know.....*/
-     }
 
-     if(in>=end){
-	  ci_debug_printf(1,"Not enough data to look in gzipped object\n");
-	  return CI_ERROR;
-     }
-     
-     strm.next_in = in;
-     strm.avail_in=len-(in-buf);
+     strm.next_in = buf;
+     strm.avail_in=len;
      
      strm.avail_out = *unzipped_buf_len;
      strm.next_out = unzipped_buf;
