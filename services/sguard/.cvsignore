@@ -1,9 +1,0 @@
-blacklists
-.deps
-Makefile
-Makefile.in
-sg
-test
-test.c
-tests
-tmp
