@@ -82,6 +82,7 @@ int verbose=0;
 
 static struct options_entry options[]={
      {"-i","icap_servername",&icap_server,ci_cfg_set_str,"The icap server name"},
+     {"-s","service",&service,ci_cfg_set_str,"The service name"},
      {"-f","filename",&input_file,ci_cfg_set_str,"Send this file to the icap server.\nDefault is to send an options request"},
      {"-o","filename",&output_file,ci_cfg_set_str,"Save output to this file.\nDefault is to send to the stdout"},
      {"-req",NULL,&RESPMOD,ci_cfg_disable,"Send a request modification instead of responce modification"},
