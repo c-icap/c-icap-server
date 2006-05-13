@@ -33,13 +33,13 @@
 
 
 struct ci_data_type predefined_types[]={
-     {"ASCII","ASCII text file",CI_TEXT_DATA},
-     {"ISO-8859","ISO-8859 text file",CI_TEXT_DATA},
-     {"EXT-ASCII","Extended ASCII (Mac,IBM PC etc.)",CI_TEXT_DATA},
-     {"UTF","Unicode text file ",CI_TEXT_DATA},
-     {"HTML","HTML text",CI_TEXT_DATA},
-     {"BINARY","Unknown data",CI_OCTET_DATA},
-     {"","",0}
+     {"ASCII","ASCII text file",{CI_TEXT_DATA,-1}},
+     {"ISO-8859","ISO-8859 text file",{CI_TEXT_DATA,-1}},
+     {"EXT-ASCII","Extended ASCII (Mac,IBM PC etc.)",{CI_TEXT_DATA,-1}},
+     {"UTF","Unicode text file ",{CI_TEXT_DATA,-1}},
+     {"HTML","HTML text",{CI_TEXT_DATA,-1}},
+     {"BINARY","Unknown data",{CI_OCTET_DATA,-1}},
+     {"","",{-1}}
 };
 
 struct ci_data_group predefined_groups[]={
@@ -53,7 +53,7 @@ struct ci_magic_record{
      unsigned char magic[MAGIC_SIZE+1];
      size_t len;
      char type[NAME_SIZE+1];
-     char group[NAME_SIZE+1];
+     char *groups[MAX_GROUPS+1];
      char descr[DESCR_SIZE+1];
 };
 
@@ -76,9 +76,9 @@ DECLARE_ARRAY_FUNCTIONS(struct ci_magics_db,groups,struct ci_data_group,15)
 DECLARE_ARRAY_FUNCTIONS(struct ci_magics_db,magics,struct ci_magic,50)
 
 
-int types_add(struct ci_magics_db *db, char *name,char *descr,int group){
+int types_add(struct ci_magics_db *db, char *name,char *descr,int *groups){
      struct ci_data_type *newdata;
-     int indx;
+     int indx,i;
 
      CHECK_SIZE(db,types,struct ci_data_type,50);
      
@@ -86,7 +86,12 @@ int types_add(struct ci_magics_db *db, char *name,char *descr,int group){
      db->types_num++;
      strcpy(db->types[indx].name,name);
      strcpy(db->types[indx].descr,descr);
-     db->types[indx].group=group;
+     i=0;
+     while(groups[i]>=0 && i<MAX_GROUPS){
+	  db->types[indx].groups[i]=groups[i];
+	  i++;
+     }
+     db->types[indx].groups[i]=-1;
      return indx;
 }
 
@@ -136,6 +141,29 @@ int ci_get_data_group_id(struct ci_magics_db *db,char *group){
 	       return i;
      }
      return -1;
+}
+
+int ci_belongs_to_group(struct ci_magics_db *db,int type,int group){
+     int i;
+     if(db->types_num<type)
+	  return 0;
+     i=0;
+     while(db->types[type].groups[i]>=0 && i <MAX_GROUPS){
+	  if(db->types[type].groups[i]==group)
+	       return 1;
+	  i++;
+     }
+     return 0;
+}
+
+void free_records_group(struct ci_magic_record *record){
+     int i;
+     i=0;
+     while(record->groups[i]!=NULL){
+	  free(record->groups[i]);
+	  record->groups[i]=NULL;
+	  i++;
+     }
 }
 
 int read_record(FILE *f,struct ci_magic_record *record){
@@ -203,13 +231,27 @@ int read_record(FILE *f,struct ci_magic_record *record){
 	  return -2; /*Parse error*/
      }
      *end='\0';
-     strncpy(record->group,s,NAME_SIZE);
-     record->group[NAME_SIZE]='\0';
-
-     s=end+1;
      strncpy(record->descr,s,DESCR_SIZE);
      record->descr[DESCR_SIZE]='\0';
 
+     s=end+1;
+     i=0;
+     while((end=strchr(s,':'))!=NULL){
+	  *end='\0';
+	  record->groups[i]=malloc(NAME_SIZE+1);
+	  strncpy(record->groups[i],s,NAME_SIZE);
+	  record->groups[i][NAME_SIZE]='\0';
+	  i++;
+	  if(i>=MAX_GROUPS-1)
+	       break;
+	  s=end+1;
+     }
+
+     record->groups[i]=malloc(NAME_SIZE+1);
+     strncpy(record->groups[i],s,NAME_SIZE);
+     record->groups[i][NAME_SIZE]='\0';
+     i++;
+     record->groups[i]=NULL;
      return 1;
 }
 
@@ -223,7 +265,7 @@ struct ci_magics_db *ci_magics_db_init(){
 
      i=0;/*Copy predefined types*/
      while(predefined_types[i].name[0]!='\0'){
-	  types_add(db,predefined_types[i].name,predefined_types[i].descr,predefined_types[i].group);
+	  types_add(db,predefined_types[i].name,predefined_types[i].descr,predefined_types[i].groups);
 	  i++;
      }
 
@@ -232,8 +274,6 @@ struct ci_magics_db *ci_magics_db_init(){
 	  groups_add(db,predefined_groups[i].name,predefined_groups[i].descr);
 	  i++;
      }
-
-
      return db;
 }
 
@@ -245,7 +285,8 @@ void ci_magics_db_release(struct ci_magics_db *db){
 }
 
 int ci_magics_db_file_add(struct ci_magics_db *db,char *filename){
-     int type,group,ret;
+     int type,ret,group,i;
+     int groups[MAX_GROUPS+1];
      struct ci_magic_record record;
      FILE *f;
 
@@ -257,13 +298,20 @@ int ci_magics_db_file_add(struct ci_magics_db *db,char *filename){
 	  if(!ret)
 	       continue;
 	  if((type=ci_get_data_type_id(db,record.type))<0){
-	       if((group=ci_get_data_group_id(db,record.group))<0){
-		    group=groups_add(db,record.group,"");
+	       i=0;
+	       while(record.groups[i]!=NULL && i< MAX_GROUPS){
+		    if((group=ci_get_data_group_id(db,record.groups[i]))<0){
+			 group=groups_add(db,record.groups[i],"");
+		    }
+		    groups[i]=group;
+		    i++;
 	       }
-	       type=types_add(db,record.type,record.descr,group);
+	       groups[i]=-1;
+	       type=types_add(db,record.type,record.descr,groups);
 	  }
 	  
 	  magics_add(db,record.offset,record.magic,record.len,type);
+	  free_records_group(&record);
      }
      fclose(f);
      if(ret<-1){/*An error occured .....*/
@@ -521,7 +569,6 @@ int ci_uncompress(int compress_method,char *buf,int len,char *unzipped_buf,int *
 
 int ci_extend_filetype(struct ci_magics_db *db,request_t *req,char *buf,int len,int *iscompressed){
      int file_type;
-     int file_group;
 #ifdef HAVE_ZLIB
      int unzipped_buf_len=0;
      char *unzipped_buf=NULL;
@@ -573,13 +620,12 @@ int ci_extend_filetype(struct ci_magics_db *db,request_t *req,char *buf,int len,
      }
 
      file_type=ci_filetype(db,checkbuf,len);
-     file_group=ci_data_type_group(db,file_type);
      
      ci_debug_printf(7,"File type returned :%s,%s\n",
 		     ci_data_type_name(db,file_type),
 		     ci_data_type_descr(db,file_type));
      /*The following until we have an internal html recognizer .....*/
-     if( file_group==CI_TEXT_DATA && (content_type=ci_respmod_get_header(req,"Content-Type"))!=NULL){
+     if( ci_belongs_to_group(db,file_type,CI_TEXT_DATA) && (content_type=ci_respmod_get_header(req,"Content-Type"))!=NULL){
 	  if(strstr(content_type,"text/html") || 
 	     strstr(content_type,"text/css") ||
 	     strstr(content_type,"text/javascript"))

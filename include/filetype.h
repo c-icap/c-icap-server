@@ -24,11 +24,12 @@
 #define MAGIC_SIZE 50
 #define NAME_SIZE 15
 #define DESCR_SIZE 50
+#define MAX_GROUPS 64 /*Maximum number of groups of a single data type*/
 
 struct ci_data_type{
      char name[NAME_SIZE+1];
      char descr[DESCR_SIZE+1];
-     unsigned int group;
+     unsigned int groups[MAX_GROUPS];
 };
 
 struct ci_data_group{
@@ -55,7 +56,7 @@ struct ci_magics_db{
 #define ci_magic_types_num(db) (db!=NULL?db->types_num:0)
 #define ci_magic_groups_num(db)(db!=NULL?db->groups_num:0)
 #define ci_data_type_name(db,i)(db!=NULL?db->types[i].name:NULL)
-#define ci_data_type_group(db,i)(db!=NULL?db->types[i].group:-1)
+#define ci_data_type_groups(db,i)(db!=NULL?db->types[i].groups:NULL)
 #define ci_data_type_descr(db,i)(db!=NULL?db->types[i].descr:NULL)
 #define ci_data_group_name(db,i)(db!=NULL?db->groups[i].name:NULL)
 

@@ -421,12 +421,14 @@ int get_filetype(request_t *req,char *buf,int len){
 }
 
 int must_scanned(int file_type){
-     int type,file_group;
-     file_group=ci_data_type_group(magic_db,file_type);
-
-     if((type=scangroups[file_group])>0)
-	  return type;
-     
+     int type,*file_groups,i;
+     file_groups=ci_data_type_groups(magic_db,file_type);
+     i=0;
+     while(file_groups[i]>=0 && i<MAX_GROUPS){
+	  if((type=scangroups[file_groups[i]])>0)
+	       return type;
+	  i++;
+     }
      return scantypes[file_type];
 }
 

@@ -2,49 +2,49 @@
 #
 #
 
-0:MZ:MSEXE:EXECUTABLE:DOS/W32 executable/library/driver
-0:LZ:DOSEXE:EXECUTABLE:MS-DOS executable
-0:\177ELF:ELF:EXECUTABLE:ELF unix executable
-0:\312\376\272\276:JavaClass:EXECUTABLE:Compiled Java class
+0:MZ:MSEXE:DOS/W32 executable/library/driver:EXECUTABLE
+0:LZ:DOSEXE:MS-DOS executable:EXECUTABLE
+0:\177ELF:ELF:ELF unix executable:EXECUTABLE
+0:\312\376\272\276:JavaClass:Compiled Java class:EXECUTABLE
 
 #Archives
-0:Rar!:RAR:ARCHIVE:Rar archive
-0:PK\003\004:ZIP:ARCHIVE:Zip archive
-0:PK00PK\003\004:ZIP:ARCHIVE:Zip archive
-0:\037\213:GZip:ARCHIVE:Gzip compressed file
-0:BZh:BZip:ARCHIVE:BZip compressed file
-0:SZDD:Compress.exe:ARCHIVE:MS Copmress.exe'd compressed data
-0:\037\235:Compress:ARCHIVE:UNIX compress:compressed data
-0:MSCF:MSCAB:ARCHIVE:Microsoft cabinet file
-257:ustar:TAR:ARCHIVE:Tar archive file
-0:\355\253\356\333:RPM:ARCHIVE:Linux RPM file
+0:Rar!:RAR:Rar archive:ARCHIVE
+0:PK\003\004:ZIP:Zip archive:ARCHIVE
+0:PK00PK\003\004:ZIP:Zip archive:ARCHIVE
+0:\037\213:GZip:Gzip compressed file:ARCHIVE
+0:BZh:BZip:BZip compressed file:ARCHIVE
+0:SZDD:Compress.exe:MS Copmress.exe'd compressed data:ARCHIVE
+0:\037\235:Compress:UNIX compress:ARCHIVE
+0:MSCF:MSCAB:Microsoft cabinet file:ARCHIVE
+257:ustar:TAR:Tar archive file:ARCHIVE
+0:\355\253\356\333:RPM:Linux RPM file:ARCHIVE
 #Other type of Archives
-0:ITSF:MSCHM:ARCHIVE:MS Windows Html Help
+0:ITSF:MSCHM:MS Windows Html Help:ARCHIVE
 
 # Graphics
-0:GIF8:GIF:GRAPHICS:GIF image data
-0:BM:BMP:GRAPHICS:BMP image data
-0:\377\330:JPEG:GRAPHICS:JPEG image data
-0:\211PNG:PNG:GRAPHICS:PNG image data
-0:\000\000\001\000:ICO:GRAPHICS:MS Windows icon resource
-0:FWS:SWF:GRAPHICS:Shockwave Flash data
-0:CWS:SWF:GRAPHICS:Shockwave Flash data
+0:GIF8:GIF:GIF image data:GRAPHICS
+0:BM:BMP:BMP image data:GRAPHICS
+0:\377\330:JPEG:JPEG image data:GRAPHICS
+0:\211PNG:PNG:PNG image data:GRAPHICS
+0:\000\000\001\000:ICO:MS Windows icon resource:GRAPHICS
+0:FWS:SWF:Shockwave Flash data:GRAPHICS
+0:CWS:SWF:Shockwave Flash data:GRAPHICS
 
 #STREAM
-0:\000\000\001\263:MPEG:STREAM:MPEG video stream
-0:\000\000\001\272:MPEG:STREAM:
-0:RIFF:RIFF:STREAM:RIFF video/audio stream
-0:OggS:OGG:STREAM:Ogg Stream
-0:ID3:MP3:STREAM:MP3 audio stream
-0:\377\373\220:MP3:STREAM:MP3 audio stream
-0:\060\046\262\165\216\146\317:ASF:STREAM:WMA/WMV/ASF
-0:.RMF:RMF:STREAM:Real Media File
+0:\000\000\001\263:MPEG:MPEG video stream:STREAM
+0:\000\000\001\272:MPEG::STREAM
+0:RIFF:RIFF:RIFF video/audio stream:STREAM
+0:OggS:OGG:Ogg Stream:STREAM
+0:ID3:MP3:MP3 audio stream:STREAM
+0:\377\373\220:MP3:MP3 audio stream:STREAM
+0:\060\046\262\165\216\146\317:ASF:WMA/WMV/ASF:STREAM
+0:.RMF:RMF:Real Media File:STREAM
 
 #Documents
-0:\320\317\021\340\241\261\032\341:MSOFFICE:DOCUMENT:MS Office Document
-0:\208\207\017\224\161\177\026\225\000:MSOFFICE:DOCUMENT:
-4:Standard Jet DB:MSOFFICE:DOCUMENT:MS Access Database
-0:%PDF-:PDF:DOCUMENT:PDF document
-0:%!:PS:DOCUMENT:PostScript document
+0:\320\317\021\340\241\261\032\341:MSOFFICE:MS Office Document:DOCUMENT
+0:\208\207\017\224\161\177\026\225\000:MSOFFICE::DOCUMENT
+4:Standard Jet DB:MSOFFICE:MS Access Database:DOCUMENT
+0:%PDF-:PDF:PDF document:DOCUMENT
+0:%!:PS:PostScript document:DOCUMENT
 
 
