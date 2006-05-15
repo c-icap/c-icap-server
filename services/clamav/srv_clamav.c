@@ -445,7 +445,7 @@ void generate_error_page(av_req_data_t *data,request_t *req){
      if(ci_respmod_headers(req))
 	  ci_respmod_reset_headers(req);
      else
-	  ci_request_create_respmod(req,1);
+	  ci_request_create_respmod(req,1,1);
      ci_respmod_add_header(req,"HTTP/1.1 200 OK");
      ci_respmod_add_header(req,"Server: C-ICAP");
      ci_respmod_add_header(req,"Connection: close");

@@ -72,7 +72,7 @@ int   ci_respmod_reset_headers(request_t *req){
  RESPMOD response encapsulated_list: [reshdr] resbody
  
  */
-int  ci_request_create_respmod(request_t *req, int hasbody){
+int  ci_request_create_respmod(request_t *req,int has_reshdr, int has_body){
      int i=0;
      ci_encaps_entity_t **e_list;
      e_list=req->entities;
@@ -82,12 +82,13 @@ int  ci_request_create_respmod(request_t *req, int hasbody){
 	       ci_request_release_entity(req,i);
 	  }
      }
-
-     req->entities[0]=ci_request_alloc_entity(req,ICAP_RES_HDR,0);
-     if(hasbody)
-	  req->entities[1]=ci_request_alloc_entity(req,ICAP_RES_BODY,0);
+     i=0;
+     if(has_reshdr)
+	  req->entities[i++]=ci_request_alloc_entity(req,ICAP_RES_HDR,0);
+     if(has_body)
+	  req->entities[i]=ci_request_alloc_entity(req,ICAP_RES_BODY,0);
      else
-	  req->entities[1]=ci_request_alloc_entity(req,ICAP_NULL_BODY,0);
+	  req->entities[i]=ci_request_alloc_entity(req,ICAP_NULL_BODY,0);
 
      return 1;
 }

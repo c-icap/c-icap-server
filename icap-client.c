@@ -78,6 +78,7 @@ char *service="echo";
 char *input_file=NULL;
 char *output_file=NULL;
 int RESPMOD=1;
+int send_headers=1;
 int verbose=0;
 
 static struct options_entry options[]={
@@ -85,8 +86,9 @@ static struct options_entry options[]={
      {"-s","service",&service,ci_cfg_set_str,"The service name"},
      {"-f","filename",&input_file,ci_cfg_set_str,"Send this file to the icap server.\nDefault is to send an options request"},
      {"-o","filename",&output_file,ci_cfg_set_str,"Save output to this file.\nDefault is to send to the stdout"},
-     {"-req",NULL,&RESPMOD,ci_cfg_disable,"Send a request modification instead of responce modification"},
+/*     {"-req",NULL,&RESPMOD,ci_cfg_disable,"Send a request modification instead of responce modification"},*/
      {"-d","level", &CI_DEBUG_LEVEL,ci_cfg_set_int,"debug level info to stdout"},
+     {"-noreshdr",NULL,&send_headers,ci_cfg_disable,"Do not send reshdr headers"},
      {"-v",NULL,&verbose,ci_cfg_enable,"Print responce headers"},
      {NULL,NULL,NULL,NULL}
 };
@@ -169,10 +171,13 @@ int main(int argc, char **argv){
 	  
 	  ci_debug_printf(10,"OK allocating request going to send request\n");
 
-	  headers=ci_headers_make();
-	  ci_headers_add(headers,"Filetype: Unknown");
-	  ci_headers_add(headers,"User: chtsanti");
-	  
+	  if(send_headers){
+	       headers=ci_headers_make();
+	       ci_headers_add(headers,"Filetype: Unknown");
+	       ci_headers_add(headers,"User: chtsanti");
+	  }
+	  else
+	       headers=NULL;
 
 	  ret=ci_client_icapfilter(req,
 				   CONN_TIMEOUT,

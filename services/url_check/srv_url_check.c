@@ -182,7 +182,7 @@ int url_check_check_preview(char *preview_data,int preview_data_len, request_t *
 	 ci_debug_printf(9,"Oh!!! we are going to deny this site.....\n");
 
 	 uc->body=ci_cached_file_new(strlen(error_message)+10);
-	 ci_request_create_respmod(req,1); /*Build the responce headers*/
+	 ci_request_create_respmod(req,1,1); /*Build the responce headers*/
 
 	 ci_respmod_add_header(req,"HTTP/1.1 403 OK");/*Send an 403 Forbidden http responce to web client*/
 	 ci_respmod_add_header(req,"Server: C-ICAP");

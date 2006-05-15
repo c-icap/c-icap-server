@@ -845,22 +845,26 @@ int client_parse_incoming_data(request_t *req,void *data_dest,  int (*dest_write
 	  }
 	  process_encapsulated(req,val);
 
-	  if(!req->entities[0] || !req->entities[1])
-	       return CI_ERROR;
-	  size=req->entities[1]->start-req->entities[0]->start;
-	  resp_heads=req->entities[0]->entity;
-	  if(!ci_headers_setsize(resp_heads,size))
+	  if(!req->entities[0])
 	       return CI_ERROR;
 
+	  if(!req->entities[1]) /*Then we have only body*/
+	       req->status=GET_BODY;
+	  else{
+	       req->status=GET_HEADERS;
+	       size=req->entities[1]->start-req->entities[0]->start;
+	       resp_heads=req->entities[0]->entity;
+	       if(!ci_headers_setsize(resp_heads,size))
+		    return CI_ERROR;
+	  }
 
-	  req->status=GET_HEADERS;
 //	  return CI_NEEDS_MORE;
      }
 
      /*read encups headers */
      
-     /*Non option responce has 2 entities: 
-          "req-headers [req-body|null-body]" or resp-headers [resp-body||null-body]   
+     /*Non option responce has one or two entities: 
+          "req-headers req-body|null-body" or [resp-headers] resp-body||null-body   
        So here client_parse_encaps_header will be called for one headers block
      */
 
@@ -878,10 +882,10 @@ int client_parse_incoming_data(request_t *req,void *data_dest,  int (*dest_write
 	  req->current_chunk_len=0;
 	  req->chunk_bytes_read=0;
 	  req->write_to_module_pending=0;	       
-	  req->status=SEND_BODY;
+	  req->status=GET_BODY;
      }
      
-     if(req->status==SEND_BODY){
+     if(req->status==GET_BODY){
 	  do{
 	       if((ret=parse_chunk_data(req,&buf))==CI_ERROR){
 		    ci_debug_printf(1,"Error parsing chunks, current chunk len: %d readed:%d, str:%s\n",
@@ -998,11 +1002,17 @@ int ci_client_icapfilter(request_t *req,
 	req->eof_received=1;
 
     /*Add the user supplied headers*/
-    ci_request_create_respmod(req,1);
-    for(i=0;i<headers->used;i++){
-	 ci_respmod_add_header(req,headers->headers[i]);
+    if(headers){
+	 ci_request_create_respmod(req,1,1);
+	 for(i=0;i<headers->used;i++){
+	      ci_respmod_add_header(req,headers->headers[i]);
+	 }
     }
+    else
+	 ci_request_create_respmod(req,0,1);
+
     client_send_request_headers(req,pre_eof,timeout);
+	 
     /*send body*/
     
     ci_headers_reset(req->head);
@@ -1019,13 +1029,16 @@ int ci_client_icapfilter(request_t *req,
 	 sscanf(req->head->buf,"ICAP/%d.%d %d",&v1,&v2,&preview_status);
 	 ci_debug_printf(3,"Responce was with status:%d \n",preview_status);
 	 if(req->eof_received && preview_status==200){
-	      req->status=GET_HEADERS;
 	      ci_headers_unpack(req->head);
 	      if((val=ci_headers_search(req->head,"Encapsulated"))==NULL){
 		   ci_debug_printf(1,"No encapsulated entities!\n");
 		   return CI_ERROR;
 	      }
 	      process_encapsulated(req,val);	      
+	      if(!req->entities[1]) /*Then we have only body*/
+		   req->status=GET_BODY;
+	      else
+		   req->status=GET_HEADERS;
 	 }
 	 else
 	      ci_headers_reset(req->head);
