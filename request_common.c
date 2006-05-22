@@ -463,7 +463,7 @@ int net_data_read(request_t *req){
 
     if((bytes=ci_read_nonblock(req->connection->fd,
 			       req->rbuf+req->pstrblock_read_len,
-			       bytes))<0){ /*... read some data...*/
+			       bytes))<=0){ /*... read some data...*/
 	ci_debug_printf(5,"Error reading data (read return=%d) \n",bytes);
 	return CI_ERROR; 
     }
