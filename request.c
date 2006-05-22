@@ -541,7 +541,7 @@ int get_send_body(request_t *req){
 	       }
 	  }
 
-	  if(req->remain_send_block_bytes==0){
+	  if(!req->data_locked && req->remain_send_block_bytes==0){
 	       if(update_send_status(req)==CI_ERROR)
 		    return CI_ERROR;
 	       // if(update_send_status==CI_EOF)/*earlier responce from icap server???...*/
