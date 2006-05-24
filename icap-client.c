@@ -136,7 +136,8 @@ int main(int argc, char **argv){
      ci_client_get_server_options(req,CONN_TIMEOUT);
      ci_debug_printf(10,"OK done with options!\n");
      ci_conn_remote_ip(conn,ip);
-     ci_debug_printf(1,"\nICAP server:%s, ip:%s, port:%d\n\n",icap_server,ip,port);
+     ci_debug_printf(1,"ICAP server:%s, ip:%s, port:%d\n\n",icap_server,ip,port);
+
      if(!input_file){
 	  ci_debug_printf(1,"OPTIONS:\n");
 	  ci_debug_printf(1,"\tAllow 204: %s\n\tPreview: %d\n\tKeep alive: %s\n",
@@ -162,10 +163,8 @@ int main(int argc, char **argv){
 	       fd_out=fileno(stdout);
 	  }
 	  
-	  
-	  
 	  ci_client_request_reuse(req);
-	  
+
 	  ci_debug_printf(10,"Preview:%d keepalive:%d,allow204:%d\n",
 			  req->preview,req->keepalive,req->allow204);
 	  
@@ -193,9 +192,9 @@ int main(int argc, char **argv){
 	       if(output_file)
 		    unlink(output_file);
 	  }
-	  else if(verbose)
+	  
+	  if(verbose)
 	       print_headers(req);
-
 	  
 	  ci_debug_printf(2, "Done\n");
      }

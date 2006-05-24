@@ -42,6 +42,7 @@ void send_headers_block(request_t *req,ci_headers_list_t *responce_head);
 
 
 #define FORBITTEN_STR "ICAP/1.0 403 Forbidden\r\n\r\n"
+#define ISTAG         "\"5BDEEEA9-12E4-2\""
 
 request_t *newrequest(ci_connection_t *connection){
      request_t *req;
@@ -339,6 +340,16 @@ void ec_responce(request_t *req,int ec){
      ci_write(req->connection->fd,buf,strlen(buf),TIMEOUT);
 }
 
+void ec_responce_with_istag(request_t *req,int ec){
+     char buf[256];
+     snprintf(buf,256,"ICAP/1.0 %d %s\r\nISTag: "ISTAG"\r\n\r\n",
+	      ci_error_code(ec),
+	      ci_error_code_string(ec));
+     buf[255]='\0';
+     ci_write(req->connection->fd,buf,strlen(buf),TIMEOUT);
+}
+
+
 int mk_responce_header(request_t *req){
      ci_headers_list_t *head;
      ci_encaps_entity_t **e_list;
@@ -357,7 +368,7 @@ int mk_responce_header(request_t *req){
 	  ci_headers_add(head,"Connection: keep-alive");
      else
 	  ci_headers_add(head,"Connection: close");
-     ci_headers_add(head,"ISTag: \"5BDEEEA9-12E4-2\"" );
+     ci_headers_add(head,"ISTag: "ISTAG );
 
      /* DATE e****************************/
 //     time(&t);
@@ -704,7 +715,7 @@ void options_responce(request_t *req){
      snprintf(buf,255,"Service: C-Icap server 0.01/%s",((str=req->current_service_mod->mod_short_descr)?str:""));
      buf[255]='\0';
      ci_headers_add(head,buf);
-     ci_headers_add(head,"ISTag: \"5BDEEEA9-12E4-2\"" );
+     ci_headers_add(head,"ISTag: "ISTAG );
      ci_headers_add(head,"Max-Connections: 20");
      ci_headers_add(head,"Options-TTL: 3600");
      /* DATE e****************************/
@@ -788,7 +799,7 @@ int process_request(request_t *req){
      case ICAP_RESPMOD:
 	  preview_status=0;
 	  if(req->hasbody && req->preview>0 ){
-	       /*if((preview_status=get_preview_or_chunk_data(req,1))==CI_ERROR){*/
+	       /*read_preview_data returns CI_OK, CI_EOF or CI_ERROR */
 	       if((preview_status=read_preview_data(req))==CI_ERROR){
 		    ci_debug_printf(5,"An error occured while reading preview data (propably timeout)\n");
 		    ec_responce(req,EC_408);
@@ -815,7 +826,7 @@ int process_request(request_t *req){
 	  else if(req->current_service_mod->mod_check_preview_handler){
 		    res=req->current_service_mod->mod_check_preview_handler(NULL,0,req);
 		    if(req->allow204 && res==EC_204){
-			 ec_responce(req,EC_204);
+			 ec_responce_with_istag(req,EC_204);
 			 break; //Need no any modification.
 		    }
 	  }
@@ -830,11 +841,15 @@ int process_request(request_t *req){
 	  }
 	  
 	  if (req->current_service_mod->mod_end_of_data_handler){
-	       req->current_service_mod->mod_end_of_data_handler(req);
+	       res=req->current_service_mod->mod_end_of_data_handler(req);
 /*	       while( req->current_service_mod->mod_end_of_data_handler(req,b)== CI_MOD_NOT_READY){
 		    //can send some data here .........
 		    }
 */
+	       if(req->allow204 && res==CI_MOD_ALLOW204){
+		    ec_responce_with_istag(req,EC_204);
+		    break; //Need no any modification.
+	       }
 	  }
 	  unlock_data(req);
 	  if((res=rest_responce(req))!=CI_OK)

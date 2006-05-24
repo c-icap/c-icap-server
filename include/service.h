@@ -25,9 +25,10 @@
 #include "cfg_param.h"
 
 
-#define CI_MOD_NOT_READY 0
-#define CI_MOD_DONE 1
-#define CI_MOD_ERROR -1
+#define CI_MOD_NOT_READY  0
+#define CI_MOD_DONE       1
+#define CI_MOD_ALLOW204 204
+#define CI_MOD_ERROR     -1
 
 struct request;
 
@@ -48,11 +49,8 @@ struct  service_module{
 
      int (*mod_check_preview_handler)(char *preview_data,int preview_data_len,struct request*);
      int (*mod_end_of_data_handler)(struct request*);
-  
      int (*mod_service_io)(char *rbuf,int *rlen,char *wbuf,int *wlen,int iseof, struct request *);
-     
-//     int (*mod_writedata)(char *buf,int len,int iseof,struct request *);
-//     int (*mod_readdata)(char *buf,int len,struct request *);
+
      struct conf_entry *mod_conf_table;
      void *mod_data;
 };

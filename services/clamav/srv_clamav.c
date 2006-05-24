@@ -106,6 +106,7 @@ static struct conf_entry conf_variables[]={
 
 char *srvclamav_options[]={
      "Preview: 1024",
+     "Allow: 204",
      "Transfer-Preview: *",
      NULL
 };
@@ -381,6 +382,7 @@ int srvclamav_end_of_data_handler(request_t *req){
 	       generate_error_page(data,req);
 	  else
 	       ci_debug_printf(3,"Simply not send other data\n");
+	  return CI_MOD_DONE;     
      }
      else if (ret!= CL_CLEAN){
 	  ci_debug_printf(1,"srvClamAv module:An error occured while scanning the data\n");
@@ -388,6 +390,10 @@ int srvclamav_end_of_data_handler(request_t *req){
      
      if(data->must_scanned==VIR_SCAN){
 	  endof_data_vir_mode(data,req);
+     }
+     else if(ci_allow204(req) && !ci_req_sent_data(req)){
+	  ci_debug_printf(7,"srvClamAv module: Respond with allow 204\n");
+	  return CI_MOD_ALLOW204;
      }
      
      ci_simple_file_unlock_all(body);/*Unlock all data to continue send them.....*/

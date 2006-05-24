@@ -538,7 +538,9 @@ int client_create_request(request_t *req,char *servername,char *service,int reqt
     snprintf(buf,255,"Host: %s",servername);
     buf[255]='\0';
     ci_headers_add(req->head,buf);
-    ci_headers_add(req->head,"User-Agent: C-ICAP-Client-Library/0.1");
+    ci_headers_add(req->head,"User-Agent: C-ICAP-Client-Library/0.01");
+    if(ci_allow204(req))
+	 ci_headers_add(req->head,"Allow: 204");
     return CI_OK;
 }
 
@@ -839,6 +841,9 @@ int client_parse_incoming_data(request_t *req,void *data_dest,  int (*dest_write
 	  ci_debug_printf(3,"Responce was with status:%d \n",status);	  
 	  ci_headers_unpack(req->head);
 
+	  if(ci_allow204(req) && status==204)
+	       return 204;
+
 	  if((val=ci_headers_search(req->head,"Encapsulated"))==NULL){
 	       ci_debug_printf(1,"No encapsulated entities!\n");
 	       return CI_ERROR;
@@ -958,7 +963,10 @@ int client_send_get_data( request_t *req,
 		    return CI_ERROR;
 	       
 	       if((read_status=client_parse_incoming_data(req,data_dest,dest_write))==CI_ERROR)
-		    return CI_ERROR;	       
+		    return CI_ERROR;
+
+	       if(read_status==204)
+		    return 204;
 	  }
 	  
 	  if(req->status!=GET_EOF)
@@ -1015,7 +1023,8 @@ int ci_client_icapfilter(request_t *req,
 	 
     /*send body*/
     
-    ci_headers_reset(req->head);
+//    ci_headers_reset(req->head);
+    ci_client_request_reuse(req);
     preview_status=100;
 
     if(req->preview>0){/*we must wait for ICAP responce here.....*/
@@ -1047,8 +1056,6 @@ int ci_client_icapfilter(request_t *req,
     if(preview_status==204)
 	 return 204;
 
-    if(client_send_get_data(req,timeout,data_source,source_read,data_dest,dest_write)==CI_ERROR)
-	 return CI_ERROR;
-    
-    return CI_OK;    
+    ret=client_send_get_data(req,timeout,data_source,source_read,data_dest,dest_write);
+    return ret;
 }
