@@ -1023,8 +1023,10 @@ int ci_client_icapfilter(request_t *req,
 	 
     /*send body*/
     
-//    ci_headers_reset(req->head);
-    ci_client_request_reuse(req);
+    ci_headers_reset(req->head);
+    for(i=0;req->entities[i]!=NULL;i++) {
+	ci_request_release_entity(req,i);
+    }
     preview_status=100;
 
     if(req->preview>0){/*we must wait for ICAP responce here.....*/
@@ -1036,7 +1038,7 @@ int ci_client_icapfilter(request_t *req,
 	 }while(client_parse_icap_header(req,req->head)==CI_NEEDS_MORE);
 	 
 	 sscanf(req->head->buf,"ICAP/%d.%d %d",&v1,&v2,&preview_status);
-	 ci_debug_printf(3,"Responce was with status:%d \n",preview_status);
+	 ci_debug_printf(3,"Preview responce was with status:%d \n",preview_status);
 	 if(req->eof_received && preview_status==200){
 	      ci_headers_unpack(req->head);
 	      if((val=ci_headers_search(req->head,"Encapsulated"))==NULL){
