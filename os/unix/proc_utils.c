@@ -30,7 +30,7 @@ int store_pid(char *pidfile){
      char strPid[30];/*30 must be enough for storing pids on a string*/
      pid=getpid();
 
-     if((fd=open(pidfile,O_CREAT | O_WRONLY, 0644))<0){
+     if((fd=open(pidfile,O_CREAT | O_TRUNC | O_WRONLY, 0644))<0){
 	  ci_debug_printf(1,"Can not open the pid file:%s\n",pidfile);
 	  return 0;
      }
