@@ -65,6 +65,7 @@ int register_conf_table(char *name,struct conf_entry *table);
 
 CI_DECLARE_FUNC(int) ci_cfg_set_str(char *directive,char **argv,void *setdata);
 CI_DECLARE_FUNC(int) ci_cfg_set_int(char *directive,char **argv,void *setdata);
+CI_DECLARE_FUNC(int) ci_cfg_onoff(char *directive,char **argv,void *setdata);
 CI_DECLARE_FUNC(int) ci_cfg_disable(char *directive,char **argv,void *setdata);
 CI_DECLARE_FUNC(int) ci_cfg_enable(char *directive,char **argv,void *setdata);
 CI_DECLARE_FUNC(int) ci_cfg_size_off(char *directive,char **argv,void *setdata);

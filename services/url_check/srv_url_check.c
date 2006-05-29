@@ -195,7 +195,7 @@ int url_check_check_preview(char *preview_data,int preview_data_len, request_t *
     else{
 	 /*if we are inside preview negotiation or client allow204 responces oudsite of preview then*/
 	 if(preview_data || ci_req_allow204(req)) 
-	      return EC_204;
+	      return CI_MOD_ALLOW204;
 	 
 	 /*
 	   Squid does not support preview of data in reqmod requests neither 204 responces outside preview
@@ -210,7 +210,7 @@ int url_check_check_preview(char *preview_data,int preview_data_len, request_t *
     }
 
     unlock_data(req);
-    return EC_100;
+    return CI_MOD_CONTINUE;
 }
 
 

@@ -88,16 +88,16 @@ int echo_check_preview_handler(char *preview_data,int preview_data_len, request_
      }
      ci_req_unlock_data(req); /*Icap server can send data before all body has received*/
      if(!preview_data_len)
-	  return EC_100;
+	  return CI_MOD_CONTINUE;
 
     if(whattodo==0){
  	    whattodo=1;
 	    ci_membuf_write(data,preview_data,preview_data_len,ci_req_hasalldata(req));
-            return EC_100;
+            return CI_MOD_CONTINUE;
     }
     else{
         whattodo=0;
-        return EC_204;
+        return CI_MOD_ALLOW204;
     }
 }
 

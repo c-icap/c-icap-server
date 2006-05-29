@@ -810,7 +810,7 @@ int process_request(request_t *req){
 		    res=req->current_service_mod->mod_check_preview_handler(req->preview_data.buf,
 									    req->preview_data.used,
 									    req);
-		    if(res==EC_204){
+		    if(res==CI_MOD_ALLOW204){
 			 ec_responce(req,EC_204);
 			 break; //Need no any modification.
 		    }
@@ -825,7 +825,7 @@ int process_request(request_t *req){
 	  }
 	  else if(req->current_service_mod->mod_check_preview_handler){
 		    res=req->current_service_mod->mod_check_preview_handler(NULL,0,req);
-		    if(req->allow204 && res==EC_204){
+		    if(req->allow204 && res==CI_MOD_ALLOW204){
 			 ec_responce_with_istag(req,EC_204);
 			 break; //Need no any modification.
 		    }

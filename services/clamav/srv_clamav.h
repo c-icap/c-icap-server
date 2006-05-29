@@ -8,6 +8,7 @@ typedef struct av_req_data{
      ci_simple_file_t *body;
      request_t *req;
      int must_scanned ;
+     int allow204;
      const char *virus_name;
      ci_membuf_t *error_page;
 #ifdef VIRALATOR_MODE
@@ -16,6 +17,12 @@ typedef struct av_req_data{
      int page_sent;
      ci_off_t expected_size;
 #endif
+     struct{
+	  int enable204;
+	  int forcescan;
+	  int sizelimit;
+	  int mode;
+     } args;
 }av_req_data_t;
 
 enum {NO_SCAN=0,SCAN,VIR_SCAN};

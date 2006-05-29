@@ -30,7 +30,7 @@
 #include <errno.h>
 
 
-int must_scanned(int type);
+int must_scanned(int type,av_req_data_t * data);
 
 
 struct cl_node *root;
@@ -43,6 +43,7 @@ char *srvclamav_compute_name(request_t *req);
 /* Module definitions                                                              */
 
 int SEND_PERCENT_BYTES=0; /* Can send all bytes that has received without checked */
+int ALLOW204=0;
 ci_off_t MAX_OBJECT_SIZE=0;
 ci_off_t START_SEND_AFTER=0;
 
@@ -66,6 +67,8 @@ void *srvclamav_init_request_data(service_module_t *serv,request_t *req);
 void srvclamav_release_request_data(void *data);
 int srvclamav_io(char *rbuf,int *rlen,char *wbuf,int *wlen ,int iseof,request_t *req);
 
+/*Arguments parse*/
+void srvclamav_parse_args(av_req_data_t *data,char *args);
 /*Configuration Functions*/
 int cfg_ScanFileTypes(char *directive,char **argv,void *setdata);
 int cfg_SendPercentBytes(char *directive,char **argv,void *setdata);
@@ -89,6 +92,7 @@ static struct conf_entry conf_variables[]={
      {"ScanFileTypes",NULL,cfg_ScanFileTypes,NULL},
      {"MaxObjectSize",&MAX_OBJECT_SIZE,ci_cfg_size_off,NULL},
      {"StartSendPercentDataAfter",&START_SEND_AFTER,ci_cfg_size_off,NULL},
+     {"Allow204Responces",&ALLOW204,ci_cfg_onoff,NULL},
      {"ClamAvMaxRecLevel",&limits.maxreclevel,ci_cfg_set_int,NULL},
      {"ClamAvMaxFilesInArchive",&limits.maxfiles,ci_cfg_set_int,NULL},
 /*     {"ClamAvBzipMemLimit",NULL,setBoolean,NULL},*/
@@ -177,7 +181,9 @@ void *srvclamav_init_request_data(service_module_t *serv,request_t *req){
 
      preview_size=ci_req_preview_size(req);
      
-     
+     if(req->args){
+	  ci_debug_printf(5,"service arguments:%s\n",req->args);
+     }
      if(ci_req_hasbody(req)){
 	  ci_debug_printf(8,"Request type: %d. Preview size:%d\n",req->type,preview_size);
 	  if(!(data=malloc(sizeof(av_req_data_t)))){
@@ -188,8 +194,23 @@ void *srvclamav_init_request_data(service_module_t *serv,request_t *req){
 	  data->error_page=NULL;
 	  data->virus_name=NULL;
 	  data->must_scanned=SCAN;
-	  data->req=req;
+	  if(ALLOW204)
+	       data->args.enable204=1;
+	  else
+	       data->args.enable204=0;
+	  data->args.forcescan=0;
+	  data->args.sizelimit=1;
+	  data->args.mode=0;
 
+	  if(req->args){
+	       ci_debug_printf(5,"service arguments:%s\n",req->args);
+	       srvclamav_parse_args(data,req->args);
+	  }
+	  if( data->args.enable204 && ci_allow204(req))
+	       data->allow204=1;
+	  else
+	       data->allow204=0;
+	  data->req=req;
 	  return data;
      }
      return NULL;
@@ -233,14 +254,13 @@ int srvclamav_check_preview_handler(char *preview_data,int preview_data_len, req
 
 
      if(!data || !ci_req_hasbody(req))
-	  return EC_100;
-
+	  return CI_MOD_CONTINUE;
 
      /*Going to determine the file type ....... */
      file_type=get_filetype(req,preview_data,preview_data_len);
-     if((data->must_scanned=must_scanned(file_type))==0){
+     if((data->must_scanned=must_scanned(file_type,data))==0){
 	  ci_debug_printf(8,"Not in \"must scanned list\".Allow it...... \n");
-	  return EC_204;
+	  return CI_MOD_ALLOW204;
      }
      
      content_size=ci_content_lenght(req);
@@ -253,11 +273,11 @@ int srvclamav_check_preview_handler(char *preview_data,int preview_data_len, req
      else{
 #endif    
  
-	  if(MAX_OBJECT_SIZE && content_size>MAX_OBJECT_SIZE){
+	  if(data->args.sizelimit && MAX_OBJECT_SIZE && content_size>MAX_OBJECT_SIZE){
 	       ci_debug_printf(1,"Object size is %" PRINTF_OFF_T" ."\
 			       " Bigger than max scannable file size (%" PRINTF_OFF_T"). Allow it.... \n",
 			       content_size,MAX_OBJECT_SIZE);
-	       return EC_204;
+	       return CI_MOD_ALLOW204;
 	  }
 	  
 	  data->body=ci_simple_file_new(content_size); 
@@ -274,7 +294,7 @@ int srvclamav_check_preview_handler(char *preview_data,int preview_data_len, req
 	  return CI_ERROR;
 
      ci_simple_file_write(data->body, preview_data,preview_data_len ,ci_req_hasalldata(req));
-     return EC_100;
+     return CI_MOD_CONTINUE;
 }
 
 
@@ -294,12 +314,13 @@ int srvclamav_write(char *buf,int len ,int iseof,request_t *req){
 	  return ci_simple_file_write(data->body, buf,len ,iseof);
      }
      
-     if( ci_simple_file_size(data->body) >= MAX_OBJECT_SIZE){
+     if( data->args.sizelimit && ci_simple_file_size(data->body) >= MAX_OBJECT_SIZE){
 	  data->must_scanned=0;
 	  ci_req_unlock_data(req); /*Allow ICAP to send data before receives the EOF.......*/
 	  ci_simple_file_unlock_all(data->body);/*Unlock all body data to continue send them.....*/
      }                                    /*else Allow transfer SEND_PERCENT_BYTES of the data*/
-     else if(SEND_PERCENT_BYTES && START_SEND_AFTER < ci_simple_file_size(data->body)){	 
+     else if(data->args.mode!=1 && /*not in the simple mode*/ 
+	     SEND_PERCENT_BYTES && START_SEND_AFTER < ci_simple_file_size(data->body)){	 
 	  ci_req_unlock_data(req);
 	  allow_transfer=(SEND_PERCENT_BYTES*(data->body->endpos+len))/100;
 	  ci_simple_file_unlock(data->body,allow_transfer);
@@ -391,7 +412,7 @@ int srvclamav_end_of_data_handler(request_t *req){
      if(data->must_scanned==VIR_SCAN){
 	  endof_data_vir_mode(data,req);
      }
-     else if(ci_allow204(req) && !ci_req_sent_data(req)){
+     else if(data->allow204 && !ci_req_sent_data(req)){
 	  ci_debug_printf(7,"srvClamAv module: Respond with allow 204\n");
 	  return CI_MOD_ALLOW204;
      }
@@ -426,16 +447,26 @@ int get_filetype(request_t *req,char *buf,int len){
      return filetype;
 }
 
-int must_scanned(int file_type){
+int must_scanned(int file_type,av_req_data_t * data){
      int type,*file_groups,i;
      file_groups=ci_data_type_groups(magic_db,file_type);
-     i=0;
+     type=-1;
+     i=0; 
      while(file_groups[i]>=0 && i<MAX_GROUPS){
 	  if((type=scangroups[file_groups[i]])>0)
-	       return type;
+	       break;
 	  i++;
      }
-     return scantypes[file_type];
+     
+     if(type<0)
+	  type=scantypes[file_type];
+     
+     if(type==0 && data->args.forcescan)
+	  type=SCAN;
+     else if(type==VIR_SCAN && data->args.mode==1)/*in simple mode*/
+	  type=SCAN;
+
+     return type;
 }
 
 
@@ -467,6 +498,35 @@ void generate_error_page(av_req_data_t *data,request_t *req){
      ci_membuf_write(error_page,tail_message,strlen(tail_message),1);/*And here is the eof....*/
 }
 
+/***************************************************************************************/
+/* Parse arguments function - 
+   Current arguments: allow204=on|off, force=on, sizelimit=off, mode=simple|vir|mixed          
+*/
+void srvclamav_parse_args(av_req_data_t *data,char *args){
+     char *str;
+     if((str=strstr(args,"allow204="))){
+	  if(strncmp(str+9,"on",2)==0)
+	       data->args.enable204=1;
+	  else if(strncmp(str+9,"off",3)==0)
+	       data->args.enable204=0;
+     }
+     if((str=strstr(args,"force="))){
+	  if(strncmp(str+6,"on",2)==0)
+	       data->args.forcescan=1;
+     }
+     if((str=strstr(args,"sizelimit="))){
+	  if(strncmp(str+10,"off",3)==0)
+	       data->args.sizelimit=0;
+     }
+     if((str=strstr(args,"mode="))){
+	  if(strncmp(str+5,"simple",6)==0)
+	       data->args.mode=1;
+	  else if(strncmp(str+5,"vir",3)==0)
+	       data->args.mode=2;
+	  else if(strncmp(str+5,"mixed",5)==0)
+	       data->args.mode=3;
+     }
+}
 
 /****************************************************************************************/
 /*Configuration Functions                                                               */

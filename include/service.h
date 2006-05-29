@@ -27,6 +27,7 @@
 
 #define CI_MOD_NOT_READY  0
 #define CI_MOD_DONE       1
+#define CI_MOD_CONTINUE 100
 #define CI_MOD_ALLOW204 204
 #define CI_MOD_ERROR     -1
 

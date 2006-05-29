@@ -87,6 +87,27 @@ int ci_cfg_set_str(char *directive,char **argv,void *setdata){
      return 1;
 }
 
+int ci_cfg_onoff(char *directive,char **argv,void *setdata){
+     if(argv==NULL || argv[0]==NULL){
+	  ci_debug_printf(1,"Missing arguments in directive:%s\n",directive);
+	  return 0;
+     }
+
+     if(setdata==NULL)
+	  return 0;
+
+     if(strcasecmp(argv[0],"on")==0)
+	  *((int*)setdata)=1;
+     else if(strcasecmp(argv[0],"off")==0)
+	  *((int*)setdata)=0;
+     else
+	  return 0;
+
+     ci_debug_printf(1,"Setting parameter :%s=%d\n",directive,*((int*)setdata));
+     return 1;
+}
+
+
 int ci_cfg_disable(char *directive,char **argv,void *setdata){
      if(setdata==NULL)
 	  return 0;
@@ -159,6 +180,6 @@ int ci_cfg_size_long(char *directive,char **argv,void *setdata){
 
      if(val>0)
           *((long int*)setdata)=val;
-     ci_debug_printf(1,"Setting parameter :%s=%"PRINTF_OFF_T"\n",directive,val);
+     ci_debug_printf(1,"Setting parameter :%s=%ld\n",directive,val);
      return val;
 }
