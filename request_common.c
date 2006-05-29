@@ -853,8 +853,11 @@ int client_parse_incoming_data(request_t *req,void *data_dest,  int (*dest_write
 	  if(!req->entities[0])
 	       return CI_ERROR;
 
-	  if(!req->entities[1]) /*Then we have only body*/
+	  if(!req->entities[1]){ /*Then we have only body*/
 	       req->status=GET_BODY;
+	       if(req->pstrblock_read_len==0)
+		    return CI_NEEDS_MORE;
+	  }
 	  else{
 	       req->status=GET_HEADERS;
 	       size=req->entities[1]->start-req->entities[0]->start;
@@ -888,14 +891,17 @@ int client_parse_incoming_data(request_t *req,void *data_dest,  int (*dest_write
 	  req->chunk_bytes_read=0;
 	  req->write_to_module_pending=0;	       
 	  req->status=GET_BODY;
+	  if(req->pstrblock_read_len==0)
+	       return CI_NEEDS_MORE;
      }
      
      if(req->status==GET_BODY){
 	  do{
 	       if((ret=parse_chunk_data(req,&buf))==CI_ERROR){
-		    ci_debug_printf(1,"Error parsing chunks, current chunk len: %d readed:%d, str:%s\n",
+		    ci_debug_printf(1,"Error parsing chunks, current chunk len: %d readed:%d, readlen:%d, str:%s\n",
 				    req->current_chunk_len,
 				    req->chunk_bytes_read,
+				    req->pstrblock_read_len,
 				    req->pstrblock_read);
 		    return CI_ERROR;
 	       }
