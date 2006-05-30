@@ -54,14 +54,20 @@ ci_headers_list_t* ci_reqmod_headers(request_t *req){
      return NULL;
 }
 
-
-
 int   ci_respmod_reset_headers(request_t *req){
      ci_headers_list_t *heads;
      if(!(heads=ci_respmod_headers(req)))
 	  return 0;
      ci_headers_reset(heads);
      return 1;
+}
+
+int ci_reqmod_reset_headers(request_t *req){
+     ci_headers_list_t *heads;
+     if(!(heads=ci_reqmod_headers(req)))
+	  return 0;
+     ci_headers_reset(heads);
+     return 1;     
 }
 
 /*
