@@ -31,6 +31,7 @@
 #include "service.h"
 #include "access.h"
 #include "util.h"
+#include "simple_api.h"
 #include "cfg_param.h"
 
 
@@ -349,11 +350,11 @@ void ec_responce_with_istag(request_t *req,int ec){
      ci_write(req->connection->fd,buf,strlen(buf),TIMEOUT);
 }
 
-
+extern char MY_HOSTNAME[];
 int mk_responce_header(request_t *req){
      ci_headers_list_t *head;
      ci_encaps_entity_t **e_list;
-/*     char buf[512];*/
+     char buf[512];
 	  
      head=req->head;
      ci_headers_reset(req->head);
@@ -375,18 +376,17 @@ int mk_responce_header(request_t *req){
 	  }
      }
 
-/*     snprinf(buf,512,"Via: 1.0 %s (C-ICAP/"VERSION" %s )",MY_HOSTNAME,
-	     (req->current_service_mod->mod_short_descr?req->current_service_mod->mod_short_descr:""));
-	     buf[511]='\0';*/
+     snprintf(buf,512,"Via: 1.0 %s (C-ICAP/"VERSION" %s )",MY_HOSTNAME,
+	     (req->current_service_mod->mod_short_descr?req->current_service_mod->mod_short_descr:req->current_service_mod->mod_name));
+     buf[511]='\0';
      /*Here we must append it to an existsing Via header not just add a new header*/
-/*
-     if(ci_req_type(req)==ICAP_RESPMOD){
+     if(req->type==ICAP_RESPMOD){
           ci_respmod_add_header(req,buf);
      }
-     else if(ci_req_type(req)==ICAP_REQMOD){
+     else if(req->type==ICAP_REQMOD){
           ci_reqmod_add_header(req,buf);
      }
-*/
+     
      ci_request_pack(req);
      return 1;
 }

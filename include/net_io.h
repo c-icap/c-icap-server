@@ -56,7 +56,7 @@ typedef struct ci_sockaddr{
 }  ci_sockaddr_t;
 
 
-#define CI_MAXHOSTNAMELEN 64
+#define CI_MAXHOSTNAMELEN 256
 #define CI_IPLEN      18
 
 #ifdef HAVE_IPV6
