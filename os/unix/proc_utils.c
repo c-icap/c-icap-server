@@ -19,13 +19,14 @@
 
 #include "c-icap.h"
 #include "debug.h"
+#include <signal.h>
 #include <fcntl.h>
 #include <pwd.h>
 #include <grp.h>
 #include <errno.h>
 
 int store_pid(char *pidfile){
-     int fd,i;
+     int fd;
      pid_t pid;
      char strPid[30];/*30 must be enough for storing pids on a string*/
      pid=getpid();
@@ -36,10 +37,37 @@ int store_pid(char *pidfile){
      }
      snprintf(strPid,29,"%d",pid);     
      strPid[29]='\0';
-     i=write(fd,strPid,strlen(strPid));
+     write(fd,strPid,strlen(strPid));
      close(fd);
      return 1;
 }
+
+int is_icap_running(char *pidfile){
+     int fd,bytes,ret;
+     pid_t pid;
+     char strPid[30];/*30 must be enough for storing pids on a string*/
+     pid=getpid();
+
+     if((fd=open(pidfile,O_RDONLY, 0644))<0){
+	  return 0;
+     }
+     bytes=read(fd,strPid,sizeof(strPid));
+     close(fd);
+     
+     if(bytes<sizeof(strPid)-1) 
+	  strPid[bytes]='\0';
+     else
+	  strPid[sizeof(strPid)-1]='\0';/*Maybe check for errors?*/
+     pid=strtol(strPid,NULL,10);
+     if(pid<0) /*garbage*/
+	  return 0;
+     ret=kill(pid,0);
+     if(ret<0)
+	  return 0;
+
+     return 1;
+}
+
 
 
 int set_running_permissions(char *user,char *group){

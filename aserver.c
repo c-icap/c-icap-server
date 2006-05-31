@@ -39,6 +39,7 @@ void init_conf_tables();
 int config(int,char **);
 int start_server(ci_socket fd);
 int store_pid(char *pidfile);
+int is_icap_running(char *pidfile);
 int set_running_permissions(char *user,char *group);
 
 
@@ -72,9 +73,13 @@ int main(int argc,char **argv){
      config(argc,argv);
 
 #if ! defined(_WIN32)     
+     if(is_icap_running(CONF.PIDFILE)){
+	  ci_debug_printf(1,"c-icap server already running!\n");
+	  exit(-1);
+     }
+
      if(DAEMON_MODE)
 	  run_as_daemon();
-
 
      store_pid(CONF.PIDFILE);
      if(!set_running_permissions(CONF.RUN_USER,CONF.RUN_GROUP))
