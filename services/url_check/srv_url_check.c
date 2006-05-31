@@ -165,7 +165,6 @@ int url_check_check_preview(char *preview_data,int preview_data_len, request_t *
     struct http_info httpinf;
     int allow=1;
 
-    ci_reqmod_add_header(req,"Via: C-ICAP  0.01/url_check");/*This type of headers must moved to global*/
     if((req_header=ci_reqmod_headers(req))==NULL) /*It is not possible but who knows .....*/
 	return CI_ERROR;
 

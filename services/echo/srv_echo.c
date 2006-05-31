@@ -80,12 +80,6 @@ int echo_check_preview_handler(char *preview_data,int preview_data_len, request_
      content_len=ci_content_lenght(req);
      ci_debug_printf(10,"We expect to read :%d body data\n",content_len);
 
-     if(ci_req_type(req)==ICAP_RESPMOD){
-	  ci_respmod_add_header(req,"Via: C-ICAP  0.01/echo");
-     }
-     else if(ci_req_type(req)==ICAP_REQMOD){
-	  ci_reqmod_add_header(req,"Via: C-ICAP  0.01/echo");
-     }
      ci_req_unlock_data(req); /*Icap server can send data before all body has received*/
      if(!preview_data_len)
 	  return CI_MOD_CONTINUE;

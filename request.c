@@ -353,30 +353,18 @@ void ec_responce_with_istag(request_t *req,int ec){
 int mk_responce_header(request_t *req){
      ci_headers_list_t *head;
      ci_encaps_entity_t **e_list;
-//     time_t t;
-
-     //  struct mem_body *responce_body=NULL;
-
+/*     char buf[512];*/
+	  
      head=req->head;
      ci_headers_reset(req->head);
      ci_headers_add(head,"ICAP/1.0 200 OK");
-
-//     snprintf(buf,255,"Server: C-Icap server 0.01/%s",((str=req->current_service_mod->service)?str:""));
-//     buf[255]='\0';
-//     ci_headers_add(responce_head,buf);
+     ci_headers_add(head,"Server: C-ICAP/"VERSION);
      if(req->keepalive)
 	  ci_headers_add(head,"Connection: keep-alive");
      else
 	  ci_headers_add(head,"Connection: close");
      ci_headers_add(head,"ISTag: "ISTAG );
 
-     /* DATE e****************************/
-//     time(&t);
-//     sprintf(buf,"Date: %s",asctime(localtime(&t)));
-//     buf[strlen(buf)-1]='\0'; /*Eat the \n at the end of the asctime returned string*/
-//     ci_headers_add(responce_head,buf);
-//     ci_headers_add(responce_head,"Connection: close");
-  
      e_list=req->entities;
      if(req->type==ICAP_RESPMOD){
 	  if(e_list[0]->type==ICAP_REQ_HDR){
@@ -386,8 +374,20 @@ int mk_responce_header(request_t *req){
 	       e_list[2]=NULL;
 	  }
      }
-     ci_request_pack(req);
 
+/*     snprinf(buf,512,"Via: 1.0 %s (C-ICAP/"VERSION" %s )",MY_HOSTNAME,
+	     (req->current_service_mod->mod_short_descr?req->current_service_mod->mod_short_descr:""));
+	     buf[511]='\0';*/
+     /*Here we must append it to an existsing Via header not just add a new header*/
+/*
+     if(ci_req_type(req)==ICAP_RESPMOD){
+          ci_respmod_add_header(req,buf);
+     }
+     else if(ci_req_type(req)==ICAP_REQMOD){
+          ci_reqmod_add_header(req,buf);
+     }
+*/
+     ci_request_pack(req);
      return 1;
 }
 
@@ -711,25 +711,22 @@ void options_responce(request_t *req){
      }
      
      ci_headers_add(head,buf);
-     // ci_headers_add(head,(req->current_service_mod->type==ICAP_RESPMOD?"Methods: RESPMOD":"Methods: REQMOD"));
-     snprintf(buf,255,"Service: C-Icap server 0.01/%s",((str=req->current_service_mod->mod_short_descr)?str:""));
+     snprintf(buf,255,"Service: C-ICAP/"VERSION" server - %s",
+	      ((str=req->current_service_mod->mod_short_descr)?str:req->current_service_mod->mod_name));
      buf[255]='\0';
      ci_headers_add(head,buf);
      ci_headers_add(head,"ISTag: "ISTAG );
      ci_headers_add(head,"Max-Connections: 20");
      ci_headers_add(head,"Options-TTL: 3600");
-     /* DATE e****************************/
-     /* time(&t);*/
-     // sprintf(buf,"Date: %s",asctime(localtime(&t)));
+
      strcpy(buf,"Date: ");
-/*     ctime_r(&t,buf+strlen(buf));*/
      ci_strtime(buf+strlen(buf));
      buf[strlen(buf)-1]='\0'; /*Eat the \n at the end of the ctime returned string*/
      ci_headers_add(head,buf);
-     /********/
+
 
      if(req->current_service_mod->mod_options_header){
-	  for(i=0;(str=req->current_service_mod->mod_options_header[i])!=NULL&& i<30;i++)/*the i<30 for error handling...*/
+	  for(i=0;(str=req->current_service_mod->mod_options_header[i])!=NULL&& i<30;i++)
 	       ci_headers_add(head,str);
      }
      ci_request_pack(req);

@@ -244,14 +244,7 @@ int srvclamav_check_preview_handler(char *preview_data,int preview_data_len, req
      int file_type;
      av_req_data_t * data=ci_service_data(req);
 
-    if(ci_req_type(req)==ICAP_RESPMOD){
-	  ci_respmod_add_header(req,"Via: C-ICAP  0.01/ClamAV Antivirus");
-     }
-     else if(ci_req_type(req)==ICAP_REQMOD){
-	  ci_reqmod_add_header(req,"Via: C-ICAP  0.01/ClamAV Antivirus");
-     }
      ci_debug_printf(10,"OK The preview data size is %d\n",preview_data_len);
-
 
      if(!data || !ci_req_hasbody(req))
 	  return CI_MOD_CONTINUE;
