@@ -169,6 +169,6 @@ void file_log_server(char *server, const char *format, va_list ap ){
      ci_strtime(buf);
      fprintf(server_log,"%s, %s, ",buf,server);
      vfprintf(server_log,format,ap);
-     fprintf(server_log,"\n");
+//     fprintf(server_log,"\n");
 }
 
