@@ -720,8 +720,7 @@ void options_responce(request_t *req){
      ci_headers_add(head,"Options-TTL: 3600");
 
      strcpy(buf,"Date: ");
-     ci_strtime(buf+strlen(buf));
-     buf[strlen(buf)-1]='\0'; /*Eat the \n at the end of the ctime returned string*/
+     ci_strtime_rfc822(buf+strlen(buf));
      ci_headers_add(head,buf);
 
 
@@ -791,6 +790,7 @@ int process_request(request_t *req){
      switch(req->type){
      case ICAP_OPTIONS:
 	  options_responce(req);
+	  res=CI_OK;
 	  break;
      case ICAP_REQMOD:
      case ICAP_RESPMOD:

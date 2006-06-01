@@ -19,7 +19,7 @@
 #ifndef __UTIL_H
 #define __UTIL_H
 
-#define STR_TIME_SIZE 50
+#define STR_TIME_SIZE 64
 #ifdef _WIN32
 #define CI_FILENAME_LEN _MAX_PATH
 #else
@@ -27,6 +27,7 @@
 #endif
 
 CI_DECLARE_FUNC(void) ci_strtime(char *buf);
+CI_DECLARE_FUNC(void) ci_strtime_rfc822(char *buf);
 CI_DECLARE_FUNC(int)  ci_mktemp_file(char*dir,char *template,char *filename);
 
 

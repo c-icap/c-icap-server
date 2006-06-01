@@ -91,6 +91,21 @@ void ci_strtime(char *buf){
      buf[STR_TIME_SIZE-1]='\0';
 }
 
+void ci_strtime_rfc822(char *buf){
+     SYSTEMTIME tm;
+     GetLocalTime(&tm); /*Here we need GMT time not localtime!*/
+
+     buf[0]='\0';
+     snprintf(buf,STR_TIME_SIZE,"%s, %0.2d %s %d %0.2d:%0.2d:%0.2d GMT",
+              days[tm.wDayOfWeek],
+              tm.wDay,
+              months[tm.wMonth],
+	      tm.wYear,
+              tm.wHour,tm.wMinute,
+              tm.wSecond);
+
+     buf[STR_TIME_SIZE-1]='\0';
+}
 
 int ci_mktemp_file(char*dir,char* template,char *filename){
      int fd;

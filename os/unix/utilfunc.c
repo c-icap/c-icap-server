@@ -16,13 +16,35 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-
 #include "c-icap.h"
 #include <stdio.h>
 #include "util.h"
 #include <time.h>
 
+static const char *days[]={
+     "Sun",
+     "Mon",
+     "Tue",
+     "Wed",
+     "Thu",
+     "Fri",
+     "Sat"
+};
 
+static const char *months[]={
+     "Jan",
+     "Feb",
+     "Mar",
+     "Apr",
+     "May",
+     "Jun",
+     "Jul",
+     "Aug",
+     "Sep",
+     "Oct",
+     "Nov",
+     "Dec"
+};
 
 void ci_strtime(char *buf){
      struct tm br_tm;
@@ -30,10 +52,26 @@ void ci_strtime(char *buf){
      time(&tm);
      asctime_r(localtime_r(&tm,&br_tm),buf);
      buf[STR_TIME_SIZE-1]='\0';
-     buf[strlen(buf)-2]='\0';
+     buf[strlen(buf)-1]='\0';
 }
 
+void ci_strtime_rfc822(char *buf){
+     struct tm br_tm;
+     time_t tm;
+     time(&tm);
+     gmtime_r(&tm,&br_tm);
+     
+     snprintf(buf,STR_TIME_SIZE,"%s, %0.2d %s %d %0.2d:%0.2d:%0.2d GMT",
+              days[br_tm.tm_wday],
+	      br_tm.tm_mday,
+              months[br_tm.tm_mon],
+	      br_tm.tm_year+1900,
+              br_tm.tm_hour,
+	      br_tm.tm_min,
+              br_tm.tm_sec);
 
+     buf[STR_TIME_SIZE-1]='\0';
+}
 
 int ci_mktemp_file(char*dir,char*template,char *filename){
      strncpy(filename,dir,CI_FILENAME_LEN-sizeof(template)-1);
