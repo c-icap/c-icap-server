@@ -166,7 +166,8 @@ case "$withval" in
   esac
 ],
 [
-   perlbin=perl
+   perlbin="";
+   perlcore="";
 ]
 )
 
@@ -234,6 +235,15 @@ AC_C_CONST
 AC_TYPE_SIZE_T
 AC_TYPE_OFF_T
 AC_CHECK_SIZEOF(off_t)
+
+# if I am not wrong for every 32bit and 64bit machine, 'short' is always 16bit, 'int' is 32bit
+# and long is 32bit or 64bit respectively.
+AC_CHECK_TYPE(uint8_t,,
+	[AC_DEFINE(uint8_t, unsigned char, [Define to 'unsigned char' if <sys/types.h> does not define.])])
+AC_CHECK_TYPE(uint16_t,,
+	[AC_DEFINE(uint16_t, unsigned short, [Define to 'unsigned short' if <sys/types.h> does not define.])])
+AC_CHECK_TYPE(uint32_t,,
+	[AC_DEFINE(uint32_t, unsigned int, [Define to 'unsigned int' if <sys/types.h> does not define.])])
 
 # Checks for library functions.
 #AC_FUNC_VPRINTF
