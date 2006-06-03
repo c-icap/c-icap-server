@@ -214,49 +214,44 @@ typedef union acl_inaddr{
 #define acl_ipv4_inaddr_zero(addr) ((addr).ipv4_addr.s_addr=0)
 
 
+#define acl_in6_addr_u32(addr) ((uint32_t *)&((addr).ipv6_addr))
 
-#define acl_ipv6_inaddr_is_zero(addr) ((addr).ipv6_addr.s6_addr32[0]==0 && \
-                                       (addr).ipv6_addr.s6_addr32[1]==0 && \
-                                       (addr).ipv6_addr.s6_addr32[2]==0 && \
-                                       (addr).ipv6_addr.s6_addr32[3]==0)
+#define acl_ipv6_inaddr_is_zero(addr) ( acl_in6_addr_u32(addr)[0]==0 && \
+                                        acl_in6_addr_u32(addr)[1]==0 && \
+                                        acl_in6_addr_u32(addr)[2]==0 && \
+                                        acl_in6_addr_u32(addr)[3]==0)
 
-#define acl_ipv6_inaddr_are_equal(addr1,addr2) ((addr1).ipv6_addr.s6_addr32[0]==(addr2).ipv6_addr.s6_addr32[0] && \
-                                                (addr1).ipv6_addr.s6_addr32[1]==(addr2).ipv6_addr.s6_addr32[1] && \
-                                                (addr1).ipv6_addr.s6_addr32[2]==(addr2).ipv6_addr.s6_addr32[2] && \
-                                                (addr1).ipv6_addr.s6_addr32[3]==(addr2).ipv6_addr.s6_addr32[3])
+#define acl_ipv6_inaddr_are_equal(addr1,addr2) ( acl_in6_addr_u32(addr1)[0]==acl_in6_addr_u32(addr2)[0] && \
+                                                 acl_in6_addr_u32(addr1)[1]==acl_in6_addr_u32(addr2)[1] && \
+                                                 acl_in6_addr_u32(addr1)[2]==acl_in6_addr_u32(addr2)[2] && \
+                                                 acl_in6_addr_u32(addr1)[3]==acl_in6_addr_u32(addr2)[3])
 
-#define acl_ipv6_inaddr_check_net(addr1,addr2,mask) (((addr1).ipv6_addr.s6_addr32[0] & (mask).ipv6_addr.s6_addr32[0])==((addr2).ipv6_addr.s6_addr32[0] & (mask).ipv6_addr.s6_addr32[0]) &&\
-                                                     ((addr1).ipv6_addr.s6_addr32[1] & (mask).ipv6_addr.s6_addr32[1])==((addr2).ipv6_addr.s6_addr32[1] & (mask).ipv6_addr.s6_addr32[1]) &&\
-                                                     ((addr1).ipv6_addr.s6_addr32[2] & (mask).ipv6_addr.s6_addr32[2])==((addr2).ipv6_addr.s6_addr32[2] & (mask).ipv6_addr.s6_addr32[2]) &&\
-                                                     ((addr1).ipv6_addr.s6_addr32[3] & (mask).ipv6_addr.s6_addr32[3])==((addr2).ipv6_addr.s6_addr32[3] & (mask).ipv6_addr.s6_addr32[3]))
+#define acl_ipv6_inaddr_check_net(addr1,addr2,mask) ((acl_in6_addr_u32(addr1)[0] & acl_in6_addr_u32(mask)[0])==(acl_in6_addr_u32(addr2)[0] & acl_in6_addr_u32(mask)[0]) &&\
+                                                     (acl_in6_addr_u32(addr1)[1] & acl_in6_addr_u32(mask)[1])==(acl_in6_addr_u32(addr2)[1] & acl_in6_addr_u32(mask)[1]) &&\
+                                                     (acl_in6_addr_u32(addr1)[2] & acl_in6_addr_u32(mask)[2])==(acl_in6_addr_u32(addr2)[2] & acl_in6_addr_u32(mask)[2]) &&\
+                                                     (acl_in6_addr_u32(addr1)[3] & acl_in6_addr_u32(mask)[3])==(acl_in6_addr_u32(addr2)[3] & acl_in6_addr_u32(mask)[3]))
 
+#define acl_ipv6_inaddr_hostnetmask(addr)(acl_in6_addr_u32(addr)[0]=htonl(0xFFFFFFFF),\
+                                          acl_in6_addr_u32(addr)[1]=htonl(0xFFFFFFFF),\
+                                          acl_in6_addr_u32(addr)[2]=htonl(0xFFFFFFFF),\
+                                          acl_in6_addr_u32(addr)[3]=htonl(0xFFFFFFFF))
 
-#define acl_ipv6_inaddr_is_zero(addr) ((addr).ipv6_addr.s6_addr32[0]==0 &&\
-                                       (addr).ipv6_addr.s6_addr32[1]==0 &&\
-                                       (addr).ipv6_addr.s6_addr32[2]==0 &&\
-                                       (addr).ipv6_addr.s6_addr32[3]==0)
-
-#define acl_ipv6_inaddr_hostnetmask(addr)((addr).ipv6_addr.s6_addr32[0]=htonl(0xFFFFFFFF),\
-                                          (addr).ipv6_addr.s6_addr32[1]=htonl(0xFFFFFFFF),\
-                                          (addr).ipv6_addr.s6_addr32[2]=htonl(0xFFFFFFFF),\
-                                          (addr).ipv6_addr.s6_addr32[3]=htonl(0xFFFFFFFF))
-
-#define acl_ipv6_inaddr_is_v4mapped(addr) ((addr).ipv6_addr.s6_addr32[0]==0 &&\
-                                           (addr).ipv6_addr.s6_addr32[1]==0 &&\
-                                           (addr).ipv6_addr.s6_addr32[2]== htonl(0xFFFF))
+#define acl_ipv6_inaddr_is_v4mapped(addr) (acl_in6_addr_u32(addr)[0]==0 &&\
+                                           acl_in6_addr_u32(addr)[1]==0 &&\
+                                           acl_in6_addr_u32(addr)[2]== htonl(0xFFFF))
 
 #define acl_inaddr_zero(addr) (memset(&(addr),0,sizeof(acl_in_addr_t)))
 #define acl_inaddr_copy(dest,src) (memcpy(&(dest),&(src),sizeof(acl_in_addr_t)))
 
 /*We can do this because ipv4_addr in practice exists in s6_addr[0]*/
-#define acl_inaddr_ipv4_to_ipv6(addr)((addr).ipv6_addr.s6_addr32[3]=(addr).ipv4_addr.s_addr,\
-                                       (addr).ipv6_addr.s6_addr32[0]=0,\
-                                       (addr).ipv6_addr.s6_addr32[1]=0,\
-                                       (addr).ipv6_addr.s6_addr32[2]= htonl(0xFFFF))
-#define acl_netmask_ipv4_to_ipv6(addr)((addr).ipv6_addr.s6_addr32[3]=(addr).ipv4_addr.s_addr,\
-                                       (addr).ipv6_addr.s6_addr32[0]= htonl(0xFFFFFFFF),\
-                                       (addr).ipv6_addr.s6_addr32[1]= htonl(0xFFFFFFFF),\
-                                       (addr).ipv6_addr.s6_addr32[2]= htonl(0xFFFFFFFF))
+#define acl_inaddr_ipv4_to_ipv6(addr)( acl_in6_addr_u32(addr)[3]=(addr).ipv4_addr.s_addr,\
+                                       acl_in6_addr_u32(addr)[0]=0,\
+                                       acl_in6_addr_u32(addr)[1]=0,\
+                                       acl_in6_addr_u32(addr)[2]= htonl(0xFFFF))
+#define acl_netmask_ipv4_to_ipv6(addr)(acl_in6_addr_u32(addr)[3]=(addr).ipv4_addr.s_addr,\
+                                       acl_in6_addr_u32(addr)[0]= htonl(0xFFFFFFFF),\
+                                       acl_in6_addr_u32(addr)[1]= htonl(0xFFFFFFFF),\
+                                       acl_in6_addr_u32(addr)[2]= htonl(0xFFFFFFFF))
 #else /*if no HAVE_IPV6*/
 
 typedef struct in_addr acl_in_addr_t;
@@ -505,7 +500,8 @@ int match_ipv4_connection(acl_spec_t *spec,acl_spec_t *conn_spec){
 
 #ifdef HAVE_IPV6
 int match_ipv6_connection(acl_spec_t *spec,acl_spec_t *conn_spec){
-/*     char ip1[64],ip2[64],mask[64];
+/*
+     char ip1[64],ip2[64],mask[64];
      ci_inet_ntoa(AF_INET6,&(spec->hclient_netmask.ipv6_addr),mask,64);     
      ci_inet_ntoa(AF_INET6,&(conn_spec->hclient_address.ipv6_addr),ip1,64);
      ci_inet_ntoa(AF_INET6,&(conn_spec->hserver_address.ipv6_addr),ip2,64);
@@ -514,7 +510,6 @@ int match_ipv6_connection(acl_spec_t *spec,acl_spec_t *conn_spec){
      ci_inet_ntoa(AF_INET6,&(spec->hserver_address.ipv6_addr),ip2,64);
      ci_debug_printf(9,"match_ipv6:With spec %s/%s -> %s\n",ip1,mask,ip2);
 */
-
      if(spec->port!=0 && spec->port != conn_spec->port)
 	  return 0;
      
@@ -621,11 +616,23 @@ void acl_list_ipv4_to_ipv6(){
      if(acl_spec_list==NULL)
 	  return;
      for(spec=acl_spec_list;spec!=NULL;spec=spec->next){
-	  spec->family=AF_INET6;
-	  acl_inaddr_ipv4_to_ipv6(spec->hclient_address); 
-	  acl_netmask_ipv4_to_ipv6(spec->hclient_netmask);
-	  acl_inaddr_ipv4_to_ipv6(spec->hserver_address);
-	  
+	  if(spec->family==AF_INET){
+	       spec->family=AF_INET6;
+	       if(acl_ipv4_inaddr_is_zero(spec->hclient_address))
+		    acl_inaddr_zero(spec->hclient_address);
+	       else
+		    acl_inaddr_ipv4_to_ipv6(spec->hclient_address); 
+
+	       if(acl_ipv4_inaddr_is_zero(spec->hclient_netmask))
+		    acl_inaddr_zero(spec->hclient_netmask);
+	       else
+		    acl_netmask_ipv4_to_ipv6(spec->hclient_netmask);
+
+	       if(acl_ipv4_inaddr_is_zero(spec->hserver_address))
+		    acl_inaddr_zero(spec->hserver_address);
+	       else
+		    acl_inaddr_ipv4_to_ipv6(spec->hserver_address);
+	  }
      }
      return;
 }
