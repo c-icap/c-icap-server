@@ -102,7 +102,7 @@ srv_clamav.SendPercentData 5
 srv_clamav.StartSendPercentDataAfter 2M
 
 ##Comment out the following line to enable 204 responces outside previews for srv_clamav
-## if your icap client support it. For squid leave it off
+## if your icap client support it. For squid let it off
 #srv_clamav.Allow204Responces on
 
 # The Maximum object to be scanned.
