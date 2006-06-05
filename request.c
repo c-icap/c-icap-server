@@ -297,6 +297,10 @@ int parse_encaps_headers(request_t *req){
      return EC_100;
 }
 
+/*
+  In read_preview_data I must check if readed data are more than 
+  those client said in preview header
+*/
 int read_preview_data(request_t *req){
     int ret;
     char *wdata;
@@ -304,9 +308,15 @@ int read_preview_data(request_t *req){
     req->current_chunk_len=0;
     req->chunk_bytes_read=0;
     req->write_to_module_pending=0;
-    while(ci_wait_for_incomming_data(req->connection->fd,TIMEOUT)){
+
+    if(req->pstrblock_read_len==0){
+	 if(!ci_wait_for_incomming_data(req->connection->fd,TIMEOUT))
+	      return CI_ERROR;
 	 if(net_data_read(req)==CI_ERROR)
 	      return CI_ERROR;
+    }
+
+    do{
 	 do{
 	      if((ret=parse_chunk_data(req,&wdata))==CI_ERROR){
 		   ci_debug_printf(1,"Error parsing chunks, current chunk len: %d readed:%d, str:%s\n",
@@ -327,7 +337,12 @@ int read_preview_data(request_t *req){
 		   return CI_OK;
 	      }
 	 }while(ret!=CI_NEEDS_MORE);
-    }
+
+	 if(!ci_wait_for_incomming_data(req->connection->fd,TIMEOUT))
+	      return CI_ERROR;
+	 if(net_data_read(req)==CI_ERROR)
+	      return CI_ERROR;
+    }while(1);
 
     return CI_ERROR;
 }
@@ -531,8 +546,13 @@ int get_send_body(request_t *req){
      if(!service_io)
 	  return CI_ERROR;
 
-     action=wait_for_read;
      req->status=SEND_NOTHING;
+     /*in the case we did not have preview data and body is small maybe
+       the c-icap already read the body with the headers so do not read
+       if there are unparsed bytes in pstrblock buffer
+      */
+     if(req->pstrblock_read_len==0) 
+	  action=wait_for_read;
 
      do{
 	  ret=0;
