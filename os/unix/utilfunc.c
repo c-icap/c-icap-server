@@ -61,7 +61,7 @@ void ci_strtime_rfc822(char *buf){
      time(&tm);
      gmtime_r(&tm,&br_tm);
      
-     snprintf(buf,STR_TIME_SIZE,"%s, %0.2d %s %d %0.2d:%0.2d:%0.2d GMT",
+     snprintf(buf,STR_TIME_SIZE,"%s, %.2d %s %d %.2d:%.2d:%.2d GMT",
               days[br_tm.tm_wday],
 	      br_tm.tm_mday,
               months[br_tm.tm_mon],
