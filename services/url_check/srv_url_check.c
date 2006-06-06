@@ -157,7 +157,7 @@ int check_destination(struct http_info *httpinf){
     return 1;
 }
 
-char *error_message="<H1>Permition deny!<H1>";
+static char *error_message="<H1>Permition deny!<H1>";
 
 int url_check_check_preview(char *preview_data,int preview_data_len, request_t *req){
     ci_headers_list_t* req_header;
