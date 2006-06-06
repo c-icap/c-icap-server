@@ -1,0 +1,21 @@
+This is NOT a real release. Must considered just as a stable snapshot 
+from cvs repository. Read the INSTALL.txt file and web pages at 
+http://c-icap.sourceforge.net/ for information about how to configure.
+
+COMMENTS:
+*c-icap is more tested in Linux systems. However compiles and runs at least 
+in solaris 10 and FreeBSD 5.x and possibly in other platforms.
+
+*The format of file c-icap.magic has changed. If you use your own c-icap.magic
+file remember to convert it to new format. You can also use the 
+convert_old_magic.pl utility in contrib directory to convert it.
+
+*ipv6 support for Linux and Solaris looks that works OK but it is not 
+enough tested.
+
+*Although I was able to compile c-icap with IPv6 support in FreeBSD 5.x
+it was not possible for me to make it to work. Maybe becouse of bugs in 
+implementation maybe becouse of my inability to correctly setup the ipv6
+in FreeBSD.
+
+
