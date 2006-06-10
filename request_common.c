@@ -336,9 +336,8 @@ int parse_chunk_data(request_t *req, char **wdata){
      char *end;
      int num_len,remains,tmp;
      int read_status=0;
-     
+
      *wdata=NULL;
-     
      if(req->write_to_module_pending){
 	  /*We must not here if the chunk buffer did not flashed*/
 	  return CI_ERROR;
@@ -364,7 +363,6 @@ int parse_chunk_data(request_t *req, char **wdata){
 	       if(req->pstrblock_read_len-num_len < 2){ 
 		    return CI_NEEDS_MORE;
 	       }
-
 	       /*At this point the req->pstrblock_read must point to the start of a chunk eg to a "123\r\n"*/
 	       req->chunk_bytes_read=0;
 	       req->current_chunk_len=tmp;
@@ -408,14 +406,11 @@ int parse_chunk_data(request_t *req, char **wdata){
 	  /*if we have data for service leaving this function now*/
 	  if(req->write_to_module_pending)
 	       return CI_OK;
-	  
 	  if(read_status==READ_CHUNK_DATA){
 	       if(req->pstrblock_read_len<=0){
 		    return CI_NEEDS_MORE;
 	       }
-	       
 	       *wdata=req->pstrblock_read;
-	       
 	       remains=req->current_chunk_len-req->chunk_bytes_read;
 	       if(remains<=req->pstrblock_read_len){/*we have all the chunks data*/
 		    if(remains>2)
@@ -435,12 +430,11 @@ int parse_chunk_data(request_t *req, char **wdata){
 		    req->pstrblock_read+=req->pstrblock_read_len;
 		    req->pstrblock_read_len-=req->pstrblock_read_len;		   
 	       }
-	 }
-
+	  }
 	  if(req->pstrblock_read_len==0)
 	       return CI_NEEDS_MORE;
+     }
 
-    }
     return CI_OK;
 }
 

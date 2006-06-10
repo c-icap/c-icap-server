@@ -435,18 +435,15 @@ int format_body_chunk(request_t *req){
 
      if(!req->responce_hasbody)
 	  return CI_EOF;
-
      if(req->remain_send_block_bytes>0){
-
+	  assert(req->remain_send_block_bytes<=MAX_CHUNK_SIZE);
 	  wbuf=req->wbuf+EXTRA_CHUNK_SIZE+req->remain_send_block_bytes; 
                           /*Put the "\r\n" sequence at the end of chunk*/
 	  *(wbuf++)='\r';
 	  *wbuf='\n';
-	  
 	  def_bytes=snprintf(tmpbuf,EXTRA_CHUNK_SIZE,"%x\r\n",req->remain_send_block_bytes);
 	  wbuf=req->wbuf+EXTRA_CHUNK_SIZE-def_bytes;  /*Copy the chunk define in the beggining of chunk .....*/
 	  memcpy(wbuf,tmpbuf,def_bytes);
-	  
 	  req->pstrblock_responce=wbuf;
 	  req->remain_send_block_bytes+=def_bytes+2;     
      }
@@ -456,7 +453,6 @@ int format_body_chunk(request_t *req){
 	  req->remain_send_block_bytes=5;     
 	  return CI_EOF;
      }
-
      return CI_OK;
 }
 
@@ -538,7 +534,7 @@ int update_send_status(request_t *req){
  
 int get_send_body(request_t *req){
      char *wchunkdata=NULL,*rchunkdata=NULL;
-     int ret,parse_chunk_ret;
+     int ret,parse_chunk_ret,has_formated_data=0;
      int (*service_io)(char *rbuf,int *rlen,char *wbuf,int *wlen,int iseof, struct request *);
      int action=0, rchunkisfull=0,service_eof=0,wbytes,rbytes;
 
@@ -553,17 +549,15 @@ int get_send_body(request_t *req){
       */
      if(req->pstrblock_read_len==0) 
 	  action=wait_for_read;
-
      do{
 	  ret=0;
 	  if(action){
 	       if((ret=ci_wait_for_data(req->connection->fd,TIMEOUT,action))==0)
 		    break;
-
 	       if(ret&wait_for_read){
 		    if(net_data_read(req)==CI_ERROR)
 			 return CI_ERROR;
-	       }
+	       }	   
 	       if(ret&wait_for_write){
 		    if(!req->data_locked && req->status==SEND_NOTHING ){
 			 update_send_status(req);
@@ -583,6 +577,10 @@ int get_send_body(request_t *req){
 	    At the same time reads the data from module and try to fill
 	    the req->wbuf
 	   */
+	  if(req->remain_send_block_bytes)
+	       has_formated_data=1;
+	  else
+	       has_formated_data=0;
 	  parse_chunk_ret=0;
 	  do{
 	       if(req->pstrblock_read_len!=0 && req->write_to_module_pending==0){
@@ -594,7 +592,6 @@ int get_send_body(request_t *req){
 		    if(parse_chunk_ret==CI_EOF)
 			 req->eof_received=1;
 	       }
-	       
 	       if(wchunkdata && req->write_to_module_pending)
 		    wbytes=req->write_to_module_pending;
 	       else
@@ -607,8 +604,8 @@ int get_send_body(request_t *req){
 			 req->pstrblock_responce=rchunkdata; /*does not needed!*/
 			 rchunkisfull=0;
 		    }
-		    if(MAX_CHUNK_SIZE-req->remain_send_block_bytes>0){
-			 rbytes=MAX_CHUNK_SIZE-req->remain_send_block_bytes;		    
+		    if((MAX_CHUNK_SIZE-req->remain_send_block_bytes)>0 && has_formated_data==0){
+			 rbytes=MAX_CHUNK_SIZE-req->remain_send_block_bytes;
 		    }
 		    else{
 			 rchunkisfull=1;
@@ -617,7 +614,6 @@ int get_send_body(request_t *req){
 	       }
 	       else
 		    rbytes=0;
-	       
 	       if((*service_io)(rchunkdata,&rbytes,wchunkdata,&wbytes,req->eof_received,req)==CI_ERROR)
 		    return CI_ERROR;
 	       if(wbytes){
@@ -630,7 +626,6 @@ int get_send_body(request_t *req){
 	       }
 	       else if(rbytes==CI_EOF)
 		    service_eof=1;
-	       
 	  }while(req->pstrblock_read_len!=0 && parse_chunk_ret!=CI_NEEDS_MORE && !rchunkisfull);
 	  
 	  action=0;
@@ -638,19 +633,20 @@ int get_send_body(request_t *req){
 	       action=wait_for_read;
 	       wchunkdata=NULL;
 	  }
-	  
+
 	  if(req->status==SEND_BODY){
 	       if(req->remain_send_block_bytes==0 && service_eof==1)
 		    req->remain_send_block_bytes=CI_EOF;
-	       
-	       if((format_body_chunk(req)) == CI_EOF)
-		    req->status=SEND_EOF;
+	       if( has_formated_data==0){
+		    if(format_body_chunk(req) == CI_EOF)
+			 req->status=SEND_EOF;
+	       }
 	  }
 
 	  if(req->remain_send_block_bytes){
 	       action=action|wait_for_write;
 	  }
-	  
+
      }while(!req->eof_received && action);
 
      if(req->eof_received)
