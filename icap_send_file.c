@@ -125,7 +125,7 @@ int readheaderresponce(int fd){
 //	  printf("(BYTES=%d)\n%s",len,lbuf);
 //	  printf("%s",lbuf);
 	  printf("Readed bytes:%d, startbody at:%d, remain bytes:%d, blocks:%d\n",
-		 bytes,startbody,remainbytes,blocks);;
+		 bytes,startbody,remainbytes,blocks);
 	  if(blocks==2)
 	       return bytes;
      }
