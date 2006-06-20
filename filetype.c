@@ -66,8 +66,9 @@ struct ci_magic_record{
                                                     }
 
 #define CHECK_SIZE(db,array,type,size)   if(db->array##_num >= db->array##_size){\
-	                                           if((newdata=realloc(db->array,db->array##_size+size*sizeof(type)))==NULL)\
+	                                           if((newdata=realloc(db->array,(db->array##_size+size)*sizeof(type)))==NULL)\
 	                                                     return -1;\
+                                                    db->array##_size +=size; \
 	                                            db->array =newdata;\
                                         }
 
@@ -80,7 +81,7 @@ int types_add(struct ci_magics_db *db, char *name,char *descr,int *groups){
      struct ci_data_type *newdata;
      int indx,i;
 
-     CHECK_SIZE(db,types,struct ci_data_type,50);
+     CHECK_SIZE(db,types,struct ci_data_type,50)
      
      indx=db->types_num;
      db->types_num++;
@@ -113,7 +114,7 @@ int magics_add(struct ci_magics_db *db,int offset,char *magic,int len,int type){
      int indx;
 
      CHECK_SIZE(db,magics,struct ci_magic,50)
-
+	  
      indx=db->magics_num;
      db->magics_num++;
 
@@ -308,6 +309,10 @@ int ci_magics_db_file_add(struct ci_magics_db *db,char *filename){
 	       }
 	       groups[i]=-1;
 	       type=types_add(db,record.type,record.descr,groups);
+	       if(type<0){
+		    ret=-2;
+		    break;
+	       }
 	  }
 	  
 	  magics_add(db,record.offset,record.magic,record.len,type);
