@@ -264,6 +264,7 @@ AC_TRY_RUN(
 
 int main(int argc,char **argv){
       sem_t s;
+      pid_t pid;
       int status;
       if(sem_init(&s,1,1)!=0){
         return -1;
