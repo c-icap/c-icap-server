@@ -303,7 +303,7 @@ int ci_cached_file_read(ci_cached_file_t *body,char *buf,int len){
 	  return CI_EOF;
      
      if(body->fd>0){
-	  if(body->unlocked>=0)
+	  if((body->flags&CI_FILE_USELOCK) && body->unlocked>=0)
 	       remains=body->unlocked-body->readpos;
 	  else
 	       remains=len;
