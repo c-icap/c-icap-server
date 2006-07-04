@@ -26,6 +26,7 @@ dnl Checks for OS specific flags
 case "$host_os" in
      solaris2.*)
           LIBS="-lsocket -lnsl"
+	  TEST_LIBS=" -lrt"
       ;;
       cygwin*)
 	MODULES_LIBADD="-L../../ -licapapi"
@@ -87,7 +88,7 @@ case "$host_os" in
       ;;
 esac
 
-
+TEST_LIBS="$TEST_LIBS $THREADS_LDADD"
 AC_SUBST(THREADS_LDADD)
 AC_SUBST(THREADS_LDFLAGS)
 
@@ -246,6 +247,11 @@ AC_CHECK_TYPE(uint32_t,,
 	[AC_DEFINE(uint32_t, unsigned int, [Define to 'unsigned int' if <sys/types.h> does not define.])])
 
 # Checks for library functions.
+
+#Here we are changing the LIBS variable and save the current value to OLD_LIBS variable
+OLD_LIBS="$LIBS"
+LIBS="$LIBS $TEST_LIBS"
+
 #AC_FUNC_VPRINTF
 AC_CHECK_FUNCS(inet_aton,
 AC_DEFINE(HAVE_INET_ATON,1,[Define HAVE_INET_ATON if inet_aton exists])
@@ -269,7 +275,7 @@ int main(int argc,char **argv){
       if(sem_init(&s,1,1)!=0){
         return -1;
       }
-     if(fork()==0){
+     if((pid=fork())==0){
 	  if(sem_post(&s)<0){
 	       exit(-1);
 	  }
@@ -320,6 +326,9 @@ AC_DEFINE(HAVE_POSIX_FILE_LOCK,1,[Define HAVE_POSIX_FILE_LOCK if posix fcntl fil
 AC_MSG_RESULT(yes),
 AC_MSG_RESULT(no)
 )
+
+#We are pouting back real LIBS variable
+LIBS=$OLD_LIBS
 
 #general parameters
 AM_CONDITIONAL(ISCYGWIN,[test a"$iscygwin" != a])
