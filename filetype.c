@@ -464,9 +464,12 @@ int check_unicode(unsigned char *buf,int buflen){
      int endian=0;
      /*check for utf8 ........*/
      for(i=0;i<buflen;i+=ret){ 
-	  if(!(ret=isUTF8(buf+i,buflen-i)))
+	  if((ret=isUTF8(buf+i,buflen-i)) <= 0)
 	       break;
      }
+
+     if(ret < 0 && i == 0)
+	 ret=0;/*Not enough data to check*/
 
      if(ret) /*Even if the last char is unknown ret!=0 mean is utf*/
 	  return CI_UTF_DATA; /*... but what about if buflen is about 2 or 3 bytes long ?*/
@@ -505,7 +508,7 @@ int ci_filetype(struct ci_magics_db *db,char *buf, int buflen){
 
      if((ret=check_magics(db,buf,buflen))>=0)
 	  return ret;
-     
+
 /*At the feature the check_ascii and check_unicode must be merged ....*/
      if((ret=check_ascii((unsigned char *)buf,buflen))>0)
 	  return ret;
@@ -513,7 +516,7 @@ int ci_filetype(struct ci_magics_db *db,char *buf, int buflen){
      if((ret=check_unicode((unsigned char *)buf,buflen))>0){
 	  return CI_UTF_DATA;
      }
-     
+
      return CI_BIN_DATA; /*binary data*/
 }
 
