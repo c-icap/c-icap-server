@@ -214,6 +214,7 @@ request_t *ci_request_alloc(ci_connection_t *connection){
      req->eof_received=0;
      
      req->head=ci_headers_make();
+     req->xheaders=ci_headers_make();
      req->status=SEND_NOTHING;
 
 
@@ -262,6 +263,7 @@ void ci_request_reset(request_t *req){
      req->hasbody=0;
      req->responce_hasbody=0;
      ci_headers_reset(req->head);
+     ci_headers_reset(req->xheaders);
      req->eof_received=0;
      req->status=SEND_NOTHING;
 
@@ -291,6 +293,7 @@ void ci_request_destroy(request_t *req){
      
      ci_buf_mem_free(&(req->preview_data));
      ci_headers_destroy(req->head);
+     ci_headers_destroy(req->xheaders);
      for(i=0;req->entities[i]!=NULL;i++) 
 	  destroy_encaps_entity(req->entities[i]);
 

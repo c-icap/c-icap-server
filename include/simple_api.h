@@ -51,5 +51,7 @@ CI_DECLARE_FUNC(int)                 ci_request_create_respmod(request_t *req, i
 CI_DECLARE_FUNC(ci_off_t)            ci_content_lenght(request_t *req);
 CI_DECLARE_FUNC(char *)              ci_http_request(request_t *req);
 
+CI_DECLARE_FUNC(char *)              ci_request_add_xheader(request_t *req,char *header);
+
 #endif
 

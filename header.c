@@ -211,6 +211,7 @@ char *ci_headers_add(ci_headers_list_t *h, char *line){
 	    return NULL;
        }
        h->headers=newspace;
+       h->size=len;
   }
   linelen=strlen(line);
   while(h->bufused+linelen+4 >= h->bufsize){
@@ -237,7 +238,45 @@ char *ci_headers_add(ci_headers_list_t *h, char *line){
 }
 
 
-char * ci_headers_search(ci_headers_list_t *h, char *header){
+char *ci_headers_addheaders(ci_headers_list_t *h,ci_headers_list_t *headers){
+    int remains,len,i;
+    char *newbuf, **newspace;
+
+    while(h->size-h->used < headers->used){
+	len=h->size+HEADERSTARTSIZE;
+	newspace=realloc(h->headers,len*sizeof(char *));
+	if(!newspace){
+	    ci_debug_printf(1,"Server Error:Error allocation memory \n");
+	    return NULL;
+	}
+	h->headers=newspace;
+	h->size=len;
+    }
+    
+    while((remains=h->bufsize-h->bufused) < headers->bufused+2){
+	len=h->bufsize+HEADSBUFSIZE;
+	newbuf=realloc(h->buf,len*sizeof(char));
+	if(!newbuf){
+	    ci_debug_printf(1,"Server Error:Error allocation memory \n");
+	    return NULL;
+	}
+	h->buf=newbuf;
+	h->bufsize=len;
+	h->headers[0]=h->buf;
+	for(i=1;i<h->used;i++)
+	    h->headers[i]=h->headers[i-1]+strlen(h->headers[i-1])+2;
+    }
+       
+    memcpy(h->buf+h->bufused,headers->buf,headers->bufused+2);
+    h->bufused+=headers->bufused;
+    h->used+=headers->used;
+
+    for(i=1;i<h->used;i++)
+	h->headers[i]=h->headers[i-1]+strlen(h->headers[i-1])+2;
+}
+
+
+char *ci_headers_search(ci_headers_list_t *h, char *header){
      int i;
      for(i=0;i<h->used;i++){
 	  if(strncasecmp(h->headers[i],header,strlen(header))==0)
@@ -435,10 +474,7 @@ int sizeofheader(ci_headers_list_t *h){
   size+=2; 
   return size;
 */
-/*
-  why not a simple return h->bufused ? (to be check for bugs....)
- */
-     return h->bufused+2;
+    return h->bufused+2;
 }
 
 int sizeofencaps(ci_encaps_entity_t *e){

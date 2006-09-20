@@ -381,6 +381,10 @@ int mk_responce_header(request_t *req){
 	  ci_headers_add(head,"Connection: close");
      ci_headers_add(head,"ISTag: "ISTAG );
 
+     if(!ci_headers_is_empty(req->xheaders)){
+	 ci_headers_addheaders(head,req->xheaders);
+     }
+
      e_list=req->entities;
      if(req->type==ICAP_RESPMOD){
 	  if(e_list[0]->type==ICAP_REQ_HDR){

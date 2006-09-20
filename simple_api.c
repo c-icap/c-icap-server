@@ -54,7 +54,7 @@ ci_headers_list_t* ci_reqmod_headers(request_t *req){
      return NULL;
 }
 
-int   ci_respmod_reset_headers(request_t *req){
+int ci_respmod_reset_headers(request_t *req){
      ci_headers_list_t *heads;
      if(!(heads=ci_respmod_headers(req)))
 	  return 0;
@@ -78,7 +78,7 @@ int ci_reqmod_reset_headers(request_t *req){
  RESPMOD response encapsulated_list: [reshdr] resbody
  
  */
-int  ci_request_create_respmod(request_t *req,int has_reshdr, int has_body){
+int ci_request_create_respmod(request_t *req,int has_reshdr, int has_body){
      int i=0;
      ci_encaps_entity_t **e_list;
      e_list=req->entities;
@@ -172,3 +172,6 @@ char *ci_http_request(request_t *req){
      return heads->headers[0];
 }
 
+char *ci_request_add_xheader(request_t *req,char *header){
+    return ci_headers_add(req->xheaders, header);
+}

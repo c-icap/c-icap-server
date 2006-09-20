@@ -72,6 +72,7 @@ typedef struct request{
      ci_headers_list_t *head;
      ci_encaps_entity_t *entities[5];//At most 3 and 1 for termination.....
      ci_encaps_entity_t *trash_entities[7];
+     ci_headers_list_t *xheaders;
 
      void *service_data;
 

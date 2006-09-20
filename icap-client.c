@@ -52,7 +52,7 @@ void print_headers(request_t *req){
      
      if(headers){
 	  ci_debug_printf(1,"%s HEADERS:\n",ci_method_string(type));
-	  for(i=0;i<req->head->used;i++){
+	  for(i=0;i<headers->used;i++){
 	       if(headers->headers[i])
 		    ci_debug_printf(1,"\t%s\n",headers->headers[i]);
 	  }
