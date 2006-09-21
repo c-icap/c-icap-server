@@ -93,6 +93,9 @@ Service echo_module srv_echo.so
 Service url_check_module srv_url_check.so
 Service antivirus_module srv_clamav.so
 
+##Adding the alias avscan for srv_clamav service. 
+ServiceAlias  avscan srv_clamav
+
 
 # Antivirus module settings
 # For allowed file types or groups of file types look at  c-icap.magic

@@ -78,6 +78,7 @@ extern access_control_module_t **used_access_controllers;
 
 int cfg_load_magicfile(char *directive,char **argv,void *setdata);
 int cfg_load_service(char *directive,char **argv,void *setdata);
+int cfg_service_alias(char *directive,char **argv,void *setdata);
 int cfg_load_module(char *directive,char **argv,void *setdata);
 int cfg_set_logger(char *directive,char **argv,void *setdata);
 int cfg_set_debug_level(char *directive,char **argv,void *setdata);
@@ -123,6 +124,7 @@ static struct conf_entry conf_variables[]={
      {"ServicesDir",&CONF.SERVICES_DIR,ci_cfg_set_str,NULL},
      {"ModulesDir",&CONF.MODULES_DIR,ci_cfg_set_str,NULL},
      {"Service",NULL,cfg_load_service,NULL},
+     {"ServiceAlias",NULL,cfg_service_alias,NULL},
      {"Module",NULL,cfg_load_module,NULL},
      {"TmpDir",NULL,cfg_set_tmp_dir,NULL},
      {"MaxMemObject",NULL,cfg_set_body_maxmem,NULL}, /*Set library's body max mem*/
@@ -223,6 +225,15 @@ int cfg_load_service(char *directive,char **argv,void *setdata){
      return 1;
 }
 
+int cfg_service_alias(char *directive,char **argv,void *setdata){
+    if(argv==NULL || argv[0]==NULL || argv[1]==NULL){
+	 ci_debug_printf(1,"Missing arguments in ServiceAlias directive\n");
+	 return 0;
+    }
+    ci_debug_printf(1,"Alias:%s of service %s\n",argv[0],argv[1]);
+    add_service_alias(argv[0],argv[1]);
+}
+
 int cfg_load_module(char *directive,char **argv,void *setdata){
      if(argv==NULL || argv[0]==NULL || argv[1]==NULL){
 	  ci_debug_printf(1,"Missing arguments in LoadModule directive\n");
@@ -236,8 +247,6 @@ int cfg_load_module(char *directive,char **argv,void *setdata){
      }
      return 1;
 }
-
-
 
 int cfg_load_magicfile(char *directive,char **argv,void *setdata){
      char *db_file;

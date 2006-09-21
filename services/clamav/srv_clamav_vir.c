@@ -116,7 +116,7 @@ static const char *msg2="</b><p>Ask your administration for info how to get it";
 
 
 void endof_data_vir_mode(av_req_data_t *data,request_t *req){
-      ci_membuf_t *error_page;
+     ci_membuf_t *error_page;
 
      if(data->virus_name && data->body){
 	  error_page=ci_membuf_new();

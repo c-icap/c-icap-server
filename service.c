@@ -33,11 +33,22 @@
 /****************************************************************
  Base functions for services support ....
 *****************************************************************/
+#define STEP 32
 
 static service_module_t **service_list=NULL;
 static int service_list_size;
 static int services_num=0;
-#define STEP 20
+
+typedef struct service_alias{
+    char *alias;
+    service_module_t *service;
+}service_alias_t;
+
+static service_alias_t *service_aliases=NULL;
+static int service_aliases_size;
+static int service_aliases_num=0;
+service_module_t *find_alias_service(char *service_name);
+
 
 service_module_t *create_service(char *service_file){
      char *extension;
@@ -96,14 +107,14 @@ service_module_t *find_service(char *service_name){
 	  if(strcmp(service_list[i]->mod_name,service_name)==0)
 	       return (service_list[i]);
      }
-     return NULL;
+     return find_alias_service(service_name);
 }
 
 
 int post_init_services(){
      int i;
      for(i=0;i<services_num;i++){
-	  if(service_list[i]->mod_post_init_service !=NULL ){
+	  if(service_list[i]->mod_post_init_service!=NULL ){
 	       service_list[i]->mod_post_init_service(service_list[i],&CONF); 
 	  }
      }
@@ -111,7 +122,41 @@ int post_init_services(){
      
 }
 
+/********************** Service aliases *****************************/
+service_module_t *add_service_alias(char *service_alias,char *service_name){
+    service_module_t *service=NULL;
+    if(service_aliases==NULL){
+	service_aliases=malloc(STEP*sizeof(service_alias_t));
+	service_aliases_size=STEP;
+    }
+    else if(service_aliases_num==service_aliases_size){
+	service_aliases_size+=STEP;
+	service_aliases=realloc(service_aliases,service_aliases_size*sizeof(service_alias_t));
+    }
 
+    if(service_aliases==NULL){
+	ci_debug_printf(1,"add_service_alias:Error allocation memory. Exiting...\n");
+	exit(-1);
+    }
+
+    service=find_service(service_name);
+    if(!service)
+	return NULL;
+
+    service_aliases[service_aliases_num].service=service;
+    service_aliases[service_aliases_num++].alias=strdup(service_alias);
+    
+    return service;
+}
+
+service_module_t *find_alias_service(char *service_name){
+     int i;
+     for(i=0;i<service_aliases_num;i++){
+	  if(strcmp(service_aliases[i].alias,service_name)==0)
+	       return (service_aliases[i].service);
+     }
+     return NULL;
+}
 
 /**********************************************************************
   The code for the default handler (C_handler)
