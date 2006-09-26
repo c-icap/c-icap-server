@@ -76,6 +76,10 @@ extern char *ACCESS_LOG_FILE;
 extern logger_module_t *default_logger;
 extern access_control_module_t **used_access_controllers;
 
+/*Functions declaration */
+int parse_file(char *conf_file);
+
+/*config table functions*/
 int cfg_load_magicfile(char *directive,char **argv,void *setdata);
 int cfg_load_service(char *directive,char **argv,void *setdata);
 int cfg_service_alias(char *directive,char **argv,void *setdata);
@@ -87,6 +91,7 @@ int cfg_set_body_maxmem(char *directive,char **argv,void *setdata);
 int cfg_set_tmp_dir(char *directive,char **argv,void *setdata); 
 int cfg_set_acl_controllers(char *directive,char **argv,void *setdata); 
 int cfg_set_auth_method(char *directive,char **argv,void *setdata); 
+int cfg_include_config_file(char *directive,char **argv,void *setdata); 
 
 /*The following 2 functions defined in access.c file*/
 int cfg_acl_add(char *directive,char **argv,void *setdata);
@@ -132,6 +137,7 @@ static struct conf_entry conf_variables[]={
      {"acl",NULL,cfg_acl_add,NULL},
      {"icap_access",NULL,cfg_acl_access,NULL},
      {"AuthMethod",NULL,cfg_set_auth_method,NULL},
+     {"Include",NULL,cfg_include_config_file,NULL},
      {NULL,NULL,NULL,NULL}
 };
 
@@ -232,6 +238,7 @@ int cfg_service_alias(char *directive,char **argv,void *setdata){
     }
     ci_debug_printf(1,"Alias:%s of service %s\n",argv[0],argv[1]);
     add_service_alias(argv[0],argv[1]);
+    return 1;
 }
 
 int cfg_load_module(char *directive,char **argv,void *setdata){
@@ -350,6 +357,23 @@ int cfg_set_auth_method(char *directive,char **argv,void *setdata){
 }
 
 
+int cfg_include_config_file(char *directive,char **argv,void *setdata){
+    char path[CI_MAX_PATH],*cfg_file;
+
+    if(argv == NULL || argv[0] == NULL){
+	  return 0;
+     }
+    cfg_file=argv[0];
+    if(cfg_file[0]!='/'){/*Win32 code?*/
+	snprintf(path, CI_MAX_PATH,CONFDIR"/%s",cfg_file);
+	path[CI_MAX_PATH-1]='\0';
+	cfg_file=path;
+    }
+    
+    ci_debug_printf(1,"\n*** Going to open config file %s ***\n",cfg_file);
+    return parse_file(cfg_file);
+}
+
 /**************************************************************************/
 /* Parse file functions                                                   */
 
@@ -453,7 +477,7 @@ int process_line(char *line){
 	  return 0;
      
      entry=find_action(str,&args);
-//     ci_debug_printf(10,"Line %s (Args:%s)\n",entry->name,args);
+//   ci_debug_printf(10,"Line %s (Args:%s)\n",entry->name,args);
      
      if(entry && entry->action){
 	  argv=split_args(args);
@@ -466,24 +490,30 @@ int process_line(char *line){
      return 0;
 }
 
+static int PARSE_LEVEL=0;
 
 int parse_file(char *conf_file){
      FILE *f_conf;
      char line[LINESIZE];
 
-
-     if((f_conf=fopen(conf_file,"r"))==NULL){
-	  //or log_server better........
-	  ci_debug_printf(1,"Can not open configuration file\n");
+     if(PARSE_LEVEL>=3){
+	  ci_debug_printf(1,"Parse level >3. I will not parse file:%s\n",conf_file);
 	  return 0;
      }
      
+     if((f_conf=fopen(conf_file,"r"))==NULL){
+	  //or log_server better........
+	  ci_debug_printf(1,"Can not open configuration file %s\n",conf_file);
+	  return 0;
+     }
+     PARSE_LEVEL++;
      while(!feof(f_conf)){
 	  fread_line(f_conf,line);
 	  process_line(line);
      }
-
+     
      fclose(f_conf);
+     PARSE_LEVEL--;
      return 1;
 }
 

@@ -52,6 +52,10 @@
 #include <unistd.h>
 #endif
 
+#if HAVE_SYS_PARAM_H
+#include <sys/param.h>
+#endif
+
 #ifdef HAVE_MALLOC_H
 #include <malloc.h>
 #endif
@@ -59,6 +63,22 @@
 #ifdef HAVE_DLFCN_H 
 #include <dlfcn.h>
 #endif
+
+/*some defines */
+#ifdef _WIN32
+# define CI_FILENAME_LEN _MAX_PATH
+# define CI_MAX_PATH     _MAX_PATH
+#else
+# if defined(MAXPATHLEN)
+#   define CI_MAX_PATH     MAXPATHLEN
+# elif defined(PATH_MAX)
+#   define CI_MAX_PATH     PATH_MAX
+# else
+#   define CI_MAX_PATH     256
+# endif
+# define CI_FILENAME_LEN CI_MAX_PATH
+#endif
+
 
 #ifdef _WIN32
 # if defined(CI_BUILD_LIB) 

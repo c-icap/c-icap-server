@@ -225,7 +225,7 @@ fi
 
 # Check for header files
 AC_HEADER_STDC
-AC_CHECK_HEADERS(strings.h unistd.h)
+AC_CHECK_HEADERS(strings.h unistd.h sys/stat.h)
 AC_CHECK_HEADERS(sys/ipc.h,
 AC_DEFINE(HAVE_SYSV_IPC,1,[Define HAVE_SYSV_IPC if sys/ipc.h exists (maybe more tests needed)])
 )
