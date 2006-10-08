@@ -75,7 +75,7 @@ void ci_request_pack(request_t *req){
     ci_encaps_entity_t **elist,*e;
     char buf[256]; 
 
-    if(req->is_client_request && req->preview>0){
+    if(req->is_client_request && req->preview>=0){
 	 sprintf(buf,"Preview: %d",req->preview);
 	 ci_headers_add(req->head,buf);
     }
@@ -204,7 +204,7 @@ request_t *ci_request_alloc(ci_connection_t *connection){
      req->args=NULL;
      req->type=-1;
      req->is_client_request=0;
-     req->preview=0;
+     req->preview=-1;
      ci_buf_init(&(req->preview_data));
 
      req->keepalive=1; /*Keep alive connection is the default behaviour for icap protocol.*/
@@ -255,7 +255,7 @@ void ci_request_reset(request_t *req){
      req->args=NULL;
      req->type=-1;
      req->is_client_request=0;
-     req->preview=0;
+     req->preview=-1;
      ci_buf_reset(&(req->preview_data));
 
      req->keepalive=1; /*Keep alive connection is the default behaviour for icap protocol.*/
@@ -546,11 +546,9 @@ int get_request_options(request_t *req,ci_headers_list_t *h){
 
     if((pstr=ci_headers_value(h, "Preview"))!=NULL){
 	req->preview=strtol(pstr,NULL,10);
-	if(req->preview<0)
-	    req->preview=0;
     }
     else
-	req->preview=0;
+	 req->preview=-1;
 
     
     req->allow204=0;
@@ -635,6 +633,8 @@ int client_send_request_headers(request_t *req,int has_eof,int timeout){
 		  return CI_ERROR;
 	}
     }
+    else if(req->preview==0 && ci_writen(req->connection->fd,"0\r\n\r\n",5,timeout)<0)
+	 return CI_ERROR;
 
     return CI_OK;
 }
@@ -1032,7 +1032,7 @@ int ci_client_icapfilter(request_t *req,
     }
     preview_status=100;
 
-    if(req->preview>0){/*we must wait for ICAP responce here.....*/
+    if(req->preview>=0){/*we must wait for ICAP responce here.....*/
 
 	 do{
 	     ci_wait_for_incomming_data(req->connection->fd,timeout);

@@ -255,7 +255,8 @@ int parse_header(request_t *req){
 	       result=strtol(h->headers[i]+9,NULL,10);
 	       if(errno!= EINVAL && errno!= ERANGE){
 		    req->preview=result;
-		    ci_buf_reset_size(&(req->preview_data),result+100);
+		    if(result >=0)
+			 ci_buf_reset_size(&(req->preview_data),result+64);
 	       }
 	  }
 	  else if(strncmp("Encapsulated: ",h->headers[i],14)==0)
@@ -815,7 +816,7 @@ int process_request(request_t *req){
      case ICAP_REQMOD:
      case ICAP_RESPMOD:
 	  preview_status=0;
-	  if(req->hasbody && req->preview>0 ){
+	  if(req->hasbody && req->preview>=0 ){
 	       /*read_preview_data returns CI_OK, CI_EOF or CI_ERROR */
 	       if((preview_status=read_preview_data(req))==CI_ERROR){
 		    ci_debug_printf(5,"An error occured while reading preview data (propably timeout)\n");

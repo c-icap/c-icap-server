@@ -86,11 +86,13 @@ int echo_check_preview_handler(char *preview_data,int preview_data_len, request_
 
     if(whattodo==0){
  	    whattodo=1;
+	    ci_debug_printf(8,"Echo service will process the request\n");
 	    ci_membuf_write(data,preview_data,preview_data_len,ci_req_hasalldata(req));
             return CI_MOD_CONTINUE;
     }
     else{
         whattodo=0;
+	ci_debug_printf(8,"Allow 204...\n");
         return CI_MOD_ALLOW204;
     }
 }
