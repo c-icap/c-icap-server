@@ -14,10 +14,8 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- */
-
-
-
+ */  
+    
 #include "c-icap.h"
 #include <Windows.h>
 #include <Winbase.h>
@@ -26,98 +24,62 @@
 #include <io.h>
 #include <fcntl.h>
 #include "util.h"
-
-int strncasecmp(const char *s1, const char *s2, size_t n)
+int strncasecmp(const char *s1, const char *s2, size_t n) 
 {
-	int r = 0;
-	while ( n
-		&& ((s1 == s2) ||
-		    !(r = ((int)( tolower(*((unsigned char *)s1))))
-		      - tolower(*((unsigned char *)s2))))
-		&& (--n, ++s2, *s1++));
-	return r;
-}
-
-
-int strcasecmp(const char *s1, const char *s2)
+     int r = 0;
+     while (n  &&((s1 == s2)
+                    || !(r =
+                          ((int) (tolower(*((unsigned char *) s1)))) 
+                          -tolower(*((unsigned char *) s2))))  &&(--n, ++s2,
+                                                                   *s1++));
+     return r;
+}
+int strcasecmp(const char *s1, const char *s2) 
 {
-	int r = 0;
-	while (((s1 == s2) || !(r = ((int)( tolower(*((unsigned char *)s1))))- tolower(*((unsigned char *)s2))))
-		&& (++s2, *s1++));
-	return r;
-}
-
-
-
-
-static const char *days[]={
-     "Sun", 
-     "Mon", 
-     "Tue", 
-     "Wed",
-     "Thu", 
-     "Fri", 
-     "Sat"
+     int r = 0;
+     while (((s1 == s2)
+              || !(r =
+                   ((int) (tolower(*((unsigned char *) s1)))) -
+                   tolower(*((unsigned char *) s2))))  &&(++s2, *s1++));
+     return r;
+}
+static const char *days[] =
+    { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" 
 };
+static const char *months[] =
+    { "", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug",
+     "Sep", "Oct", "Nov", "Dec" 
+};
+void ci_strtime(char *buf)
+{
+     SYSTEMTIME tm;
+     GetLocalTime(&tm);
+     buf[0] = '\0';
+     snprintf(buf, STR_TIME_SIZE, "%s %s %d %d:%d:%d %d", days[tm.wDayOfWeek],
+               months[tm.wMonth], tm.wDay, tm.wHour, tm.wMinute, tm.wSecond,
+               tm.wYear);
+     buf[STR_TIME_SIZE - 1] = '\0';
+} void ci_strtime_rfc822(char *buf)
+{
+     SYSTEMTIME tm;
+     GetLocalTime(&tm);        /*Here we need GMT time not localtime! */
+     buf[0] = '\0';
+     snprintf(buf, STR_TIME_SIZE, "%s, %0.2d %s %d %0.2d:%0.2d:%0.2d GMT",
+               days[tm.wDayOfWeek], tm.wDay, months[tm.wMonth], tm.wYear,
+               tm.wHour, tm.wMinute, tm.wSecond);
+     buf[STR_TIME_SIZE - 1] = '\0';
+} int ci_mktemp_file(char *dir, char *template, char *filename)
+{
+     int fd;
+     GetTempFileName(dir, template, 1, filename);
+     fd = open(filename, O_RDWR | O_CREAT, S_IREAD | S_IWRITE);
+     return fd;
+}
 
-static const char *months[]={
-     "",
-     "Jan", 
-     "Feb", 
-     "Mar", 
-     "Apr",
-     "May", 
-     "Jun", 
-     "Jul", 
-     "Aug",
-     "Sep", 
-     "Oct", 
-     "Nov", 
-     "Dec"
-}; 
-
-void ci_strtime(char *buf){
-     SYSTEMTIME tm;
-     GetLocalTime(&tm);
-     
-     buf[0]='\0';
-     snprintf(buf,STR_TIME_SIZE,"%s %s %d %d:%d:%d %d",
-	      days[tm.wDayOfWeek],
-	      months[tm.wMonth],
-	      tm.wDay,
-	      tm.wHour,tm.wMinute,
-	      tm.wSecond,tm.wYear);
-     
-     buf[STR_TIME_SIZE-1]='\0';
-}
-
-void ci_strtime_rfc822(char *buf){
-     SYSTEMTIME tm;
-     GetLocalTime(&tm); /*Here we need GMT time not localtime!*/
-
-     buf[0]='\0';
-     snprintf(buf,STR_TIME_SIZE,"%s, %0.2d %s %d %0.2d:%0.2d:%0.2d GMT",
-              days[tm.wDayOfWeek],
-              tm.wDay,
-              months[tm.wMonth],
-	      tm.wYear,
-              tm.wHour,tm.wMinute,
-              tm.wSecond);
-
-     buf[STR_TIME_SIZE-1]='\0';
-}
-
-int ci_mktemp_file(char*dir,char* template,char *filename){
-     int fd;
-     GetTempFileName(dir,template,1,filename);
-     fd=open(filename,O_RDWR|O_CREAT,S_IREAD|S_IWRITE);
-     return fd;
-}
-
-
+
 #ifndef offsetof
 #define offsetof(type,field) ((int) ( (char *)&((type *)0)->field))
-#endif
+#endif                          /*  */
 /*
 static const unsigned char at_data[] = {
 	'S', 'u', 'n', 'M', 'o', 'n', 'T', 'u', 'e', 'W', 'e', 'd',
@@ -138,7 +100,7 @@ static const unsigned char at_data[] = {
 	offsetof(struct tm, tm_sec),
 	' ', '?', '?', '?', '?', '\n', 0
 };
-*/
+*/ 
 /*
 char *asctime_r(const struct tm *ptm, char *buffer)
 {
@@ -184,4 +146,4 @@ char *asctime_r(const struct tm *ptm, char *buffer)
 	
 	return buffer - 8;
 }
-*/
+*/ 

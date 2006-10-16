@@ -35,29 +35,30 @@
 *****************************************************************/
 #define STEP 32
 
-static service_module_t **service_list=NULL;
+static service_module_t **service_list = NULL;
 static int service_list_size;
-static int services_num=0;
+static int services_num = 0;
 
-typedef struct service_alias{
-    char *alias;
-    service_module_t *service;
-}service_alias_t;
+typedef struct service_alias {
+     char *alias;
+     service_module_t *service;
+} service_alias_t;
 
-static service_alias_t *service_aliases=NULL;
+static service_alias_t *service_aliases = NULL;
 static int service_aliases_size;
-static int service_aliases_num=0;
+static int service_aliases_num = 0;
 service_module_t *find_alias_service(char *service_name);
 
 
-service_module_t *create_service(char *service_file){
+service_module_t *create_service(char *service_file)
+{
      char *extension;
      service_handler_module_t *service_handler;
-     extension=strrchr(service_file,'.');
-     service_handler=find_servicehandler_by_ext(extension);
-     
-     if(!service_handler)
-	  return NULL;
+     extension = strrchr(service_file, '.');
+     service_handler = find_servicehandler_by_ext(extension);
+
+     if (!service_handler)
+          return NULL;
      return service_handler->create_service(service_file);
 
 }
@@ -66,94 +67,105 @@ service_module_t *create_service(char *service_file){
 /*Must called only in initialization procedure.
   It is not thread-safe!
 */
-service_module_t * register_service(char *service_file){ 
-     service_module_t *service=NULL;
+service_module_t *register_service(char *service_file)
+{
+     service_module_t *service = NULL;
 
-     if(service_list==NULL){
-	  service_list_size=STEP;
-	  service_list=malloc(service_list_size*sizeof(service_module_t *));
+     if (service_list == NULL) {
+          service_list_size = STEP;
+          service_list = malloc(service_list_size * sizeof(service_module_t *));
      }
-     else if(services_num==service_list_size){
-	  service_list_size+=STEP;
-	  service_list=realloc(service_list,service_list_size*sizeof(service_module_t *));
-     }
-
-     if(service_list==NULL){
-	  //log an error......and...
-	  exit(-1);
-     }
-	  
-     service=create_service(service_file);
-     if(!service){
-	  ci_debug_printf(1,"Error finding symbol \"service\" in  module %s\n",service_file);
-	  return NULL;
+     else if (services_num == service_list_size) {
+          service_list_size += STEP;
+          service_list =
+              realloc(service_list,
+                      service_list_size * sizeof(service_module_t *));
      }
 
-     if(service->mod_init_service)
-	  service->mod_init_service(service,&CONF);
-     
-     service_list[services_num++]=service;
+     if (service_list == NULL) {
+          //log an error......and...
+          exit(-1);
+     }
 
-     if(service->mod_conf_table)
-	  register_conf_table(service->mod_name,service->mod_conf_table);
+     service = create_service(service_file);
+     if (!service) {
+          ci_debug_printf(1, "Error finding symbol \"service\" in  module %s\n",
+                          service_file);
+          return NULL;
+     }
+
+     if (service->mod_init_service)
+          service->mod_init_service(service, &CONF);
+
+     service_list[services_num++] = service;
+
+     if (service->mod_conf_table)
+          register_conf_table(service->mod_name, service->mod_conf_table);
 
      return service;
 }
 
 
-service_module_t *find_service(char *service_name){
+service_module_t *find_service(char *service_name)
+{
      int i;
-     for(i=0;i<services_num;i++){
-	  if(strcmp(service_list[i]->mod_name,service_name)==0)
-	       return (service_list[i]);
+     for (i = 0; i < services_num; i++) {
+          if (strcmp(service_list[i]->mod_name, service_name) == 0)
+               return (service_list[i]);
      }
      return find_alias_service(service_name);
 }
 
 
-int post_init_services(){
+int post_init_services()
+{
      int i;
-     for(i=0;i<services_num;i++){
-	  if(service_list[i]->mod_post_init_service!=NULL ){
-	       service_list[i]->mod_post_init_service(service_list[i],&CONF); 
-	  }
+     for (i = 0; i < services_num; i++) {
+          if (service_list[i]->mod_post_init_service != NULL) {
+               service_list[i]->mod_post_init_service(service_list[i], &CONF);
+          }
      }
      return 1;
-     
+
 }
 
 /********************** Service aliases *****************************/
-service_module_t *add_service_alias(char *service_alias,char *service_name){
-    service_module_t *service=NULL;
-    if(service_aliases==NULL){
-	service_aliases=malloc(STEP*sizeof(service_alias_t));
-	service_aliases_size=STEP;
-    }
-    else if(service_aliases_num==service_aliases_size){
-	service_aliases_size+=STEP;
-	service_aliases=realloc(service_aliases,service_aliases_size*sizeof(service_alias_t));
-    }
+service_module_t *add_service_alias(char *service_alias, char *service_name)
+{
+     service_module_t *service = NULL;
+     if (service_aliases == NULL) {
+          service_aliases = malloc(STEP * sizeof(service_alias_t));
+          service_aliases_size = STEP;
+     }
+     else if (service_aliases_num == service_aliases_size) {
+          service_aliases_size += STEP;
+          service_aliases =
+              realloc(service_aliases,
+                      service_aliases_size * sizeof(service_alias_t));
+     }
 
-    if(service_aliases==NULL){
-	ci_debug_printf(1,"add_service_alias:Error allocation memory. Exiting...\n");
-	exit(-1);
-    }
+     if (service_aliases == NULL) {
+          ci_debug_printf(1,
+                          "add_service_alias:Error allocation memory. Exiting...\n");
+          exit(-1);
+     }
 
-    service=find_service(service_name);
-    if(!service)
-	return NULL;
+     service = find_service(service_name);
+     if (!service)
+          return NULL;
 
-    service_aliases[service_aliases_num].service=service;
-    service_aliases[service_aliases_num++].alias=strdup(service_alias);
-    
-    return service;
+     service_aliases[service_aliases_num].service = service;
+     service_aliases[service_aliases_num++].alias = strdup(service_alias);
+
+     return service;
 }
 
-service_module_t *find_alias_service(char *service_name){
+service_module_t *find_alias_service(char *service_name)
+{
      int i;
-     for(i=0;i<service_aliases_num;i++){
-	  if(strcmp(service_aliases[i].alias,service_name)==0)
-	       return (service_aliases[i].service);
+     for (i = 0; i < service_aliases_num; i++) {
+          if (strcmp(service_aliases[i].alias, service_name) == 0)
+               return (service_aliases[i].service);
      }
      return NULL;
 }
@@ -166,62 +178,66 @@ service_module_t *find_alias_service(char *service_name){
 
 service_module_t *load_c_service(char *service_file);
 
-service_handler_module_t c_service_handler={
+service_handler_module_t c_service_handler = {
      "C_handler",
      ".so,.sa,.a",
-     NULL,/*init*/
-     NULL,/*post_init*/
+     NULL,                      /*init */
+     NULL,                      /*post_init */
      load_c_service,
-     NULL /*config table ....*/
+     NULL                       /*config table .... */
 };
 
 
 
-service_module_t *load_c_service(char *service_file){
-     service_module_t *service=NULL;
+service_module_t *load_c_service(char *service_file)
+{
+     service_module_t *service = NULL;
      char *path;
-#ifdef HAVE_DLFCN_H 
+#ifdef HAVE_DLFCN_H
      void *handle;
-#else if defined (_WIN32)
+#else                           /* if defined (_WIN32) */
      HMODULE handle;
      WCHAR filename[512];
-     WCHAR c; int i=0;
-#endif 
-     
-#ifdef HAVE_DLFCN_H 
-     if(service_file[0]!='/'){
-	  if((path=malloc((strlen(service_file)+strlen(CONF.SERVICES_DIR)+5)*sizeof(char)))==NULL)
-	       return NULL;
-	  strcpy(path,CONF.SERVICES_DIR);
-	  strcat(path,"/");
-	  strcat(path,service_file);
-	  handle=dlopen(path,RTLD_NOW|RTLD_GLOBAL);	  
-	  free(path);
+     WCHAR c;
+     int i = 0;
+#endif
+
+#ifdef HAVE_DLFCN_H
+     if (service_file[0] != '/') {
+          if ((path =
+               malloc((strlen(service_file) + strlen(CONF.SERVICES_DIR) +
+                       5) * sizeof(char))) == NULL)
+               return NULL;
+          strcpy(path, CONF.SERVICES_DIR);
+          strcat(path, "/");
+          strcat(path, service_file);
+          handle = dlopen(path, RTLD_NOW | RTLD_GLOBAL);
+          free(path);
      }
      else
-	  handle=dlopen(service_file,RTLD_NOW|RTLD_GLOBAL);
+          handle = dlopen(service_file, RTLD_NOW | RTLD_GLOBAL);
 
-     if(!handle){
-          ci_debug_printf(1,"Error loading service %s: %s\n",service_file,dlerror());
-	  return NULL;
+     if (!handle) {
+          ci_debug_printf(1, "Error loading service %s: %s\n", service_file,
+                          dlerror());
+          return NULL;
      }
-     service=dlsym(handle,"service");
-     
-#else if defined _WIN32
+     service = dlsym(handle, "service");
+
+#else                           /* if defined _WIN32 */
 /*Maybe Windows specific code ..........*/
-     /*Converting path to wide char .......*/
-     for(i=0;i<strlen(service_file) && i< 511;i++)
-	  filename[i]=service_file[i];
-     filename[i]='\0';
-     if( !(handle=LoadLibraryEx(filename,NULL,LOAD_WITH_ALTERED_SEARCH_PATH))
-	&&
-	!(handle=LoadLibraryEx(filename,NULL,NULL))){
-	  ci_debug_printf(1,"Error loading service. Error code %d\n",GetLastError());
-	  return NULL;
+     /*Converting path to wide char ....... */
+     for (i = 0; i < strlen(service_file) && i < 511; i++)
+          filename[i] = service_file[i];
+     filename[i] = '\0';
+     if (!
+         (handle = LoadLibraryEx(filename, NULL, LOAD_WITH_ALTERED_SEARCH_PATH))
+&& !(handle = LoadLibraryEx(filename, NULL, NULL))) {
+          ci_debug_printf(1, "Error loading service. Error code %d\n",
+                          GetLastError());
+          return NULL;
      }
-     service=GetProcAddress(handle,"service");
+     service = GetProcAddress(handle, "service");
 #endif
      return service;
 }
-
-

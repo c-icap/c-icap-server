@@ -25,103 +25,112 @@
 #include <grp.h>
 #include <errno.h>
 
-int store_pid(char *pidfile){
+int store_pid(char *pidfile)
+{
      int fd;
      pid_t pid;
-     char strPid[30];/*30 must be enough for storing pids on a string*/
-     pid=getpid();
+     char strPid[30];           /*30 must be enough for storing pids on a string */
+     pid = getpid();
 
-     if((fd=open(pidfile,O_CREAT | O_TRUNC | O_WRONLY, 0644))<0){
-	  ci_debug_printf(1,"Can not open the pid file:%s\n",pidfile);
-	  return 0;
+     if ((fd = open(pidfile, O_CREAT | O_TRUNC | O_WRONLY, 0644)) < 0) {
+          ci_debug_printf(1, "Can not open the pid file:%s\n", pidfile);
+          return 0;
      }
-     snprintf(strPid,29,"%d",pid);     
-     strPid[29]='\0';
-     write(fd,strPid,strlen(strPid));
+     snprintf(strPid, 29, "%d", pid);
+     strPid[29] = '\0';
+     write(fd, strPid, strlen(strPid));
      close(fd);
      return 1;
 }
 
-int is_icap_running(char *pidfile){
-     int fd,bytes,ret;
+int is_icap_running(char *pidfile)
+{
+     int fd, bytes, ret;
      pid_t pid;
-     char strPid[30];/*30 must be enough for storing pids on a string*/
-     pid=getpid();
+     char strPid[30];           /*30 must be enough for storing pids on a string */
+     pid = getpid();
 
-     if((fd=open(pidfile,O_RDONLY, 0644))<0){
-	  return 0;
+     if ((fd = open(pidfile, O_RDONLY, 0644)) < 0) {
+          return 0;
      }
-     bytes=read(fd,strPid,sizeof(strPid));
+     bytes = read(fd, strPid, sizeof(strPid));
      close(fd);
-     
-     if(bytes<sizeof(strPid)-1) 
-	  strPid[bytes]='\0';
+
+     if (bytes < sizeof(strPid) - 1)
+          strPid[bytes] = '\0';
      else
-	  strPid[sizeof(strPid)-1]='\0';/*Maybe check for errors?*/
-     pid=strtol(strPid,NULL,10);
-     if(pid<0) /*garbage*/
-	  return 0;
-     ret=kill(pid,0);
-     if(ret<0)
-	  return 0;
+          strPid[sizeof(strPid) - 1] = '\0';    /*Maybe check for errors? */
+     pid = strtol(strPid, NULL, 10);
+     if (pid < 0)               /*garbage */
+          return 0;
+     ret = kill(pid, 0);
+     if (ret < 0)
+          return 0;
 
      return 1;
 }
 
 
 
-int set_running_permissions(char *user,char *group){
+int set_running_permissions(char *user, char *group)
+{
      unsigned int uid, gid;
      char *pend;
      struct passwd *pwd;
      struct group *grp;
 
-     if(group){/*Configuration request to change ours group id */
-	  errno=0;
-	  gid=strtol(group,&pend,10);
-	  if(pend!='\0' || gid <0 || errno!=0){ /*string "group" does not contains a clear number*/
-	       if((grp=getgrnam(group))==NULL){
-		    ci_debug_printf(1,"There is no group %s in password file!\n",group);
-		    return 0;
-	       }
-	       gid=grp->gr_gid;	       
-	  }
-	  else if(getgrgid(gid)==NULL){
-	       ci_debug_printf(1,"There is no group with id=%d in password file!\n",gid);
-	       return 0;
-	  }
-	  
-	  if(setgid(gid)!=0){
-	       ci_debug_printf(1,"setgid to %d failed!!!!\n",gid);
-	       perror("Wtat is this; ");
-	       return 0;
-	  }
+     if (group) {               /*Configuration request to change ours group id */
+          errno = 0;
+          gid = strtol(group, &pend, 10);
+          if (pend != '\0' || gid < 0 || errno != 0) {  /*string "group" does not contains a clear number */
+               if ((grp = getgrnam(group)) == NULL) {
+                    ci_debug_printf(1,
+                                    "There is no group %s in password file!\n",
+                                    group);
+                    return 0;
+               }
+               gid = grp->gr_gid;
+          }
+          else if (getgrgid(gid) == NULL) {
+               ci_debug_printf(1,
+                               "There is no group with id=%d in password file!\n",
+                               gid);
+               return 0;
+          }
+
+          if (setgid(gid) != 0) {
+               ci_debug_printf(1, "setgid to %d failed!!!!\n", gid);
+               perror("Wtat is this; ");
+               return 0;
+          }
      }
-     
 
-     if(user){/*Gonfiguration request to change ours user id */
-	  errno=0;
-	  uid=strtol(user,&pend,10);
-	  if(pend!='\0' || uid <0 || errno!=0){ /*string "user" does not contain a clear number*/
-	       if((pwd=getpwnam(user))==NULL){
-		    ci_debug_printf(1,"There is no user %s in password file!\n",user);
-		    return 0;
-	       }
-	       uid=pwd->pw_uid;
-	  }
-	  else if(getpwuid(uid)==NULL){
-	       ci_debug_printf(1,"There is no user with id=%d in password file!\n",uid);
-	       return 0;
-	  }
 
-	  if(setuid(uid)!=0){
-	       ci_debug_printf(1,"setuid to %d failed!!!!\n",uid);
-	       return 0;
-	  }
+     if (user) {                /*Gonfiguration request to change ours user id */
+          errno = 0;
+          uid = strtol(user, &pend, 10);
+          if (pend != '\0' || uid < 0 || errno != 0) {  /*string "user" does not contain a clear number */
+               if ((pwd = getpwnam(user)) == NULL) {
+                    ci_debug_printf(1,
+                                    "There is no user %s in password file!\n",
+                                    user);
+                    return 0;
+               }
+               uid = pwd->pw_uid;
+          }
+          else if (getpwuid(uid) == NULL) {
+               ci_debug_printf(1,
+                               "There is no user with id=%d in password file!\n",
+                               uid);
+               return 0;
+          }
+
+          if (setuid(uid) != 0) {
+               ci_debug_printf(1, "setuid to %d failed!!!!\n", uid);
+               return 0;
+          }
      }
 
 
      return 1;
 }
-
-

@@ -1,14 +1,10 @@
 
-#include <Windows.h> 
+#include <Windows.h>
 
-
-BOOL WINAPI _DllMainCRTStartup( HINSTANCE hinstDLL, 
-                     DWORD fdwReason,
-                     LPVOID lpReserved )
+ BOOL WINAPI _DllMainCRTStartup(HINSTANCE hinstDLL, DWORD fdwReason,
+                                 LPVOID lpReserved) 
 {
+     return (TRUE);
+}
 
-   return( TRUE );
-
-}
-
-
+

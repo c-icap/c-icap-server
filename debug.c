@@ -22,25 +22,26 @@
 #include "debug.h"
 
 
-int CI_DEBUG_LEVEL=3;
-int CI_DEBUG_STDOUT=0;
+int CI_DEBUG_LEVEL = 3;
+int CI_DEBUG_STDOUT = 0;
 
 
 #ifndef _WIN32
-void (*__log_error)(void *req, const char *format,... )=NULL;
+void (*__log_error) (void *req, const char *format, ...) = NULL;
 
 #else
-void (*__vlog_error)(void *req, const char *format, va_list ap)=NULL;
-void __ldebug_printf(int i,const char *format, ...){
+void (*__vlog_error) (void *req, const char *format, va_list ap) = NULL;
+void __ldebug_printf(int i, const char *format, ...)
+{
      va_list ap;
-     if(i<=CI_DEBUG_LEVEL){ 
-	  va_start(ap,format);
-	  if(__vlog_error){ 
-	       (*__vlog_error)(NULL,format,ap); 
-	  }
-	  if(CI_DEBUG_STDOUT) 
-	       vprintf(format,ap);
-	  va_end(ap);
+     if (i <= CI_DEBUG_LEVEL) {
+          va_start(ap, format);
+          if (__vlog_error) {
+               (*__vlog_error) (NULL, format, ap);
+          }
+          if (CI_DEBUG_STDOUT)
+               vprintf(format, ap);
+          va_end(ap);
      }
 }
 #endif

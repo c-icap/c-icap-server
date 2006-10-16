@@ -21,7 +21,7 @@
 #include "util.h"
 #include <time.h>
 
-static const char *days[]={
+static const char *days[] = {
      "Sun",
      "Mon",
      "Tue",
@@ -31,7 +31,7 @@ static const char *days[]={
      "Sat"
 };
 
-static const char *months[]={
+static const char *months[] = {
      "Jan",
      "Feb",
      "Mar",
@@ -46,36 +46,35 @@ static const char *months[]={
      "Dec"
 };
 
-void ci_strtime(char *buf){
+void ci_strtime(char *buf)
+{
      struct tm br_tm;
      time_t tm;
      time(&tm);
-     asctime_r(localtime_r(&tm,&br_tm),buf);
-     buf[STR_TIME_SIZE-1]='\0';
-     buf[strlen(buf)-1]='\0';
+     asctime_r(localtime_r(&tm, &br_tm), buf);
+     buf[STR_TIME_SIZE - 1] = '\0';
+     buf[strlen(buf) - 1] = '\0';
 }
 
-void ci_strtime_rfc822(char *buf){
+void ci_strtime_rfc822(char *buf)
+{
      struct tm br_tm;
      time_t tm;
      time(&tm);
-     gmtime_r(&tm,&br_tm);
-     
-     snprintf(buf,STR_TIME_SIZE,"%s, %.2d %s %d %.2d:%.2d:%.2d GMT",
+     gmtime_r(&tm, &br_tm);
+
+     snprintf(buf, STR_TIME_SIZE, "%s, %.2d %s %d %.2d:%.2d:%.2d GMT",
               days[br_tm.tm_wday],
-	      br_tm.tm_mday,
+              br_tm.tm_mday,
               months[br_tm.tm_mon],
-	      br_tm.tm_year+1900,
-              br_tm.tm_hour,
-	      br_tm.tm_min,
-              br_tm.tm_sec);
+              br_tm.tm_year + 1900, br_tm.tm_hour, br_tm.tm_min, br_tm.tm_sec);
 
-     buf[STR_TIME_SIZE-1]='\0';
+     buf[STR_TIME_SIZE - 1] = '\0';
 }
 
-int ci_mktemp_file(char*dir,char*template,char *filename){
-     strncpy(filename,dir,CI_FILENAME_LEN-sizeof(template)-1);
-     strcat(filename,template);
-     return  mkstemp(filename);
+int ci_mktemp_file(char *dir, char *template, char *filename)
+{
+     strncpy(filename, dir, CI_FILENAME_LEN - sizeof(template) - 1);
+     strcat(filename, template);
+     return mkstemp(filename);
 }
-

@@ -34,30 +34,31 @@
 
 int sys_log_open();
 void sys_log_close();
-void sys_log_access(char *server, char *clientname,char *method,char *request,char *args, char *status);
-void sys_log_server(char *server, const char *format, va_list ap );
+void sys_log_access(char *server, char *clientname, char *method, char *request,
+                    char *args, char *status);
+void sys_log_server(char *server, const char *format, va_list ap);
 
-char *log_ident="c-icap: ";
-static int FACILITY=LOG_DAEMON;
-static int ACCESS_PRIORITY=LOG_INFO;
-static int SERVER_PRIORITY=LOG_CRIT;
+char *log_ident = "c-icap: ";
+static int FACILITY = LOG_DAEMON;
+static int ACCESS_PRIORITY = LOG_INFO;
+static int SERVER_PRIORITY = LOG_CRIT;
 
-int cfg_set_facility(char *directive,char **argv,void *setdata);
-int cfg_set_priority(char *directive,char **argv,void *setdata);
+int cfg_set_facility(char *directive, char **argv, void *setdata);
+int cfg_set_priority(char *directive, char **argv, void *setdata);
 /*int cfg_set_prefix(char *directive,char **argv,void *setdata);*/
 
 /*Configuration Table .....*/
-static struct conf_entry conf_variables[]={
-     {"Facility",NULL,cfg_set_facility,NULL},
-     {"acces_priority",&ACCESS_PRIORITY,cfg_set_priority,NULL},
-     {"server_priority",&SERVER_PRIORITY,cfg_set_priority,NULL},
-     {"Prefix",&log_ident,ci_cfg_set_str,NULL},
-     {NULL,NULL,NULL,NULL}
+static struct conf_entry conf_variables[] = {
+     {"Facility", NULL, cfg_set_facility, NULL},
+     {"acces_priority", &ACCESS_PRIORITY, cfg_set_priority, NULL},
+     {"server_priority", &SERVER_PRIORITY, cfg_set_priority, NULL},
+     {"Prefix", &log_ident, ci_cfg_set_str, NULL},
+     {NULL, NULL, NULL, NULL}
 };
 
 
 
-CI_DECLARE_DATA logger_module_t module={
+CI_DECLARE_DATA logger_module_t module = {
      "sys_logger",
      NULL,
      sys_log_open,
@@ -68,105 +69,109 @@ CI_DECLARE_DATA logger_module_t module={
 };
 
 
-int cfg_set_facility(char *directive,char **argv,void *setdata){
-     if(argv==NULL || argv[0]==NULL){
-//	  ci_debug_printf(1,"Missing arguments in directive\n");
-	  return 0;
+int cfg_set_facility(char *directive, char **argv, void *setdata)
+{
+     if (argv == NULL || argv[0] == NULL) {
+//        ci_debug_printf(1,"Missing arguments in directive\n");
+          return 0;
      }
-     if(strcmp(argv[0],"daemon")==0)
-	  FACILITY=LOG_DAEMON;
-     else if(strcmp(argv[0],"user")==0)
-	  FACILITY=LOG_USER;
-     else if(strncmp(argv[0],"local",5)==0 && strlen(argv[0])==6) {
-	  switch(argv[0][5]){
-	  case '0':
-	       FACILITY=LOG_LOCAL0;
-	       break;
-	  case '1':
-	       FACILITY=LOG_LOCAL1;
-	       break;
-	  case '2':
-	       FACILITY=LOG_LOCAL2;
-	       break;
-	  case '3':
-	       FACILITY=LOG_LOCAL3;
-	       break;
-	  case '4':
-	       FACILITY=LOG_LOCAL4;
-	       break;
-	  case '5':
-	       FACILITY=LOG_LOCAL5;
-	       break;
-	  case '6':
-	       FACILITY=LOG_LOCAL6;
-	       break;
-	  case '7':
-	       FACILITY=LOG_LOCAL7;
-	       break;
-	  }
+     if (strcmp(argv[0], "daemon") == 0)
+          FACILITY = LOG_DAEMON;
+     else if (strcmp(argv[0], "user") == 0)
+          FACILITY = LOG_USER;
+     else if (strncmp(argv[0], "local", 5) == 0 && strlen(argv[0]) == 6) {
+          switch (argv[0][5]) {
+          case '0':
+               FACILITY = LOG_LOCAL0;
+               break;
+          case '1':
+               FACILITY = LOG_LOCAL1;
+               break;
+          case '2':
+               FACILITY = LOG_LOCAL2;
+               break;
+          case '3':
+               FACILITY = LOG_LOCAL3;
+               break;
+          case '4':
+               FACILITY = LOG_LOCAL4;
+               break;
+          case '5':
+               FACILITY = LOG_LOCAL5;
+               break;
+          case '6':
+               FACILITY = LOG_LOCAL6;
+               break;
+          case '7':
+               FACILITY = LOG_LOCAL7;
+               break;
+          }
      }
      return 1;
 }
 
-int cfg_set_priority(char *directive,char **argv,void *setdata){
-     if(argv==NULL || argv[0]==NULL){
-	  ci_debug_printf(1,"Missing arguments in directive\n");
-	  return 0;
+int cfg_set_priority(char *directive, char **argv, void *setdata)
+{
+     if (argv == NULL || argv[0] == NULL) {
+          ci_debug_printf(1, "Missing arguments in directive\n");
+          return 0;
      }
-     if(!setdata)
-	  return 0;
+     if (!setdata)
+          return 0;
 
-     if(strcmp(argv[0],"alert")==0)
-	  *((int*)setdata)=LOG_ALERT;
-     else if(strcmp(argv[0],"crit")==0)
-	  *((int*)setdata)=LOG_CRIT;
-     else if(strcmp(argv[0],"debug")==0)
-	  *((int*)setdata)=LOG_DEBUG;
-     else if(strcmp(argv[0],"emerg")==0)
-	  *((int*)setdata)=LOG_EMERG;
-     else if(strcmp(argv[0],"err")==0)
-	  *((int*)setdata)=LOG_ERR;
-     else if(strcmp(argv[0],"info")==0)
-	  *((int*)setdata)=LOG_INFO;
-     else if(strcmp(argv[0],"notice")==0)
-	  *((int*)setdata)=LOG_NOTICE;
-     else if(strcmp(argv[0],"warning")==0)
-	  *((int*)setdata)=LOG_WARNING;
+     if (strcmp(argv[0], "alert") == 0)
+          *((int *) setdata) = LOG_ALERT;
+     else if (strcmp(argv[0], "crit") == 0)
+          *((int *) setdata) = LOG_CRIT;
+     else if (strcmp(argv[0], "debug") == 0)
+          *((int *) setdata) = LOG_DEBUG;
+     else if (strcmp(argv[0], "emerg") == 0)
+          *((int *) setdata) = LOG_EMERG;
+     else if (strcmp(argv[0], "err") == 0)
+          *((int *) setdata) = LOG_ERR;
+     else if (strcmp(argv[0], "info") == 0)
+          *((int *) setdata) = LOG_INFO;
+     else if (strcmp(argv[0], "notice") == 0)
+          *((int *) setdata) = LOG_NOTICE;
+     else if (strcmp(argv[0], "warning") == 0)
+          *((int *) setdata) = LOG_WARNING;
      return 1;
 }
 
 
-int sys_log_open(){
-     openlog(log_ident,0,FACILITY);
+int sys_log_open()
+{
+     openlog(log_ident, 0, FACILITY);
      return 1;
 }
 
-void sys_log_close(){
+void sys_log_close()
+{
      closelog();
 }
 
 
 
-void sys_log_access(char *server, char *clientname,char *method,char *request,char *args, char *status){
+void sys_log_access(char *server, char *clientname, char *method, char *request,
+                    char *args, char *status)
+{
 
-     syslog(ACCESS_PRIORITY,"%s, %s, %s, %s%c%s, %s\n",server,clientname,
-	    method,
-	    request,
-	    (args==NULL?' ':'?'),
-	    (args==NULL?"":args),
-	    status);
+     syslog(ACCESS_PRIORITY, "%s, %s, %s, %s%c%s, %s\n", server, clientname,
+            method,
+            request,
+            (args == NULL ? ' ' : '?'), (args == NULL ? "" : args), status);
 }
 
 
-void sys_log_server(char *server, const char *format, va_list ap ){
+void sys_log_server(char *server, const char *format, va_list ap)
+{
      char buf[512];
      char prefix[150];
 
-     snprintf(prefix,149,"%s, %s ",server, format);
-     prefix[149]='\0';
+     snprintf(prefix, 149, "%s, %s ", server, format);
+     prefix[149] = '\0';
 
-     vsnprintf(buf,511,(const char *)prefix,ap);
-     buf[511]='\0';
-     syslog(SERVER_PRIORITY,"%s",buf);
+     vsnprintf(buf, 511, (const char *) prefix, ap);
+     buf[511] = '\0';
+     syslog(SERVER_PRIORITY, "%s", buf);
 }
-
