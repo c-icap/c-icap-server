@@ -207,7 +207,7 @@ void *srvclamav_init_request_data(service_module_t * serv, request_t * req)
           data->error_page = NULL;
           data->virus_name = NULL;
           data->must_scanned = SCAN;
-	  data->virus_check_done=0;
+          data->virus_check_done = 0;
           if (ALLOW204)
                data->args.enable204 = 1;
           else
@@ -313,7 +313,7 @@ int srvclamav_check_preview_handler(char *preview_data, int preview_data_len,
 
 
 
-int srvclamav_write(char *buf, int len, int iseof, request_t * req)
+int srvclamav_read_from_net(char *buf, int len, int iseof, request_t * req)
 {
      /*We can put here scanning hor jscripts and html and raw data ...... */
      int allow_transfer;
@@ -348,7 +348,7 @@ int srvclamav_write(char *buf, int len, int iseof, request_t * req)
 
 
 
-int srvclamav_read(char *buf, int len, request_t * req)
+int srvclamav_write_to_net(char *buf, int len, request_t * req)
 {
      int bytes;
      av_req_data_t *data = ci_service_data(req);
@@ -379,14 +379,14 @@ int srvclamav_io(char *rbuf, int *rlen, char *wbuf, int *wlen, int iseof,
 {
      int ret = CI_OK;
      if (wbuf && wlen) {
-          *wlen = srvclamav_write(wbuf, *wlen, iseof, req);
+          *wlen = srvclamav_read_from_net(wbuf, *wlen, iseof, req);
           if (*wlen < 0)
                ret = CI_OK;
      }
      else if (iseof)
-          srvclamav_write(NULL, 0, iseof, req);
+          srvclamav_read_from_net(NULL, 0, iseof, req);
      if (rbuf && rlen) {
-          *rlen = srvclamav_read(rbuf, *rlen, req);
+          *rlen = srvclamav_write_to_net(rbuf, *rlen, req);
      }
      return CI_OK;
 }
@@ -403,7 +403,7 @@ int srvclamav_end_of_data_handler(request_t * req)
           return CI_MOD_DONE;
 
      body = data->body;
-     data->virus_check_done=1;
+     data->virus_check_done = 1;
      if (data->must_scanned == NO_SCAN) {       /*If exceeds the MAX_OBJECT_SIZE for example ......  */
           ci_simple_file_unlock_all(body);      /*Unlock all data to continue send them . Not really needed here.... */
           return CI_MOD_DONE;
@@ -428,9 +428,9 @@ int srvclamav_end_of_data_handler(request_t * req)
           if (!ci_req_sent_data(req))   /*If no data had sent we can send an error page  */
                generate_error_page(data, req);
           else if (data->must_scanned == VIR_SCAN) {
-	       endof_data_vir_mode(data, req);
-	  }
-	  else
+               endof_data_vir_mode(data, req);
+          }
+          else
                ci_debug_printf(3, "Simply not send other data\n");
           return CI_MOD_DONE;
      }
@@ -482,7 +482,7 @@ int must_scanned(int file_type, av_req_data_t * data)
 {
      int type, *file_groups, i;
      file_groups = ci_data_type_groups(magic_db, file_type);
-     type = -1;
+     type = NO_SCAN;
      i = 0;
      while (file_groups[i] >= 0 && i < MAX_GROUPS) {
           if ((type = scangroups[file_groups[i]]) > 0)
@@ -490,7 +490,7 @@ int must_scanned(int file_type, av_req_data_t * data)
           i++;
      }
 
-     if (type < 0)
+     if (type == NO_SCAN)
           type = scantypes[file_type];
 
      if (type == 0 && data->args.forcescan)
@@ -595,17 +595,17 @@ int cfg_ScanFileTypes(char *directive, char **argv, void *setdata)
 
      }
 
-     ci_debug_printf(10, "Iam going to scan data for %s scanning of type:",
+     ci_debug_printf(1, "Iam going to scan data for %s scanning of type:",
                      (type == 1 ? "simple" : "vir_mode"));
      for (i = 0; i < ci_magic_types_num(magic_db); i++) {
           if (scantypes[i] == type)
-               ci_debug_printf(10, ",%s", ci_data_type_name(magic_db, i));
+               ci_debug_printf(1, ",%s", ci_data_type_name(magic_db, i));
      }
      for (i = 0; i < ci_magic_groups_num(magic_db); i++) {
           if (scangroups[i] == type)
-               ci_debug_printf(10, ",%s", ci_data_group_name(magic_db, i));
+               ci_debug_printf(1, ",%s", ci_data_group_name(magic_db, i));
      }
-     ci_debug_printf(10, "\n");
+     ci_debug_printf(1, "\n");
      return 1;
 }
 
