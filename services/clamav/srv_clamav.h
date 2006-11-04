@@ -9,6 +9,7 @@ typedef struct av_req_data{
      request_t *req;
      int must_scanned ;
      int allow204;
+     int virus_check_done;
      const char *virus_name;
      ci_membuf_t *error_page;
 #ifdef VIRALATOR_MODE

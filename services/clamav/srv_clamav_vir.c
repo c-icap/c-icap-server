@@ -73,7 +73,7 @@ int send_vir_mode_page(av_req_data_t * data, char *buf, int len,
      int bytes;
      char *filename, *str;
      char *url;
-     if (ci_simple_file_haseof(((av_req_data_t *) data)->body)) {
+     if (ci_simple_file_haseof(((av_req_data_t *) data)->body) && data->virus_check_done) {
           if (data->error_page)
                return ci_membuf_read(data->error_page, buf, len);
 

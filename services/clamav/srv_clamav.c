@@ -207,6 +207,7 @@ void *srvclamav_init_request_data(service_module_t * serv, request_t * req)
           data->error_page = NULL;
           data->virus_name = NULL;
           data->must_scanned = SCAN;
+	  data->virus_check_done=0;
           if (ALLOW204)
                data->args.enable204 = 1;
           else
@@ -402,7 +403,7 @@ int srvclamav_end_of_data_handler(request_t * req)
           return CI_MOD_DONE;
 
      body = data->body;
-
+     data->virus_check_done=1;
      if (data->must_scanned == NO_SCAN) {       /*If exceeds the MAX_OBJECT_SIZE for example ......  */
           ci_simple_file_unlock_all(body);      /*Unlock all data to continue send them . Not really needed here.... */
           return CI_MOD_DONE;
@@ -426,7 +427,10 @@ int srvclamav_end_of_data_handler(request_t * req)
           data->virus_name = virname;
           if (!ci_req_sent_data(req))   /*If no data had sent we can send an error page  */
                generate_error_page(data, req);
-          else
+          else if (data->must_scanned == VIR_SCAN) {
+	       endof_data_vir_mode(data, req);
+	  }
+	  else
                ci_debug_printf(3, "Simply not send other data\n");
           return CI_MOD_DONE;
      }
