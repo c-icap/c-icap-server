@@ -113,12 +113,12 @@ int get_http_info(request_t * req, ci_headers_list_t * req_header,
 
      /*Now get the site name */
      str = ci_headers_value(req_header, "Host");
-     if(str){
+     if (str) {
           strncpy(httpinf->site, str, CI_MAXHOSTNAMELEN);
           httpinf->site[CI_MAXHOSTNAMELEN] = '\0';
      }
      else
-         httpinf->site[0] = '\0';
+          httpinf->site[0] = '\0';
 
      str = req_header->headers[0];
      if (str[0] == 'g' || str[0] == 'G')        /*Get request.... */
