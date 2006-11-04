@@ -113,8 +113,12 @@ int get_http_info(request_t * req, ci_headers_list_t * req_header,
 
      /*Now get the site name */
      str = ci_headers_value(req_header, "Host");
-     strncpy(httpinf->site, str, CI_MAXHOSTNAMELEN);
-     httpinf->site[CI_MAXHOSTNAMELEN] = '\0';
+     if(str){
+          strncpy(httpinf->site, str, CI_MAXHOSTNAMELEN);
+          httpinf->site[CI_MAXHOSTNAMELEN] = '\0';
+     }
+     else
+         httpinf->site[0] = '\0';
 
      str = req_header->headers[0];
      if (str[0] == 'g' || str[0] == 'G')        /*Get request.... */
@@ -197,7 +201,7 @@ int url_check_check_preview(char *preview_data, int preview_data_len,
           uc->body = ci_cached_file_new(strlen(error_message) + 10);
           ci_request_create_respmod(req, 1, 1); /*Build the responce headers */
 
-          ci_respmod_add_header(req, "HTTP/1.1 403 Forbidden"); /*Send an 403 Forbidden http responce to web client */
+          ci_respmod_add_header(req, "HTTP/1.0 403 Forbidden"); /*Send an 403 Forbidden http responce to web client */
           ci_respmod_add_header(req, "Server: C-ICAP");
           ci_respmod_add_header(req, "Content-Type: text/html");
           ci_respmod_add_header(req, "Content-Language: en");
