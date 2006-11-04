@@ -60,8 +60,10 @@ struct options_entry{
      char *msg;
 };
 
+#define MAIN_TABLE 1
+#define ALIAS_TABLE 2
 
-int register_conf_table(char *name,struct conf_entry *table);
+int register_conf_table(char *name,struct conf_entry *table,int type);
 
 CI_DECLARE_FUNC(int) ci_cfg_set_str(char *directive,char **argv,void *setdata);
 CI_DECLARE_FUNC(int) ci_cfg_set_int(char *directive,char **argv,void *setdata);

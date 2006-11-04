@@ -97,6 +97,7 @@ int cfg_acl_access(char *directive, char **argv, void *setdata);
 
 struct sub_table {
      char *name;
+     int type;
      struct conf_entry *conf_table;
 };
 
@@ -165,7 +166,7 @@ void init_conf_tables()
      conf_tables_list_size = STEPSIZE;
 }
 
-int register_conf_table(char *name, struct conf_entry *table)
+int register_conf_table(char *name, struct conf_entry *table, int type)
 {
      struct sub_table *new;
      if (!extra_conf_tables)
@@ -180,6 +181,7 @@ int register_conf_table(char *name, struct conf_entry *table)
      }
      ci_debug_printf(10, "Registering conf table:%s\n", name);
      extra_conf_tables[conf_tables_num].name = name;    /*It works. Points to the modules.name. (????) */
+     extra_conf_tables[conf_tables_num].type = type;
      extra_conf_tables[conf_tables_num].conf_table = table;
      conf_tables_num++;
      return 1;
@@ -203,6 +205,7 @@ struct conf_entry *search_variables(char *table, char *varname)
                                         varname);
           }
      }
+     ci_debug_printf(1, "Variable %s or table %s not found!\n", varname, table);
      return NULL;
 }
 
@@ -229,16 +232,18 @@ int cfg_set_body_maxmem(char *directive, char **argv, void *setdata)
 
 int cfg_load_service(char *directive, char **argv, void *setdata)
 {
+     service_module_t *service = NULL;
      if (argv == NULL || argv[0] == NULL || argv[1] == NULL) {
           ci_debug_printf(1, "Missing arguments in LoadService directive\n");
           return 0;
      }
      ci_debug_printf(1, "Loading service :%s path %s\n", argv[0], argv[1]);
 
-     if (!register_service(argv[1])) {
+     if (!(service = register_service(argv[1]))) {
           ci_debug_printf(1, "Error loading service\n");
           return 0;
      }
+     add_service_alias(argv[0], service->mod_name);
      return 1;
 }
 

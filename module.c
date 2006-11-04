@@ -178,14 +178,15 @@ static int init_module(void *module, enum module_type type)
           if (((service_handler_module_t *) module)->conf_table)
                register_conf_table(((service_handler_module_t *) module)->name,
                                    ((service_handler_module_t *) module)->
-                                   conf_table);
+                                   conf_table, MAIN_TABLE);
           break;
      case LOGGER:
           if (((logger_module_t *) module)->init_logger)
                ret = ((logger_module_t *) module)->init_logger(&CONF);
           if (((logger_module_t *) module)->conf_table)
                register_conf_table(((logger_module_t *) module)->name,
-                                   ((logger_module_t *) module)->conf_table);
+                                   ((logger_module_t *) module)->conf_table,
+                                   MAIN_TABLE);
 
           break;
      case ACCESS_CONTROLLER:
@@ -196,14 +197,15 @@ static int init_module(void *module, enum module_type type)
           if (((access_control_module_t *) module)->conf_table)
                register_conf_table(((access_control_module_t *) module)->name,
                                    ((access_control_module_t *) module)->
-                                   conf_table);
+                                   conf_table, MAIN_TABLE);
           break;
      case AUTH_METHOD:
           if (((http_auth_method_t *) module)->init_auth_method)
                ret = ((http_auth_method_t *) module)->init_auth_method(&CONF);
           if (((http_auth_method_t *) module)->conf_table)
                register_conf_table(((http_auth_method_t *) module)->name,
-                                   ((http_auth_method_t *) module)->conf_table);
+                                   ((http_auth_method_t *) module)->conf_table,
+                                   MAIN_TABLE);
           break;
 
      case AUTHENTICATOR:
@@ -214,7 +216,7 @@ static int init_module(void *module, enum module_type type)
           if (((authenticator_module_t *) module)->conf_table)
                register_conf_table(((authenticator_module_t *) module)->name,
                                    ((authenticator_module_t *) module)->
-                                   conf_table);
+                                   conf_table, MAIN_TABLE);
           break;
      default:
           return 0;

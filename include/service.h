@@ -56,9 +56,14 @@ struct  service_module{
      void *mod_data;
 };
 
+typedef struct service_alias {
+     char *alias;
+     service_module_t *service;
+} service_alias_t;
+
 
 service_module_t * register_service(char *module_file);
-service_module_t *add_service_alias(char *service_alias,char *service_name);
+service_alias_t *add_service_alias(char *service_alias,char *service_name);
 service_module_t *find_service(char *service_name);
 int post_init_services();
 

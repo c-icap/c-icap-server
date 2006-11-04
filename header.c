@@ -503,7 +503,7 @@ int get_encaps_type(char *buf, int *val, char **endpoint)
 int sizeofheader(ci_headers_list_t * h)
 {
 /*
-  int size=0,i; 
+  int size=0,i;
   for(i=0;i<h->used;i++){
     size+=strlen(h->headers[i])+2;
   }

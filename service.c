@@ -39,10 +39,6 @@ static service_module_t **service_list = NULL;
 static int service_list_size;
 static int services_num = 0;
 
-typedef struct service_alias {
-     char *alias;
-     service_module_t *service;
-} service_alias_t;
 
 static service_alias_t *service_aliases = NULL;
 static int service_aliases_size;
@@ -100,7 +96,8 @@ service_module_t *register_service(char *service_file)
      service_list[services_num++] = service;
 
      if (service->mod_conf_table)
-          register_conf_table(service->mod_name, service->mod_conf_table);
+          register_conf_table(service->mod_name, service->mod_conf_table,
+                              MAIN_TABLE);
 
      return service;
 }
@@ -130,9 +127,10 @@ int post_init_services()
 }
 
 /********************** Service aliases *****************************/
-service_module_t *add_service_alias(char *service_alias, char *service_name)
+service_alias_t *add_service_alias(char *service_alias, char *service_name)
 {
      service_module_t *service = NULL;
+     int alias_indx = 0;
      if (service_aliases == NULL) {
           service_aliases = malloc(STEP * sizeof(service_alias_t));
           service_aliases_size = STEP;
@@ -154,10 +152,16 @@ service_module_t *add_service_alias(char *service_alias, char *service_name)
      if (!service)
           return NULL;
 
-     service_aliases[service_aliases_num].service = service;
-     service_aliases[service_aliases_num++].alias = strdup(service_alias);
+     alias_indx = service_aliases_num;
+     service_aliases_num++;
+     service_aliases[alias_indx].service = service;
+     service_aliases[alias_indx].alias = strdup(service_alias);
 
-     return service;
+     if (service->mod_conf_table)
+          register_conf_table(service_aliases[alias_indx].alias,
+                              service->mod_conf_table, ALIAS_TABLE);
+
+     return &(service_aliases[alias_indx]);
 }
 
 service_module_t *find_alias_service(char *service_name)
