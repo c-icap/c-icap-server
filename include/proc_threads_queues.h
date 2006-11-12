@@ -29,8 +29,10 @@ enum KILL_MODE {NO_KILL=0,GRACEFULLY,IMMEDIATELY};
 
 #ifdef _WIN32
 #define process_pid_t HANDLE
+#define ci_pipe_t     HANDLE
 #else 
 #define process_pid_t int
+#define ci_pipe_t   int
 #endif
 
 
@@ -52,9 +54,7 @@ typedef struct child_shared_data{
      process_pid_t pid;
      int idle;
      int to_be_killed;
-#ifdef _WIN32
-     HANDLE pipe;
-#endif
+     ci_pipe_t pipe;
 } child_shared_data_t;
 
 
@@ -82,10 +82,8 @@ int dettach_childs_queue(struct childs_queue *q);
 child_shared_data_t *get_child_data(struct childs_queue *q, process_pid_t pid);
 child_shared_data_t *register_child(struct childs_queue *q, 
 				    process_pid_t pid,
-				    int maxservers
-#ifdef _WIN32
-				    ,HANDLE pipe
-#endif
+				    int maxservers,
+				    ci_pipe_t pipe
 );
 
 int remove_child(struct childs_queue *q, process_pid_t pid);

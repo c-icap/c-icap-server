@@ -209,6 +209,7 @@ int ci_wait_for_data(int fd, int secs, int what_wait)
           pwritefds = &wfds;
      }
 
+     errno = 0;
      if ((ret =
           select(fd + 1, preadfds, pwritefds, NULL,
                  (secs >= 0 ? &tv : NULL))) > 0) {
@@ -220,7 +221,7 @@ int ci_wait_for_data(int fd, int secs, int what_wait)
           return ret;
      }
 
-     if (ret < 0) {
+     if (ret < 0 && errno != EINTR) {
           ci_debug_printf(5, "Fatal error while waiting for new data....\n");
      }
      return 0;

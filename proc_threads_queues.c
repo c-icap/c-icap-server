@@ -131,6 +131,7 @@ int create_childs_queue(struct childs_queue *q, int size)
 
      for (i = 0; i < q->size; i++) {
           q->childs[i].pid = 0;
+          q->childs[i].pipe = -1;
      }
 
 
@@ -204,11 +205,8 @@ child_shared_data_t *get_child_data(struct childs_queue * q, process_pid_t pid)
 }
 
 child_shared_data_t *register_child(struct childs_queue * q,
-                                    process_pid_t pid, int maxservers
-#ifdef _WIN32
-                                    , HANDLE pipe
-#endif
-    )
+                                    process_pid_t pid, int maxservers,
+                                    ci_pipe_t pipe)
 {
      int i;
 
@@ -225,9 +223,7 @@ child_shared_data_t *register_child(struct childs_queue * q,
                q->childs[i].connections = 0;
                q->childs[i].to_be_killed = 0;
                q->childs[i].idle = 1;
-#ifdef _WIN32
                q->childs[i].pipe = pipe;
-#endif
                ci_proc_mutex_unlock(&(q->queue_mtx));
                return &(q->childs[i]);
           }
@@ -249,6 +245,10 @@ int remove_child(struct childs_queue *q, process_pid_t pid)
           if (q->childs[i].pid == pid) {
                q->childs[i].pid = 0;
                old_requests += q->childs[i].requests;
+               if (q->childs[i].pipe >= 0) {
+                    close(q->childs[i].pipe);
+                    q->childs[i].pipe = -1;
+               }
                ci_proc_mutex_unlock(&(q->queue_mtx));
                return 1;
           }
