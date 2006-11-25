@@ -706,7 +706,7 @@ int start_server(int fd)
      }
 
      ci_proc_mutex_init(&accept_mutex);
-     if (!create_childs_queue(&childs_queue, MAX_CHILDS)) {
+     if (!create_childs_queue(&childs_queue, 2*MAX_CHILDS)) {
           ci_debug_printf(1,
                           "Can't init shared memory.Fatal error, exiting!\n");
           exit(0);
