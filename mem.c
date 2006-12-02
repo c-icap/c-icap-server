@@ -24,68 +24,71 @@
 #include "debug.h"
 #include "mem.h"
 
-ci_serial_allocator_t *ci_serial_allocator_create(int size){
+ci_serial_allocator_t *ci_serial_allocator_create(int size)
+{
      ci_serial_allocator_t *allocator;
-     allocator=malloc(sizeof(ci_serial_allocator_t));
-     if(!allocator)
-	  return NULL;
-     if(size%4)
-	  size=(size/4+1)*4;
-     allocator->memchunk=malloc(size);
-     if(!allocator->memchunk){
-	  free(allocator);
-	  return NULL;
+     allocator = malloc(sizeof(ci_serial_allocator_t));
+     if (!allocator)
+          return NULL;
+     if (size % 4)
+          size = (size / 4 + 1) * 4;
+     allocator->memchunk = malloc(size);
+     if (!allocator->memchunk) {
+          free(allocator);
+          return NULL;
      }
-     allocator->curpos=allocator->memchunk;
-     allocator->endpos=allocator->memchunk+size;
-     allocator->next=NULL;
+     allocator->curpos = allocator->memchunk;
+     allocator->endpos = allocator->memchunk + size;
+     allocator->next = NULL;
      return allocator;
 }
 
-void ci_serial_allocator_release(ci_serial_allocator_t *allocator){
-     ci_serial_allocator_t *cur,*next;
-     cur=allocator;
-     next=allocator->next;
-     while(cur){
-	  free(cur->memchunk);
-	  free(cur);
-	  cur=next;
-	  if(next)
-	       next=next->next;
+void ci_serial_allocator_release(ci_serial_allocator_t * allocator)
+{
+     ci_serial_allocator_t *cur, *next;
+     cur = allocator;
+     next = allocator->next;
+     while (cur) {
+          free(cur->memchunk);
+          free(cur);
+          cur = next;
+          if (next)
+               next = next->next;
      }
 }
 
-void ci_serial_allocator_reset(ci_serial_allocator_t *allocator){
+void ci_serial_allocator_reset(ci_serial_allocator_t * allocator)
+{
      ci_serial_allocator_t *cur;
-     cur=allocator;
-     while(cur){
-	  cur->curpos=cur->memchunk;
-	  cur=cur->next;
+     cur = allocator;
+     while (cur) {
+          cur->curpos = cur->memchunk;
+          cur = cur->next;
      }
 }
 
-void *ci_serial_allocator_alloc(ci_serial_allocator_t *allocator,int size){
-     int max_size,free_size=0;
+void *ci_serial_allocator_alloc(ci_serial_allocator_t * allocator, int size)
+{
+     int max_size, free_size = 0;
      void *mem;
 
-     if(size%4) /*round size to a multiple of 4*/
-	  size=(size/4+1)*4;
+     if (size % 4)              /*round size to a multiple of 4 */
+          size = (size / 4 + 1) * 4;
 
-     max_size=allocator->endpos-allocator->memchunk;
-     if(size>max_size)
-	  return NULL;
+     max_size = allocator->endpos - allocator->memchunk;
+     if (size > max_size)
+          return NULL;
 
-     while(size>(allocator->endpos-allocator->curpos)){
-	  if(allocator->next==NULL){
-	       allocator->next=ci_serial_allocator_create(max_size);
-	       if(!allocator->next)
-		    return NULL;
-	  }
-	  allocator=allocator->next;
+     while (size > (allocator->endpos - allocator->curpos)) {
+          if (allocator->next == NULL) {
+               allocator->next = ci_serial_allocator_create(max_size);
+               if (!allocator->next)
+                    return NULL;
+          }
+          allocator = allocator->next;
      }
-   
-     mem=allocator->curpos;
-     allocator->curpos+=size;
+
+     mem = allocator->curpos;
+     allocator->curpos += size;
      return mem;
 }
-
