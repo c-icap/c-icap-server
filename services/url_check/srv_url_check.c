@@ -167,8 +167,8 @@ int check_destination(struct http_info *httpinf)
 //    if(strcmp("www.in.gr",httpinf->site)!=0)/*we like header*/
 //      return 0;
 
-     if (strstr(httpinf->page, "images/") != NULL)
-          return 0;
+//     if (strstr(httpinf->page, "images/") != NULL)
+//          return 0;
 
      return 1;
 }
