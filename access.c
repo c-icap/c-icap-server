@@ -46,8 +46,8 @@ int default_acl_log_access(char *dec_user, char *service, int req_type,
 
 
 
-int cfg_acl_add(char *directive, char **argv, void *setdata);
-int cfg_acl_access(char *directive, char **argv, void *setdata);
+int cfg_acl_add(char *directive, char **argv, void *setdata, int reset);
+int cfg_acl_access(char *directive, char **argv, void *setdata, int reset);
 
 
 
@@ -781,7 +781,7 @@ int check_protocol_family(char *ip)
 /********************************************************************/
 /*Configuration functions ...............                           */
 
-int cfg_acl_add(char *directive, char **argv, void *setdata)
+int cfg_acl_add(char *directive, char **argv, void *setdata, int reset)
 {
      char *name, *username, *service, *str;
      int i, res, request_type;
@@ -909,7 +909,7 @@ int cfg_acl_add(char *directive, char **argv, void *setdata)
 }
 
 
-int cfg_acl_access(char *directive, char **argv, void *setdata)
+int cfg_acl_access(char *directive, char **argv, void *setdata, int reset)
 {
      int type;
      char *acl_spec;

@@ -42,7 +42,7 @@ struct icap_server_conf{
 struct conf_entry{
      char *name;
      void *data;
-     int (*action)(char *name, char **argv,void *setdata);
+     int (*action)(char *name, char **argv,void *setdata,int reset);
      char *msg;
 };
 
@@ -56,8 +56,16 @@ struct options_entry{
      char *name;
      char *parameter;
      void *data;
-     int (*action)(char *name, char **argv,void *setdata);
+     int (*action)(char *name, char **argv,void *setdata, int reset);
      char *msg;
+};
+
+/*Struct for storing default parameter values*/
+struct cfg_default_value{
+     void *param;
+     void *value;
+     int size;
+     struct cfg_default_value *next;
 };
 
 #define MAIN_TABLE 1
@@ -65,13 +73,19 @@ struct options_entry{
 
 int register_conf_table(char *name,struct conf_entry *table,int type);
 
-CI_DECLARE_FUNC(int) ci_cfg_set_str(char *directive,char **argv,void *setdata);
-CI_DECLARE_FUNC(int) ci_cfg_set_int(char *directive,char **argv,void *setdata);
-CI_DECLARE_FUNC(int) ci_cfg_onoff(char *directive,char **argv,void *setdata);
-CI_DECLARE_FUNC(int) ci_cfg_disable(char *directive,char **argv,void *setdata);
-CI_DECLARE_FUNC(int) ci_cfg_enable(char *directive,char **argv,void *setdata);
-CI_DECLARE_FUNC(int) ci_cfg_size_off(char *directive,char **argv,void *setdata);
-CI_DECLARE_FUNC(int) ci_cfg_size_long(char *directive,char **argv,void *setdata);
+CI_DECLARE_FUNC(void) ci_cfg_lib_init();
+CI_DECLARE_FUNC(void) ci_cfg_lib_reset();
+CI_DECLARE_FUNC(void) *ci_cfg_alloc_mem(int size);
+CI_DECLARE_FUNC(struct cfg_default_value *) ci_cfg_default_value_store(void *param, void *value,int size);
+CI_DECLARE_FUNC(struct cfg_default_value *) ci_cfg_default_value_replace(void *param, void *value);
+CI_DECLARE_FUNC(void *) ci_cfg_default_value_load(void *value,int size);
+CI_DECLARE_FUNC(int) ci_cfg_set_str(char *directive,char **argv,void *setdata,int reset);
+CI_DECLARE_FUNC(int) ci_cfg_set_int(char *directive,char **argv,void *setdata,int reset);
+CI_DECLARE_FUNC(int) ci_cfg_onoff(char *directive,char **argv,void *setdata,int reset);
+CI_DECLARE_FUNC(int) ci_cfg_disable(char *directive,char **argv,void *setdata,int reset);
+CI_DECLARE_FUNC(int) ci_cfg_enable(char *directive,char **argv,void *setdata,int reset);
+CI_DECLARE_FUNC(int) ci_cfg_size_off(char *directive,char **argv,void *setdata,int reset);
+CI_DECLARE_FUNC(int) ci_cfg_size_long(char *directive,char **argv,void *setdata,int reset);
 CI_DECLARE_FUNC(int) config(int argc, char **argv);
 
 

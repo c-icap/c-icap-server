@@ -150,7 +150,7 @@ int attach_childs_queue(struct childs_queue *q)
      if ((c =
           (child_shared_data_t *) ci_shared_mem_attach(&(q->shmid))) == NULL) {
           log_server(NULL, "can't attach shared memory!");
-	  ci_proc_mutex_unlock(&(q->queue_mtx));
+          ci_proc_mutex_unlock(&(q->queue_mtx));
           return 0;
      }
 
@@ -165,7 +165,7 @@ int dettach_childs_queue(struct childs_queue *q)
      ci_proc_mutex_lock(&(q->queue_mtx));       //Not really needed .........
      if (ci_shared_mem_detach(&(q->shmid), q->childs) == 0) {
           log_server(NULL, "can't dettach shared memory!");
-	  ci_proc_mutex_unlock(&(q->queue_mtx));
+          ci_proc_mutex_unlock(&(q->queue_mtx));
           return 0;
      }
 
@@ -181,7 +181,7 @@ int destroy_childs_queue(struct childs_queue *q)
 
      if (!ci_shared_mem_destroy(&(q->shmid), q->childs)) {
           log_server(NULL, "can't destroy shared memory!");
-	  ci_proc_mutex_unlock(&(q->queue_mtx));
+          ci_proc_mutex_unlock(&(q->queue_mtx));
           return 0;
      }
 

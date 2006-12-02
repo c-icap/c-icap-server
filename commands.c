@@ -88,7 +88,6 @@ ci_command_t *find_command(char *cmd_line)
 int execute_command(ci_command_t * command, char *cmdline, int exec_type)
 {
      char **args;
-     int i = 0;
 
      if (!command)
           return 0;

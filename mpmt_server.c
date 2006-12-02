@@ -288,7 +288,6 @@ int wait_for_commands(int pipe_fd, char *command_buffer, int secs)
           tv.tv_sec = secs;
           tv.tv_usec = 0;
      }
-
      FD_ZERO(&fds);
      FD_SET(pipe_fd, &fds);
      errno = 0;
@@ -326,6 +325,8 @@ void handle_monitor_process_commands(char *cmd_line)
                           strlen(cmd_line));
                }
           }
+          if (command->type & MONITOR_PROC_POST_CMD)
+               execute_command(command, cmd_line, MONITOR_PROC_POST_CMD);
      }
 }
 
@@ -706,7 +707,7 @@ int start_server(int fd)
      }
 
      ci_proc_mutex_init(&accept_mutex);
-     if (!create_childs_queue(&childs_queue, 2*MAX_CHILDS)) {
+     if (!create_childs_queue(&childs_queue, 2 * MAX_CHILDS)) {
           ci_debug_printf(1,
                           "Can't init shared memory.Fatal error, exiting!\n");
           exit(0);

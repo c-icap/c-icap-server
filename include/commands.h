@@ -24,9 +24,10 @@
 #define NAMED_PIPES_DIR "/tmp/"
 #define COMMANDS_BUFFER_SIZE 128
 
-#define MONITOR_PROC_CMD 1
-#define CHILDS_PROC_CMD  2
-#define ALL_PROC_CMD     3
+#define MONITOR_PROC_CMD      1
+#define CHILDS_PROC_CMD       2
+#define MONITOR_PROC_POST_CMD 4
+#define ALL_PROC_CMD          7
 
 typedef struct ci_command{
      char *name;

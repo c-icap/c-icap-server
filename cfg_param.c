@@ -77,22 +77,25 @@ extern access_control_module_t **used_access_controllers;
 int parse_file(char *conf_file);
 
 /*config table functions*/
-int cfg_load_magicfile(char *directive, char **argv, void *setdata);
-int cfg_load_service(char *directive, char **argv, void *setdata);
-int cfg_service_alias(char *directive, char **argv, void *setdata);
-int cfg_load_module(char *directive, char **argv, void *setdata);
-int cfg_set_logger(char *directive, char **argv, void *setdata);
-int cfg_set_debug_level(char *directive, char **argv, void *setdata);
-int cfg_set_debug_stdout(char *directive, char **argv, void *setdata);
-int cfg_set_body_maxmem(char *directive, char **argv, void *setdata);
-int cfg_set_tmp_dir(char *directive, char **argv, void *setdata);
-int cfg_set_acl_controllers(char *directive, char **argv, void *setdata);
-int cfg_set_auth_method(char *directive, char **argv, void *setdata);
-int cfg_include_config_file(char *directive, char **argv, void *setdata);
+int cfg_load_magicfile(char *directive, char **argv, void *setdata, int reset);
+int cfg_load_service(char *directive, char **argv, void *setdata, int reset);
+int cfg_service_alias(char *directive, char **argv, void *setdata, int reset);
+int cfg_load_module(char *directive, char **argv, void *setdata, int reset);
+int cfg_set_logger(char *directive, char **argv, void *setdata, int reset);
+int cfg_set_debug_level(char *directive, char **argv, void *setdata, int reset);
+int cfg_set_debug_stdout(char *directive, char **argv, void *setdata,
+                         int reset);
+int cfg_set_body_maxmem(char *directive, char **argv, void *setdata, int reset);
+int cfg_set_tmp_dir(char *directive, char **argv, void *setdata, int reset);
+int cfg_set_acl_controllers(char *directive, char **argv, void *setdata,
+                            int reset);
+int cfg_set_auth_method(char *directive, char **argv, void *setdata, int reset);
+int cfg_include_config_file(char *directive, char **argv, void *setdata,
+                            int reset);
 
 /*The following 2 functions defined in access.c file*/
-int cfg_acl_add(char *directive, char **argv, void *setdata);
-int cfg_acl_access(char *directive, char **argv, void *setdata);
+int cfg_acl_add(char *directive, char **argv, void *setdata, int reset);
+int cfg_acl_access(char *directive, char **argv, void *setdata, int reset);
 /****/
 
 struct sub_table {
@@ -166,6 +169,11 @@ void init_conf_tables()
      conf_tables_list_size = STEPSIZE;
 }
 
+void reset_conf_tables()
+{
+     conf_tables_num = 0;
+}
+
 int register_conf_table(char *name, struct conf_entry *table, int type)
 {
      struct sub_table *new;
@@ -215,22 +223,22 @@ struct conf_entry *search_variables(char *table, char *varname)
    The following tree functions refered to non constant variables so
    the compilers in Win32 have problem to appeared in static arrays
 */
-int cfg_set_debug_level(char *directive, char **argv, void *setdata)
+int cfg_set_debug_level(char *directive, char **argv, void *setdata, int reset)
 {
-     return ci_cfg_set_int(directive, argv, &CI_DEBUG_LEVEL);
+     return ci_cfg_set_int(directive, argv, &CI_DEBUG_LEVEL, reset);
 }
 
-int cfg_set_debug_stdout(char *directive, char **argv, void *setdata)
+int cfg_set_debug_stdout(char *directive, char **argv, void *setdata, int reset)
 {
-     return ci_cfg_enable(directive, argv, &CI_DEBUG_STDOUT);
+     return ci_cfg_enable(directive, argv, &CI_DEBUG_STDOUT, reset);
 }
 
-int cfg_set_body_maxmem(char *directive, char **argv, void *setdata)
+int cfg_set_body_maxmem(char *directive, char **argv, void *setdata, int reset)
 {
-     return ci_cfg_size_long(directive, argv, &CI_BODY_MAX_MEM);
+     return ci_cfg_size_long(directive, argv, &CI_BODY_MAX_MEM, reset);
 }
 
-int cfg_load_service(char *directive, char **argv, void *setdata)
+int cfg_load_service(char *directive, char **argv, void *setdata, int reset)
 {
      service_module_t *service = NULL;
      if (argv == NULL || argv[0] == NULL || argv[1] == NULL) {
@@ -247,7 +255,7 @@ int cfg_load_service(char *directive, char **argv, void *setdata)
      return 1;
 }
 
-int cfg_service_alias(char *directive, char **argv, void *setdata)
+int cfg_service_alias(char *directive, char **argv, void *setdata, int reset)
 {
      if (argv == NULL || argv[0] == NULL || argv[1] == NULL) {
           ci_debug_printf(1, "Missing arguments in ServiceAlias directive\n");
@@ -258,7 +266,7 @@ int cfg_service_alias(char *directive, char **argv, void *setdata)
      return 1;
 }
 
-int cfg_load_module(char *directive, char **argv, void *setdata)
+int cfg_load_module(char *directive, char **argv, void *setdata, int reset)
 {
      if (argv == NULL || argv[0] == NULL || argv[1] == NULL) {
           ci_debug_printf(1, "Missing arguments in LoadModule directive\n");
@@ -273,7 +281,7 @@ int cfg_load_module(char *directive, char **argv, void *setdata)
      return 1;
 }
 
-int cfg_load_magicfile(char *directive, char **argv, void *setdata)
+int cfg_load_magicfile(char *directive, char **argv, void *setdata, int reset)
 {
      char *db_file;
      if (argv == NULL || argv[0] == NULL) {
@@ -289,13 +297,18 @@ int cfg_load_magicfile(char *directive, char **argv, void *setdata)
      return 1;
 }
 
-
-int cfg_set_logger(char *directive, char **argv, void *setdata)
+extern logger_module_t file_logger;
+int cfg_set_logger(char *directive, char **argv, void *setdata, int reset)
 {
      logger_module_t *logger;
      if (argv == NULL || argv[0] == NULL) {
           ci_debug_printf(1, "Missing arguments in directive\n");
           return 0;
+     }
+
+     if (reset) {
+          default_logger = &file_logger;
+          return 1;
      }
 
      if (!(logger = find_logger(argv[0])))
@@ -305,16 +318,22 @@ int cfg_set_logger(char *directive, char **argv, void *setdata)
      return 1;
 }
 
-int cfg_set_tmp_dir(char *directive, char **argv, void *setdata)
+int cfg_set_tmp_dir(char *directive, char **argv, void *setdata, int reset)
 {
      int len;
      if (argv == NULL || argv[0] == NULL) {
           return 0;
      }
 
+     if (reset) {
+          ci_cfg_default_value_load(&CONF.TMPDIR, sizeof(char *));
+          return 1;
+     }
+
+     ci_cfg_default_value_store(&CONF.TMPDIR, &CONF.TMPDIR, sizeof(char *));
      len = strlen(argv[0]);
 
-     CONF.TMPDIR = malloc((len + 2) * sizeof(char));
+     CONF.TMPDIR = ci_cfg_alloc_mem((len + 2) * sizeof(char));
      strcpy(CONF.TMPDIR, argv[0]);
 #ifdef _WIN32
      if (CONF.TMPDIR[len] != '\\') {
@@ -333,12 +352,19 @@ int cfg_set_tmp_dir(char *directive, char **argv, void *setdata)
      return 1;
 }
 
-int cfg_set_acl_controllers(char *directive, char **argv, void *setdata)
+extern access_control_module_t *default_access_controllers[];
+int cfg_set_acl_controllers(char *directive, char **argv, void *setdata,
+                            int reset)
 {
      int i, k, argc, ret;
      access_control_module_t *acl_mod;
      if (argv == NULL || argv[0] == NULL) {
           return 0;
+     }
+
+     if (reset) {
+          used_access_controllers = default_access_controllers;
+          return 1;
      }
 
      if (strncasecmp(argv[0], "none", 4) == 0) {
@@ -348,7 +374,7 @@ int cfg_set_acl_controllers(char *directive, char **argv, void *setdata)
 
      for (argc = 0; argv[argc] != NULL; argc++);        /*Find the number of acl controllers */
      used_access_controllers =
-         malloc(argc * sizeof(access_control_module_t *) + 1);
+         ci_cfg_alloc_mem(argc * sizeof(access_control_module_t *) + 1);
      k = 0;
      ret = 1;
      for (i = 0; i < argc; i++) {
@@ -367,7 +393,7 @@ int cfg_set_acl_controllers(char *directive, char **argv, void *setdata)
 }
 
 
-int cfg_set_auth_method(char *directive, char **argv, void *setdata)
+int cfg_set_auth_method(char *directive, char **argv, void *setdata, int reset)
 {
      char *method = NULL;
      if (argv == NULL || argv[0] == NULL || argv[1] == NULL) {
@@ -382,7 +408,8 @@ int cfg_set_auth_method(char *directive, char **argv, void *setdata)
 }
 
 
-int cfg_include_config_file(char *directive, char **argv, void *setdata)
+int cfg_include_config_file(char *directive, char **argv, void *setdata,
+                            int reset)
 {
      char path[CI_MAX_PATH], *cfg_file;
 
@@ -511,13 +538,14 @@ int process_line(char *line)
 
      if (entry && entry->action) {
           argv = split_args(args);
-          (*(entry->action)) (entry->name, argv, entry->data);
+          (*(entry->action)) (entry->name, argv, entry->data, 0);
           free_args(argv);
           return 1;
-      /*OK*/}
-     //Else parse error.......
-     //Log an error.....
-     return 0;
+     }
+     /*OK*/
+         /*Else parse error.......
+            Log an error..... */
+         return 0;
 }
 
 static int PARSE_LEVEL = 0;
@@ -575,7 +603,7 @@ static struct options_entry options[] = {
 
 int config(int argc, char **argv)
 {
-
+     ci_cfg_lib_init();
      if (!ci_args_apply(argc, argv, options)) {
           ci_debug_printf(1, "Error in command line options\n");
           ci_args_usage(argv[0], options);
