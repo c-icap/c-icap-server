@@ -31,7 +31,7 @@
 /* Default Authenticator  definitions                                                        */
 int default_acl_init(struct icap_server_conf *server_conf);
 int default_acl_post_init(struct icap_server_conf *server_conf);
-void default_release_authenticator();
+void default_acl_release();
 int default_acl_client_access(ci_sockaddr_t * client_address,
                               ci_sockaddr_t * server_address);
 int default_acl_request_access(char *dec_user, char *service, int req_type,
@@ -63,7 +63,7 @@ access_control_module_t default_acl = {
      "default_acl",
      default_acl_init,
      default_acl_post_init,     /*post_init */
-     default_release_authenticator,
+     default_acl_release,
      default_acl_client_access,
      default_acl_request_access,
      default_acl_http_request_access,
@@ -305,7 +305,6 @@ struct acl_spec {
 typedef struct access_entry access_entry_t;
 struct access_entry {
      int type;                  /*CI_ACCESS_DENY or CI_ACCESS_ALLOW or CI_ACCESS_AUTH */
-
      acl_spec_t *spec;
      access_entry_t *next;
 };
@@ -327,7 +326,8 @@ int match_ipv6_connection(acl_spec_t * spec, acl_spec_t * conn_spec);
 int (*match_connection) (acl_spec_t *, acl_spec_t *);
 
 int match_request(acl_spec_t * spec, acl_spec_t * req_spec);
-
+void release_access_list(struct access_entry_list *list);
+void release_acl_list(acl_spec_t * list);
 
 int default_acl_init(struct icap_server_conf *server_conf)
 {
@@ -356,9 +356,17 @@ int default_acl_post_init(struct icap_server_conf *server_conf)
      return 1;
 }
 
-void default_release_authenticator()
+void default_acl_release()
 {
-     /*Must release the queues ........ */
+     release_acl_list(acl_spec_list);
+     release_access_list(&acl_access_list);
+     release_access_list(&acl_log_access_list);
+     acl_spec_list = NULL;
+     acl_spec_last = NULL;
+     acl_access_list.access_entry_list = NULL;
+     acl_access_list.access_entry_last = NULL;
+     acl_log_access_list.access_entry_list = NULL;
+     acl_log_access_list.access_entry_last = NULL;
 }
 
 int default_acl_client_access(ci_sockaddr_t * client_address,
@@ -634,6 +642,19 @@ access_entry_t *new_access_entry(struct access_entry_list * list, int type,
      return a_entry;
 }
 
+void release_access_list(struct access_entry_list *list)
+{
+     access_entry_t *access_cur, *access_next;
+
+     access_cur = list->access_entry_list;
+     while (access_cur) {
+          access_next = access_cur->next;
+          free(access_cur);
+          access_cur = access_next;
+     }
+     list->access_entry_list = NULL;
+     list->access_entry_last = NULL;
+}
 
 void fill_ipv4_addresses(acl_spec_t * a_spec,
                          acl_in_addr_t * client_address,
@@ -777,6 +798,21 @@ int check_protocol_family(char *ip)
 }
 
 #endif
+
+void release_acl_list(acl_spec_t * list)
+{
+     acl_spec_t *acl_cur, *acl_next;
+     acl_cur = list;
+     while (acl_cur != NULL) {
+          if (acl_cur->username)
+               free(acl_cur->username);
+          if (acl_cur->servicename)
+               free(acl_cur->servicename);
+          free(acl_cur);
+          acl_next = acl_cur->next;
+          acl_cur = acl_next;
+     }
+}
 
 /********************************************************************/
 /*Configuration functions ...............                           */
