@@ -25,6 +25,7 @@
 #ifdef _WIN32
 #include <windows.h>
 #endif
+#include "dlib.h"
 #include "cfg_param.h"
 
 struct modules_list {
@@ -65,54 +66,20 @@ static struct modules_list *modules_lists_table[] = {   /*Must follows the 'enum
 
 void *load_module(char *module_file)
 {
-     void *service = NULL;
-     char *path;
-#ifdef HAVE_DLFCN_H
-     void *handle;
-#else                           /* if defined (_WIN32) */
-     HMODULE handle;
-     WCHAR filename[512];
-     WCHAR c;
-     int i = 0;
-#endif
-#ifdef HAVE_DLFCN_H
-     if (module_file[0] != '/') {
-          if ((path =
-               malloc((strlen(module_file) + strlen(CONF.MODULES_DIR) +
-                       5) * sizeof(char))) == NULL)
-               return NULL;
-          strcpy(path, CONF.MODULES_DIR);
-          strcat(path, "/");
-          strcat(path, module_file);
-          handle = dlopen(path, RTLD_NOW | RTLD_GLOBAL);
-          free(path);
-     }
-     else
-          handle = dlopen(module_file, RTLD_NOW | RTLD_GLOBAL);
+     void *module = NULL;
+     CI_DLIB_HANDLE module_handle;
 
-     if (!handle) {
-          ci_debug_printf(1, "Error loading module %s:%s\n", module_file,
-                          dlerror());
-          return NULL;
+     module_handle=ci_module_load(module_file,CONF.MODULES_DIR);
+     if(!module_handle)
+	  return NULL;
+     module=ci_module_sym(module_handle,"module");
+     if(!module){
+	  ci_debug_printf(1,"Not found symbol \"module\" in library unload it\n");
+	  ci_module_unload(module_handle,module_file);
+	  return NULL;
      }
-     service = dlsym(handle, "module");
-
-#else                           /* if defined _WIN32 */
-/*Maybe Windows specific code ..........*/
-     /*Converting path to wide char ....... */
-     for (i = 0; i < strlen(module_file) && i < 511; i++)
-          filename[i] = module_file[i];
-     filename[i] = '\0';
-     if (!
-         (handle = LoadLibraryEx(filename, NULL, LOAD_WITH_ALTERED_SEARCH_PATH))
-&& !(handle = LoadLibraryEx(filename, NULL, NULL))) {
-          ci_debug_printf(1, "Error loading module. Error code %d\n",
-                          GetLastError());
-          return NULL;
-     }
-     service = GetProcAddress(handle, "module");
-#endif
-     return service;
+     ci_dlib_entry("module", module_file, module_handle);
+     return module;
 }
 
 
@@ -588,8 +555,7 @@ int init_modules()
 int post_init_modules()
 {
      int i;
-
-//     service_handlers;
+/*     service_handlers */
      for (i = 0; i < service_handlers.modules_num; i++) {
           if (((service_handler_module_t *) service_handlers.modules[i])->
               post_init_service_handler != NULL)
@@ -597,10 +563,10 @@ int post_init_modules()
                    post_init_service_handler(&CONF);
      }
 
-//     loggers;
+/*     loggers? loggers do not have post init handlers .... */
 
 
-//     access_controllers;
+/*     access_controllers */
      for (i = 0; i < access_controllers.modules_num; i++) {
           if (((access_control_module_t *) access_controllers.modules[i])->
               post_init_access_controller != NULL)
@@ -610,7 +576,7 @@ int post_init_modules()
 
 
 
-//     auth_methods;
+/*     auth_methods */
      for (i = 0; i < auth_methods.modules_num; i++) {
           if (((http_auth_method_t *) auth_methods.modules[i])->
               post_init_auth_method != NULL)
@@ -618,7 +584,7 @@ int post_init_modules()
                    post_init_auth_method(&CONF);
      }
 
-     //     authenticators;
+/*     authenticators */
      for (i = 0; i < authenticators.modules_num; i++) {
           if (((authenticator_module_t *) authenticators.modules[i])->
               post_init_authenticator != NULL)
@@ -627,6 +593,53 @@ int post_init_modules()
      }
 
      return 1;
+}
 
 
+int release_modules()
+{
+     int i;
+/*     service_handlers */
+
+     for (i = 0; i < service_handlers.modules_num; i++) {
+          if (((service_handler_module_t *) service_handlers.modules[i])->
+              release_service_handler != NULL)
+               ((service_handler_module_t *) service_handlers.modules[i])->
+                   release_service_handler();
+     }
+
+/*     loggers? loggers do not have post init handlers .... */
+     for (i = 0; i < loggers.modules_num; i++) {
+          if (((logger_module_t *) loggers.modules[i])->log_close != NULL)
+               ((logger_module_t *) loggers.modules[i])->log_close();
+     }
+
+
+/*     access_controllers */
+     for (i = 0; i < access_controllers.modules_num; i++) {
+          if (((access_control_module_t *) access_controllers.modules[i])->
+              release_access_controller != NULL)
+               ((access_control_module_t *) access_controllers.modules[i])->
+                   release_access_controller(&CONF);
+     }
+
+
+
+/*     auth_methods */
+     for (i = 0; i < auth_methods.modules_num; i++) {
+          if (((http_auth_method_t *) auth_methods.modules[i])->
+              close_auth_method != NULL)
+               ((http_auth_method_t *) auth_methods.modules[i])->
+                   close_auth_method(&CONF);
+     }
+
+/*     authenticators */
+     for (i = 0; i < authenticators.modules_num; i++) {
+          if (((authenticator_module_t *) authenticators.modules[i])->
+              close_authenticator != NULL)
+               ((authenticator_module_t *) authenticators.modules[i])->
+                   close_authenticator(&CONF);
+     }
+
+     return 1;
 }

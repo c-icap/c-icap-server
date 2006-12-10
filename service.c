@@ -26,6 +26,7 @@
 #ifdef _WIN32
 #include <windows.h>
 #endif
+#include "dlib.h"
 #include "cfg_param.h"
 
 
@@ -181,67 +182,37 @@ service_module_t *find_alias_service(char *service_name)
  **********************************************************************/
 
 service_module_t *load_c_service(char *service_file);
+void release_c_handler();
 
 service_handler_module_t c_service_handler = {
      "C_handler",
      ".so,.sa,.a",
      NULL,                      /*init */
      NULL,                      /*post_init */
+     release_c_handler,
      load_c_service,
      NULL                       /*config table .... */
 };
 
-
-
 service_module_t *load_c_service(char *service_file)
 {
      service_module_t *service = NULL;
-     char *path;
-#ifdef HAVE_DLFCN_H
-     void *handle;
-#else                           /* if defined (_WIN32) */
-     HMODULE handle;
-     WCHAR filename[512];
-     WCHAR c;
-     int i = 0;
-#endif
+     CI_DLIB_HANDLE service_handle;
 
-#ifdef HAVE_DLFCN_H
-     if (service_file[0] != '/') {
-          if ((path =
-               malloc((strlen(service_file) + strlen(CONF.SERVICES_DIR) +
-                       5) * sizeof(char))) == NULL)
-               return NULL;
-          strcpy(path, CONF.SERVICES_DIR);
-          strcat(path, "/");
-          strcat(path, service_file);
-          handle = dlopen(path, RTLD_NOW | RTLD_GLOBAL);
-          free(path);
+     service_handle=ci_module_load(service_file, CONF.SERVICES_DIR);
+     if(!service_handle)
+	  return NULL;
+     service=ci_module_sym(service_handle,"service");
+     if(!service){
+	  ci_debug_printf(1,"Not found symbol \"service\" in library, unload it\n");
+	  ci_module_unload(service_handle,service_file);
+	  return NULL;
      }
-     else
-          handle = dlopen(service_file, RTLD_NOW | RTLD_GLOBAL);
-
-     if (!handle) {
-          ci_debug_printf(1, "Error loading service %s: %s\n", service_file,
-                          dlerror());
-          return NULL;
-     }
-     service = dlsym(handle, "service");
-
-#else                           /* if defined _WIN32 */
-/*Maybe Windows specific code ..........*/
-     /*Converting path to wide char ....... */
-     for (i = 0; i < strlen(service_file) && i < 511; i++)
-          filename[i] = service_file[i];
-     filename[i] = '\0';
-     if (!
-         (handle = LoadLibraryEx(filename, NULL, LOAD_WITH_ALTERED_SEARCH_PATH))
-&& !(handle = LoadLibraryEx(filename, NULL, NULL))) {
-          ci_debug_printf(1, "Error loading service. Error code %d\n",
-                          GetLastError());
-          return NULL;
-     }
-     service = GetProcAddress(handle, "service");
-#endif
+     ci_dlib_entry((service->mod_name!=NULL?service->mod_name:""), 
+		   service_file, service_handle);
      return service;
+}
+
+void release_c_handler()
+{
 }
