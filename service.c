@@ -199,17 +199,18 @@ service_module_t *load_c_service(char *service_file)
      service_module_t *service = NULL;
      CI_DLIB_HANDLE service_handle;
 
-     service_handle=ci_module_load(service_file, CONF.SERVICES_DIR);
-     if(!service_handle)
-	  return NULL;
-     service=ci_module_sym(service_handle,"service");
-     if(!service){
-	  ci_debug_printf(1,"Not found symbol \"service\" in library, unload it\n");
-	  ci_module_unload(service_handle,service_file);
-	  return NULL;
+     service_handle = ci_module_load(service_file, CONF.SERVICES_DIR);
+     if (!service_handle)
+          return NULL;
+     service = ci_module_sym(service_handle, "service");
+     if (!service) {
+          ci_debug_printf(1,
+                          "Not found symbol \"service\" in library, unload it\n");
+          ci_module_unload(service_handle, service_file);
+          return NULL;
      }
-     ci_dlib_entry((service->mod_name!=NULL?service->mod_name:""), 
-		   service_file, service_handle);
+     ci_dlib_entry((service->mod_name != NULL ? service->mod_name : ""),
+                   service_file, service_handle);
      return service;
 }
 

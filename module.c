@@ -69,14 +69,15 @@ void *load_module(char *module_file)
      void *module = NULL;
      CI_DLIB_HANDLE module_handle;
 
-     module_handle=ci_module_load(module_file,CONF.MODULES_DIR);
-     if(!module_handle)
-	  return NULL;
-     module=ci_module_sym(module_handle,"module");
-     if(!module){
-	  ci_debug_printf(1,"Not found symbol \"module\" in library unload it\n");
-	  ci_module_unload(module_handle,module_file);
-	  return NULL;
+     module_handle = ci_module_load(module_file, CONF.MODULES_DIR);
+     if (!module_handle)
+          return NULL;
+     module = ci_module_sym(module_handle, "module");
+     if (!module) {
+          ci_debug_printf(1,
+                          "Not found symbol \"module\" in library unload it\n");
+          ci_module_unload(module_handle, module_file);
+          return NULL;
      }
      ci_dlib_entry("module", module_file, module_handle);
      return module;

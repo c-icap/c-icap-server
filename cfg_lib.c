@@ -64,7 +64,7 @@ struct cfg_default_value *ci_cfg_default_value_replace(void *param, void *value)
 {
      struct cfg_default_value *dval;
      dval = default_values;
-     while (dval->param != param && dval != NULL)
+     while (dval != NULL && dval->param != param)
           dval = dval->next;
 
      if (!dval)
@@ -78,12 +78,14 @@ void *ci_cfg_default_value_load(void *param, int size)
 {
      struct cfg_default_value *dval;
      dval = default_values;
-     while (dval->param != param && dval != NULL)
+     ci_debug_printf(8, "Geting default value for %p of size %d\n", param,
+                     size);
+     while (dval != NULL && dval->param != param)
           dval = dval->next;
 
      if (!dval)
           return NULL;
-
+     ci_debug_printf(8, "Found: %p\n", dval->value);
      memcpy(param, dval->value, size);
      return param;
 }
@@ -186,12 +188,13 @@ int ci_cfg_set_str(char *directive, char **argv, void *setdata, int reset)
      if (argv == NULL || argv[0] == NULL) {
           return 0;
      }
-     if (!(*((char **) setdata) = ci_cfg_alloc_mem(strlen(argv[0]) + 1))) {
-          return 0;
-     }
 
      ci_cfg_default_value_store(setdata, setdata, sizeof(char *));
      /*or better keep all string not just the pointer to default value? */
+
+     if (!(*((char **) setdata) = ci_cfg_alloc_mem(strlen(argv[0]) + 1))) {
+          return 0;
+     }
 
      strcpy(*((char **) setdata), argv[0]);
 /*     *((char **) setdata) = (char *) strdup(argv[0]); */

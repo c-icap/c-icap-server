@@ -31,6 +31,8 @@
 #define LINESIZE 512
 #define MAX_DIRECTIVE_SIZE 80
 #define MAX_ARGS 50
+int ARGC;
+char **ARGV;
 
 
 struct icap_server_conf CONF = {
@@ -159,6 +161,18 @@ struct conf_entry *search_conf_table(struct conf_entry *table, char *varname)
      return NULL;
 }
 
+int reset_conf_variables(struct conf_entry *table)
+{
+     int i;
+     for (i = 0; table[i].name != NULL; i++) {
+          ci_debug_printf(8, "Reseting :%s\n", table[i].name);
+          if (table[i].action && table[i].data)
+               (table[i].action) (table[i].name, NULL, table[i].data, 1);
+     }
+     return 1;
+}
+
+
 void init_conf_tables()
 {
      if ((extra_conf_tables =
@@ -216,6 +230,79 @@ struct conf_entry *search_variables(char *table, char *varname)
      ci_debug_printf(1, "Variable %s or table %s not found!\n", varname, table);
      return NULL;
 }
+
+int reset_variables()
+{
+     int i;
+     reset_conf_variables(conf_variables);
+     if (!extra_conf_tables)    /*Not really needed........ */
+          return 1;
+
+     for (i = 0; i < conf_tables_num; i++) {
+          ci_debug_printf(1, "Going to reset variables in table %s\n",
+                          extra_conf_tables[i].name);
+          reset_conf_variables(extra_conf_tables[i].conf_table);
+     }
+     return 1;
+}
+
+void print_conf_variables(struct conf_entry *table)
+{
+     int i;
+     for (i = 0; table[i].name != NULL; i++) {
+          ci_debug_printf(9, "%s=", table[i].name);
+          if (!table[i].data) {
+               ci_debug_printf(9, "\n");
+          }
+          else if (table[i].action == ci_cfg_set_str) {
+               if (*(char *) table[i].data) {
+                    ci_debug_printf(9, "%s\n", *(char **) table[i].data)
+               }
+               else {
+                    ci_debug_printf(9, "\n");
+               }
+          }
+          else if (table[i].action == ci_cfg_set_int) {
+               ci_debug_printf(9, "%d\n", *(int *) table[i].data);
+          }
+          else if (table[i].action == ci_cfg_size_off) {
+               ci_debug_printf(9, "%" PRINTF_OFF_T "\n",
+                               *(ci_off_t *) table[i].data);
+          }
+          else if (table[i].action == ci_cfg_size_long) {
+               ci_debug_printf(9, "%ld\n", *(long *) table[i].data);
+          }
+          else if (table[i].action == ci_cfg_onoff) {
+               ci_debug_printf(9, "%d\n", *(int *) table[i].data);
+          }
+          else if (table[i].action == ci_cfg_enable) {
+               ci_debug_printf(9, "%d\n", *(int *) table[i].data);
+          }
+          else if (table[i].action == ci_cfg_disable) {
+               ci_debug_printf(9, "%d\n", *(int *) table[i].data);
+          }
+          else if (table[i].data) {
+               ci_debug_printf(9, "%p\n", table[i].data);
+          }
+     }
+}
+
+int print_variables()
+{
+     int i;
+     ci_debug_printf(9, "\n\nPrinting variables\n");
+     print_conf_variables(conf_variables);
+     if (!extra_conf_tables)    /*Not really needed........ */
+          return 1;
+
+     for (i = 0; i < conf_tables_num; i++) {
+          ci_debug_printf(9, "Printing variables in table %s\n",
+                          extra_conf_tables[i].name);
+          print_conf_variables(extra_conf_tables[i].conf_table);
+     }
+     return 1;
+}
+
 
 /************************************************************************/
 /*  Set variables functions                                             */
@@ -603,17 +690,37 @@ static struct options_entry options[] = {
 
 int config(int argc, char **argv)
 {
+     ARGC = argc;
+     ARGV = argv;
      ci_cfg_lib_init();
      if (!ci_args_apply(argc, argv, options)) {
           ci_debug_printf(1, "Error in command line options\n");
           ci_args_usage(argv[0], options);
           exit(-1);
      }
-
      if (!parse_file(CONF.cfg_file)) {
           ci_debug_printf(1, "Error opening/parsing config file\n");
           exit(0);
      }
-/*     parse_file("c-icap.conf");*/
      return 1;
+}
+
+int reconfig()
+{
+     /*reseting all parameters to default values ... */
+     reset_variables();
+     /*reseting cfg_lib */
+     ci_cfg_lib_reset();
+     if (!ci_args_apply(ARGC, ARGV, options)) {
+          ci_debug_printf(1,
+                          "Error in command line options, while reconfiguring!\n");
+          return 0;
+     }
+     if (!parse_file(CONF.cfg_file)) {
+          ci_debug_printf(1,
+                          "Error opening/parsing config file, while reconfiguring!\n");
+          return 0;
+     }
+     return 1;
+
 }
