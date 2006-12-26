@@ -79,6 +79,7 @@ int create_childs_queue(struct childs_queue *q, int size);
 int destroy_childs_queue(struct childs_queue *q);
 int attach_childs_queue(struct childs_queue *q);
 int dettach_childs_queue(struct childs_queue *q);
+int childs_queue_is_empty(struct childs_queue *q);
 child_shared_data_t *get_child_data(struct childs_queue *q, process_pid_t pid);
 child_shared_data_t *register_child(struct childs_queue *q, 
 				    process_pid_t pid,
