@@ -290,6 +290,7 @@ char *ci_headers_addheaders(ci_headers_list_t * h, ci_headers_list_t * headers)
 
      for (i = 1; i < h->used; i++)
           h->headers[i] = h->headers[i - 1] + strlen(h->headers[i - 1]) + 2;
+     return h->headers[0];
 }
 
 
