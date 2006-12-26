@@ -191,7 +191,15 @@ int destroy_childs_queue(struct childs_queue *q)
      return 1;
 }
 
-
+int childs_queue_is_empty(struct childs_queue *q)
+{
+     int i;
+     for (i = 0; i < q->size; i++) {
+          if (q->childs[i].pid != 0)
+               return 0;
+     }
+     return 1;
+}
 
 
 child_shared_data_t *get_child_data(struct childs_queue * q, process_pid_t pid)
@@ -256,7 +264,7 @@ int remove_child(struct childs_queue *q, process_pid_t pid)
                return 1;
           }
      }
-     ci_proc_mutex_lock(&(q->queue_mtx));
+     ci_proc_mutex_unlock(&(q->queue_mtx));
      return 0;
 }
 
