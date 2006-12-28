@@ -36,8 +36,9 @@ typedef struct ci_command{
 } ci_command_t;
 
 
-void register_command(char *name,int type, void (*command_action)(char *name,int type, char **argv));
-int execute_command(ci_command_t *command,char *cmdline,int exec_type);
-ci_command_t *find_command(char *cmd_line);
+CI_DECLARE_FUNC(void) register_command(char *name,int type, void (*command_action)(char *name,int type, char **argv));
+CI_DECLARE_FUNC(void) reset_commands();
+CI_DECLARE_FUNC(int) execute_command(ci_command_t *command,char *cmdline,int exec_type);
+CI_DECLARE_FUNC(ci_command_t) *find_command(char *cmd_line);
 
 #endif /*__COMMANDS_H*/
