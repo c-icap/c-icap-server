@@ -38,7 +38,8 @@ char MY_HOSTNAME[CI_MAXHOSTNAMELEN + 1];
 
 void init_conf_tables();
 int config(int, char **);
-int start_server(ci_socket fd);
+int init_server(int port, int *family);
+int start_server();
 int store_pid(char *pidfile);
 int is_icap_running(char *pidfile);
 int set_running_permissions(char *user, char *group);
@@ -78,8 +79,6 @@ void run_as_daemon()
 
 int main(int argc, char **argv)
 {
-     ci_socket s;
-
 #if ! defined(_WIN32)
      __log_error = (void (*)(void *, const char *,...)) log_server;     /*set c-icap library log  function */
 #else
@@ -90,7 +89,6 @@ int main(int argc, char **argv)
           ci_debug_printf(1, "Can not load magic file %s!!!\n",
                           CONF.magics_file);
      }
-
      init_conf_tables();
      init_modules();
      config(argc, argv);
@@ -102,34 +100,21 @@ int main(int argc, char **argv)
           ci_debug_printf(1, "c-icap server already running!\n");
           exit(-1);
      }
-
      if (DAEMON_MODE)
           run_as_daemon();
-
      store_pid(CONF.PIDFILE);
      if (!set_running_permissions(CONF.RUN_USER, CONF.RUN_GROUP))
           exit(-1);
 #endif
 
-
      if (!log_open()) {
           ci_debug_printf(1, "Can not init loggers. Exiting.....\n");
           exit(-1);
      }
-
-
-     s = icap_init_server(CONF.PORT, &(CONF.PROTOCOL_FAMILY),
-                          MAX_SECS_TO_LINGER);
-
-
-     if (s == CI_SOCKET_ERROR)
+     if (!init_server(CONF.PORT, &(CONF.PROTOCOL_FAMILY)))
           return -1;
-
-
      post_init_modules();
      post_init_services();
-
-     start_server(s);
-
+     start_server();
      return 0;
 }

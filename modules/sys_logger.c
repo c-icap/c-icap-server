@@ -43,8 +43,8 @@ static int FACILITY = LOG_DAEMON;
 static int ACCESS_PRIORITY = LOG_INFO;
 static int SERVER_PRIORITY = LOG_CRIT;
 
-int cfg_set_facility(char *directive, char **argv, void *setdata, int reset);
-int cfg_set_priority(char *directive, char **argv, void *setdata, int reset);
+int cfg_set_facility(char *directive, char **argv, void *setdata);
+int cfg_set_priority(char *directive, char **argv, void *setdata);
 /*int cfg_set_prefix(char *directive,char **argv,void *setdata);*/
 
 /*Configuration Table .....*/
@@ -69,7 +69,7 @@ CI_DECLARE_DATA logger_module_t module = {
 };
 
 
-int cfg_set_facility(char *directive, char **argv, void *setdata, int reset)
+int cfg_set_facility(char *directive, char **argv, void *setdata)
 {
      if (argv == NULL || argv[0] == NULL) {
 //        ci_debug_printf(1,"Missing arguments in directive\n");
@@ -110,7 +110,7 @@ int cfg_set_facility(char *directive, char **argv, void *setdata, int reset)
      return 1;
 }
 
-int cfg_set_priority(char *directive, char **argv, void *setdata, int reset)
+int cfg_set_priority(char *directive, char **argv, void *setdata)
 {
      if (argv == NULL || argv[0] == NULL) {
           ci_debug_printf(1, "Missing arguments in directive\n");

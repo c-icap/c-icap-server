@@ -79,25 +79,22 @@ extern access_control_module_t **used_access_controllers;
 int parse_file(char *conf_file);
 
 /*config table functions*/
-int cfg_load_magicfile(char *directive, char **argv, void *setdata, int reset);
-int cfg_load_service(char *directive, char **argv, void *setdata, int reset);
-int cfg_service_alias(char *directive, char **argv, void *setdata, int reset);
-int cfg_load_module(char *directive, char **argv, void *setdata, int reset);
-int cfg_set_logger(char *directive, char **argv, void *setdata, int reset);
-int cfg_set_debug_level(char *directive, char **argv, void *setdata, int reset);
-int cfg_set_debug_stdout(char *directive, char **argv, void *setdata,
-                         int reset);
-int cfg_set_body_maxmem(char *directive, char **argv, void *setdata, int reset);
-int cfg_set_tmp_dir(char *directive, char **argv, void *setdata, int reset);
-int cfg_set_acl_controllers(char *directive, char **argv, void *setdata,
-                            int reset);
-int cfg_set_auth_method(char *directive, char **argv, void *setdata, int reset);
-int cfg_include_config_file(char *directive, char **argv, void *setdata,
-                            int reset);
+int cfg_load_magicfile(char *directive, char **argv, void *setdata);
+int cfg_load_service(char *directive, char **argv, void *setdata);
+int cfg_service_alias(char *directive, char **argv, void *setdata);
+int cfg_load_module(char *directive, char **argv, void *setdata);
+int cfg_set_logger(char *directive, char **argv, void *setdata);
+int cfg_set_debug_level(char *directive, char **argv, void *setdata);
+int cfg_set_debug_stdout(char *directive, char **argv, void *setdata);
+int cfg_set_body_maxmem(char *directive, char **argv, void *setdata);
+int cfg_set_tmp_dir(char *directive, char **argv, void *setdata);
+int cfg_set_acl_controllers(char *directive, char **argv, void *setdata);
+int cfg_set_auth_method(char *directive, char **argv, void *setdata);
+int cfg_include_config_file(char *directive, char **argv, void *setdata);
 
 /*The following 2 functions defined in access.c file*/
-int cfg_acl_add(char *directive, char **argv, void *setdata, int reset);
-int cfg_acl_access(char *directive, char **argv, void *setdata, int reset);
+int cfg_acl_add(char *directive, char **argv, void *setdata);
+int cfg_acl_access(char *directive, char **argv, void *setdata);
 /****/
 
 struct sub_table {
@@ -107,31 +104,31 @@ struct sub_table {
 };
 
 static struct conf_entry conf_variables[] = {
-     {"PidFile", &CONF.PIDFILE, ci_cfg_set_str, NULL},
-     {"Timeout", (void *) (&TIMEOUT), ci_cfg_set_int, NULL},
+     {"PidFile", &CONF.PIDFILE, intl_cfg_set_str, NULL},
+     {"Timeout", (void *) (&TIMEOUT), intl_cfg_set_int, NULL},
      {"KeepAlive", NULL, NULL, NULL},
      {"MaxKeepAliveRequests", NULL, NULL, NULL},
-     {"KeepAliveTimeout", &KEEPALIVE_TIMEOUT, ci_cfg_set_int, NULL},
-     {"StartServers", &START_CHILDS, ci_cfg_set_int, NULL},
-     {"MaxServers", &MAX_CHILDS, ci_cfg_set_int, NULL},
-     {"MinSpareThreads", &MIN_FREE_SERVERS, ci_cfg_set_int, NULL},
-     {"MaxSpareThreads", &MAX_FREE_SERVERS, ci_cfg_set_int, NULL},
-     {"ThreadsPerChild", &START_SERVERS, ci_cfg_set_int, NULL},
+     {"KeepAliveTimeout", &KEEPALIVE_TIMEOUT, intl_cfg_set_int, NULL},
+     {"StartServers", &START_CHILDS, intl_cfg_set_int, NULL},
+     {"MaxServers", &MAX_CHILDS, intl_cfg_set_int, NULL},
+     {"MinSpareThreads", &MIN_FREE_SERVERS, intl_cfg_set_int, NULL},
+     {"MaxSpareThreads", &MAX_FREE_SERVERS, intl_cfg_set_int, NULL},
+     {"ThreadsPerChild", &START_SERVERS, intl_cfg_set_int, NULL},
      {"MaxRequestsPerChild", NULL, NULL, NULL},
      {"MaxRequestsReallocateMem", &MAX_REQUESTS_BEFORE_REALLOCATE_MEM,
-      ci_cfg_set_int, NULL},
-     {"Port", &CONF.PORT, ci_cfg_set_int, NULL},
-     {"User", &CONF.RUN_USER, ci_cfg_set_str, NULL},
-     {"Group", &CONF.RUN_GROUP, ci_cfg_set_str, NULL},
+      intl_cfg_set_int, NULL},
+     {"Port", &CONF.PORT, intl_cfg_set_int, NULL},
+     {"User", &CONF.RUN_USER, intl_cfg_set_str, NULL},
+     {"Group", &CONF.RUN_GROUP, intl_cfg_set_str, NULL},
      {"ServerAdmin", NULL, NULL, NULL},
      {"ServerName", NULL, NULL, NULL},
      {"LoadMagicFile", NULL, cfg_load_magicfile, NULL},
      {"Logger", &default_logger, cfg_set_logger, NULL},
-     {"ServerLog", &SERVER_LOG_FILE, ci_cfg_set_str, NULL},
-     {"AccessLog", &ACCESS_LOG_FILE, ci_cfg_set_str, NULL},
+     {"ServerLog", &SERVER_LOG_FILE, intl_cfg_set_str, NULL},
+     {"AccessLog", &ACCESS_LOG_FILE, intl_cfg_set_str, NULL},
      {"DebugLevel", NULL, cfg_set_debug_level, NULL},   /*Set library's debug level */
-     {"ServicesDir", &CONF.SERVICES_DIR, ci_cfg_set_str, NULL},
-     {"ModulesDir", &CONF.MODULES_DIR, ci_cfg_set_str, NULL},
+     {"ServicesDir", &CONF.SERVICES_DIR, intl_cfg_set_str, NULL},
+     {"ModulesDir", &CONF.MODULES_DIR, intl_cfg_set_str, NULL},
      {"Service", NULL, cfg_load_service, NULL},
      {"ServiceAlias", NULL, cfg_service_alias, NULL},
      {"Module", NULL, cfg_load_module, NULL},
@@ -160,18 +157,6 @@ struct conf_entry *search_conf_table(struct conf_entry *table, char *varname)
      }
      return NULL;
 }
-
-int reset_conf_variables(struct conf_entry *table)
-{
-     int i;
-     for (i = 0; table[i].name != NULL; i++) {
-          ci_debug_printf(8, "Reseting :%s\n", table[i].name);
-          if (table[i].action && table[i].data)
-               (table[i].action) (table[i].name, NULL, table[i].data, 1);
-     }
-     return 1;
-}
-
 
 void init_conf_tables()
 {
@@ -231,21 +216,6 @@ struct conf_entry *search_variables(char *table, char *varname)
      return NULL;
 }
 
-int reset_variables()
-{
-     int i;
-     reset_conf_variables(conf_variables);
-     if (!extra_conf_tables)    /*Not really needed........ */
-          return 1;
-
-     for (i = 0; i < conf_tables_num; i++) {
-          ci_debug_printf(1, "Going to reset variables in table %s\n",
-                          extra_conf_tables[i].name);
-          reset_conf_variables(extra_conf_tables[i].conf_table);
-     }
-     return 1;
-}
-
 void print_conf_variables(struct conf_entry *table)
 {
      int i;
@@ -254,7 +224,7 @@ void print_conf_variables(struct conf_entry *table)
           if (!table[i].data) {
                ci_debug_printf(9, "\n");
           }
-          else if (table[i].action == ci_cfg_set_str) {
+          else if (table[i].action == intl_cfg_set_str) {
                if (*(char *) table[i].data) {
                     ci_debug_printf(9, "%s\n", *(char **) table[i].data)
                }
@@ -262,23 +232,23 @@ void print_conf_variables(struct conf_entry *table)
                     ci_debug_printf(9, "\n");
                }
           }
-          else if (table[i].action == ci_cfg_set_int) {
+          else if (table[i].action == intl_cfg_set_int) {
                ci_debug_printf(9, "%d\n", *(int *) table[i].data);
           }
-          else if (table[i].action == ci_cfg_size_off) {
+          else if (table[i].action == intl_cfg_size_off) {
                ci_debug_printf(9, "%" PRINTF_OFF_T "\n",
                                *(ci_off_t *) table[i].data);
           }
-          else if (table[i].action == ci_cfg_size_long) {
+          else if (table[i].action == intl_cfg_size_long) {
                ci_debug_printf(9, "%ld\n", *(long *) table[i].data);
           }
-          else if (table[i].action == ci_cfg_onoff) {
+          else if (table[i].action == intl_cfg_onoff) {
                ci_debug_printf(9, "%d\n", *(int *) table[i].data);
           }
-          else if (table[i].action == ci_cfg_enable) {
+          else if (table[i].action == intl_cfg_enable) {
                ci_debug_printf(9, "%d\n", *(int *) table[i].data);
           }
-          else if (table[i].action == ci_cfg_disable) {
+          else if (table[i].action == intl_cfg_disable) {
                ci_debug_printf(9, "%d\n", *(int *) table[i].data);
           }
           else if (table[i].data) {
@@ -310,22 +280,22 @@ int print_variables()
    The following tree functions refered to non constant variables so
    the compilers in Win32 have problem to appeared in static arrays
 */
-int cfg_set_debug_level(char *directive, char **argv, void *setdata, int reset)
+int cfg_set_debug_level(char *directive, char **argv, void *setdata)
 {
-     return ci_cfg_set_int(directive, argv, &CI_DEBUG_LEVEL, reset);
+     return intl_cfg_set_int(directive, argv, &CI_DEBUG_LEVEL);
 }
 
-int cfg_set_debug_stdout(char *directive, char **argv, void *setdata, int reset)
+int cfg_set_debug_stdout(char *directive, char **argv, void *setdata)
 {
-     return ci_cfg_enable(directive, argv, &CI_DEBUG_STDOUT, reset);
+     return intl_cfg_enable(directive, argv, &CI_DEBUG_STDOUT);
 }
 
-int cfg_set_body_maxmem(char *directive, char **argv, void *setdata, int reset)
+int cfg_set_body_maxmem(char *directive, char **argv, void *setdata)
 {
-     return ci_cfg_size_long(directive, argv, &CI_BODY_MAX_MEM, reset);
+     return intl_cfg_size_long(directive, argv, &CI_BODY_MAX_MEM);
 }
 
-int cfg_load_service(char *directive, char **argv, void *setdata, int reset)
+int cfg_load_service(char *directive, char **argv, void *setdata)
 {
      service_module_t *service = NULL;
      if (argv == NULL || argv[0] == NULL || argv[1] == NULL) {
@@ -342,7 +312,7 @@ int cfg_load_service(char *directive, char **argv, void *setdata, int reset)
      return 1;
 }
 
-int cfg_service_alias(char *directive, char **argv, void *setdata, int reset)
+int cfg_service_alias(char *directive, char **argv, void *setdata)
 {
      if (argv == NULL || argv[0] == NULL || argv[1] == NULL) {
           ci_debug_printf(1, "Missing arguments in ServiceAlias directive\n");
@@ -353,7 +323,7 @@ int cfg_service_alias(char *directive, char **argv, void *setdata, int reset)
      return 1;
 }
 
-int cfg_load_module(char *directive, char **argv, void *setdata, int reset)
+int cfg_load_module(char *directive, char **argv, void *setdata)
 {
      if (argv == NULL || argv[0] == NULL || argv[1] == NULL) {
           ci_debug_printf(1, "Missing arguments in LoadModule directive\n");
@@ -368,7 +338,7 @@ int cfg_load_module(char *directive, char **argv, void *setdata, int reset)
      return 1;
 }
 
-int cfg_load_magicfile(char *directive, char **argv, void *setdata, int reset)
+int cfg_load_magicfile(char *directive, char **argv, void *setdata)
 {
      char *db_file;
      if (argv == NULL || argv[0] == NULL) {
@@ -385,17 +355,12 @@ int cfg_load_magicfile(char *directive, char **argv, void *setdata, int reset)
 }
 
 extern logger_module_t file_logger;
-int cfg_set_logger(char *directive, char **argv, void *setdata, int reset)
+int cfg_set_logger(char *directive, char **argv, void *setdata)
 {
      logger_module_t *logger;
      if (argv == NULL || argv[0] == NULL) {
           ci_debug_printf(1, "Missing arguments in directive\n");
           return 0;
-     }
-
-     if (reset) {
-          default_logger = &file_logger;
-          return 1;
      }
 
      if (!(logger = find_logger(argv[0])))
@@ -405,19 +370,14 @@ int cfg_set_logger(char *directive, char **argv, void *setdata, int reset)
      return 1;
 }
 
-int cfg_set_tmp_dir(char *directive, char **argv, void *setdata, int reset)
+int cfg_set_tmp_dir(char *directive, char **argv, void *setdata)
 {
      int len;
      if (argv == NULL || argv[0] == NULL) {
           return 0;
      }
 
-     if (reset) {
-          ci_cfg_default_value_load(&CONF.TMPDIR, sizeof(char *));
-          return 1;
-     }
-
-     ci_cfg_default_value_store(&CONF.TMPDIR, &CONF.TMPDIR, sizeof(char *));
+     cfg_default_value_store(&CONF.TMPDIR, &CONF.TMPDIR, sizeof(char *));
      len = strlen(argv[0]);
 
      CONF.TMPDIR = ci_cfg_alloc_mem((len + 2) * sizeof(char));
@@ -439,19 +399,12 @@ int cfg_set_tmp_dir(char *directive, char **argv, void *setdata, int reset)
      return 1;
 }
 
-extern access_control_module_t *default_access_controllers[];
-int cfg_set_acl_controllers(char *directive, char **argv, void *setdata,
-                            int reset)
+int cfg_set_acl_controllers(char *directive, char **argv, void *setdata)
 {
      int i, k, argc, ret;
      access_control_module_t *acl_mod;
      if (argv == NULL || argv[0] == NULL) {
           return 0;
-     }
-
-     if (reset) {
-          used_access_controllers = default_access_controllers;
-          return 1;
      }
 
      if (strncasecmp(argv[0], "none", 4) == 0) {
@@ -480,7 +433,7 @@ int cfg_set_acl_controllers(char *directive, char **argv, void *setdata,
 }
 
 
-int cfg_set_auth_method(char *directive, char **argv, void *setdata, int reset)
+int cfg_set_auth_method(char *directive, char **argv, void *setdata)
 {
      char *method = NULL;
      if (argv == NULL || argv[0] == NULL || argv[1] == NULL) {
@@ -495,8 +448,7 @@ int cfg_set_auth_method(char *directive, char **argv, void *setdata, int reset)
 }
 
 
-int cfg_include_config_file(char *directive, char **argv, void *setdata,
-                            int reset)
+int cfg_include_config_file(char *directive, char **argv, void *setdata)
 {
      char path[CI_MAX_PATH], *cfg_file;
 
@@ -625,7 +577,7 @@ int process_line(char *line)
 
      if (entry && entry->action) {
           argv = split_args(args);
-          (*(entry->action)) (entry->name, argv, entry->data, 0);
+          (*(entry->action)) (entry->name, argv, entry->data);
           free_args(argv);
           return 1;
      }
@@ -705,10 +657,11 @@ int config(int argc, char **argv)
      return 1;
 }
 
+void cfg_default_value_restore_all();
 int reconfig()
 {
      /*reseting all parameters to default values ... */
-     reset_variables();
+     cfg_default_value_restore_all();
      /*reseting cfg_lib */
      ci_cfg_lib_reset();
      if (!ci_args_apply(ARGC, ARGV, options)) {
@@ -723,4 +676,200 @@ int reconfig()
      }
      return 1;
 
+}
+
+
+int init_server(int port, int *family);
+void release_modules();
+void ci_dlib_closeall();
+int log_open();
+
+void system_reconfigure()
+{
+     int old_port;
+     ci_debug_printf(1, "Going to reconfigure system!\n");
+     /*
+        - reset commands table
+      */
+     reset_commands();
+     /*
+        - close/release services and modules
+      */
+     release_services();
+     release_modules();
+     ci_dlib_closeall();
+     reset_conf_tables();
+     ci_debug_printf(1, "All resources released. Going to reload!\n");
+     init_modules();
+
+     /*
+        - Freeing all memory and resources used by configuration parameters (is it possible???)
+        - reopen and read config file. Now the monitor process has now the new config parameters.
+      */
+     old_port = CONF.PORT;
+     reconfig();
+
+     /*
+        - reinit listen socket if needed
+      */
+     if (old_port != CONF.PORT) {
+          init_server(CONF.PORT, &(CONF.PROTOCOL_FAMILY));
+     }
+
+     log_open();
+
+     /*
+        - post_init services and modules
+      */
+     post_init_modules();
+     post_init_services();
+}
+
+/**************************************************************************/
+/*         Library functions                                              */
+
+/*********************************************************************/
+/* Implementation of a mechanism to keep default values of parameters*/
+
+struct cfg_default_value *default_values = NULL;
+
+/*We does not care about memory managment here.  Default values list created only 
+  once at the beggining of c-icap and does not needed to free or reallocate memory... I think ...
+*/
+struct cfg_default_value *cfg_default_value_store(void *param, void *value,
+                                                  int size)
+{
+     struct cfg_default_value *dval, *dval_search;
+
+     if ((dval = cfg_default_value_search(param)))
+          return dval;
+
+     if (!(dval = malloc(sizeof(struct cfg_default_value))))
+          return 0;
+     dval->param = param;       /*Iam sure we can just set it to param_name, but..... */
+     dval->size = size;
+     if (!(dval->value = malloc(size))) {
+          free(dval);
+          return NULL;
+     }
+     memcpy(dval->value, value, size);
+     dval->next = NULL;
+     if (default_values == NULL) {
+          default_values = dval;
+          return dval;
+     }
+     dval_search = default_values;
+     while (dval_search->next != NULL)
+          dval_search = dval_search->next;
+     dval_search->next = dval;
+     return dval;
+}
+
+struct cfg_default_value *cfg_default_value_replace(void *param, void *value)
+{
+     struct cfg_default_value *dval;
+     dval = default_values;
+     while (dval != NULL && dval->param != param)
+          dval = dval->next;
+
+     if (!dval)
+          return NULL;
+
+     memcpy(dval->value, value, dval->size);
+     return dval;
+}
+
+struct cfg_default_value *cfg_default_value_search(void *param)
+{
+     struct cfg_default_value *dval;
+     dval = default_values;
+     ci_debug_printf(8, "Searching %p for default valuen", param);
+     while (dval != NULL && dval->param != param)
+          dval = dval->next;
+     return dval;
+}
+
+void *cfg_default_value_restore(void *param)
+{
+     struct cfg_default_value *dval;
+     dval = default_values;
+     ci_debug_printf(8, "Geting default value for %p\n", param);
+     while (dval != NULL && dval->param != param)
+          dval = dval->next;
+
+     if (!dval)
+          return NULL;
+     ci_debug_printf(8, "Found: %p\n", dval->value);
+     memcpy(param, dval->value, dval->size);
+     return param;
+}
+
+void cfg_default_value_restore_all()
+{
+     struct cfg_default_value *dval;
+     dval = default_values;
+     while (dval != NULL) {
+          memcpy(dval->param, dval->value, dval->size);
+          dval = dval->next;
+     }
+}
+
+/********************************************************************/
+/* functions for setting parameters and saving the default values   */
+
+int intl_cfg_set_str(char *directive, char **argv, void *setdata)
+{
+     if (!setdata)
+          return 0;
+     cfg_default_value_store(setdata, setdata, sizeof(char *));
+     /*or better keep all string not just the pointer to default value? */
+     return ci_cfg_set_str(directive, argv, setdata);
+}
+
+int intl_cfg_set_int(char *directive, char **argv, void *setdata)
+{
+     if (!setdata)
+          return 0;
+     cfg_default_value_store(setdata, setdata, sizeof(int));
+     return ci_cfg_set_int(directive, argv, setdata);
+}
+
+int intl_cfg_onoff(char *directive, char **argv, void *setdata)
+{
+     if (!setdata)
+          return 0;
+     cfg_default_value_store(setdata, setdata, sizeof(int));
+     return ci_cfg_onoff(directive, argv, setdata);
+}
+
+int intl_cfg_disable(char *directive, char **argv, void *setdata)
+{
+     if (!setdata)
+          return 0;
+     cfg_default_value_store(setdata, setdata, sizeof(int));
+     return ci_cfg_disable(directive, argv, setdata);
+}
+
+int intl_cfg_enable(char *directive, char **argv, void *setdata)
+{
+     if (!setdata)
+          return 0;
+     cfg_default_value_store(setdata, setdata, sizeof(int));
+     return ci_cfg_enable(directive, argv, setdata);
+}
+
+int intl_cfg_size_off(char *directive, char **argv, void *setdata)
+{
+     if (!setdata)
+          return 0;
+     cfg_default_value_store(setdata, setdata, sizeof(ci_off_t));
+     return ci_cfg_size_off(directive, argv, setdata);
+}
+
+int intl_cfg_size_long(char *directive, char **argv, void *setdata)
+{
+     if (!setdata)
+          return 0;
+     cfg_default_value_store(setdata, setdata, sizeof(long int));
+     return ci_cfg_size_long(directive, argv, setdata);
 }

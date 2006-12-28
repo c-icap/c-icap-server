@@ -73,10 +73,9 @@ int srvclamav_io(char *rbuf, int *rlen, char *wbuf, int *wlen, int iseof,
 /*Arguments parse*/
 void srvclamav_parse_args(av_req_data_t * data, char *args);
 /*Configuration Functions*/
-int cfg_ScanFileTypes(char *directive, char **argv, void *setdata, int reset);
-int cfg_SendPercentBytes(char *directive, char **argv, void *setdata,
-                         int reset);
-int cfg_ClamAvTmpDir(char *directive, char **argv, void *setdata, int reset);
+int cfg_ScanFileTypes(char *directive, char **argv, void *setdata);
+int cfg_SendPercentBytes(char *directive, char **argv, void *setdata);
+int cfg_ClamAvTmpDir(char *directive, char **argv, void *setdata);
 
 /*General functions*/
 int get_filetype(request_t * req, char *buf, int len);
@@ -575,7 +574,7 @@ void srvclamav_parse_args(av_req_data_t * data, char *args)
 /****************************************************************************************/
 /*Configuration Functions                                                               */
 
-int cfg_ScanFileTypes(char *directive, char **argv, void *setdata, int reset)
+int cfg_ScanFileTypes(char *directive, char **argv, void *setdata)
 {
      int i, id;
      int type = NO_SCAN;
@@ -611,7 +610,7 @@ int cfg_ScanFileTypes(char *directive, char **argv, void *setdata, int reset)
 }
 
 
-int cfg_SendPercentBytes(char *directive, char **argv, void *setdata, int reset)
+int cfg_SendPercentBytes(char *directive, char **argv, void *setdata)
 {
      int val = 0;
      char *end;
@@ -633,7 +632,7 @@ int cfg_SendPercentBytes(char *directive, char **argv, void *setdata, int reset)
 
 
 
-int cfg_ClamAvTmpDir(char *directive, char **argv, void *setdata, int reset)
+int cfg_ClamAvTmpDir(char *directive, char **argv, void *setdata)
 {
      int val = 0;
      struct stat stat_buf;

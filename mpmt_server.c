@@ -66,7 +66,8 @@ int listener_thread_id = -1;
 ci_thread_cond_t free_server_cond;
 ci_thread_mutex_t counters_mtx;
 
-struct childs_queue childs_queue;
+struct childs_queue *childs_queue;
+struct childs_queue *old_childs_queue = NULL;
 child_shared_data_t *child_data;
 struct connections_queue *con_queue;
 
@@ -74,14 +75,17 @@ struct connections_queue *con_queue;
 ci_proc_mutex_t accept_mutex;
 
 /*Main proccess variables*/
+ci_socket LISTEN_SOCKET = -1;
 int c_icap_childs_died = 0;
 int c_icap_going_to_term = 0;
+int c_icap_reconfigure = 0;
 
 #define hard_close_connection(connection)  ci_hard_close(connection->fd)
 #define close_connection(connection) ci_linger_close(connection->fd,MAX_SECS_TO_LINGER)
 #define check_for_keepalive_data(fd) ci_wait_for_data(fd,KEEPALIVE_TIMEOUT,wait_for_read)
-
-
+void init_commands();
+int init_server(int port, int *family);
+int start_child(int fd);
 /***************************************************************************************/
 /*Signals managment functions                                                          */
 
@@ -94,7 +98,7 @@ static void term_handler_child(int sig)
 
 static void sigpipe_handler(int sig)
 {
-     ci_debug_printf(1, "SIGPIPE signal received.\n");
+     ci_debug_printf(5, "SIGPIPE signal received.\n");
      log_server(NULL, "%s", "SIGPIPE signal received.\n");
 }
 
@@ -123,6 +127,11 @@ static void sigchld_handler_main(int sig)
      c_icap_childs_died++;
 }
 
+static void sighup_handler_main()
+{
+     c_icap_reconfigure = 1;
+}
+
 void child_signals()
 {
      signal(SIGPIPE, sigpipe_handler);
@@ -143,6 +152,7 @@ void main_signals()
      signal(SIGTERM, sigint_handler_main);
      signal(SIGINT, sigint_handler_main);
      signal(SIGCHLD, sigchld_handler_main);
+     signal(SIGHUP, sighup_handler_main);
 }
 
 
@@ -175,7 +185,7 @@ static void exit_normaly()
           i++;
      }
      free(threads_list);
-     dettach_childs_queue(&childs_queue);
+     dettach_childs_queue(childs_queue);
      log_close();
 }
 
@@ -209,26 +219,28 @@ static void kill_all_childs()
 {
      int i = 0, status, pid;
      ci_debug_printf(5, "Going to term childs....\n");
-     for (i = 0; i < childs_queue.size; i++) {
-          if ((pid = childs_queue.childs[i].pid) == 0)
+     for (i = 0; i < childs_queue->size; i++) {
+          if ((pid = childs_queue->childs[i].pid) == 0)
                continue;
           kill(pid, SIGTERM);
      }
 
-     for (i = 0; i < childs_queue.size; i++) {
-          if (childs_queue.childs[i].pid == 0)
+     for (i = 0; i < childs_queue->size; i++) {
+          if (childs_queue->childs[i].pid == 0)
                continue;
           pid = wait(&status);
           ci_debug_printf(5, "Child %d died with status %d\n", pid, status);
      }
      ci_proc_mutex_destroy(&accept_mutex);
-     destroy_childs_queue(&childs_queue);
+     destroy_childs_queue(childs_queue);
 }
 
 static void handle_exited_childs()
 {
-     int status, pid;
+     int status, pid, ret;
      while (c_icap_childs_died) {
+          ci_debug_printf(5, "Handle child from %d died ...\n",
+                          c_icap_childs_died);
           if ((pid = wait(&status)) < 0) {
                ci_debug_printf(1,
                                "Fatal error waiting a child to exit .....\n");
@@ -237,15 +249,78 @@ static void handle_exited_childs()
           else {
                c_icap_childs_died--;
                ci_debug_printf(5, "The child %d died ...\n", pid);
-               remove_child(&childs_queue, pid);
                if (!WIFEXITED(status)) {
                     ci_debug_printf(3, "The child not exited normaly....");
                     if (WIFSIGNALED(status))
                          ci_debug_printf(3, "signaled with signal:%d\n",
                                          WTERMSIG(status));
                }
+               ret = remove_child(childs_queue, pid);
+               if (ret == 0 && old_childs_queue) {
+                    ci_debug_printf(5,
+                                    "The child %d will be removed from the old list ...\n",
+                                    pid);
+                    remove_child(old_childs_queue, pid);
+                    if (childs_queue_is_empty(old_childs_queue)) {
+                         ret = destroy_childs_queue(old_childs_queue);
+                         /* if(!ret){} */
+                         old_childs_queue = NULL;
+                    }
+               }
           }
      }
+}
+
+void system_reconfigure();
+static void server_reconfigure()
+{
+     int i;
+     if (old_childs_queue) {
+          ci_debug_printf(1,
+                          "A reconfigure pending. Ignoring reconfigure request.....\n");
+          return;
+     }
+
+     /*shutdown all modules and services and reopen config file */
+     system_reconfigure();
+
+     /*initialize commands table for server */
+     init_commands();
+
+     /*
+        Mark all existing childs as to_be_killed gracefully 
+        (childs_queue.childs[child_indx].to_be_killed = GRACEFULLY)
+      */
+     for (i = 0; i < childs_queue->size; i++) {
+          if (childs_queue->childs[i].pid != 0) {
+               childs_queue->childs[i].to_be_killed = GRACEFULLY;
+               kill(childs_queue->childs[i].pid, SIGTERM);
+          }
+     }
+
+     /*
+        Create new shared mem for childs queue
+      */
+     old_childs_queue = childs_queue;
+     childs_queue = malloc(sizeof(struct childs_queue));
+     if (!create_childs_queue(childs_queue, 2 * MAX_CHILDS)) {
+          ci_debug_printf(1,
+                          "Can't init shared memory.Fatal error, exiting!\n");
+          exit(0);              /*It is not enough. We must wait all childs to exit ..... */
+     }
+     /*
+        Start new childs to handle new requests.
+      */
+     if (START_CHILDS > MAX_CHILDS)
+          START_CHILDS = MAX_CHILDS;
+
+     for (i = 0; i < START_CHILDS; i++) {
+          start_child(LISTEN_SOCKET);
+     }
+
+     /*
+        When all childs exits release the old shared mem block....
+      */
 }
 
 /*************************************************************************************/
@@ -320,8 +395,8 @@ void handle_monitor_process_commands(char *cmd_line)
           if (command->type & MONITOR_PROC_CMD)
                execute_command(command, cmd_line, MONITOR_PROC_CMD);
           if (command->type & CHILDS_PROC_CMD) {
-               for (i = 0; i < childs_queue.size; i++) {
-                    write(childs_queue.childs[i].pipe, cmd_line,
+               for (i = 0; i < childs_queue->size; i++) {
+                    write(childs_queue->childs[i].pipe, cmd_line,
                           strlen(cmd_line));
                }
           }
@@ -645,9 +720,9 @@ int start_child(int fd)
           close(pfd[1]);
      }
      if ((pid = fork()) == 0) { //A Child .......
-          attach_childs_queue(&childs_queue);
+          attach_childs_queue(childs_queue);
           child_data =
-              register_child(&childs_queue, getpid(), START_SERVERS, pfd[1]);
+              register_child(childs_queue, getpid(), START_SERVERS, pfd[1]);
           close(pfd[1]);
           child_main(fd, pfd[0]);
           exit(0);
@@ -665,17 +740,7 @@ void stop_command(char *name, int type, char **argv)
 
 void reconfigure_command(char *name, int type, char **argv)
 {
-     /*
-        Steps:
-        1) Freeing all memory and resources used by configuration parameters (is it possible???)
-        1) reopen and read config file. Now the monitor process has now the new config parameters.
-        2) Mark all existing childs as to_be_killed gracefully 
-        (childs_queue.childs[child_indx].to_be_killed = GRACEFULLY)
-        2) Start some childs to handle new requests.
-        *** 
-        I must implement a way for freeing dynamic memory for 
-        configuration parameters
-      */
+     server_reconfigure();
 }
 
 void test_command(char *name, int type, char **argv)
@@ -691,8 +756,25 @@ void test_command(char *name, int type, char **argv)
      ci_debug_printf(1, "\n");
 }
 
+int init_server(int port, int *family)
+{
+     if (LISTEN_SOCKET != -1)
+          close(LISTEN_SOCKET);
 
-int start_server(int fd)
+     LISTEN_SOCKET = icap_init_server(port, family, MAX_SECS_TO_LINGER);
+     if (LISTEN_SOCKET == CI_SOCKET_ERROR)
+          return 0;
+     return 1;
+}
+
+void init_commands()
+{
+     register_command("stop", MONITOR_PROC_CMD, stop_command);
+     register_command("reconfigure", MONITOR_PROC_CMD, reconfigure_command);
+     register_command("test", MONITOR_PROC_CMD | CHILDS_PROC_CMD, test_command);
+}
+
+int start_server()
 {
      int child_indx, pid, i, ctl_socket;
      int childs, freeservers, used, maxrequests, ret;
@@ -707,31 +789,30 @@ int start_server(int fd)
      }
 
      ci_proc_mutex_init(&accept_mutex);
-     if (!create_childs_queue(&childs_queue, 2 * MAX_CHILDS)) {
+     childs_queue = malloc(sizeof(struct childs_queue));
+     if (!create_childs_queue(childs_queue, 2 * MAX_CHILDS)) {
           ci_debug_printf(1,
                           "Can't init shared memory.Fatal error, exiting!\n");
           exit(0);
      }
 
-     register_command("stop", MONITOR_PROC_CMD, stop_command);
-     register_command("reconfigure", MONITOR_PROC_CMD, reconfigure_command);
-     register_command("test", MONITOR_PROC_CMD | CHILDS_PROC_CMD, test_command);
+     init_commands();
      pid = 1;
-
 #ifdef MULTICHILD
      if (START_CHILDS > MAX_CHILDS)
           START_CHILDS = MAX_CHILDS;
 
      for (i = 0; i < START_CHILDS; i++) {
           if (pid)
-               pid = start_child(fd);
+               pid = start_child(LISTEN_SOCKET);
      }
      if (pid != 0) {
           main_signals();
 
           while (1) {
                if ((ret = wait_for_commands(ctl_socket, command_buffer, 1)) > 0) {
-                    printf("I get the command: %s\n", command_buffer);
+                    ci_debug_printf(5, "I get the command: %s\n",
+                                    command_buffer);
                     handle_monitor_process_commands(command_buffer);
                }
                if (ret == 0) {  /*Eof received on pipe. Going to reopen ... */
@@ -747,32 +828,33 @@ int start_server(int fd)
 
                if (c_icap_going_to_term)
                     break;
-               childs_queue_stats(&childs_queue, &childs, &freeservers, &used,
+               childs_queue_stats(childs_queue, &childs, &freeservers, &used,
                                   &maxrequests);
                ci_debug_printf(10,
-                               "Server stats: \n\t Childs:%d\n\t Free servers:%d\n\tUsed servers:%d\n\tRequests served:%d\n",
+                               "Server stats: \n\t Childs:%d\n\t Free servers:%d\n"
+                               "\tUsed servers:%d\n\tRequests served:%d\n",
                                childs, freeservers, used, maxrequests);
                if ((freeservers <= MIN_FREE_SERVERS && childs < MAX_CHILDS)
                    || childs < START_CHILDS) {
                     ci_debug_printf(8,
                                     "Free Servers:%d,childs:%d. Going to start a child .....\n",
                                     freeservers, childs);
-                    pid = start_child(fd);
+                    pid = start_child(LISTEN_SOCKET);
                }
                else if (freeservers >= MAX_FREE_SERVERS &&
                         childs > START_CHILDS &&
                         (freeservers - START_SERVERS) > MIN_FREE_SERVERS) {
 
-                    if ((child_indx = find_an_idle_child(&childs_queue)) >= 0) {
-                         childs_queue.childs[child_indx].to_be_killed =
+                    if ((child_indx = find_an_idle_child(childs_queue)) >= 0) {
+                         childs_queue->childs[child_indx].to_be_killed =
                              GRACEFULLY;
                          ci_debug_printf(8,
                                          "Free Servers:%d,childs:%d. Going to stop child %d(index:%d) .....\n",
                                          freeservers, childs,
-                                         childs_queue.childs[child_indx].pid,
+                                         childs_queue->childs[child_indx].pid,
                                          child_indx);
                          /*kill a server ... */
-                         kill(childs_queue.childs[child_indx].pid, SIGTERM);
+                         kill(childs_queue->childs[child_indx].pid, SIGTERM);
 
                     }
                }
@@ -784,6 +866,10 @@ int start_server(int fd)
                     break;
                if (c_icap_childs_died)
                     handle_exited_childs();
+               if (c_icap_reconfigure) {
+                    c_icap_reconfigure = 0;
+                    server_reconfigure();
+               }
           }
           /*Mail process exit point */
           ci_debug_printf(1,
@@ -800,7 +886,7 @@ int start_server(int fd)
      child_data->connections = 0;
      child_data->to_be_killed = 0;
      child_data->idle = 1;
-     child_main(fd);
+     child_main(LISTEN_SOCKET);
 #endif
      return 1;
 }

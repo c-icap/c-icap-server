@@ -124,8 +124,20 @@ int post_init_services()
           }
      }
      return 1;
-
 }
+
+int release_services()
+{
+     int i;
+     for (i = 0; i < services_num; i++) {
+          if (service_list[i]->mod_close_service != NULL) {
+               service_list[i]->mod_close_service(service_list[i]);
+          }
+     }
+     services_num = 0;
+     return 1;
+}
+
 
 /********************** Service aliases *****************************/
 service_alias_t *add_service_alias(char *service_alias, char *service_name)

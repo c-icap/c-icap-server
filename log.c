@@ -46,6 +46,11 @@ void log_close()
      }
 }
 
+void log_reset()
+{
+     default_logger = NULL;
+}
+
 void log_access(request_t * req, int status)
 {                               /*req can not be NULL */
      char serverip[CI_IPLEN], clientip[CI_IPLEN];

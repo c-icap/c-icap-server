@@ -85,6 +85,7 @@ int ci_dlib_closeall()
                free(dl_e->file);
           free(dl_e);
      }
+     dlib_list = NULL;
      if (error)
           return 0;
      return 1;

@@ -43,7 +43,7 @@ struct http_basic_auth_data{
 };
 
 
-
+int access_reset();
 int http_authorize(request_t *req);
 int http_authenticate(request_t *req);
 int access_check_client(ci_connection_t *connection);

@@ -464,7 +464,7 @@ int threadjobsendfiles()
 
                if (do_file(fd, FILES[indx]) <= 0)
                     break;
-               sleep(1);
+//               sleep(1);
 //             usleep(100000);
                ci_thread_mutex_lock(&statsmtx);
                requests_stats++;
@@ -473,6 +473,7 @@ int threadjobsendfiles()
 
 
                if (_THE_END) {
+                    printf("The end. thread dieing\n");
                     close(fd);
                     return 0;
                }

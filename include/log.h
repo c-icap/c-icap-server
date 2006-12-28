@@ -25,6 +25,7 @@
 
 int log_open();
 void log_close();
+void log_reset();
 void log_flush();
 
 void log_access(request_t *req,int status);

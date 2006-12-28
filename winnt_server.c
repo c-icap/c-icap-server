@@ -66,6 +66,7 @@ extern int START_SERVERS;
 extern int MIN_FREE_SERVERS;
 extern int MAX_FREE_SERVERS;
 extern int MAX_REQUESTS_BEFORE_REALLOCATE_MEM;
+ci_socket LISTEN_SOCKET;
 
 #define hard_close_connection(connection)  ci_hard_close(connection->fd)
 #define close_connection(connection) ci_linger_close(connection->fd,MAX_SECS_TO_LINGER)
@@ -730,8 +731,18 @@ int check_for_died_child(DWORD msecs)
      return 1;
 }
 
+int init_server(int port, int *family)
+{
+     LISTEN_SOCKET = icap_init_server(port, family, MAX_SECS_TO_LINGER);
 
-int start_server(ci_socket fd)
+
+     if (LISTEN_SOCKET == CI_SOCKET_ERROR)
+          return 0;
+     return 1;
+}
+
+
+int start_server()
 {
 
 #ifdef MULTICHILD
@@ -751,7 +762,7 @@ int start_server(ci_socket fd)
      }
 
      for (i = 0; i < START_CHILDS + 2; i++) {
-          child_handle = start_child(fd);
+          child_handle = start_child(LISTEN_SOCKET);
      }
 
 /*Start died childs monitor thread*/
@@ -772,7 +783,7 @@ int start_server(ci_socket fd)
           if ((freeservers <= MIN_FREE_SERVERS && childs < MAX_CHILDS)
               || childs < START_CHILDS) {
                ci_debug_printf(1, "Going to start a child .....\n");
-               child_handle = start_child(fd);
+               child_handle = start_child(LISTEN_SOCKET);
           }
           else if (freeservers >= MAX_FREE_SERVERS && childs > START_CHILDS) {
                ci_thread_mutex_lock(&control_process_mtx);
@@ -802,7 +813,7 @@ int start_server(ci_socket fd)
      child_data->connections = 0;
      child_data->to_be_killed = 0;
      child_data->idle = 1;
-     child_main(fd);
+     child_main(LISTEN_SOCKET);
 #endif
 
      return 1;

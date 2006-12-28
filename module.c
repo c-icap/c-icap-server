@@ -596,25 +596,31 @@ int post_init_modules()
      return 1;
 }
 
+int access_reset();
+void log_reset();
 
 int release_modules()
 {
      int i;
-/*     service_handlers */
 
+     log_reset();               /*resetting logs- we are going to release loggers ... */
+     access_reset();
+
+/*     service_handlers */
      for (i = 0; i < service_handlers.modules_num; i++) {
           if (((service_handler_module_t *) service_handlers.modules[i])->
               release_service_handler != NULL)
                ((service_handler_module_t *) service_handlers.modules[i])->
                    release_service_handler();
      }
+     service_handlers.modules_num = 0;
 
 /*     loggers? loggers do not have post init handlers .... */
      for (i = 0; i < loggers.modules_num; i++) {
           if (((logger_module_t *) loggers.modules[i])->log_close != NULL)
                ((logger_module_t *) loggers.modules[i])->log_close();
      }
-
+     loggers.modules_num = 0;
 
 /*     access_controllers */
      for (i = 0; i < access_controllers.modules_num; i++) {
@@ -623,8 +629,7 @@ int release_modules()
                ((access_control_module_t *) access_controllers.modules[i])->
                    release_access_controller(&CONF);
      }
-
-
+     access_controllers.modules_num = 0;
 
 /*     auth_methods */
      for (i = 0; i < auth_methods.modules_num; i++) {
@@ -633,6 +638,7 @@ int release_modules()
                ((http_auth_method_t *) auth_methods.modules[i])->
                    close_auth_method(&CONF);
      }
+     auth_methods.modules_num = 0;
 
 /*     authenticators */
      for (i = 0; i < authenticators.modules_num; i++) {
@@ -641,6 +647,7 @@ int release_modules()
                ((authenticator_module_t *) authenticators.modules[i])->
                    close_authenticator(&CONF);
      }
+     authenticators.modules_num = 0;
 
      return 1;
 }

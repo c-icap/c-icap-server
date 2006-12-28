@@ -57,10 +57,11 @@ void register_command(char *name, int type,
      commands_list[commands_list_num++].command_action = command_action;
 }
 
-void reset_commands(){
+void reset_commands()
+{
      int i;
      for (i = 0; i < commands_list_num; i++) {
-	  free(commands_list[i].name);
+          free(commands_list[i].name);
      }
      commands_list_num = 0;
 }

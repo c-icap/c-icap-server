@@ -46,8 +46,8 @@ int default_acl_log_access(char *dec_user, char *service, int req_type,
 
 
 
-int cfg_acl_add(char *directive, char **argv, void *setdata, int reset);
-int cfg_acl_access(char *directive, char **argv, void *setdata, int reset);
+int cfg_acl_add(char *directive, char **argv, void *setdata);
+int cfg_acl_access(char *directive, char **argv, void *setdata);
 
 
 
@@ -81,6 +81,12 @@ access_control_module_t *default_access_controllers[] = {
 
 
 access_control_module_t **used_access_controllers = default_access_controllers;
+
+int access_reset()
+{
+     used_access_controllers = default_access_controllers;
+     return 1;
+}
 
 int access_check_client(ci_connection_t * connection)
 {
@@ -817,7 +823,7 @@ void release_acl_list(acl_spec_t * list)
 /********************************************************************/
 /*Configuration functions ...............                           */
 
-int cfg_acl_add(char *directive, char **argv, void *setdata, int reset)
+int cfg_acl_add(char *directive, char **argv, void *setdata)
 {
      char *name, *username, *service, *str;
      int i, res, request_type;
@@ -835,7 +841,6 @@ int cfg_acl_add(char *directive, char **argv, void *setdata, int reset)
      acl_inaddr_zero(client_address);
      acl_inaddr_zero(client_netmask);
      acl_inaddr_zero(server_address);
-
 
      if (argv[0] == NULL || argv[1] == NULL) {
           ci_debug_printf(1, "Parse error in directive %s \n", directive);
@@ -945,12 +950,11 @@ int cfg_acl_add(char *directive, char **argv, void *setdata, int reset)
 }
 
 
-int cfg_acl_access(char *directive, char **argv, void *setdata, int reset)
+int cfg_acl_access(char *directive, char **argv, void *setdata)
 {
      int type;
      char *acl_spec;
      struct access_entry_list *tolist;
-
 
      if (argv[0] == NULL || argv[1] == NULL) {
           ci_debug_printf(1, "Parse error in directive %s \n", directive);
