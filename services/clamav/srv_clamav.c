@@ -33,7 +33,7 @@
 int must_scanned(int type, av_req_data_t * data);
 
 
-struct cl_node *root;
+struct cl_node *virus_db;
 struct cl_limits limits;
 
 
@@ -143,7 +143,8 @@ CI_DECLARE_MOD_DATA service_module_t service = {
 int srvclamav_init_service(service_module_t * this,
                            struct icap_server_conf *server_conf)
 {
-     int ret, no = 0, i;
+     int ret, i;
+     unsigned int no=0;
      magic_db = server_conf->MAGIC_DB;
      scantypes = (int *) malloc(ci_magic_types_num(magic_db) * sizeof(int));
      scangroups = (int *) malloc(ci_magic_groups_num(magic_db) * sizeof(int));
@@ -155,14 +156,14 @@ int srvclamav_init_service(service_module_t * this,
 
 
      ci_debug_printf(10, "Going to initialize srvclamav\n");;
-     if ((ret = cl_loaddbdir(cl_retdbdir(), &root, &no))) {
+     if ((ret = cl_loaddbdir(cl_retdbdir(), &virus_db, &no))) {
           ci_debug_printf(1, "cl_loaddbdir: %s\n", cl_perror(ret));
           return 0;
      }
-     if ((ret = cl_build(root))) {
+     if ((ret = cl_build(virus_db))) {
           ci_debug_printf(1, "Database initialization error: %s\n",
                           cl_strerror(ret));;
-          cl_free(root);
+          cl_free(virus_db);
           return 0;
      }
 
@@ -180,7 +181,7 @@ void srvclamav_close_service(service_module_t * this)
 {
      free(scantypes);
      free(scangroups);
-     cl_free(root);
+     cl_free(virus_db);
 }
 
 
@@ -413,7 +414,7 @@ int srvclamav_end_of_data_handler(request_t * req)
      ci_debug_printf(8, "Scan from file\n");
      lseek(body->fd, 0, SEEK_SET);
      ret =
-         cl_scandesc(body->fd, &virname, &scanned_data, root, &limits,
+         cl_scandesc(body->fd, &virname, &scanned_data, virus_db, &limits,
                      CL_SCAN_STDOPT);
 
 
@@ -480,7 +481,8 @@ int get_filetype(request_t * req, char *buf, int len)
 
 int must_scanned(int file_type, av_req_data_t * data)
 {
-     int type, *file_groups, i;
+     int type, i;
+     unsigned int *file_groups;
      file_groups = ci_data_type_groups(magic_db, file_type);
      type = NO_SCAN;
      i = 0;
