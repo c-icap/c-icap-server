@@ -203,7 +203,7 @@ int thread_main(server_decl_t * srv)
                                srv->current_req->keepalive);
                if (srv->current_req->keepalive
                    && check_for_keepalive_data(srv->current_req->connection->
-                                               fd)) {
+                                               fd) > 0) {
                     ci_request_reset(srv->current_req);
                     ci_debug_printf(1,
                                     "Server %d going to serve new request from client(keep-alive) \n",

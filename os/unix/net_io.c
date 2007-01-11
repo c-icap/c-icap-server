@@ -223,6 +223,7 @@ int ci_wait_for_data(int fd, int secs, int what_wait)
 
      if (ret < 0 && errno != EINTR) {
           ci_debug_printf(5, "Fatal error while waiting for new data....\n");
+          return -1;
      }
      return 0;
 }

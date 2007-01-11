@@ -603,7 +603,7 @@ int get_send_body(request_t * req)
           if (action) {
                if ((ret =
                     ci_wait_for_data(req->connection->fd, TIMEOUT,
-                                     action)) == 0)
+                                     action)) <= 0)
                     break;
                if (ret & wait_for_read) {
                     if (net_data_read(req) == CI_ERROR)

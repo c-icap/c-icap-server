@@ -1006,6 +1006,8 @@ int client_send_get_data(request_t * req,
      while (io_action
             && (io_ret =
                 ci_wait_for_data(req->connection->fd, timeout, io_action))) {
+          if (io_ret < 0)
+               return CI_ERROR;
           if (io_ret & wait_for_write) {
                if (req->remain_send_block_bytes == 0) {
                     if (client_prepere_body_chunk(req, data_source, source_read)

@@ -505,7 +505,7 @@ int thread_main(server_decl_t * srv)
                                srv->current_req->keepalive);
                if (srv->current_req->keepalive
                    && check_for_keepalive_data(srv->current_req->connection->
-                                               fd)) {
+                                               fd) > 0) {
                     ci_request_reset(srv->current_req);
                     ci_debug_printf(8,
                                     "Server %d going to serve new request from client(keep-alive) \n",
@@ -546,7 +546,7 @@ int thread_main(server_decl_t * srv)
 void listener_thread(int *fd)
 {
      ci_connection_t conn;
-     int claddrlen = sizeof(struct sockaddr_in);
+     socklen_t claddrlen = sizeof(struct sockaddr_in);
      int haschild = 1, jobs_in_queue = 0;
      int pid, sockfd;
      sockfd = *fd;
@@ -646,7 +646,7 @@ void listener_thread(int *fd)
 void child_main(int sockfd, int pipefd)
 {
      ci_thread_t thread;
-     int i, retcode;
+     int i, ret;
 
      child_signals();
      ci_thread_mutex_init(&threads_list_mtx);
@@ -663,26 +663,35 @@ void child_main(int sockfd, int pipefd)
           if ((threads_list[i] = newthread(con_queue)) == NULL) {
                exit(-1);        // FATAL error.....
           }
-          retcode =
+          ret =
               ci_thread_create(&thread, (void *(*)(void *)) thread_main,
                                (void *) threads_list[i]);
      }
      threads_list[START_SERVERS] = NULL;
-     retcode = ci_thread_create(&thread, (void *(*)(void *)) listener_thread,
-                                (void *) &sockfd);
+     ret = ci_thread_create(&thread, (void *(*)(void *)) listener_thread,
+                            (void *) &sockfd);
      /*Now start the listener thread.... */
 
      for (;;) {
           char buf[512];
           int bytes;
-          if (ci_wait_for_data(pipefd, 5, wait_for_read) != 0) {        /*data input */
+          if ((ret = ci_wait_for_data(pipefd, 5, wait_for_read)) > 0) { /*data input */
                bytes = ci_read_nonblock(pipefd, buf, 511);
+               if (bytes == 0) {
+                    ci_debug_printf(1,
+                                    "Parent closes the pipe connection! Going to term immediately!\n");
+                    child_data->to_be_killed = IMMEDIATELY;
+                    break;
+               }
                buf[bytes] = '\0';
                handle_child_process_commands(buf);
 //               ci_debug_printf(1, "Coming data: %s\n", buf);
           }
-          if (errno == EINTR)
-               ci_debug_printf(5, "Child interupted!\n");
+          else if (ret < 0) {
+               ci_debug_printf(1,
+                               "An error ocured while waiting commands from parent. Terminating!\n");
+               child_data->to_be_killed = IMMEDIATELY;
+          }
           if (child_data->to_be_killed)
                break;
 //          ci_debug_printf(5, "Do some tests\n");
