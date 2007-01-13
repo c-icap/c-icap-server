@@ -10,7 +10,7 @@ typedef struct av_req_data{
      int must_scanned ;
      int allow204;
      int virus_check_done;
-     const char *virus_name;
+     char *virus_name;
      ci_membuf_t *error_page;
 #ifdef VIRALATOR_MODE
      time_t last_update;

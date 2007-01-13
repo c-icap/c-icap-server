@@ -27,14 +27,23 @@
 #include <clamav.h>
 #include "srv_clamav.h"
 #include "filetype.h"
+#include "ci_threads.h"
+#include "include/commands.h"
 #include <errno.h>
 
 
 int must_scanned(int type, av_req_data_t * data);
 
+struct virus_db {
+     struct cl_node *db;
+     int refcount;
+};
 
-struct cl_node *virus_db;
 struct cl_limits limits;
+
+struct virus_db *virusdb;
+struct virus_db *old_virusdb = NULL;
+ci_thread_mutex_t db_mutex;
 
 
 void generate_error_page(av_req_data_t * data, request_t * req);
@@ -76,10 +85,14 @@ void srvclamav_parse_args(av_req_data_t * data, char *args);
 int cfg_ScanFileTypes(char *directive, char **argv, void *setdata);
 int cfg_SendPercentBytes(char *directive, char **argv, void *setdata);
 int cfg_ClamAvTmpDir(char *directive, char **argv, void *setdata);
-
+/*Commands functions*/
+void dbreload_command(char *name, int type, char **argv);
 /*General functions*/
 int get_filetype(request_t * req, char *buf, int len);
-
+int init_virusdb();
+struct cl_node *get_virusdb();
+void release_virusdb(struct cl_node *);
+void destroy_virusdb();
 
 /*It is dangerous to pass directly fields of the limits structure in conf_variables,
   becouse in the feature some of this fields will change type (from int to unsigned int 
@@ -144,7 +157,6 @@ int srvclamav_init_service(service_module_t * this,
                            struct icap_server_conf *server_conf)
 {
      int ret, i;
-     unsigned int no=0;
      magic_db = server_conf->MAGIC_DB;
      scantypes = (int *) malloc(ci_magic_types_num(magic_db) * sizeof(int));
      scangroups = (int *) malloc(ci_magic_groups_num(magic_db) * sizeof(int));
@@ -155,24 +167,21 @@ int srvclamav_init_service(service_module_t * this,
           scangroups[i] = 0;
 
 
-     ci_debug_printf(10, "Going to initialize srvclamav\n");;
-     if ((ret = cl_loaddbdir(cl_retdbdir(), &virus_db, &no))) {
-          ci_debug_printf(1, "cl_loaddbdir: %s\n", cl_perror(ret));
+     ci_debug_printf(10, "Going to initialize srvclamav\n");
+     ret = init_virusdb();
+     if (!ret)
           return 0;
-     }
-     if ((ret = cl_build(virus_db))) {
-          ci_debug_printf(1, "Database initialization error: %s\n",
-                          cl_strerror(ret));;
-          cl_free(virus_db);
-          return 0;
-     }
-
      memset(&limits, 0, sizeof(struct cl_limits));
      limits.maxfiles = 0 /*1000 */ ;    /* max files */
      limits.maxfilesize = 100 * 1048576;        /* maximal archived file size == 100 Mb */
      limits.maxreclevel = 5;    /* maximal recursion level */
      limits.maxratio = 200;     /* maximal compression ratio */
      limits.archivememlim = 0;  /* disable memory limit for bzip2 scanner */
+
+     /*initialize service commands */
+     register_command("srv_clamav:dbreload", MONITOR_PROC_CMD | CHILDS_PROC_CMD,
+                      dbreload_command);
+
      return 1;
 }
 
@@ -181,7 +190,7 @@ void srvclamav_close_service(service_module_t * this)
 {
      free(scantypes);
      free(scangroups);
-     cl_free(virus_db);
+     destroy_virusdb();
 }
 
 
@@ -250,6 +259,8 @@ void srvclamav_release_request_data(void *data)
           if (((av_req_data_t *) data)->error_page)
                ci_membuf_free(((av_req_data_t *) data)->error_page);
 
+          if (((av_req_data_t *) data)->virus_name)
+               free(((av_req_data_t *) data)->virus_name);
           free(data);
      }
 }
@@ -395,6 +406,7 @@ int srvclamav_io(char *rbuf, int *rlen, char *wbuf, int *wlen, int iseof,
 int srvclamav_end_of_data_handler(request_t * req)
 {
      av_req_data_t *data = ci_service_data(req);
+     struct cl_node *vdb;
      ci_simple_file_t *body;
      const char *virname;
      int ret = 0;
@@ -413,10 +425,13 @@ int srvclamav_end_of_data_handler(request_t * req)
 
      ci_debug_printf(8, "Scan from file\n");
      lseek(body->fd, 0, SEEK_SET);
+     vdb = get_virusdb();
      ret =
-         cl_scandesc(body->fd, &virname, &scanned_data, virus_db, &limits,
+         cl_scandesc(body->fd, &virname, &scanned_data, vdb, &limits,
                      CL_SCAN_STDOPT);
-
+     if (ret == CL_VIRUS)
+          data->virus_name = strdup(virname);
+     release_virusdb(vdb);
 
      ci_debug_printf(9,
                      "Clamav engine scanned %lu blocks of  data. Data size: %"
@@ -424,8 +439,7 @@ int srvclamav_end_of_data_handler(request_t * req)
 
      if (ret == CL_VIRUS) {
           ci_debug_printf(1, "VIRUS DETECTED:%s.\nTake action.......\n ",
-                          virname);
-          data->virus_name = virname;
+                          data->virus_name);
           if (!ci_req_sent_data(req))   /*If no data had sent we can send an error page  */
                generate_error_page(data, req);
           else if (data->must_scanned == VIR_SCAN) {
@@ -459,6 +473,144 @@ int srvclamav_end_of_data_handler(request_t * req)
 
 /*******************************************************************************/
 /* Other  functions                                                            */
+
+int init_virusdb()
+{
+     int ret;
+     unsigned int no = 0;
+     virusdb = malloc(sizeof(struct virus_db));
+     memset(virusdb, 0, sizeof(struct virus_db));
+     if (!virusdb)
+          return 0;
+     if ((ret = cl_loaddbdir(cl_retdbdir(), &(virusdb->db), &no))) {
+          ci_debug_printf(1, "cl_loaddbdir: %s\n", cl_perror(ret));
+          return 0;
+     }
+     if ((ret = cl_build(virusdb->db))) {
+          ci_debug_printf(1, "Database initialization error: %s\n",
+                          cl_strerror(ret));
+          cl_free(virusdb->db);
+          free(virusdb);
+          virusdb = NULL;
+          return 0;
+     }
+     ci_thread_mutex_init(&db_mutex);
+     virusdb->refcount = 1;
+     old_virusdb = NULL;
+     return 1;
+}
+
+/*
+  Instead of using struct virus_db and refcount's someone can use the cl_dup function
+  of clamav library, but it is  undocumented so I did not use it.
+  The following implementation we are starting to reload clamav db while threads are 
+  scanning for virus but we are not allow any child to start a new scan until we are 
+  loading DB.
+*/
+/*#define DB_NO_FULL_LOCK 1*/
+#undef DB_NO_FULL_LOCK
+int reload_virusdb()
+{
+     struct virus_db *vdb = NULL;
+     int ret;
+     unsigned int no = 0;
+     ci_thread_mutex_lock(&db_mutex);
+     if (old_virusdb) {
+          ci_debug_printf(1, "Clamav DB reload pending, canceling.\n");
+          ci_thread_mutex_unlock(&db_mutex);
+          return 0;
+     }
+#ifdef DB_NO_FULL_LOCK
+     ci_thread_mutex_unlock(&db_mutex);
+#endif
+     vdb = malloc(sizeof(struct virus_db));
+     if (!vdb)
+          return 0;
+     memset(vdb, 0, sizeof(struct virus_db));
+     ci_debug_printf(9, "db_reload going to load db\n");
+     if ((ret = cl_loaddbdir(cl_retdbdir(), &(vdb->db), &no))) {
+          ci_debug_printf(1, "Clamav DB reload: cl_loaddbdir failed: %s\n",
+                          cl_perror(ret));
+          return 0;
+     }
+     ci_debug_printf(9, "loaded. Going to build\n");
+     if ((ret = cl_build(vdb->db))) {
+          ci_debug_printf(1,
+                          "Clamav DB reload: Database initialization error: %s\n",
+                          cl_strerror(ret));
+          cl_free(vdb->db);
+          free(vdb);
+          vdb = NULL;
+#ifdef DB_NO_FULL_LOCK
+          /*no lock needed */
+#else
+          ci_thread_mutex_unlock(&db_mutex);
+#endif
+          return 0;
+     }
+     ci_debug_printf(9, "Done releasing.....\n");
+#ifdef DB_NO_FULL_LOCK
+     ci_thread_mutex_lock(&db_mutex);
+#endif
+     old_virusdb = virusdb;
+     old_virusdb->refcount--;
+     ci_debug_printf(9, "Old VirusDB refcount:%d\n", old_virusdb->refcount);
+     if (old_virusdb->refcount <= 0) {
+          cl_free(old_virusdb->db);
+          free(old_virusdb);
+          old_virusdb = NULL;
+     }
+     virusdb = vdb;
+     virusdb->refcount = 1;
+     ci_thread_mutex_unlock(&db_mutex);
+     return 1;
+}
+
+struct cl_node *get_virusdb()
+{
+     struct virus_db *vdb;
+     ci_thread_mutex_lock(&db_mutex);
+     vdb = virusdb;
+     vdb->refcount++;
+     ci_thread_mutex_unlock(&db_mutex);
+     return vdb->db;
+}
+
+void release_virusdb(struct cl_node *db)
+{
+     ci_thread_mutex_lock(&db_mutex);
+     if (virusdb && db == virusdb->db)
+          virusdb->refcount--;
+     else if (old_virusdb && (db == old_virusdb->db)) {
+          old_virusdb->refcount--;
+          ci_debug_printf(9, "Old VirusDB refcount:%d\n",
+                          old_virusdb->refcount);
+          if (old_virusdb->refcount <= 0) {
+               cl_free(old_virusdb->db);
+               free(old_virusdb);
+               old_virusdb = NULL;
+          }
+     }
+     else {
+          ci_debug_printf(1,
+                          "BUG in srv_clamav service! please contact the author\n");
+     }
+     ci_thread_mutex_unlock(&db_mutex);
+}
+
+void destroy_virusdb()
+{
+     if (virusdb) {
+          cl_free(virusdb->db);
+          free(virusdb);
+          virusdb = NULL;
+     }
+     if (old_virusdb) {
+          cl_free(old_virusdb->db);
+          free(old_virusdb);
+          old_virusdb = NULL;
+     }
+}
 
 /* Content-Encoding: gzip*/
 int ci_extend_filetype(struct ci_magics_db *db,
@@ -571,6 +723,15 @@ void srvclamav_parse_args(av_req_data_t * data, char *args)
           else if (strncmp(str + 5, "mixed", 5) == 0)
                data->args.mode = 3;
      }
+}
+
+/****************************************************************************************/
+/*Commands functions                                                                    */
+void dbreload_command(char *name, int type, char **argv)
+{
+     ci_debug_printf(1, "Clamav virus database reload command received\n");
+     if (!reload_virusdb())
+          ci_debug_printf(1, "Clamav virus database reload command failed!\n");
 }
 
 /****************************************************************************************/
