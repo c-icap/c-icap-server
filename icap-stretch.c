@@ -320,7 +320,7 @@ void buildreqheaders(char *buf)
      strcpy(buf, "REQMOD icap://");
      strcat(buf, servername);
      strcat(buf, ":1344/");
-     strcat(buf, service);       //modulename better
+     strcat(buf, service);      //modulename better
      strcat(buf, " ICAP/1.0\r\n");
      sprintf(lstr, "Encapsulated: req-hdr=0, null-body=%d\r\n",
              strlen(reqheader));
@@ -359,7 +359,7 @@ void buildrespmodfile(FILE * f, char *buf)
      strcpy(buf, "RESPMOD icap://");
      strcat(buf, servername);
      strcat(buf, ":1344/");
-     strcat(buf, service);       //modulename better
+     strcat(buf, service);      //modulename better
      strcat(buf, " ICAP/1.0\r\n");
      sprintf(buf + strlen(buf), "Encapsulated: res-hdr=0, res-body=%d\r\n",
              strlen(lbuf));
@@ -482,12 +482,12 @@ int threadjobsendfiles()
                     break;
                }
 //               sleep(1);
-	       usleep(500000);
-	       
+               usleep(500000);
+
 //             printf("Keeping alive connection\n");
           }
           close(fd);
-	  usleep(1000000);
+          usleep(1000000);
      }
 }
 
