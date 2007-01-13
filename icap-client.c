@@ -125,6 +125,7 @@ int main(int argc, char **argv)
      ci_headers_list_t *headers;
 
      CI_DEBUG_LEVEL = 1;        /*Default debug level is 1 */
+     ci_cfg_lib_init();
 
      if (!ci_args_apply(argc, argv, options)) {
           ci_args_usage(argv[0], options);
