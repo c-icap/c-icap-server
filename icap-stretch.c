@@ -35,6 +35,7 @@
 
 /*GLOBALS ........*/
 char *servername;
+char *service;
 int threadsnum = 0;
 int MAX_REQUESTS = 0;
 
@@ -319,7 +320,7 @@ void buildreqheaders(char *buf)
      strcpy(buf, "REQMOD icap://");
      strcat(buf, servername);
      strcat(buf, ":1344/");
-     strcat(buf, "echo");       //modulename better
+     strcat(buf, service);       //modulename better
      strcat(buf, " ICAP/1.0\r\n");
      sprintf(lstr, "Encapsulated: req-hdr=0, null-body=%d\r\n",
              strlen(reqheader));
@@ -358,7 +359,7 @@ void buildrespmodfile(FILE * f, char *buf)
      strcpy(buf, "RESPMOD icap://");
      strcat(buf, servername);
      strcat(buf, ":1344/");
-     strcat(buf, "echo");       //modulename better
+     strcat(buf, service);       //modulename better
      strcat(buf, " ICAP/1.0\r\n");
      sprintf(buf + strlen(buf), "Encapsulated: res-hdr=0, res-body=%d\r\n",
              strlen(lbuf));
@@ -464,8 +465,6 @@ int threadjobsendfiles()
 
                if (do_file(fd, FILES[indx]) <= 0)
                     break;
-//               sleep(1);
-//             usleep(100000);
                ci_thread_mutex_lock(&statsmtx);
                requests_stats++;
                arand = rand();  /*rasnd is not thread safe .... */
@@ -482,9 +481,13 @@ int threadjobsendfiles()
 //                  printf("OK, closing the connection......\n");
                     break;
                }
+//               sleep(1);
+	       usleep(500000);
+	       
 //             printf("Keeping alive connection\n");
           }
           close(fd);
+	  usleep(1000000);
      }
 }
 
@@ -498,7 +501,7 @@ int main(int argc, char **argv)
 
      if (argc < 4) {
           printf
-              ("Usage:\n%s servername theadsnum max_requests file1 file2 .....\n",
+              ("Usage:\n%s servername service theadsnum max_requests file1 file2 .....\n",
                argv[0]);
           exit(1);
      }
@@ -509,13 +512,14 @@ int main(int argc, char **argv)
      srand((int) START_TIME);
 
      servername = argv[1];
+     service = argv[2];
 
-     threadsnum = atoi(argv[2]);
+     threadsnum = atoi(argv[3]);
      if (threadsnum <= 0)
           return 0;
 
 
-     if ((MAX_REQUESTS = atoi(argv[3])) < 0)
+     if ((MAX_REQUESTS = atoi(argv[4])) < 0)
           MAX_REQUESTS = 0;
 
      threads = malloc(sizeof(ci_thread_t) * threadsnum);
@@ -525,8 +529,8 @@ int main(int argc, char **argv)
      if (argc > 4) {            //
 
 
-          FILES = argv + 3;
-          FILES_NUMBER = argc - 3;
+          FILES = argv + 4;
+          FILES_NUMBER = argc - 4;
           ci_thread_mutex_init(&filemtx);
           ci_thread_mutex_init(&statsmtx);
 
