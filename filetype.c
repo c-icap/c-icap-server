@@ -107,8 +107,8 @@ int groups_add(struct ci_magics_db *db, char *name, char *descr)
      return indx;
 }
 
-int magics_add(struct ci_magics_db *db, int offset, char *magic, int len,
-               int type)
+int magics_add(struct ci_magics_db *db, int offset, unsigned char *magic,
+               size_t len, int type)
 {
      struct ci_magic *newdata;
      int indx;
@@ -293,7 +293,8 @@ void ci_magics_db_release(struct ci_magics_db *db)
 
 int ci_magics_db_file_add(struct ci_magics_db *db, char *filename)
 {
-     int type, ret, group, i;
+     unsigned int type;
+     int ret, group, i;
      int groups[MAX_GROUPS + 1];
      struct ci_magic_record record;
      FILE *f;
@@ -420,7 +421,7 @@ int check_ascii(unsigned char *buf, int buflen)
 static unsigned int utf_boundaries[] =
     { 0x0, 0x0, 0x07F, 0x7FF, 0xFFFF, 0x1FFFFF, 0x3FFFFFF };
 
-int isUTF8(char *c, int size)
+int isUTF8(unsigned char *c, int size)
 {
      int i, r_size = 0;
      unsigned int ucs_c = 0;
@@ -579,11 +580,11 @@ int ci_uncompress(int compress_method, char *buf, int len, char *unzipped_buf,
           return CI_ERROR;
      }
 
-     strm.next_in = buf;
+     strm.next_in = (Bytef *) buf;
      strm.avail_in = len;
 
      strm.avail_out = *unzipped_buf_len;
-     strm.next_out = unzipped_buf;
+     strm.next_out = (Bytef *) unzipped_buf;
      ret = inflate(&strm, Z_NO_FLUSH);
      inflateEnd(&strm);
 

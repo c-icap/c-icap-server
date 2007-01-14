@@ -634,7 +634,7 @@ int get_filetype(request_t * req, char *buf, int len)
 int must_scanned(int file_type, av_req_data_t * data)
 {
      int type, i;
-     unsigned int *file_groups;
+     int *file_groups;
      file_groups = ci_data_type_groups(magic_db, file_type);
      type = NO_SCAN;
      i = 0;

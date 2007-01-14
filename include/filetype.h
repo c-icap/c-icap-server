@@ -29,7 +29,7 @@
 struct ci_data_type{
      char name[NAME_SIZE+1];
      char descr[DESCR_SIZE+1];
-     unsigned int groups[MAX_GROUPS];
+     int groups[MAX_GROUPS];
 };
 
 struct ci_data_group{
