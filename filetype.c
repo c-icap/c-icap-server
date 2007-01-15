@@ -293,7 +293,7 @@ void ci_magics_db_release(struct ci_magics_db *db)
 
 int ci_magics_db_file_add(struct ci_magics_db *db, char *filename)
 {
-     unsigned int type;
+     int type;
      int ret, group, i;
      int groups[MAX_GROUPS + 1];
      struct ci_magic_record record;
@@ -323,8 +323,7 @@ int ci_magics_db_file_add(struct ci_magics_db *db, char *filename)
                     break;
                }
           }
-
-          magics_add(db, record.offset, record.magic, record.len, type);
+          magics_add(db, record.offset, record.magic, record.len, (unsigned int)type);
           free_records_group(&record);
      }
      fclose(f);
