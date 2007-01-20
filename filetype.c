@@ -323,7 +323,8 @@ int ci_magics_db_file_add(struct ci_magics_db *db, char *filename)
                     break;
                }
           }
-          magics_add(db, record.offset, record.magic, record.len, (unsigned int)type);
+          magics_add(db, record.offset, record.magic, record.len,
+                     (unsigned int) type);
           free_records_group(&record);
      }
      fclose(f);
