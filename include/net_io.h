@@ -78,8 +78,9 @@ typedef struct ci_connection{
 
 
 CI_DECLARE_FUNC(void) ci_fill_sockaddr(ci_sockaddr_t *addr);
+CI_DECLARE_FUNC(void) ci_copy_sockaddr(ci_sockaddr_t *dest, ci_sockaddr_t *src);
 CI_DECLARE_FUNC(int) ci_inet_aton(int af,const char *cp, void *inp);
-CI_DECLARE_FUNC(const char *) ci_inet_ntoa(int af,const void *src,char *dst,int cnt);
+CI_DECLARE_FUNC(const char *) ci_inet_ntoa(int af,const void *src, char *dst,int cnt);
 
 
 CI_DECLARE_FUNC(const char *) ci_sockaddr_t_to_ip(ci_sockaddr_t *addr, char *ip,int ip_strlen);
@@ -87,15 +88,16 @@ CI_DECLARE_FUNC(const char *) ci_sockaddr_t_to_ip(ci_sockaddr_t *addr, char *ip,
 #define ci_conn_local_ip(conn,ip)  ci_sockaddr_t_to_ip(&(conn->srvaddr),ip,CI_IPLEN)
 
 #ifdef HAVE_IPV6
-CI_DECLARE_FUNC(void) ci_sockaddr_set_port(ci_sockaddr_t *addr,int port);
+CI_DECLARE_FUNC(void) ci_sockaddr_set_port(ci_sockaddr_t *addr, int port);
 #define ci_sockaddr_set_family(addr,port) ((addr).sockaddr.ss_family=family)
 #else
-CI_DECLARE_FUNC(void) ci_sockaddr_set_port(ci_sockaddr_t *addr,int port);
+CI_DECLARE_FUNC(void) ci_sockaddr_set_port(ci_sockaddr_t *addr, int port);
 #define ci_sockaddr_set_family(addr,family) ((addr).sockaddr.sin_family=family/*,(addr).ci_sin_family=family*/)
 #endif
 
 CI_DECLARE_FUNC(const char *) ci_sockaddr_t_to_host(ci_sockaddr_t *addr, char *hname, int maxhostlen);
 
+CI_DECLARE_FUNC(void) ci_copy_connection(ci_connection_t *dest, ci_connection_t *src);
 
 CI_DECLARE_FUNC(int) icap_socket_opts(ci_socket fd, int secs_to_linger);
 CI_DECLARE_FUNC(ci_socket) icap_init_server(int port,int *protocol_family,int secs_to_linger);

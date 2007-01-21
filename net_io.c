@@ -44,6 +44,17 @@ void ci_fill_sockaddr(ci_sockaddr_t * addr)
      }
 }
 
+void ci_copy_sockaddr(ci_sockaddr_t * dest, ci_sockaddr_t * src)
+{
+     memcpy(dest, src, sizeof(ci_sockaddr_t));
+     if (dest->ci_sin_family == AF_INET6)
+          dest->ci_sin_addr =
+              &(((struct sockaddr_in6 *) &(dest->sockaddr))->sin6_addr);
+     else
+          dest->ci_sin_addr =
+              &(((struct sockaddr_in *) &(dest->sockaddr))->sin_addr);
+}
+
 #else
 void ci_fill_sockaddr(ci_sockaddr_t * addr)
 {
@@ -51,6 +62,12 @@ void ci_fill_sockaddr(ci_sockaddr_t * addr)
      addr->ci_sin_port = addr->sockaddr.sin_port;
      addr->ci_sin_addr = &(addr->sockaddr.sin_addr);
      addr->ci_inaddr_len = sizeof(struct in_addr);
+}
+
+void ci_copy_sockaddr(ci_sockaddr_t * dest, ci_sockaddr_t * src)
+{
+     memcpy(dest, src, sizeof(ci_sockaddr_t));
+     dest->ci_sin_addr = &(dest->sockaddr.sin_addr);
 }
 
 #endif
@@ -119,4 +136,12 @@ const char *ci_inet_ntoa(int af, const void *src, char *dst, int cnt)
      dst[cnt - 1] = '\0';
      return (const char *) dst;
 #endif
+}
+
+
+void ci_copy_connection(ci_connection_t * dest, ci_connection_t * src)
+{
+     dest->fd = src->fd;
+     ci_copy_sockaddr(&dest->claddr, &src->claddr);
+     ci_copy_sockaddr(&dest->srvaddr, &src->srvaddr);
 }

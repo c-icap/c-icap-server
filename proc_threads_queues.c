@@ -75,7 +75,7 @@ int put_to_queue(struct connections_queue *q, ci_connection_t * con)
                           q->used, q->size);
           return 0;
      }
-     memcpy(&(q->connections[q->used]), con, sizeof(ci_connection_t));
+     ci_copy_connection(&(q->connections[q->used]), con);
      ret = ++q->used;
      ci_thread_mutex_unlock(&(q->queue_mtx));
      ci_thread_cond_signal(&(q->queue_cond));   //????
@@ -91,7 +91,7 @@ int get_from_queue(struct connections_queue *q, ci_connection_t * con)
           return 0;
      }
      q->used--;
-     memcpy(con, &(q->connections[q->used]), sizeof(ci_connection_t));
+     ci_copy_connection(con, &(q->connections[q->used]));
      ci_thread_mutex_unlock(&(q->queue_mtx));
      return 1;
 }
@@ -233,6 +233,7 @@ child_shared_data_t *register_child(struct childs_queue * q,
                q->childs[i].requests = 0;
                q->childs[i].connections = 0;
                q->childs[i].to_be_killed = 0;
+               q->childs[i].father_said = 0;
                q->childs[i].idle = 1;
                q->childs[i].pipe = pipe;
                ci_proc_mutex_unlock(&(q->queue_mtx));
@@ -324,7 +325,7 @@ int childs_queue_stats(struct childs_queue *q, int *childs, int *freeservers,
           return 0;
 
      for (i = 0; i < q->size; i++) {
-          if (q->childs[i].pid != 0) {
+          if (q->childs[i].pid != 0 && q->childs[i].to_be_killed == 0) {
                (*childs)++;
                (*freeservers) += q->childs[i].freeservers;
                (*used) += q->childs[i].usedservers;

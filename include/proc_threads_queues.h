@@ -54,6 +54,7 @@ typedef struct child_shared_data{
      process_pid_t pid;
      int idle;
      int to_be_killed;
+     int father_said;
      ci_pipe_t pipe;
 } child_shared_data_t;
 

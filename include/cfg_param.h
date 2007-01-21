@@ -28,6 +28,7 @@ struct icap_server_conf{
      int  PROTOCOL_FAMILY;
      char *TMPDIR;
      char *PIDFILE;
+     char *COMMANDS_SOCKET;
      char *RUN_USER;
      char *RUN_GROUP;
      char *cfg_file;

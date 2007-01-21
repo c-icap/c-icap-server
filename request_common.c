@@ -583,7 +583,6 @@ int get_request_options(request_t * req, ci_headers_list_t * h)
                req->allow204 = 1;
      }
 
-     req->keepalive = 1;
      if ((pstr = ci_headers_value(h, "Connection")) != NULL
          && strncmp(pstr, "close", 5) == 0) {
           req->keepalive = 0;
@@ -812,7 +811,7 @@ ci_connection_t *ci_client_connect_to(char *servername, int port, int proto)
 {
      ci_connection_t *connection = malloc(sizeof(ci_connection_t));
      char hostname[CI_MAXHOSTNAMELEN + 1];
-     int addrlen = 0;
+     unsigned int addrlen = 0;
      if (!connection)
           return NULL;
      connection->fd = socket(proto, SOCK_STREAM, 0);

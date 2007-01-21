@@ -57,7 +57,7 @@ request_t *newrequest(ci_connection_t * connection)
      }
 
      conn = (ci_connection_t *) malloc(sizeof(ci_connection_t));
-     memcpy(conn, connection, sizeof(ci_connection_t));
+     ci_copy_connection(conn, connection);
      req = ci_request_alloc(conn);
 
      req->access_type = access;
@@ -76,7 +76,7 @@ int recycle_request(request_t * req, ci_connection_t * connection)
      }
      req->access_type = access;
      ci_request_reset(req);
-     memcpy(req->connection, connection, sizeof(ci_connection_t));
+     ci_copy_connection(req->connection, connection);
      return 1;
 }
 
@@ -287,8 +287,7 @@ int parse_header(request_t * req)
 /*	       if(strncasecmp(h->headers[i]+12,"keep-alive",10)==0)*/
                if (strncasecmp(h->headers[i] + 12, "close", 5) == 0)
                     req->keepalive = 0;
-               else
-                    req->keepalive = 1;
+               /*else the default behaviour of keepalive ..... */
           }
           else if (strncmp("Allow: 204", h->headers[i], 10) == 0) {
                req->allow204 = 1;

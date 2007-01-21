@@ -21,7 +21,6 @@
 
 #include "c-icap.h"
 
-#define NAMED_PIPES_DIR "/tmp/"
 #define COMMANDS_BUFFER_SIZE 128
 
 #define MONITOR_PROC_CMD      1

@@ -41,6 +41,7 @@
 #include "commands.h"
 
 extern int KEEPALIVE_TIMEOUT;
+extern int MAX_KEEPALIVE_REQUESTS;
 extern int MAX_SECS_TO_LINGER;
 extern int START_CHILDS;
 extern int MAX_CHILDS;
@@ -48,6 +49,8 @@ extern int START_SERVERS;
 extern int MIN_FREE_SERVERS;
 extern int MAX_FREE_SERVERS;
 extern int MAX_REQUESTS_BEFORE_REALLOCATE_MEM;
+extern int MAX_REQUESTS_PER_CHILD;
+extern struct icap_server_conf CONF;
 
 typedef struct server_decl {
      int srv_id;
@@ -58,10 +61,11 @@ typedef struct server_decl {
      int served_requests_no_reallocation;
 } server_decl_t;
 
-
+#undef SINGLE_ACCEPT
 ci_thread_mutex_t threads_list_mtx;
 server_decl_t **threads_list = NULL;
-int listener_thread_id = -1;
+ci_thread_t listener_thread_id = -1;
+int listener_running = 0;
 
 ci_thread_cond_t free_server_cond;
 ci_thread_mutex_t counters_mtx;
@@ -76,7 +80,6 @@ ci_proc_mutex_t accept_mutex;
 
 /*Main proccess variables*/
 ci_socket LISTEN_SOCKET = -1;
-int c_icap_childs_died = 0;
 int c_icap_going_to_term = 0;
 int c_icap_reconfigure = 0;
 
@@ -92,8 +95,10 @@ int start_child(int fd);
 static void term_handler_child(int sig)
 {
      ci_debug_printf(5, "A termination signal received (%d).\n", sig);
-     if (!child_data->to_be_killed)
+     if (!child_data->father_said)
           child_data->to_be_killed = IMMEDIATELY;
+     else
+          child_data->to_be_killed = child_data->father_said;
 }
 
 static void sigpipe_handler(int sig)
@@ -124,7 +129,7 @@ static void sigint_handler_main(int sig)
 
 static void sigchld_handler_main(int sig)
 {
-     c_icap_childs_died++;
+     /*Do nothing the signal will be ignored..... */
 }
 
 static void sighup_handler_main()
@@ -156,11 +161,13 @@ void main_signals()
 }
 
 
-void thread_signals()
+void thread_signals(int islistener)
 {
      sigset_t sig_mask;
      sigemptyset(&sig_mask);
      sigaddset(&sig_mask, SIGINT);
+     if (!islistener)
+          sigaddset(&sig_mask, SIGHUP);
      if (pthread_sigmask(SIG_BLOCK, &sig_mask, NULL))
           ci_debug_printf(5, "O an error....\n");
      pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
@@ -174,7 +181,7 @@ static void exit_normaly()
 {
      int i = 0;
      server_decl_t *srv;
-     ci_debug_printf(5, "Suppose that all threads are allready exited...\n");
+     ci_debug_printf(5, "Suppose that all threads are already exited ...\n");
      while ((srv = threads_list[i]) != NULL) {
           if (srv->current_req) {
                close_connection(srv->current_req->connection);
@@ -194,17 +201,22 @@ static void cancel_all_threads()
 {
      int i = 0;
 //     ci_thread_mutex_lock(&threads_list_mtx);
+
      /*Cancel listener thread .... */
-     ci_debug_printf(5, "Cancel listener thread (%d)\n", listener_thread_id);
-     /*For some reason which I do not understant this needed here. 
-        The accept function  does not interrupted with SIGTERM signal..... */
-     if (child_data->idle == 0)
-          pthread_cancel(listener_thread_id);
-     pthread_kill(listener_thread_id, SIGTERM);
-
+     /*Do not allow listener to write to a queue ...... */
+     ci_thread_mutex_lock(&(con_queue->queue_mtx));
+#ifdef SINGLE_ACCEPT
+     pthread_cancel(listener_thread_id);        /*..... */
+#else
+     pthread_kill(listener_thread_id, SIGHUP);
+#endif
      ci_thread_join(listener_thread_id);
-
-     ci_thread_cond_broadcast(&(con_queue->queue_cond));        //What about childs that serve a request?
+     ci_thread_mutex_unlock(&(con_queue->queue_mtx));
+     ci_debug_printf(5, "OK canceling the listener thread (pid:%d)!\n",
+                     threads_list[0]->srv_id);
+     /*We are going to interupt the waiting for queue childs.
+        We are going to wait childs which serve a request. */
+     ci_thread_cond_broadcast(&(con_queue->queue_cond));
      while (threads_list[i] != NULL) {
           ci_debug_printf(5, "Cancel server %d, thread_id %lu (%d)\n",
                           threads_list[i]->srv_id, threads_list[i]->srv_pthread,
@@ -222,6 +234,9 @@ static void kill_all_childs()
      for (i = 0; i < childs_queue->size; i++) {
           if ((pid = childs_queue->childs[i].pid) == 0)
                continue;
+          /*listener thread will be interupted it is good to know 
+             that it will going down imediatelly */
+          childs_queue->childs[i].father_said = IMMEDIATELY;
           kill(pid, SIGTERM);
      }
 
@@ -235,40 +250,32 @@ static void kill_all_childs()
      destroy_childs_queue(childs_queue);
 }
 
-static void handle_exited_childs()
+static void check_for_exited_childs()
 {
      int status, pid, ret;
-     while (c_icap_childs_died) {
-          ci_debug_printf(5, "Handle child from %d died ...\n",
-                          c_icap_childs_died);
-          if ((pid = wait(&status)) < 0) {
-               ci_debug_printf(1,
-                               "Fatal error waiting a child to exit .....\n");
-               return;
+     while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
+          ci_debug_printf(5, "The child %d died ...\n", pid);
+          if (!WIFEXITED(status)) {
+               ci_debug_printf(1, "The child %d not exited normaly.", pid);
+               if (WIFSIGNALED(status))
+                    ci_debug_printf(1, "signaled with signal:%d\n",
+                                    WTERMSIG(status));
           }
-          else {
-               c_icap_childs_died--;
-               ci_debug_printf(5, "The child %d died ...\n", pid);
-               if (!WIFEXITED(status)) {
-                    ci_debug_printf(3, "The child not exited normaly....");
-                    if (WIFSIGNALED(status))
-                         ci_debug_printf(3, "signaled with signal:%d\n",
-                                         WTERMSIG(status));
-               }
-               ret = remove_child(childs_queue, pid);
-               if (ret == 0 && old_childs_queue) {
-                    ci_debug_printf(5,
-                                    "The child %d will be removed from the old list ...\n",
-                                    pid);
-                    remove_child(old_childs_queue, pid);
-                    if (childs_queue_is_empty(old_childs_queue)) {
-                         ret = destroy_childs_queue(old_childs_queue);
-                         /* if(!ret){} */
-                         old_childs_queue = NULL;
-                    }
+          ret = remove_child(childs_queue, pid);
+          if (ret == 0 && old_childs_queue) {
+               ci_debug_printf(5,
+                               "The child %d will be removed from the old list ...\n",
+                               pid);
+               remove_child(old_childs_queue, pid);
+               if (childs_queue_is_empty(old_childs_queue)) {
+                    ret = destroy_childs_queue(old_childs_queue);
+                    /* if(!ret){} */
+                    old_childs_queue = NULL;
                }
           }
      }
+     if (pid < 0)
+          ci_debug_printf(1, "Fatal error waiting a child to exit .....\n");
 }
 
 void system_reconfigure();
@@ -293,7 +300,7 @@ static void server_reconfigure()
       */
      for (i = 0; i < childs_queue->size; i++) {
           if (childs_queue->childs[i].pid != 0) {
-               childs_queue->childs[i].to_be_killed = GRACEFULLY;
+               childs_queue->childs[i].father_said = GRACEFULLY;
                kill(childs_queue->childs[i].pid, SIGTERM);
           }
      }
@@ -437,19 +444,26 @@ int thread_main(server_decl_t * srv)
      ci_connection_t con;
      char clientname[CI_MAXHOSTNAMELEN + 1];
      int ret, request_status = 0;
+     int keepalive_reqs;
 //***********************
-     thread_signals();
+     thread_signals(0);
 //*************************
      srv->srv_id = getpid();    //Setting my pid ...
      srv->srv_pthread = pthread_self();
 
      for (;;) {
-          if (child_data->to_be_killed)
-               return 1;        //Exiting thread.....
+          /*
+             If we must shutdown IMEDIATELLY it is time to leave the server
+             else if we are going to shutdown GRACEFULLY we are going to die 
+             only if there are not any accepted connections
+           */
+          if (child_data->to_be_killed == IMMEDIATELY)
+               return 1;
 
           if ((ret = get_from_queue(con_queue, &con)) == 0) {
-               ret = wait_for_queue(con_queue); //It is better that the wait_for_queue to be 
-               //moved into the get_from_queue 
+               if (child_data->to_be_killed)
+                    return 1;
+               ret = wait_for_queue(con_queue);
                continue;
           }
 
@@ -459,13 +473,12 @@ int thread_main(server_decl_t * srv)
                break;
           }
 
-          ci_thread_mutex_lock(&counters_mtx);  /*Update counters as soon as possible ....... */
+          ci_thread_mutex_lock(&counters_mtx);  /*Update counters as soon as possible */
           (child_data->freeservers)--;
           (child_data->usedservers)++;
           ci_thread_mutex_unlock(&counters_mtx);
 
           ci_netio_init(con.fd);
-
           ret = 1;
           if (srv->current_req == NULL)
                srv->current_req = newrequest(&con);
@@ -480,7 +493,14 @@ int thread_main(server_decl_t * srv)
                goto end_of_main_loop_thread;    /*The request rejected. Log an error and continue ... */
           }
 
+          keepalive_reqs = 0;
           do {
+               if (MAX_KEEPALIVE_REQUESTS > 0
+                   && keepalive_reqs >= MAX_KEEPALIVE_REQUESTS)
+                    srv->current_req->keepalive = 0;    /*do not keep alive connection */
+               if (child_data->to_be_killed)    /*We are going to die do not keep-alive */
+                    srv->current_req->keepalive = 0;
+
                if ((request_status = process_request(srv->current_req)) < 0) {
                     ci_debug_printf(5,
                                     "Process request timeout or interupted....\n");
@@ -489,6 +509,7 @@ int thread_main(server_decl_t * srv)
                }
                srv->served_requests++;
                srv->served_requests_no_reallocation++;
+               keepalive_reqs++;
 
                /*Increase served requests. I dont like this. The delay is small but I don't like... */
                ci_thread_mutex_lock(&counters_mtx);
@@ -499,7 +520,7 @@ int thread_main(server_decl_t * srv)
 //             break; //No keep-alive ......
 
                if (child_data->to_be_killed)
-                    return 1;   //Exiting thread.....
+                    break;      //Just exiting the keep-alive loop
 
                ci_debug_printf(8, "Keep-alive:%d\n",
                                srv->current_req->keepalive);
@@ -516,10 +537,12 @@ int thread_main(server_decl_t * srv)
           } while (1);
 
           if (srv->current_req) {
-               if (request_status < 0)
+               if (request_status < 0 || child_data->to_be_killed) {
                     hard_close_connection(srv->current_req->connection);
-               else
+               }
+               else {
                     close_connection(srv->current_req->connection);
+               }
           }
           if (srv->served_requests_no_reallocation >
               MAX_REQUESTS_BEFORE_REALLOCATE_MEM) {
@@ -542,7 +565,6 @@ int thread_main(server_decl_t * srv)
      return 0;
 }
 
-
 void listener_thread(int *fd)
 {
      ci_connection_t conn;
@@ -550,60 +572,75 @@ void listener_thread(int *fd)
      int haschild = 1, jobs_in_queue = 0;
      int pid, sockfd;
      sockfd = *fd;
-
-//     thread_signals();
-
-     sigset_t sig_mask;
-     sigemptyset(&sig_mask);
-     sigaddset(&sig_mask, SIGINT);
-     sigaddset(&sig_mask, SIGTERM);
-     if (pthread_sigmask(SIG_UNBLOCK, &sig_mask, NULL))
-          ci_debug_printf(5, "O an error....\n");
-     pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
-     pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
-
+     thread_signals(1);
      pid = getpid();
      listener_thread_id = pthread_self();
-
-
      for (;;) {                 //Global for
           if (!ci_proc_mutex_lock(&accept_mutex)) {
 
                if (errno == EINTR) {
                     ci_debug_printf(5,
-                                    "proc_mutex_lock interrupted (EINTR received)!\n");
-                    if (child_data->to_be_killed)
+                                    "proc_mutex_lock interrupted (EINTR received, pid=%d)!\n",
+                                    pid);
+                    if (child_data->to_be_killed) {
+                         ci_debug_printf(5, "listener of pid:%d exiting\n",
+                                         pid);
+                         listener_running = 0;
                          return;
+                    }
                     continue;
                }
           }
           child_data->idle = 0;
           ci_debug_printf(7, "Child %d getting requests now ...\n", pid);
           do {                  //Getting requests while we have free servers.....
+#ifndef SIGNLE_ACCEPT
+               fd_set fds;
+               int ret;
+               do {
+                    FD_ZERO(&fds);
+                    FD_SET(sockfd, &fds);
+                    errno = 0;
+                    ret = select(sockfd + 1, &fds, NULL, NULL, NULL);
+                    if (ret < 0) {
+                         if (errno != EINTR) {
+                              ci_debug_printf(1,
+                                              "Error in select %d! Exiting server!\n",
+                                              errno);
+                              goto LISTENER_FAILS;
+                         }
+                         if (child_data->to_be_killed) {
+                              ci_debug_printf(5,
+                                              "Listener server signaled to exit!\n");
+                              goto LISTENER_FAILS;
+                         }
+                    }
+               } while (errno == EINTR);
+#endif
                do {
                     errno = 0;
                     claddrlen = sizeof(conn.claddr.sockaddr);
                     if (((conn.fd =
                           accept(sockfd,
                                  (struct sockaddr *) &(conn.claddr.sockaddr),
-                                 &claddrlen)) == -1) && errno != EINTR) {
-                         ci_debug_printf(1,
-                                         "error accept .... %d\nExiting server ....\n",
-                                         errno);
-                         exit(-1);      //For the moment .......
-                         return;
-                    }
-                    if (errno == EINTR && child_data->to_be_killed) {
-                         ci_debug_printf(1,
-                                         "Listener server signaled to exit ....\n");
-                         return;
+                                 &claddrlen)) == -1)) {
+                         if (errno != EINTR) {
+                              ci_debug_printf(1,
+                                              "Error accept %d!\nExiting server!\n",
+                                              errno);
+                              goto LISTENER_FAILS;
+                         }
+                         if (child_data->to_be_killed) {
+                              ci_debug_printf(5,
+                                              "Listener server signaled to exit!\n");
+                              goto LISTENER_FAILS;
+                         }
                     }
                } while (errno == EINTR);
                claddrlen = sizeof(conn.srvaddr.sockaddr);
                getsockname(conn.fd,
                            (struct sockaddr *) &(conn.srvaddr.sockaddr),
                            &claddrlen);
-
                ci_fill_sockaddr(&conn.claddr);
                ci_fill_sockaddr(&conn.srvaddr);
 
@@ -612,14 +649,12 @@ void listener_thread(int *fd)
                if ((jobs_in_queue = put_to_queue(con_queue, &conn)) == 0) {
                     ci_debug_printf(1,
                                     "ERROR!!!!!!NO AVAILABLE SERVERS!THIS IS A BUG!!!!!!!!\n");
-                    child_data->to_be_killed = GRACEFULLY;
                     ci_debug_printf(1,
                                     "Jobs in Queue:%d,Free servers:%d, Used Servers :%d, Requests %d\n",
                                     jobs_in_queue, child_data->freeservers,
                                     child_data->usedservers,
                                     child_data->requests);
-
-                    return;
+                    goto LISTENER_FAILS;
                }
                ci_thread_mutex_lock(&counters_mtx);
                haschild =
@@ -640,7 +675,13 @@ void listener_thread(int *fd)
           }
           ci_thread_mutex_unlock(&counters_mtx);
      }
+     listener_running = 0;
+     return;
 
+   LISTENER_FAILS:
+     listener_running = 0;
+     ci_proc_mutex_unlock(&accept_mutex);
+     return;
 }
 
 void child_main(int sockfd, int pipefd)
@@ -668,9 +709,10 @@ void child_main(int sockfd, int pipefd)
                                (void *) threads_list[i]);
      }
      threads_list[START_SERVERS] = NULL;
+     /*Now start the listener thread.... */
      ret = ci_thread_create(&thread, (void *(*)(void *)) listener_thread,
                             (void *) &sockfd);
-     /*Now start the listener thread.... */
+     listener_running = 1;
 
      for (;;) {
           char buf[512];
@@ -689,8 +731,19 @@ void child_main(int sockfd, int pipefd)
           }
           else if (ret < 0) {
                ci_debug_printf(1,
-                               "An error ocured while waiting commands from parent. Terminating!\n");
+                               "An error occured while waiting commands from parent. Terminating!\n");
                child_data->to_be_killed = IMMEDIATELY;
+          }
+          if (!listener_running) {
+               ci_debug_printf(1,
+                               "Ohh!! something happen to listener thread! Terminating\n");
+               child_data->to_be_killed = GRACEFULLY;
+          }
+          if (MAX_REQUESTS_PER_CHILD > 0
+              && child_data->requests > MAX_REQUESTS_PER_CHILD) {
+               ci_debug_printf(5,
+                               "Maximum number of requests reached.Going down\n");
+               child_data->to_be_killed = GRACEFULLY;
           }
           if (child_data->to_be_killed)
                break;
@@ -749,7 +802,8 @@ void stop_command(char *name, int type, char **argv)
 
 void reconfigure_command(char *name, int type, char **argv)
 {
-     server_reconfigure();
+     if (type == MONITOR_PROC_CMD)
+          server_reconfigure();
 }
 
 void test_command(char *name, int type, char **argv)
@@ -789,11 +843,11 @@ int start_server()
      int childs, freeservers, used, maxrequests, ret;
      char command_buffer[COMMANDS_BUFFER_SIZE];
 
-     ctl_socket = ci_named_pipe_create(NAMED_PIPES_DIR "c-icap.ctl");
+     ctl_socket = ci_named_pipe_create(CONF.COMMANDS_SOCKET);
      if (ctl_socket < 0) {
           ci_debug_printf(1,
                           "Error opening control socket:%s.Fatal error, exiting!\n",
-                          NAMED_PIPES_DIR "c-icap.ctl");
+                          CONF.COMMANDS_SOCKET);
           exit(0);
      }
 
@@ -826,8 +880,7 @@ int start_server()
                }
                if (ret == 0) {  /*Eof received on pipe. Going to reopen ... */
                     ci_named_pipe_close(ctl_socket);
-                    ctl_socket =
-                        ci_named_pipe_open(NAMED_PIPES_DIR "c-icap.ctl");
+                    ctl_socket = ci_named_pipe_open(CONF.COMMANDS_SOCKET);
                     if (ctl_socket < 0) {
                          ci_debug_printf(1,
                                          "Error opening control socket.We are unstable going down!");
@@ -855,10 +908,10 @@ int start_server()
                         (freeservers - START_SERVERS) > MIN_FREE_SERVERS) {
 
                     if ((child_indx = find_an_idle_child(childs_queue)) >= 0) {
-                         childs_queue->childs[child_indx].to_be_killed =
+                         childs_queue->childs[child_indx].father_said =
                              GRACEFULLY;
                          ci_debug_printf(8,
-                                         "Free Servers:%d,childs:%d. Going to stop child %d(index:%d) .....\n",
+                                         "Free Servers:%d,childs:%d. Going to stop child %d(index:%d)\n",
                                          freeservers, childs,
                                          childs_queue->childs[child_indx].pid,
                                          child_indx);
@@ -869,12 +922,13 @@ int start_server()
                }
                else if (childs == MAX_CHILDS && freeservers < MIN_FREE_SERVERS) {
                     ci_debug_printf(1,
-                                    "ATTENTION!!!! Not enought available servers!!!!! Maybe you must increase the MaxServers and the ThreadsPerChild values in c-icap.conf file!!!!!!!!!");
+                                    "ATTENTION!!!! Not enought available servers!!!!! "
+                                    "Maybe you must increase the MaxServers and the "
+                                    "ThreadsPerChild values in c-icap.conf file!!!!!!!!!");
                }
                if (c_icap_going_to_term)
                     break;
-               if (c_icap_childs_died)
-                    handle_exited_childs();
+               check_for_exited_childs();
                if (c_icap_reconfigure) {
                     c_icap_reconfigure = 0;
                     server_reconfigure();
@@ -894,6 +948,7 @@ int start_server()
      child_data->requests = 0;
      child_data->connections = 0;
      child_data->to_be_killed = 0;
+     child_data->father_said = 0;
      child_data->idle = 1;
      child_main(LISTEN_SOCKET);
 #endif

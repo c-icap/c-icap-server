@@ -38,11 +38,11 @@ char **ARGV;
 struct icap_server_conf CONF = {
      1344, /*PORT*/ AF_INET,    /*SOCK_FAMILY */
 #ifdef _WIN32
-     "c:\\TEMP", /*TMPDIR*/ "c:\\TEMP\\c-icap.pid", /*PIDFILE*/
+     "c:\\TEMP", /*TMPDIR*/ "c:\\TEMP\\c-icap.pid", /*PIDFILE*/ "\\\\.\\pipe\\c-icap",  /*COMMANDS_SOCKET; */
 #else
-     "/var/tmp/", /*TMPDIR*/ "/var/run/c-icap.pid", /*PIDFILE*/
+     "/var/tmp/", /*TMPDIR*/ "/var/run/c-icap.pid", /*PIDFILE*/ "/var/run/c-icap.ctl",  /*COMMANDS_SOCKET; */
 #endif
-         NULL,                  /* RUN_USER */
+     NULL,                      /* RUN_USER */
      NULL,                      /* RUN_GROUP */
 #ifdef _WIN32
      CONFDIR "\\c-icap.conf",   /*cfg_file */
@@ -59,6 +59,7 @@ struct icap_server_conf CONF = {
 
 int TIMEOUT = 300;
 int KEEPALIVE_TIMEOUT = 15;
+int MAX_KEEPALIVE_REQUESTS = 100;
 int MAX_SECS_TO_LINGER = 5;
 int START_CHILDS = 5;
 int MAX_CHILDS = 10;
@@ -66,6 +67,7 @@ int START_SERVERS = 30;
 int MIN_FREE_SERVERS = 30;
 int MAX_FREE_SERVERS = 60;
 int MAX_REQUESTS_BEFORE_REALLOCATE_MEM = 100;
+int MAX_REQUESTS_PER_CHILD = 0;
 int DAEMON_MODE = 1;
 
 extern char *SERVER_LOG_FILE;
@@ -105,16 +107,17 @@ struct sub_table {
 
 static struct conf_entry conf_variables[] = {
      {"PidFile", &CONF.PIDFILE, intl_cfg_set_str, NULL},
+     {"CommandsSocket", &CONF.COMMANDS_SOCKET, intl_cfg_set_str, NULL},
      {"Timeout", (void *) (&TIMEOUT), intl_cfg_set_int, NULL},
      {"KeepAlive", NULL, NULL, NULL},
-     {"MaxKeepAliveRequests", NULL, NULL, NULL},
+     {"MaxKeepAliveRequests", &MAX_KEEPALIVE_REQUESTS, intl_cfg_set_int, NULL},
      {"KeepAliveTimeout", &KEEPALIVE_TIMEOUT, intl_cfg_set_int, NULL},
      {"StartServers", &START_CHILDS, intl_cfg_set_int, NULL},
      {"MaxServers", &MAX_CHILDS, intl_cfg_set_int, NULL},
      {"MinSpareThreads", &MIN_FREE_SERVERS, intl_cfg_set_int, NULL},
      {"MaxSpareThreads", &MAX_FREE_SERVERS, intl_cfg_set_int, NULL},
      {"ThreadsPerChild", &START_SERVERS, intl_cfg_set_int, NULL},
-     {"MaxRequestsPerChild", NULL, NULL, NULL},
+     {"MaxRequestsPerChild", &MAX_REQUESTS_PER_CHILD, intl_cfg_set_int, NULL},
      {"MaxRequestsReallocateMem", &MAX_REQUESTS_BEFORE_REALLOCATE_MEM,
       intl_cfg_set_int, NULL},
      {"Port", &CONF.PORT, intl_cfg_set_int, NULL},
@@ -346,6 +349,7 @@ int cfg_load_magicfile(char *directive, char **argv, void *setdata)
      }
 
      db_file = argv[0];
+     ci_debug_printf(1, "Going to load magic file %s\n", db_file);
      if (!ci_magics_db_file_add(CONF.MAGIC_DB, db_file)) {
           ci_debug_printf(1, "Can not load magic file %s!!!\n", db_file);
           return 0;

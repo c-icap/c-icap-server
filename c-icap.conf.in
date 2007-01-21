@@ -4,6 +4,7 @@
 
 
 PidFile /var/run/c-icap.pid
+CommandsSocket /var/run/c-icap.ctl
 Timeout 300
 KeepAlive On
 MaxKeepAliveRequests 100

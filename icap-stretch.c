@@ -205,14 +205,17 @@ int readheaderresponce(int fd)
 }
 
 #define SIZE_8K 8192
-int readallresponce(int fd)
+int readallresponce(int fd, int *keepalive)
 {
      char c, cprev, lbuf[SIZE_8K];
      int len, remains, toread, i, totalbytes;
      i = 0;
      totalbytes = 0;
+     *keepalive = 1;
      while (1) {
           totalbytes += icap_readline(fd, lbuf, SIZE_8K);
+          if (i == 0 && strstr(lbuf, "Connection: close"))
+               *keepalive = 0;
           if (strlen(lbuf) == 0)
                i++;
           if (i == 2)
@@ -371,7 +374,7 @@ void buildrespmodfile(FILE * f, char *buf)
 
 
 
-int do_file(int fd, char *filename)
+int do_file(int fd, char *filename, int *keepalive)
 {
      FILE *f;
      char lg[10], lbuf[512];
@@ -393,7 +396,8 @@ int do_file(int fd, char *filename)
           totalbytesout += len;
           bytes = sprintf(lg, "%X\r\n", len);
           if (icap_write(fd, lg, bytes) < 0) {
-               printf("Error writing to socket.....\n");
+               printf("Error writing to socket:%s (after %d bytes).....\n",
+                      lg, totalbytesout);
                return 0;
           }
           if (icap_write(fd, lbuf, len) < 0) {
@@ -408,7 +412,7 @@ int do_file(int fd, char *filename)
 
 
      //        printf("Done(%d bytes). Reading responce.....\n",totalbytesout);
-     if ((totalbytesin = readallresponce(fd)) < 0) {
+     if ((totalbytesin = readallresponce(fd, keepalive)) < 0) {
           printf("Read all responce error;\n");
           return -1;
      }
@@ -427,7 +431,7 @@ int threadjobsendfiles()
      struct sockaddr_in addr;
      struct hostent *hent;
      int port = 1344;
-     int fd, indx;
+     int fd, indx, keepalive;
      int arand;
 
      hent = gethostbyname(servername);
@@ -463,13 +467,17 @@ int threadjobsendfiles()
                     file_indx++;
                ci_thread_mutex_unlock(&filemtx);
 
-               if (do_file(fd, FILES[indx]) <= 0)
+               keepalive = 0;
+               if (do_file(fd, FILES[indx], &keepalive) <= 0)
                     break;
+
                ci_thread_mutex_lock(&statsmtx);
                requests_stats++;
-               arand = rand();  /*rasnd is not thread safe .... */
+               arand = rand();  /*rand is not thread safe .... */
                ci_thread_mutex_unlock(&statsmtx);
 
+               if (keepalive == 0)
+                    break;
 
                if (_THE_END) {
                     printf("The end. thread dieing\n");
