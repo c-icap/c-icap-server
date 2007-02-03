@@ -211,10 +211,10 @@ request_t *ci_request_alloc(ci_connection_t * connection)
 
      req->access_type = 0;
 
-     req->service = NULL;
+     req->service[0] = '\0';
      req->current_service_mod = NULL;
      req->service_data = NULL;
-     req->args = NULL;
+     req->args[0] = '\0';
      req->type = -1;
      req->is_client_request = 0;
      req->preview = -1;
@@ -256,17 +256,13 @@ request_t *ci_request_alloc(ci_connection_t * connection)
 void ci_request_reset(request_t * req)
 {
      int i;
-     if (req->service)
-          free(req->service);
-     if (req->args)
-          free(req->args);
      /*     memset(req->connections,0,sizeof(ci_connection)) *//*Not really needed... */
 
      req->user[0] = '\0';
-     req->service = NULL;
+     req->service[0] = '\0';
      req->current_service_mod = NULL;
      req->service_data = NULL;
-     req->args = NULL;
+     req->args[0] = '\0';
      req->type = -1;
      req->is_client_request = 0;
      req->preview = -1;
@@ -299,10 +295,6 @@ void ci_request_reset(request_t * req)
 void ci_request_destroy(request_t * req)
 {
      int i;
-     if (req->service)
-          free(req->service);
-     if (req->args)
-          free(req->args);
      if (req->connection)
           free(req->connection);
 
@@ -501,7 +493,8 @@ request_t *ci_client_request(ci_connection_t * conn, char *server,
      req = ci_request_alloc(conn);
      strncpy(req->req_server, server, CI_MAXHOSTNAMELEN);
      req->req_server[CI_MAXHOSTNAMELEN] = '\0';
-     req->service = strdup(service);
+     strncpy(req->service, service, MAX_SERVICE_NAME);
+     req->service[MAX_SERVICE_NAME] = '\0';
      req->is_client_request = 1;
      return req;
 }
@@ -511,11 +504,7 @@ void ci_client_request_reuse(request_t * req)
 {
      int i;
 
-     if (req->args)
-          free(req->args);
-
-
-     req->args = NULL;
+     req->args[0] = '\0';
      req->type = -1;
      ci_buf_reset(&(req->preview_data));
 

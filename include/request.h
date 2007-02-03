@@ -60,8 +60,8 @@ typedef struct request{
      char req_server[CI_MAXHOSTNAMELEN+1];
      int access_type;
      char user[MAX_USERNAME_LEN+1];
-     char *service;
-     char *args;
+     char service[MAX_SERVICE_NAME+1];
+     char args[MAX_SERVICE_ARGS];
      int preview;
      int keepalive;
      int allow204;

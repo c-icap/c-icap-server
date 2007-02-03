@@ -20,7 +20,6 @@
 #ifndef __SERVICE_H
 #define __SERVICE_H
 
-#include "request.h"
 #include "header.h"
 #include "cfg_param.h"
 
@@ -30,6 +29,9 @@
 #define CI_MOD_CONTINUE 100
 #define CI_MOD_ALLOW204 204
 #define CI_MOD_ERROR     -1
+
+#define MAX_SERVICE_NAME  63
+#define MAX_SERVICE_ARGS 255
 
 struct request;
 
@@ -57,14 +59,16 @@ struct  service_module{
 };
 
 typedef struct service_alias {
-     char *alias;
+     char alias[MAX_SERVICE_NAME+1];
+     char args[MAX_SERVICE_ARGS+1];
      service_module_t *service;
 } service_alias_t;
 
 
 service_module_t * register_service(char *module_file);
-service_alias_t *add_service_alias(char *service_alias,char *service_name);
+service_alias_t *add_service_alias(char *service_alias,char *service_name,char *args);
 service_module_t *find_service(char *service_name);
+service_alias_t *find_service_alias(char *service_name);
 int post_init_services();
 int release_services();
 

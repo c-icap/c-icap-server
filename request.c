@@ -188,7 +188,9 @@ int read_encaps_header(request_t * req, ci_headers_list_t * h, int size)
 int parse_request(request_t * req, char *buf)
 {
      char *start, *end;
-     int servnamelen, len;
+     int servnamelen, len, args_len;
+     service_module_t *service = NULL;
+     service_alias_t *salias = NULL;
 
      if ((start = strstr(buf, "icap://")) != NULL) {
           start = start + 7;
@@ -198,29 +200,39 @@ int parse_request(request_t * req, char *buf)
                    (CI_MAXHOSTNAMELEN > len ? len : CI_MAXHOSTNAMELEN);
                memcpy(req->req_server, start, servnamelen);
                req->req_server[servnamelen] = '\0';
-
                if (*end == '/') {       /*service */
                     start = ++end;
                     while (*end != ' ' && *end != '?')
                          end++;
                     len = end - start;
                     if (len > 0) {
-                         req->service = malloc((len + 1) * sizeof(char));
+                         len =
+                             (len < MAX_SERVICE_NAME ? len : MAX_SERVICE_NAME);
                          strncpy(req->service, start, len);
                          req->service[len] = '\0';
+                         if (!(service = find_service(req->service))) { /*else search for an alias */
+                              if (!(salias = find_service_alias(req->service)))
+                                   return EC_404;       /* Service not found ..... */
+                              service = salias->service;
+                              if (salias->args)
+                                   strcpy(req->args, salias->args);
+                         }
+                         req->current_service_mod = service;
                          if (*end == '?') {     /*args */
                               start = ++end;
                               if ((end = strchr(start, ' ')) != NULL) {
+                                   args_len = strlen(req->args);
                                    len = end - start;
-                                   req->args = malloc((len + 1) * sizeof(char));
-                                   strncpy(req->args, start, len);
-                                   req->args[len] = '\0';
+                                   if (args_len && len) {
+                                        req->args[args_len] = '&';
+                                        args_len++;
+                                   }
+                                   len = (len < (MAX_SERVICE_ARGS - args_len) ?
+                                          len : (MAX_SERVICE_ARGS - args_len));
+                                   strncpy(req->args + args_len, start, len);
+                                   req->args[args_len + len] = '\0';
                               }
-                         }      /*args */
-                         if (!
-                             (req->current_service_mod =
-                              find_service(req->service)))
-                              return EC_404;    /* Service not found ..... */
+                         }      /*end of parsing args */
                          if (!ci_method_support
                              (req->current_service_mod->mod_type, req->type)
                              || req->type != ICAP_OPTIONS)
@@ -838,9 +850,7 @@ void options_responce(request_t * req)
 int process_request(request_t * req)
 {
      int res, preview_status = 0, auth_status = CI_ACCESS_ALLOW;
-
      res = parse_header(req);
-
      if (res != EC_100) {
           if (res >= 0)
                ec_responce(req, res);   /*Bad request or Service not found or Server error or what else...... */

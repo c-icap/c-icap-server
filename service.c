@@ -44,7 +44,7 @@ static int services_num = 0;
 static service_alias_t *service_aliases = NULL;
 static int service_aliases_size;
 static int service_aliases_num = 0;
-service_module_t *find_alias_service(char *service_name);
+service_module_t *find_service_by_alias(char *service_name);
 
 
 service_module_t *create_service(char *service_file)
@@ -111,7 +111,8 @@ service_module_t *find_service(char *service_name)
           if (strcmp(service_list[i]->mod_name, service_name) == 0)
                return (service_list[i]);
      }
-     return find_alias_service(service_name);
+     return NULL;
+/*     return find_service_by_alias(service_name);*/
 }
 
 
@@ -135,14 +136,18 @@ int release_services()
           }
      }
      services_num = 0;
+     service_aliases_num = 0;
      return 1;
 }
 
 
 /********************** Service aliases *****************************/
-service_alias_t *add_service_alias(char *service_alias, char *service_name)
+service_alias_t *add_service_alias(char *service_alias, char *service_name,
+                                   char *args)
 {
      service_module_t *service = NULL;
+     service_alias_t *salias = NULL;
+     int len = 0;
      int alias_indx = 0;
      if (service_aliases == NULL) {
           service_aliases = malloc(STEP * sizeof(service_alias_t));
@@ -162,13 +167,31 @@ service_alias_t *add_service_alias(char *service_alias, char *service_name)
      }
 
      service = find_service(service_name);
-     if (!service)
-          return NULL;
-
+     if (!service) {
+          salias = find_service_alias(service_name);
+          if (!salias)
+               return NULL;
+          service = salias->service;
+     }
      alias_indx = service_aliases_num;
      service_aliases_num++;
      service_aliases[alias_indx].service = service;
-     service_aliases[alias_indx].alias = strdup(service_alias);
+     strncpy(service_aliases[alias_indx].alias,
+             service_alias, MAX_SERVICE_NAME);
+     service_aliases[alias_indx].alias[MAX_SERVICE_NAME] = '\0';
+     service_aliases[alias_indx].args[0] = '\0';
+     if (salias) {
+          len = strlen(salias->args);
+          strcpy(service_aliases[alias_indx].args, salias->args);       /*we had check for len */
+     }
+     if (args && len) {
+          service_aliases[alias_indx].args[len] = '&';
+          len++;
+     }
+     if (args && MAX_SERVICE_ARGS - len > 0) {
+          strcpy(service_aliases[alias_indx].args + len, args);
+     }
+     service_aliases[alias_indx].args[MAX_SERVICE_ARGS] = '\0';
 
      if (service->mod_conf_table)
           register_conf_table(service_aliases[alias_indx].alias,
@@ -177,12 +200,22 @@ service_alias_t *add_service_alias(char *service_alias, char *service_name)
      return &(service_aliases[alias_indx]);
 }
 
-service_module_t *find_alias_service(char *service_name)
+service_module_t *find_service_by_alias(char *service_name)
 {
      int i;
      for (i = 0; i < service_aliases_num; i++) {
           if (strcmp(service_aliases[i].alias, service_name) == 0)
                return (service_aliases[i].service);
+     }
+     return NULL;
+}
+
+service_alias_t *find_service_alias(char *service_name)
+{
+     int i;
+     for (i = 0; i < service_aliases_num; i++) {
+          if (strcmp(service_aliases[i].alias, service_name) == 0)
+               return &(service_aliases[i]);
      }
      return NULL;
 }

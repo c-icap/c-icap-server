@@ -311,18 +311,24 @@ int cfg_load_service(char *directive, char **argv, void *setdata)
           ci_debug_printf(1, "Error loading service\n");
           return 0;
      }
-     add_service_alias(argv[0], service->mod_name);
+     add_service_alias(argv[0], service->mod_name, NULL);
      return 1;
 }
 
 int cfg_service_alias(char *directive, char **argv, void *setdata)
 {
+     char *service_args = NULL;
      if (argv == NULL || argv[0] == NULL || argv[1] == NULL) {
           ci_debug_printf(1, "Missing arguments in ServiceAlias directive\n");
           return 0;
      }
+     if ((service_args = strchr(argv[1], '?'))) {
+          *service_args = '\0';
+          service_args++;
+     }
+
      ci_debug_printf(1, "Alias:%s of service %s\n", argv[0], argv[1]);
-     add_service_alias(argv[0], argv[1]);
+     add_service_alias(argv[0], argv[1], service_args);
      return 1;
 }
 
