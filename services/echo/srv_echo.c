@@ -24,7 +24,7 @@
 #include "simple_api.h"
 #include "debug.h"
 
-int echo_init_service(service_module_t * serv,
+int echo_init_service(service_extra_data_t * srv_xdata,
                       struct icap_server_conf *server_conf);
 int echo_check_preview_handler(char *preview_data, int preview_data_len,
                                request_t *);
@@ -34,20 +34,10 @@ int echo_io(char *rbuf, int *rlen, char *wbuf, int *wlen, int iseof,
             request_t * req);
 
 
-char *echo_options[] = {
-     "Preview: 1024",
-     "Allow: 204",
-     "Transfer-Preview: *",
-     NULL
-};
-
-
 CI_DECLARE_MOD_DATA service_module_t service = {
      "echo",                    /*Module name */
      "Echo demo service",       /*Module short description */
      ICAP_RESPMOD | ICAP_REQMOD,        /*Service type responce or request modification */
-     echo_options,              /*Extra options headers */
-     NULL,                      /* Options body */
      echo_init_service,         /*init_service. */
      NULL,                      /*post_init_service */
      NULL,                      /*close_service */
@@ -61,10 +51,13 @@ CI_DECLARE_MOD_DATA service_module_t service = {
 };
 
 
-int echo_init_service(service_module_t * serv,
+int echo_init_service(service_extra_data_t * srv_xdata,
                       struct icap_server_conf *server_conf)
 {
      printf("Initialization of echo module......\n");
+     ci_service_set_preview(srv_xdata, 1024);
+     ci_service_enable_204(srv_xdata);
+     ci_service_set_transfer_preview(srv_xdata, "*");
      return CI_OK;
 }
 

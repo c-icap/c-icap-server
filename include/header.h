@@ -71,7 +71,7 @@ typedef struct ci_encaps_entity{
 #define BUFSIZE          4096
 #define HEADERSTARTSIZE  64
 #define HEADSBUFSIZE     BUFSIZE
-
+#define MAX_HEADER_SIZE  1023
 
 #define ci_headers_not_empty(h) ((h)->used)
 #define ci_headers_is_empty(h) ((h)->used==0)

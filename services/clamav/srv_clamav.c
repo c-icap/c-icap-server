@@ -67,8 +67,11 @@ char *VIR_SAVE_DIR = NULL;
 char *VIR_HTTP_SERVER = NULL;
 int VIR_UPDATE_TIME = 15;
 
+/*srv_clamav service extra data ... */
+service_extra_data_t *srv_clamav_xdata = NULL;
 
-int srvclamav_init_service(service_module_t * this,
+
+int srvclamav_init_service(service_extra_data_t * srv_xdata,
                            struct icap_server_conf *server_conf);
 void srvclamav_close_service(service_module_t * this);
 int srvclamav_check_preview_handler(char *preview_data, int preview_data_len,
@@ -93,6 +96,7 @@ int init_virusdb();
 struct cl_node *get_virusdb();
 void release_virusdb(struct cl_node *);
 void destroy_virusdb();
+void set_istag(service_extra_data_t * srv_xdata);
 
 /*It is dangerous to pass directly fields of the limits structure in conf_variables,
   becouse in the feature some of this fields will change type (from int to unsigned int 
@@ -125,20 +129,10 @@ static struct conf_entry conf_variables[] = {
 };
 
 
-static char *srvclamav_options[] = {
-     "Preview: 1024",
-     "Allow: 204",
-     "Transfer-Preview: *",
-     NULL
-};
-
-
 CI_DECLARE_MOD_DATA service_module_t service = {
      "srv_clamav",              /*Module name */
      "Clamav/Antivirus service",        /*Module short description */
      ICAP_RESPMOD | ICAP_REQMOD,        /*Service type responce or request modification */
-     srvclamav_options,         /*Extra options headers */
-     NULL,                      /* Options body */
      srvclamav_init_service,    /*init_service. */
      NULL,                      /*post_init_service. */
      srvclamav_close_service,   /*close_service */
@@ -153,7 +147,7 @@ CI_DECLARE_MOD_DATA service_module_t service = {
 
 
 
-int srvclamav_init_service(service_module_t * this,
+int srvclamav_init_service(service_extra_data_t * srv_xdata,
                            struct icap_server_conf *server_conf)
 {
      int ret, i;
@@ -171,6 +165,11 @@ int srvclamav_init_service(service_module_t * this,
      ret = init_virusdb();
      if (!ret)
           return 0;
+     srv_clamav_xdata = srv_xdata;      /*Needed by db_reload command */
+     set_istag(srv_clamav_xdata);
+     ci_service_set_preview(srv_xdata, 1024);
+     ci_service_enable_204(srv_xdata);
+     ci_service_set_transfer_preview(srv_xdata, "*");
      memset(&limits, 0, sizeof(struct cl_limits));
      limits.maxfiles = 0 /*1000 */ ;    /* max files */
      limits.maxfilesize = 100 * 1048576;        /* maximal archived file size == 100 Mb */
@@ -612,6 +611,44 @@ void destroy_virusdb()
      }
 }
 
+void set_istag(service_extra_data_t * srv_xdata)
+{
+     char istag[SERVICE_ISTAG_SIZE + 1];
+     char str_version[64];
+     char *daily_path;
+     char *s1, *s2;
+     struct cl_cvd *d1;
+     int version = 0, cfg_version = 0;
+
+     daily_path = malloc(strlen(cl_retdbdir()) + 20);
+     if (!daily_path)           /*???????? */
+          return;
+     sprintf(daily_path, "%s/daily.cvd", cl_retdbdir());
+
+     if ((d1 = cl_cvdhead(daily_path))) {
+          version = d1->version;
+          free(d1);
+     }
+     free(daily_path);
+
+     s1 = (char *) cl_retver();
+     s2 = str_version;
+     while (*s1 != '\0' && s2 - str_version < 64) {
+          if (*s1 != '.') {
+               *s2 = *s1;
+               s2++;
+          }
+          s1++;
+     }
+     *s2 = '\0';
+     /*cfg_version maybe must set by user when he is changing 
+        the srv_clamav configuration.... */
+     snprintf(istag, SERVICE_ISTAG_SIZE, "-%.3d-%s-%d%d",
+              cfg_version, str_version, cl_retflevel(), version);
+     istag[SERVICE_ISTAG_SIZE] = '\0';
+     ci_service_set_istag(srv_xdata, istag);
+}
+
 /* Content-Encoding: gzip*/
 int ci_extend_filetype(struct ci_magics_db *db,
                        request_t * req, char *buf, int len, int *iscompressed);
@@ -732,6 +769,8 @@ void dbreload_command(char *name, int type, char **argv)
      ci_debug_printf(1, "Clamav virus database reload command received\n");
      if (!reload_virusdb())
           ci_debug_printf(1, "Clamav virus database reload command failed!\n");
+     if (srv_clamav_xdata)
+          set_istag(srv_clamav_xdata);
 }
 
 /****************************************************************************************/

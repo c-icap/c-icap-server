@@ -37,6 +37,7 @@
 #define STEP 32
 
 static service_module_t **service_list = NULL;
+static service_extra_data_t *service_extra_data_list = NULL;
 static int service_list_size;
 static int services_num = 0;
 
@@ -60,6 +61,19 @@ service_module_t *create_service(char *service_file)
 
 }
 
+void init_extra_data(service_extra_data_t * srv_xdata)
+{
+     ci_thread_rwlock_init(&srv_xdata->lock);
+     strcpy(srv_xdata->ISTag, "ISTag: ");
+     strcat(srv_xdata->ISTag, ISTAG "-XXXXXXXXX");
+     memset(srv_xdata->xincludes, 0, XINCLUDES_SIZE + 1);
+     memset(srv_xdata->TransferPreview, 0, MAX_HEADER_SIZE + 1);
+     memset(srv_xdata->TransferIgnore, 0, MAX_HEADER_SIZE + 1);
+     memset(srv_xdata->TransferComplete, 0, MAX_HEADER_SIZE + 1);
+     srv_xdata->preview_size = 0;
+     srv_xdata->allow_204 = 0;
+     srv_xdata->xopts = 0;
+}
 
 /*Must called only in initialization procedure.
   It is not thread-safe!
@@ -71,16 +85,22 @@ service_module_t *register_service(char *service_file)
      if (service_list == NULL) {
           service_list_size = STEP;
           service_list = malloc(service_list_size * sizeof(service_module_t *));
+          service_extra_data_list =
+              malloc(service_list_size * sizeof(service_extra_data_t));
      }
      else if (services_num == service_list_size) {
           service_list_size += STEP;
           service_list =
               realloc(service_list,
                       service_list_size * sizeof(service_module_t *));
+          service_extra_data_list = realloc(service_extra_data_list,
+                                            service_list_size *
+                                            sizeof(service_extra_data_t));
      }
 
-     if (service_list == NULL) {
-          //log an error......and...
+     if (service_list == NULL || service_extra_data_list == NULL) {
+          ci_debug_printf(1,
+                          "Fatal error:Can not allocate memory! Exiting imediatelly!\n");
           exit(-1);
      }
 
@@ -91,8 +111,10 @@ service_module_t *register_service(char *service_file)
           return NULL;
      }
 
+     init_extra_data(&service_extra_data_list[services_num]);
      if (service->mod_init_service)
-          service->mod_init_service(service, &CONF);
+          service->mod_init_service(&service_extra_data_list[services_num],
+                                    &CONF);
 
      service_list[services_num++] = service;
 
@@ -115,13 +137,23 @@ service_module_t *find_service(char *service_name)
 /*     return find_service_by_alias(service_name);*/
 }
 
+service_extra_data_t *service_data(service_module_t * srv)
+{
+     int i;
+     for (i = 0; i < services_num; i++) {
+          if (service_list[i] == srv)
+               return &(service_extra_data_list[i]);
+     }
+     return NULL;
+}
 
 int post_init_services()
 {
      int i;
      for (i = 0; i < services_num; i++) {
           if (service_list[i]->mod_post_init_service != NULL) {
-               service_list[i]->mod_post_init_service(service_list[i], &CONF);
+               service_list[i]->
+                   mod_post_init_service(&service_extra_data_list[i], &CONF);
           }
      }
      return 1;
@@ -133,6 +165,7 @@ int release_services()
      for (i = 0; i < services_num; i++) {
           if (service_list[i]->mod_close_service != NULL) {
                service_list[i]->mod_close_service(service_list[i]);
+               ci_thread_rwlock_destroy(&service_extra_data_list[i].lock);
           }
      }
      services_num = 0;

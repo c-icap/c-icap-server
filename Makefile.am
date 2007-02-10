@@ -12,12 +12,12 @@ SUBDIRS =  . modules services
 lib_LTLIBRARIES=libicapapi.la
 bin_PROGRAMS = c-icap icap-client icap-stretch
 
-UTIL_SOURCES=net_io.c os/unix/net_io.c os/unix/proc_mutex.c os/unix/shared_mem.c os/unix/utilfunc.c os/unix/proc_utils.c os/unix/dlib.c
+UTIL_SOURCES=net_io.c os/unix/net_io.c os/unix/proc_mutex.c os/unix/shared_mem.c os/unix/threads.c os/unix/utilfunc.c os/unix/proc_utils.c os/unix/dlib.c
 
 
 
 libicapapi_la_SOURCES=  header.c body.c base64.c simple_api.c request_common.c \
-                          filetype.c debug.c cfg_lib.c mem.c  $(UTIL_SOURCES)
+                          filetype.c debug.c cfg_lib.c mem.c  service_lib.c $(UTIL_SOURCES)
 c_icap_SOURCES = aserver.c request.c cfg_param.c \
                    proc_threads_queues.c http_auth.c \
                    access.c log.c service.c module.c \
@@ -44,8 +44,8 @@ c_icap_LDFLAGS = -rdynamic -rpath @libdir@ @THREADS_LDFLAGS@
 #other .....
 icap_client_SOURCES = icap-client.c
 icap_client_CFLAGS= -Iinclude/
-icap_client_LDADD= libicapapi.la @DL_ADD_FLAG@
-icap_client_LDFLAGS = -rdynamic -rpath @libdir@
+icap_client_LDADD= @THREADS_LDADD@ libicapapi.la @DL_ADD_FLAG@
+icap_client_LDFLAGS = -rdynamic -rpath @libdir@ @THREADS_LDFLAGS@
 
 icap_stretch_SOURCES = icap-stretch.c
 icap_stretch_CFLAGS= -Iinclude/

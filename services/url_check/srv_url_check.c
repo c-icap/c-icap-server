@@ -26,7 +26,7 @@
 
 
 
-int url_check_init_service(service_module_t * serv,
+int url_check_init_service(service_extra_data_t * srv_xdata,
                            struct icap_server_conf *server_conf);
 void *url_check_init_request_data(service_module_t * serv, request_t * req);
 void url_check_release_data(void *data);
@@ -39,20 +39,11 @@ int url_check_io(char *rbuf, int *rlen, char *wbuf, int *wlen, int iseof,
 //int    url_check_read(char *buf,int len,request_t *req);
 
 
-char *url_check_options[] = {
-     "Allow: 204",
-     "Transfer-Preview: *",
-     NULL
-};
-
-
 //service_module echo={
 CI_DECLARE_MOD_DATA service_module_t service = {
      "url_check",
      "Url_Check demo service",
      ICAP_REQMOD,
-     url_check_options,
-     NULL,                      /* Options body */
      url_check_init_service,    /* init_service */
      NULL,                      /*post_init_service */
      NULL,                      /*close_Service */
@@ -80,10 +71,14 @@ struct http_info {
 };
 
 
-int url_check_init_service(service_module_t * serv,
+int url_check_init_service(service_extra_data_t * srv_xdata,
                            struct icap_server_conf *server_conf)
 {
+     unsigned int xops;
      printf("Initialization of url_check module......\n");
+     xops = CI_XClientIP | CI_XServerIP;
+     xops |= CI_XAuthenticatedUser | CI_XAuthenticatedGroups;
+     ci_service_set_xopts(srv_xdata, xops);
      return CI_OK;
 }
 

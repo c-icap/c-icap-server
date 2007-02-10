@@ -42,7 +42,7 @@ extern int TIMEOUT;
 
 
 #define FORBITTEN_STR "ICAP/1.0 403 Forbidden\r\n\r\n"
-#define ISTAG         "\"5BDEEEA9-12E4-2\""
+/*#define ISTAG         "\"5BDEEEA9-12E4-2\""*/
 
 request_t *newrequest(ci_connection_t * connection)
 {
@@ -400,8 +400,12 @@ void ec_responce(request_t * req, int ec)
 void ec_responce_with_istag(request_t * req, int ec)
 {
      char buf[256];
-     snprintf(buf, 256, "ICAP/1.0 %d %s\r\nISTag: " ISTAG "\r\n\r\n",
-              ci_error_code(ec), ci_error_code_string(ec));
+     service_extra_data_t *srv_xdata;
+     srv_xdata = service_data(req->current_service_mod);
+     ci_service_data_read_lock(srv_xdata);
+     snprintf(buf, 256, "ICAP/1.0 %d %s\r\nISTag: %s\r\n\r\n",
+              ci_error_code(ec), ci_error_code_string(ec), srv_xdata->ISTag);
+     ci_service_data_read_unlock(srv_xdata);
      buf[255] = '\0';
      ci_write(req->connection->fd, buf, strlen(buf), TIMEOUT);
 }
@@ -411,8 +415,9 @@ int mk_responce_header(request_t * req)
 {
      ci_headers_list_t *head;
      ci_encaps_entity_t **e_list;
+     service_extra_data_t *srv_xdata;
      char buf[512];
-
+     srv_xdata = service_data(req->current_service_mod);
      head = req->head;
      ci_headers_reset(req->head);
      ci_headers_add(head, "ICAP/1.0 200 OK");
@@ -421,8 +426,9 @@ int mk_responce_header(request_t * req)
           ci_headers_add(head, "Connection: keep-alive");
      else
           ci_headers_add(head, "Connection: close");
-     ci_headers_add(head, "ISTag: " ISTAG);
-
+     ci_service_data_read_lock(srv_xdata);
+     ci_headers_add(head, srv_xdata->ISTag);
+     ci_service_data_read_unlock(srv_xdata);
      if (!ci_headers_is_empty(req->xheaders)) {
           ci_headers_addheaders(head, req->xheaders);
      }
@@ -785,12 +791,14 @@ int rest_responce(request_t * req)
 
 void options_responce(request_t * req)
 {
-     char buf[256];
+     char buf[MAX_HEADER_SIZE + 1];
      char *str;
      ci_headers_list_t *head;
-     int i;
+     service_extra_data_t *srv_xdata;
+     unsigned int xopts;
+     int preview, allow204, xlen;
      head = req->head;
-
+     srv_xdata = service_data(req->current_service_mod);
      ci_headers_reset(head);
      ci_headers_add(head, "ICAP/1.0 200 OK");
      strcpy(buf, "Methods: ");
@@ -806,26 +814,80 @@ void options_responce(request_t * req)
      }
 
      ci_headers_add(head, buf);
-     snprintf(buf, 255, "Service: C-ICAP/" VERSION " server - %s",
+     snprintf(buf, MAX_HEADER_SIZE, "Service: C-ICAP/" VERSION " server - %s",
               ((str =
                 req->current_service_mod->mod_short_descr) ? str : req->
                current_service_mod->mod_name));
-     buf[255] = '\0';
+     buf[MAX_HEADER_SIZE] = '\0';
      ci_headers_add(head, buf);
-     ci_headers_add(head, "ISTag: " ISTAG);
-     ci_headers_add(head, "Max-Connections: 20");
-     ci_headers_add(head, "Options-TTL: 3600");
 
+     ci_service_data_read_lock(srv_xdata);
+     ci_headers_add(head, srv_xdata->ISTag);
+     if (srv_xdata->TransferPreview[0] != '\0')
+          ci_headers_add(head, srv_xdata->TransferPreview);
+     if (srv_xdata->TransferIgnore[0] != '\0')
+          ci_headers_add(head, srv_xdata->TransferIgnore);
+     if (srv_xdata->TransferComplete[0] != '\0')
+          ci_headers_add(head, srv_xdata->TransferComplete);
+     /*Get service options before close the lock.... */
+     xopts = srv_xdata->xopts;
+     preview = srv_xdata->preview_size;
+     allow204 = srv_xdata->allow_204;
+     ci_service_data_read_unlock(srv_xdata);
+
+     /* ci_headers_add(head, "Max-Connections: 20"); */
+     ci_headers_add(head, "Options-TTL: 3600");
      strcpy(buf, "Date: ");
      ci_strtime_rfc822(buf + strlen(buf));
      ci_headers_add(head, buf);
-
-
-     if (req->current_service_mod->mod_options_header) {
-          for (i = 0;
-               (str = req->current_service_mod->mod_options_header[i]) != NULL
-               && i < 30; i++)
-               ci_headers_add(head, str);
+     if (preview > 0) {
+          sprintf(buf, "Preview: %d", srv_xdata->preview_size);
+          ci_headers_add(head, buf);
+     }
+     if (allow204) {
+          ci_headers_add(head, "Allow: 204");
+     }
+     if (xopts) {
+          strcpy(buf, "X-Include: ");
+          xlen = 11;            /*sizeof("X-Include: ") */
+          if ((xopts & CI_XClientIP)) {
+               strcat(buf, "X-Client-IP");
+               xlen += sizeof("X-Client-IP");
+          }
+          if ((xopts & CI_XServerIP)) {
+               if (xlen > 11) {
+                    strcat(buf, ", ");
+                    xlen += 2;
+               }
+               strcat(buf, "X-Server-IP");
+               xlen += sizeof("X-Server-IP");
+          }
+          if ((xopts & CI_XSubscriberID)) {
+               if (xlen > 11) {
+                    strcat(buf, ", ");
+                    xlen += 2;
+               }
+               strcat(buf, "X-Subscriber-ID");
+               xlen += sizeof("X-Subscriber-ID");
+          }
+          if ((xopts & CI_XAuthenticatedUser)) {
+               if (xlen > 11) {
+                    strcat(buf, ", ");
+                    xlen += 2;
+               }
+               strcat(buf, "X-Authenticated-User");
+               xlen += sizeof("X-Authenticated-User");
+          }
+          if ((xopts & CI_XAuthenticatedGroups)) {
+               if (xlen > 11) {
+                    strcat(buf, ", ");
+                    xlen += 2;
+               }
+               strcat(buf, "X-Authenticated-Groups");
+               xlen += sizeof("X-Authenticated-Groups");
+          }
+          if (xlen > 11)
+               ci_headers_add(head, buf);
      }
      ci_request_pack(req);
 
