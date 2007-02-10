@@ -35,6 +35,22 @@
 #define ci_thread_mutex_lock(pmutex) pthread_mutex_lock(pmutex)
 #define ci_thread_mutex_unlock(pmutex) pthread_mutex_unlock(pmutex)
 
+#ifdef HAVE_PTHREADS_RWLOCK
+#define ci_thread_rwlock_t pthread_rwlock_t
+#define ci_thread_rwlock_init(rwlock) pthread_rwlock_init(rwlock,NULL)
+#define ci_thread_rwlock_destroy(rwlock) pthread_rwlock_destroy(rwlock)
+#define ci_thread_rwlock_rdlock(rwlock) pthread_rwlock_rdlock(rwlock)
+#define ci_thread_rwlock_wrlock(rwlock) pthread_rwlock_wrlock(rwlock)
+#define ci_thread_rwlock_unlock(rwlock) pthread_rwlock_unlock(rwlock)
+#else
+#define ci_thread_rwlock_t pthread_mutex_t
+CI_DECLARE_FUNC(int) ci_thread_rwlock_init(ci_thread_rwlock_t *);
+CI_DECLARE_FUNC(int) ci_thread_rwlock_destroy(ci_thread_rwlock_t *);
+CI_DECLARE_FUNC(int) ci_thread_rwlock_rdlock(ci_thread_rwlock_t *);
+CI_DECLARE_FUNC(int) ci_thread_rwlock_wrlock(ci_thread_rwlock_t *);
+CI_DECLARE_FUNC(int) ci_thread_rwlock_unlock(ci_thread_rwlock_t *);
+#endif
+
 #define  ci_thread_cond_init(pcond)   pthread_cond_init(pcond,NULL)
 #define ci_thread_cond_destroy(pcond) pthread_cond_destroy(pcond)
 #define ci_thread_cond_wait(pcond,pmutex) pthread_cond_wait(pcond,pmutex)
@@ -50,6 +66,7 @@
 #include <windows.h>
 
 #define  ci_thread_mutex_t   CRITICAL_SECTION
+#define  ci_thread_rwlock_t  CRITICAL_SECTION
 #define  ci_thread_cond_t    HANDLE
 #define  ci_thread_t         DWORD
 
@@ -57,6 +74,12 @@ CI_DECLARE_FUNC(int)  ci_thread_mutex_init(ci_thread_mutex_t *pmutex);
 CI_DECLARE_FUNC(int) ci_thread_mutex_destroy(ci_thread_mutex_t *pmutex);
 CI_DECLARE_FUNC(int) ci_thread_mutex_lock(ci_thread_mutex_t *pmutex);
 CI_DECLARE_FUNC(int) ci_thread_mutex_unlock(ci_thread_mutex_t *pmutex);
+
+CI_DECLARE_FUNC(int) ci_thread_rwlock_init(ci_thread_rwlock_t *);
+CI_DECLARE_FUNC(int) ci_thread_rwlock_destroy(ci_thread_rwlock_t *);
+CI_DECLARE_FUNC(int) ci_thread_rwlock_rdlock(ci_thread_rwlock_t *);
+CI_DECLARE_FUNC(int) ci_thread_rwlock_wrlock(ci_thread_rwlock_t *);
+CI_DECLARE_FUNC(int) ci_thread_rwlock_unlock(ci_thread_rwlock_t *);
 
 CI_DECLARE_FUNC(int)  ci_thread_cond_init(ci_thread_cond_t *pcond);
 CI_DECLARE_FUNC(int) ci_thread_cond_destroy(ci_thread_cond_t *pcond);

@@ -46,11 +46,17 @@ case "$host_os" in
 	CFLAGS="-D_REENTRANT $CFLAGS"
 	THREADS_LDADD="-lpthread"
 	THREADS_LDFLAGS=""
+	AC_CHECK_LIB(pthread,pthread_rwlock_init,
+	AC_DEFINE(HAVE_PTHREADS_RWLOCK,1,[Define HAVE_PTHREADS_RWLOCK if pthreads library supports rwlocks])	
+	)
      ;;
      solaris2.*)
      	  CFLAGS="-D_REENTRANT -D_POSIX_PTHREAD_SEMANTICS $CFLAGS"
 	  THREADS_LDADD="-lpthread"
 	  THREADS_LDFLAGS=""
+	  AC_CHECK_LIB(pthread,pthread_rwlock_init,
+	  AC_DEFINE(HAVE_PTHREADS_RWLOCK,1,[Define HAVE_PTHREADS_RWLOCK if pthreads library supports rwlocks])
+	  )
       ;;
       freebsd5.*)
 ## If I understand how all those threading models works correctly
@@ -69,7 +75,8 @@ case "$host_os" in
       	CFLAGS="-pthread -D_THREAD_SAFE  $CFLAGS"
 	THREADS_LDADD="-XCClinker -lc_r"
 	THREADS_LDFLAGS=""
-
+## FreeBSD has pthreads rwlocks from version 3 (I think)
+	AC_DEFINE(HAVE_PTHREADS_RWLOCK,1,[Define HAVE_PTHREADS_RWLOCK if pthreads library supports rwlocks])
 ##   1:1 threads 
 #      	CFLAGS="-D_THREAD_SAFE  $CFLAGS"
 #	THREADS_LDADD="-XCClinker -lthr"
@@ -85,6 +92,7 @@ case "$host_os" in
       	CFLAGS="-D_REENTRANT $CFLAGS"
 	THREADS_LDADD="-lpthread"
 	THREADS_LDFLAGS=""
+	AC_DEFINE(HAVE_PTHREADS_RWLOCK,1,[Define HAVE_PTHREADS_RWLOCK if pthreads library supports rwlocks]) 
       ;;
 esac
 
