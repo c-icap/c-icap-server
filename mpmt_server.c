@@ -586,7 +586,7 @@ void listener_thread(int *fd)
                          ci_debug_printf(5, "listener of pid:%d exiting\n",
                                          pid);
                          listener_running = 0;
-                         return;
+                         goto LISTENER_FAILS;
                     }
                     continue;
                }
@@ -950,7 +950,7 @@ int start_server()
      child_data->to_be_killed = 0;
      child_data->father_said = 0;
      child_data->idle = 1;
-     child_main(LISTEN_SOCKET);
+     child_main(LISTEN_SOCKET, 0);
 #endif
      return 1;
 }
