@@ -58,10 +58,14 @@ INCS = access.h body.h cfg_param.h c-icap.h ci_threads.h debug.h header.h log.h 
 ALL_INCS=$(INCS:%.h=include/%.h)
 
 pkginclude_HEADERS = $(ALL_INCS)
-sysconf_DATA = c-icap.conf c-icap.magic
+#sysconf_DATA = c-icap.conf c-icap.magic
 
 install-data-local:
-	$(mkinstalldirs) $(LOGDIR); chgrp nobody $(LOGDIR);chmod 775 $(LOGDIR)
+	$(mkinstalldirs) $(CONFIGDIR) $(LOGDIR); chgrp nobody $(LOGDIR);chmod 775 $(LOGDIR)
+	$(INSTALL) c-icap.conf $(CONFIGDIR)/c-icap.conf.default
+	$(INSTALL) c-icap.magic $(CONFIGDIR)/c-icap.magic.default
+	if test ! -f $(CONFIGDIR)/c-icap.conf; then  $(INSTALL) c-icap.conf $(CONFIGDIR)/c-icap.conf; fi
+	if test ! -f $(CONFIGDIR)/c-icap.magic; then $(INSTALL) c-icap.magic $(CONFIGDIR)/c-icap.magic; fi
 
 EXTRA_DIST= RECONF INSTALL.txt config-w32.h makefile.w32 c-icap.conf c_icap_dll.mak c-icap.conf.in c-icap.magic  c_icap.mak c_icap.def \
              contrib/get_file.pl contrib/convert_old_magic.pl \
