@@ -31,11 +31,16 @@
 #include "include/commands.h"
 #include <errno.h>
 
+#ifdef HAVE_LIBCLAMAV_09X
+#define CL_ENGINE struct cl_engine
+#else
+#define CL_ENGINE struct cl_node
+#endif
 
 int must_scanned(int type, av_req_data_t * data);
 
 struct virus_db {
-     struct cl_node *db;
+     CL_ENGINE *db;
      int refcount;
 };
 
@@ -93,8 +98,8 @@ void dbreload_command(char *name, int type, char **argv);
 /*General functions*/
 int get_filetype(request_t * req, char *buf, int len);
 int init_virusdb();
-struct cl_node *get_virusdb();
-void release_virusdb(struct cl_node *);
+CL_ENGINE *get_virusdb();
+void release_virusdb(CL_ENGINE *);
 void destroy_virusdb();
 void set_istag(service_extra_data_t * srv_xdata);
 
@@ -405,7 +410,7 @@ int srvclamav_io(char *rbuf, int *rlen, char *wbuf, int *wlen, int iseof,
 int srvclamav_end_of_data_handler(request_t * req)
 {
      av_req_data_t *data = ci_service_data(req);
-     struct cl_node *vdb;
+     CL_ENGINE *vdb;
      ci_simple_file_t *body;
      const char *virname;
      int ret = 0;
@@ -481,8 +486,14 @@ int init_virusdb()
      memset(virusdb, 0, sizeof(struct virus_db));
      if (!virusdb)
           return 0;
+#ifdef HAVE_LIBCLAMAV_09X
+     if ((ret = cl_load(cl_retdbdir(), &(virusdb->db), &no, CL_DB_STDOPT))) {
+          ci_debug_printf(1, "Clamav DB reload: cl_load failed: %s\n",
+                          cl_strerror(ret));
+#else
      if ((ret = cl_loaddbdir(cl_retdbdir(), &(virusdb->db), &no))) {
           ci_debug_printf(1, "cl_loaddbdir: %s\n", cl_perror(ret));
+#endif
           return 0;
      }
      if ((ret = cl_build(virusdb->db))) {
@@ -527,9 +538,15 @@ int reload_virusdb()
           return 0;
      memset(vdb, 0, sizeof(struct virus_db));
      ci_debug_printf(9, "db_reload going to load db\n");
+#ifdef HAVE_LIBCLAMAV_09X
+     if ((ret = cl_load(cl_retdbdir(), &(vdb->db), &no, CL_DB_STDOPT))) {
+          ci_debug_printf(1, "Clamav DB reload: cl_load failed: %s\n",
+                          cl_strerror(ret));
+#else
      if ((ret = cl_loaddbdir(cl_retdbdir(), &(vdb->db), &no))) {
           ci_debug_printf(1, "Clamav DB reload: cl_loaddbdir failed: %s\n",
                           cl_perror(ret));
+#endif
           return 0;
      }
      ci_debug_printf(9, "loaded. Going to build\n");
@@ -565,7 +582,7 @@ int reload_virusdb()
      return 1;
 }
 
-struct cl_node *get_virusdb()
+CL_ENGINE *get_virusdb()
 {
      struct virus_db *vdb;
      ci_thread_mutex_lock(&db_mutex);
@@ -575,7 +592,7 @@ struct cl_node *get_virusdb()
      return vdb->db;
 }
 
-void release_virusdb(struct cl_node *db)
+void release_virusdb(CL_ENGINE * db)
 {
      ci_thread_mutex_lock(&db_mutex);
      if (virusdb && db == virusdb->db)
