@@ -594,7 +594,7 @@ void listener_thread(int *fd)
           child_data->idle = 0;
           ci_debug_printf(7, "Child %d getting requests now ...\n", pid);
           do {                  //Getting requests while we have free servers.....
-#ifndef SIGNLE_ACCEPT
+#ifndef SINGLE_ACCEPT
                fd_set fds;
                int ret;
                do {
