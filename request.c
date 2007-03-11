@@ -403,7 +403,7 @@ void ec_responce_with_istag(request_t * req, int ec)
      service_extra_data_t *srv_xdata;
      srv_xdata = service_data(req->current_service_mod);
      ci_service_data_read_lock(srv_xdata);
-     snprintf(buf, 256, "ICAP/1.0 %d %s\r\nISTag: %s\r\n\r\n",
+     snprintf(buf, 256, "ICAP/1.0 %d %s\r\n%s\r\n\r\n",
               ci_error_code(ec), ci_error_code_string(ec), srv_xdata->ISTag);
      ci_service_data_read_unlock(srv_xdata);
      buf[255] = '\0';
