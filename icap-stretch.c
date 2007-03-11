@@ -49,6 +49,8 @@ int file_indx = 0;
 int requests_stats = 0;
 int in_bytes_stats = 0;
 int out_bytes_stats = 0;
+int req_errors_rw = 0;
+int req_errors_r = 0;
 int _THE_END = 0;
 
 
@@ -61,9 +63,11 @@ void print_stats()
      time_t rtime;
      time(&rtime);
      printf("Statistics:\n\t Files used :%d\n\t Number of threads :%d\n\t"
-            " Requests served :%d\n\t Incoming bytes :%d\n\t Outgoing bytes :%d\n",
+            " Requests served :%d\n\t Incoming bytes :%d\n\t Outgoing bytes :%d\n"
+            " \t Write Errors :%d\n",
             FILES_NUMBER,
-            threadsnum, requests_stats, in_bytes_stats, out_bytes_stats);
+            threadsnum, requests_stats, in_bytes_stats, out_bytes_stats,
+            req_errors_rw);
      rtime = rtime - START_TIME;
      printf("Running for %u seconds\n", (unsigned int) rtime);
 }
@@ -398,10 +402,12 @@ int do_file(int fd, char *filename, int *keepalive)
           if (icap_write(fd, lg, bytes) < 0) {
                printf("Error writing to socket:%s (after %d bytes).....\n",
                       lg, totalbytesout);
+               req_errors_rw++;
                return 0;
           }
           if (icap_write(fd, lbuf, len) < 0) {
                printf("Error writing to socket.....\n");
+               req_errors_rw++;
                return 0;
           }
           icap_write(fd, "\r\n", 2);
@@ -581,6 +587,7 @@ int main(int argc, char **argv)
 
      for (i = 0; i < threadsnum; i++) {
           ci_thread_join(threads[i]);
+          printf("Thread %d exited\n", i);
      }
 
      print_stats();
