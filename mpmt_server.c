@@ -104,7 +104,6 @@ static void term_handler_child(int sig)
 static void sigpipe_handler(int sig)
 {
      ci_debug_printf(5, "SIGPIPE signal received.\n");
-     log_server(NULL, "%s", "SIGPIPE signal received.\n");
 }
 
 static void empty(int sig)
@@ -200,20 +199,34 @@ static void exit_normaly()
 static void cancel_all_threads()
 {
      int i = 0;
-//     ci_thread_mutex_lock(&threads_list_mtx);
+     int wait_listener_time = 10000;
 
      /*Cancel listener thread .... */
-     /*Do not allow listener to write to a queue ...... */
-     ci_thread_mutex_lock(&(con_queue->queue_mtx));
+     /*we are going to wait maximum about 10 ms */
+     while (wait_listener_time > 0 && listener_running != 0) {
+          /*Interrupt listener if it is waiting for threads or 
+             waiting to accept new connections */
 #ifdef SINGLE_ACCEPT
-     pthread_cancel(listener_thread_id);        /*..... */
+          pthread_cancel(listener_thread_id);   /*..... */
 #else
-     pthread_kill(listener_thread_id, SIGHUP);
+          pthread_kill(listener_thread_id, SIGHUP);
 #endif
-     ci_thread_join(listener_thread_id);
-     ci_thread_mutex_unlock(&(con_queue->queue_mtx));
-     ci_debug_printf(5, "OK canceling the listener thread (pid:%d)!\n",
-                     threads_list[0]->srv_id);
+          ci_thread_cond_signal(&free_server_cond);
+          usleep(1000);
+          wait_listener_time -= 10;
+     }
+     if (listener_running == 0) {
+          ci_debug_printf(5,
+                          "Going to waiting the listener thread (pid:%d) to exit!\n",
+                          threads_list[0]->srv_id);
+          ci_thread_join(listener_thread_id);
+          ci_debug_printf(5, "OK canceling the listener thread (pid:%d)!\n",
+                          threads_list[0]->srv_id);
+     }
+     else {
+          /*fuck the listener! going down ..... */
+     }
+
      /*We are going to interupt the waiting for queue childs.
         We are going to wait childs which serve a request. */
      ci_thread_cond_broadcast(&(con_queue->queue_cond));
@@ -224,7 +237,6 @@ static void cancel_all_threads()
           ci_thread_join(threads_list[i]->srv_pthread);
           i++;
      }
-//     ci_threadmutex_unlock(&threads_list_mtx);
 }
 
 static void kill_all_childs()
@@ -576,19 +588,23 @@ void listener_thread(int *fd)
      pid = getpid();
      listener_thread_id = pthread_self();
      for (;;) {                 //Global for
+          if (child_data->to_be_killed) {
+               ci_debug_printf(5, "Listener of pid:%d exiting!\n", pid);
+               goto LISTENER_FAILS;
+          }
           if (!ci_proc_mutex_lock(&accept_mutex)) {
-
                if (errno == EINTR) {
                     ci_debug_printf(5,
                                     "proc_mutex_lock interrupted (EINTR received, pid=%d)!\n",
                                     pid);
-                    if (child_data->to_be_killed) {
-                         ci_debug_printf(5, "listener of pid:%d exiting\n",
-                                         pid);
-                         listener_running = 0;
-                         goto LISTENER_FAILS;
-                    }
+                    /*Try again to take the lock */
                     continue;
+               }
+               else {
+                    ci_debug_printf(1,
+                                    "Unknown errno:%d in proc_mutex_lock of  pid:%d exiting!\n",
+                                    errno, pid);
+                    goto LISTENER_FAILS_UNLOCKED;
                }
           }
           child_data->idle = 0;
@@ -662,9 +678,19 @@ void listener_thread(int *fd)
                ci_thread_mutex_unlock(&counters_mtx);
                (child_data->connections)++;     //NUM of Requests....
           } while (haschild);
-
+          ci_debug_printf(7, "Child %d STOPS getting requests now ...\n", pid);
           child_data->idle = 1;
-          ci_proc_mutex_unlock(&accept_mutex);
+          while (!ci_proc_mutex_unlock(&accept_mutex)) {
+               if (errno != EINTR) {
+                    ci_debug_printf(1,
+                                    "Error:%d while trying to unlock proc_mutex, exiting listener of server:%d\n",
+                                    errno, pid);
+                    goto LISTENER_FAILS_UNLOCKED;
+               }
+               ci_debug_printf(5,
+                               "Mutex lock interupted while trying to unlock proc_mutex, pid:%d\n",
+                               pid);
+          }
 
           ci_thread_mutex_lock(&counters_mtx);
           if ((child_data->freeservers - connections_pending(con_queue)) <= 0) {
@@ -675,12 +701,23 @@ void listener_thread(int *fd)
           }
           ci_thread_mutex_unlock(&counters_mtx);
      }
+   LISTENER_FAILS_UNLOCKED:
      listener_running = 0;
      return;
 
    LISTENER_FAILS:
      listener_running = 0;
-     ci_proc_mutex_unlock(&accept_mutex);
+     errno = 0;
+     while (!ci_proc_mutex_unlock(&accept_mutex)) {
+          if (errno != EINTR) {
+               ci_debug_printf(1,
+                               "Error:%d while trying to unlock proc_mutex of server:%d\n",
+                               errno, pid);
+               break;
+          }
+          ci_debug_printf(7,
+                          "Mutex lock interupted while trying to unlock proc_mutex before terminating\n");
+     }
      return;
 }
 
@@ -753,7 +790,8 @@ void child_main(int sockfd, int pipefd)
      if (child_data->to_be_killed == IMMEDIATELY)
           exit(0);
      /*Else we are going to exit gracefully */
-     ci_debug_printf(5, "Child :%d going down\n", getpid());
+     ci_debug_printf(5, "Child :%d going down :%d\n", getpid(),
+                     child_data->to_be_killed);
      cancel_all_threads();
      exit_normaly();
 }
@@ -934,7 +972,7 @@ int start_server()
                     server_reconfigure();
                }
           }
-          /*Mail process exit point */
+          /*Main process exit point */
           ci_debug_printf(1,
                           "Possibly a term signal received. Monitor process going to term all childs\n");
           kill_all_childs();
