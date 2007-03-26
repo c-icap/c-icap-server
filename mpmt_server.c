@@ -133,7 +133,10 @@ static void sigchld_handler_main(int sig)
 
 static void sighup_handler_main()
 {
-     c_icap_reconfigure = 1;
+//     c_icap_reconfigure = 1;
+    ci_proc_mutex_lock(&accept_mutex);
+     ci_debug_printf(5,"SigHUP \n");
+     ci_proc_mutex_unlock(&accept_mutex);
 }
 
 void child_signals()
@@ -776,12 +779,14 @@ void child_main(int sockfd, int pipefd)
                                "Ohh!! something happen to listener thread! Terminating\n");
                child_data->to_be_killed = GRACEFULLY;
           }
+/*
           if (MAX_REQUESTS_PER_CHILD > 0
               && child_data->requests > MAX_REQUESTS_PER_CHILD) {
                ci_debug_printf(5,
                                "Maximum number of requests reached.Going down\n");
                child_data->to_be_killed = GRACEFULLY;
           }
+*/
           if (child_data->to_be_killed)
                break;
 //          ci_debug_printf(5, "Do some tests\n");
@@ -934,7 +939,18 @@ int start_server()
                                "Server stats: \n\t Childs:%d\n\t Free servers:%d\n"
                                "\tUsed servers:%d\n\tRequests served:%d\n",
                                childs, freeservers, used, maxrequests);
-               if ((freeservers <= MIN_FREE_SERVERS && childs < MAX_CHILDS)
+	       if((child_indx = find_a_child_nrequests(childs_queue, MAX_REQUESTS_PER_CHILD)) >=0 ){
+		    ci_debug_printf(8, "Max requests reached for child :%d of pid :%d\n", 
+				    child_indx, childs_queue->childs[child_indx].pid);
+		    pid = start_child(LISTEN_SOCKET);
+		    usleep(500);
+		    childs_queue->childs[child_indx].father_said =
+			 GRACEFULLY;
+		    /*kill a server ... */
+		    kill(childs_queue->childs[child_indx].pid, SIGTERM);
+
+	       }
+               else if ((freeservers <= MIN_FREE_SERVERS && childs < MAX_CHILDS)
                    || childs < START_CHILDS) {
                     ci_debug_printf(8,
                                     "Free Servers:%d,childs:%d. Going to start a child .....\n",

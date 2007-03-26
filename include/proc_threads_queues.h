@@ -90,6 +90,7 @@ child_shared_data_t *register_child(struct childs_queue *q,
 
 int remove_child(struct childs_queue *q, process_pid_t pid);
 int find_a_child_to_be_killed(struct childs_queue *q);
+int find_a_child_nrequests(struct childs_queue *q,int max_requests);
 int find_an_idle_child(struct childs_queue *q);
 int childs_queue_stats(struct childs_queue *q, int *childs,
 		       int *freeservers, int *used, int *maxrequests);

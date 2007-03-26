@@ -285,6 +285,27 @@ int find_a_child_to_be_killed(struct childs_queue *q)
      return which;
 }
 
+int find_a_child_nrequests(struct childs_queue *q,int max_requests)
+{
+     int i, which, requests;
+     which = -1;
+     requests = max_requests;
+     ci_proc_mutex_lock(&(q->queue_mtx));
+     for (i = 0; i < q->size; i++) {
+          if (q->childs[i].pid == 0)
+               continue;
+	  if (q->childs[i].to_be_killed) {/*If a death of a child pending do not kill any other*/
+               ci_proc_mutex_unlock(&(q->queue_mtx));
+               return -1;
+          }
+	  if (requests < q->childs[i].requests) {
+	       requests = q->childs[i].requests;
+	       which = i;
+	  }
+     }
+     ci_proc_mutex_unlock(&(q->queue_mtx));
+     return which;
+}
 
 int find_an_idle_child(struct childs_queue *q)
 {
@@ -308,8 +329,6 @@ int find_an_idle_child(struct childs_queue *q)
      ci_proc_mutex_unlock(&(q->queue_mtx));
      return which;
 }
-
-
 
 int childs_queue_stats(struct childs_queue *q, int *childs, int *freeservers,
                        int *used, int *maxrequests)
