@@ -40,11 +40,24 @@ static struct sembuf op_unlock[1] = {
      {0, -1, (IPC_NOWAIT | SEM_UNDO)}   /*decrement sem by 1   */
 };
 
+union semun {
+     int              val;    /* Value for SETVAL */
+     struct semid_ds *buf;    /* Buffer for IPC_STAT, IPC_SET */
+     unsigned short  *array;  /* Array for GETALL, SETALL */
+     struct seminfo  *__buf;  /* Buffer for IPC_INFO
+				 (Linux specific) */
+};
 
 int ci_proc_mutex_init(ci_proc_mutex_t * mutex)
 {
+     union semun arg;
      if ((*mutex = semget(IPC_PRIVATE, 1, IPC_CREAT | PERMS)) < 0) {
           ci_debug_printf(1, "Error creating mutex");
+          return 0;
+     }
+     arg.val = 0;
+     if ((semctl(*mutex, 0, SETVAL, arg)) < 0) {
+          ci_debug_printf(1, "Error setting default value for mutex, errno:%d", errno);
           return 0;
      }
      return 1;
