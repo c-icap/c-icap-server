@@ -58,6 +58,7 @@ CI_DECLARE_MOD_DATA service_module_t service = {
 
 struct url_check_data {
      ci_cached_file_t *body;
+     int denied;
 };
 
 enum http_methods { HTTP_UNKNOWN = 0, HTTP_GET, HTTP_POST };
@@ -87,6 +88,7 @@ void *url_check_init_request_data(service_module_t * serv, request_t * req)
 {
      struct url_check_data *uc = malloc(sizeof(struct url_check_data));
      uc->body = NULL;
+     uc->denied = 0;
      return uc;                 /*Get from a pool of pre-allocated structs better...... */
 }
 
@@ -159,11 +161,9 @@ int check_destination(struct http_info *httpinf)
      ci_debug_printf(9, "URL  to host %s\n", httpinf->site);
      ci_debug_printf(9, "URL  page %s\n", httpinf->page);
 
-//    if(strcmp("www.in.gr",httpinf->site)!=0)/*we like header*/
-//      return 0;
-
-//     if (strstr(httpinf->page, "images/") != NULL)
-//          return 0;
+     /*Here I must implement a way to get urls from a list */
+     if (strstr(httpinf->page, "images-tsa/") != NULL)
+          return 0;
 
      return 1;
 }
@@ -193,6 +193,7 @@ int url_check_check_preview(char *preview_data, int preview_data_len,
           /*The URL is not a good one so.... */
           ci_debug_printf(9, "Oh!!! we are going to deny this site.....\n");
 
+          uc->denied = 1;
           uc->body = ci_cached_file_new(strlen(error_message) + 10);
           ci_request_create_respmod(req, 1, 1); /*Build the responce headers */
 
@@ -200,6 +201,7 @@ int url_check_check_preview(char *preview_data, int preview_data_len,
           ci_respmod_add_header(req, "Server: C-ICAP");
           ci_respmod_add_header(req, "Content-Type: text/html");
           ci_respmod_add_header(req, "Content-Language: en");
+          ci_respmod_add_header(req, "Connection: close");
 
           ci_cached_file_write(uc->body, error_message, strlen(error_message),
                                1);
@@ -246,13 +248,15 @@ int url_check_io(char *rbuf, int *rlen, char *wbuf, int *wlen, int iseof,
           return CI_ERROR;
 
      ret = CI_OK;
-     if (wbuf && wlen) {
-          *wlen = ci_cached_file_write(uc->body, wbuf, *wlen, iseof);
-          if (*wlen == CI_ERROR)
-               ret = CI_ERROR;
+     if (uc->denied == 0) {
+          if (wbuf && wlen) {
+               *wlen = ci_cached_file_write(uc->body, wbuf, *wlen, iseof);
+               if (*wlen == CI_ERROR)
+                    ret = CI_ERROR;
+          }
+          else if (iseof)
+               ci_cached_file_write(uc->body, NULL, 0, iseof);
      }
-     else if (iseof)
-          ci_cached_file_write(uc->body, NULL, 0, iseof);
 
      if (rbuf && rlen) {
           *rlen = ci_cached_file_read(uc->body, rbuf, *rlen);
