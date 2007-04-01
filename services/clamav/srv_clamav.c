@@ -277,12 +277,12 @@ int srvclamav_check_preview_handler(char *preview_data, int preview_data_len,
      int file_type;
      av_req_data_t *data = ci_service_data(req);
 
-     ci_debug_printf(10, "OK The preview data size is %d\n", preview_data_len);
+     ci_debug_printf(9, "OK The preview data size is %d\n", preview_data_len);
 
      if (!data || !ci_req_hasbody(req))
-          return CI_MOD_CONTINUE;
+          return CI_MOD_ALLOW204;
 
-     /*Going to determine the file type ....... */
+     /*Going to determine the file type,get_filetype can take preview_data as null ....... */
      file_type = get_filetype(req, preview_data, preview_data_len);
      if ((data->must_scanned = must_scanned(file_type, data)) == 0) {
           ci_debug_printf(8, "Not in \"must scanned list\".Allow it...... \n");
@@ -321,9 +321,12 @@ int srvclamav_check_preview_handler(char *preview_data, int preview_data_len,
 #endif
      if (!data->body)           /*Memory allocation or something else ..... */
           return CI_ERROR;
-
-     ci_simple_file_write(data->body, preview_data, preview_data_len,
-                          ci_req_hasalldata(req));
+     ci_debug_printf(9, "Going to write preview data :%s %d\n", preview_data,
+                     preview_data_len);
+     if (preview_data_len) {
+          ci_simple_file_write(data->body, preview_data, preview_data_len,
+                               ci_req_hasalldata(req));
+     }
      return CI_MOD_CONTINUE;
 }
 
