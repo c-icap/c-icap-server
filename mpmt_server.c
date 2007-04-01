@@ -133,10 +133,7 @@ static void sigchld_handler_main(int sig)
 
 static void sighup_handler_main()
 {
-//     c_icap_reconfigure = 1;
-    ci_proc_mutex_lock(&accept_mutex);
-     ci_debug_printf(5,"SigHUP \n");
-     ci_proc_mutex_unlock(&accept_mutex);
+     c_icap_reconfigure = 1;
 }
 
 void child_signals()
@@ -445,7 +442,6 @@ server_decl_t *newthread(struct connections_queue *con_queue)
      server_decl_t *serv;
      serv = (server_decl_t *) malloc(sizeof(server_decl_t));
      serv->srv_id = 0;
-//    serv->srv_pthread=pthread_self();
      serv->con_queue = con_queue;
      serv->served_requests = 0;
      serv->served_requests_no_reallocation = 0;
@@ -464,7 +460,6 @@ int thread_main(server_decl_t * srv)
      thread_signals(0);
 //*************************
      srv->srv_id = getpid();    //Setting my pid ...
-     srv->srv_pthread = pthread_self();
 
      for (;;) {
           /*
@@ -589,11 +584,10 @@ void listener_thread(int *fd)
      sockfd = *fd;
      thread_signals(1);
      pid = getpid();
-     listener_thread_id = pthread_self();
      for (;;) {                 //Global for
           if (child_data->to_be_killed) {
                ci_debug_printf(5, "Listener of pid:%d exiting!\n", pid);
-               goto LISTENER_FAILS;
+               goto LISTENER_FAILS_UNLOCKED;
           }
           if (!ci_proc_mutex_lock(&accept_mutex)) {
                if (errno == EINTR) {
@@ -729,7 +723,7 @@ void child_main(int sockfd, int pipefd)
      ci_thread_t thread;
      int i, ret;
 
-     child_signals();
+     signal(SIGTERM, SIG_IGN);  /*Ignore parent requests to kill us untill we are up and running */
      ci_thread_mutex_init(&threads_list_mtx);
      ci_thread_mutex_init(&counters_mtx);
      ci_thread_cond_init(&free_server_cond);
@@ -747,13 +741,17 @@ void child_main(int sockfd, int pipefd)
           ret =
               ci_thread_create(&thread, (void *(*)(void *)) thread_main,
                                (void *) threads_list[i]);
+          threads_list[i]->srv_pthread = thread;
      }
      threads_list[START_SERVERS] = NULL;
      /*Now start the listener thread.... */
      ret = ci_thread_create(&thread, (void *(*)(void *)) listener_thread,
                             (void *) &sockfd);
+     listener_thread_id = thread;
      listener_running = 1;
 
+     /*I suppose that all my threads are up now. We can setup our signal handlers */
+     child_signals();
      for (;;) {
           char buf[512];
           int bytes;
@@ -939,19 +937,22 @@ int start_server()
                                "Server stats: \n\t Childs:%d\n\t Free servers:%d\n"
                                "\tUsed servers:%d\n\tRequests served:%d\n",
                                childs, freeservers, used, maxrequests);
-	       if((child_indx = find_a_child_nrequests(childs_queue, MAX_REQUESTS_PER_CHILD)) >=0 ){
-		    ci_debug_printf(8, "Max requests reached for child :%d of pid :%d\n", 
-				    child_indx, childs_queue->childs[child_indx].pid);
-		    pid = start_child(LISTEN_SOCKET);
-		    usleep(500);
-		    childs_queue->childs[child_indx].father_said =
-			 GRACEFULLY;
-		    /*kill a server ... */
-		    kill(childs_queue->childs[child_indx].pid, SIGTERM);
+               if ((child_indx =
+                    find_a_child_nrequests(childs_queue,
+                                           MAX_REQUESTS_PER_CHILD)) >= 0) {
+                    ci_debug_printf(8,
+                                    "Max requests reached for child :%d of pid :%d\n",
+                                    child_indx,
+                                    childs_queue->childs[child_indx].pid);
+                    pid = start_child(LISTEN_SOCKET);
+                    usleep(500);
+                    childs_queue->childs[child_indx].father_said = GRACEFULLY;
+                    /*kill a server ... */
+                    kill(childs_queue->childs[child_indx].pid, SIGTERM);
 
-	       }
+               }
                else if ((freeservers <= MIN_FREE_SERVERS && childs < MAX_CHILDS)
-                   || childs < START_CHILDS) {
+                        || childs < START_CHILDS) {
                     ci_debug_printf(8,
                                     "Free Servers:%d,childs:%d. Going to start a child .....\n",
                                     freeservers, childs);
