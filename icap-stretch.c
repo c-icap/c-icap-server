@@ -383,6 +383,7 @@ int do_file(int fd, char *filename, int *keepalive)
      FILE *f;
      char lg[10], lbuf[512];
      int bytes, len, totalbytesout, totalbytesin;
+     unsigned int arand;
 
      if ((f = fopen(filename, "r")) == NULL)
           return 0;
@@ -396,7 +397,13 @@ int do_file(int fd, char *filename, int *keepalive)
 //     printf("Sending file:\n");
 
      totalbytesout = strlen(lbuf);
-     while ((len = fread(lbuf, sizeof(char), 512, f)) > 0) {
+     len = rand_r(&arand);
+     len++;
+     len = (int) ((((float) len) / RAND_MAX) * 510.0);
+     len = (len < 512 ? len : 512);
+     len = (len > 0 ? len : 1);
+     while ((len = fread(lbuf, sizeof(char), len, f)) > 0) {
+
           totalbytesout += len;
           bytes = sprintf(lg, "%X\r\n", len);
           if (icap_write(fd, lg, bytes) < 0) {
@@ -412,6 +419,12 @@ int do_file(int fd, char *filename, int *keepalive)
           }
           icap_write(fd, "\r\n", 2);
 //        printf("Sending chunksize :%d\n",len);
+
+          len = rand_r(&arand);
+          len++;
+          len = (int) ((((float) len) / RAND_MAX) * 510.0);
+          len = (len < 512 ? len : 512);
+          len = (len > 0 ? len : 1);
      }
      icap_write(fd, "0\r\n\r\n", 5);
      fclose(f);
