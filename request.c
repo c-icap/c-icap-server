@@ -285,7 +285,7 @@ int parse_header(request_t * req)
           return request_status;
 
      for (i = 1; i < h->used; i++) {
-          if (strncmp("Preview:", h->headers[i], 8) == 0) {
+          if (strncasecmp("Preview:", h->headers[i], 8) == 0) {
                result = strtol(h->headers[i] + 9, NULL, 10);
                if (errno != EINVAL && errno != ERANGE) {
                     req->preview = result;
@@ -293,15 +293,15 @@ int parse_header(request_t * req)
                          ci_buf_reset_size(&(req->preview_data), result + 64);
                }
           }
-          else if (strncmp("Encapsulated: ", h->headers[i], 14) == 0)
+          else if (strncasecmp("Encapsulated: ", h->headers[i], 14) == 0)
                request_status = process_encapsulated(req, h->headers[i]);
-          else if (strncmp("Connection: ", h->headers[i], 12) == 0) {
+          else if (strncasecmp("Connection: ", h->headers[i], 12) == 0) {
 /*	       if(strncasecmp(h->headers[i]+12,"keep-alive",10)==0)*/
                if (strncasecmp(h->headers[i] + 12, "close", 5) == 0)
                     req->keepalive = 0;
                /*else the default behaviour of keepalive ..... */
           }
-          else if (strncmp("Allow: 204", h->headers[i], 10) == 0) {
+          else if (strncasecmp("Allow: 204", h->headers[i], 10) == 0) {
                req->allow204 = 1;
           }
      }
@@ -443,7 +443,7 @@ int mk_responce_header(request_t * req)
           }
      }
 
-     snprintf(buf, 512, "Via: 1.0 %s (C-ICAP/" VERSION " %s )", MY_HOSTNAME,
+     snprintf(buf, 512, "Via: ICAP/1.0 %s (C-ICAP/" VERSION " %s )", MY_HOSTNAME,
               (req->current_service_mod->mod_short_descr ? req->
                current_service_mod->mod_short_descr : req->current_service_mod->
                mod_name));
@@ -595,8 +595,16 @@ int update_send_status(request_t * req)
      return CI_ERROR;           /*Can not be reached (I thing)...... */
 }
 
+int mod_null_io(char *rbuf,int *rlen,char *wbuf,int *wlen,int iseof, struct request *req){
+     if (iseof)
+	  *rlen = CI_EOF;
+     else
+	  *rlen = 0;
+     return CI_OK;
+}
 
-int get_send_body(request_t * req)
+
+int get_send_body(request_t * req, int parse_only)
 {
      char *wchunkdata = NULL, *rchunkdata = NULL;
      int ret, parse_chunk_ret, has_formated_data = 0;
@@ -604,7 +612,10 @@ int get_send_body(request_t * req)
                         struct request *);
      int action = 0, rchunkisfull = 0, service_eof = 0, wbytes, rbytes;
 
-     service_io = req->current_service_mod->mod_service_io;
+     if (parse_only)
+	  service_io=mod_null_io;
+     else
+	  service_io = req->current_service_mod->mod_service_io;
      if (!service_io)
           return CI_ERROR;
 
@@ -840,7 +851,7 @@ void options_responce(request_t * req)
      strcpy(buf, "Date: ");
      ci_strtime_rfc822(buf + strlen(buf));
      ci_headers_add(head, buf);
-     if (preview > 0) {
+     if (preview >= 0) {
           sprintf(buf, "Preview: %d", srv_xdata->preview_size);
           ci_headers_add(head, buf);
      }
@@ -964,7 +975,7 @@ int process_request(request_t * req)
      case ICAP_RESPMOD:
           preview_status = 0;
           if (req->hasbody && req->preview >= 0) {
-               /*read_preview_data returns CI_OK, CI_EOF or CI_ERROR */
+	        /*read_preview_data returns CI_OK, CI_EOF or CI_ERROR */
                if ((preview_status = read_preview_data(req)) == CI_ERROR) {
                     ci_debug_printf(5,
                                     "An error occured while reading preview data (propably timeout)\n");
@@ -997,13 +1008,17 @@ int process_request(request_t * req)
                                                                        req);
                if (req->allow204 && res == CI_MOD_ALLOW204) {
                     ec_responce_with_istag(req, EC_204);
-                    break;      //Need no any modification.
+		    /*And now parse body data we read and data the client going to send us,
+		      but do not pass them to the service */
+		    if (req->hasbody)
+			 res = get_send_body(req, 1);
+                    break; 
                }
           }
 
           if (req->hasbody && preview_status >= 0) {
                ci_debug_printf(10, "Going to get_send_data.....\n");
-               res = get_send_body(req);
+               res = get_send_body(req, 0);
                if (res != CI_OK) {
                     ci_debug_printf(5,
                                     "An error occured. Parse error or the client closed the connection (res:%d, preview status:%d)\n",
