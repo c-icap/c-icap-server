@@ -393,7 +393,7 @@ void ci_headers_pack(ci_headers_list_t * h)
 
 int ci_headers_unpack(ci_headers_list_t * h)
 {
-     int len;
+     int len, eoh;
      char **newspace;
      char *shead, *ebuf, *str;
 
@@ -416,8 +416,21 @@ int ci_headers_unpack(ci_headers_list_t * h)
      h->used = 1;
 
      for (str = h->buf; str < ebuf; str++) {    /*Construct index of headers */
-          if ((*str == '\r' && *(str + 1) == '\n') || (*str == '\n')) { /*   handle the case that headers 
-                                                                           seperated with a '\n' only */
+          eoh = 0;
+
+          if ((*str == '\r' && *(str + 1) == '\n')) {
+               if ((str + 2) >= ebuf
+                   || (*(str + 2) != '\t' && *(str + 2) != ' '))
+                    eoh = 1;
+          }
+          else if (*str == '\n' && *(str + 1) != '\t' && *(str + 1) != ' ') {
+               /*handle the case that headers seperated with a '\n' only */
+               eoh = 1;
+          }
+          else if (*str == '\0')        /*Then we have a problem. This char is important for us. Yes can happen! */
+               *str = ' ';
+
+          if (eoh) {
                *str = '\0';
                if (h->size <= h->used) {        /*  Resize the headers index space ........ */
                     len = h->size + HEADERSTARTSIZE;
@@ -435,11 +448,7 @@ int ci_headers_unpack(ci_headers_list_t * h)
                h->headers[h->used] = str;
                h->used++;
           }
-          else if (*str == '\0')        /*Then we have a problem. This char is important for end of string mark...... */
-               *str = ' ';
-
      }                          /*OK headers index construction ...... */
-
      return EC_100;
 }
 
