@@ -321,8 +321,7 @@ int srvclamav_check_preview_handler(char *preview_data, int preview_data_len,
 #endif
      if (!data->body)           /*Memory allocation or something else ..... */
           return CI_ERROR;
-     ci_debug_printf(9, "Going to write preview data :%s %d\n", preview_data,
-                     preview_data_len);
+
      if (preview_data_len) {
           ci_simple_file_write(data->body, preview_data, preview_data_len,
                                ci_req_hasalldata(req));
