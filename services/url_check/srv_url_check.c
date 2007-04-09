@@ -77,6 +77,7 @@ int url_check_init_service(service_extra_data_t * srv_xdata,
 {
      unsigned int xops;
      printf("Initialization of url_check module......\n");
+     ci_service_set_preview(srv_xdata, 0);
      xops = CI_XClientIP | CI_XServerIP;
      xops |= CI_XAuthenticatedUser | CI_XAuthenticatedGroups;
      ci_service_set_xopts(srv_xdata, xops);
@@ -213,8 +214,8 @@ int url_check_check_preview(char *preview_data, int preview_data_len,
                return CI_MOD_ALLOW204;
 
           /*
-             Squid does not support preview of data in reqmod requests neither 204 responces outside preview
-             so we need to read all the body if exists and send it back to squid.
+             icap client does not support preview of data in reqmod requests neither 204 responces outside preview
+             so we need to read all the body if exists and send it back to client.
              Allocate a new body for it 
            */
           if (ci_req_hasbody(req)) {
