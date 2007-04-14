@@ -8,7 +8,7 @@ CommandsSocket /var/run/c-icap.ctl
 Timeout 300
 KeepAlive On
 MaxKeepAliveRequests 100
-# set KeepAliveTimeout to -1 for no timeout
+## set KeepAliveTimeout to -1 for no timeout
 KeepAliveTimeout 600  
 StartServers 3
 MaxServers 10
@@ -95,7 +95,7 @@ Service url_check_module srv_url_check.so
 Service antivirus_module srv_clamav.so
 
 ##Adding the alias avscan for srv_clamav service. 
-ServiceAlias  avscan srv_clamav
+ServiceAlias  avscan srv_clamav?allow204=on&sizelimit=off&mode=simple
 
 
 # Antivirus module settings
