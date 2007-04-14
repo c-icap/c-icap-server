@@ -272,6 +272,19 @@ AC_CHECK_FUNCS(mmap munmap,
 AC_DEFINE(HAVE_POSIX_MAPPED_FILES,1,[Define HAVE_POSIX_MAPPED_FILES if mmap and munmap exists])
 )
 
+dnl Checking if union semun exists in this system.
+AC_MSG_CHECKING([if union semun defined])
+AC_TRY_COMPILE(
+[
+#include <sys/ipc.h>
+#include <sys/sem.h>
+], 
+[union semun a_semun;],
+AC_DEFINE(HAVE_UNION_SEMUN,1,[Define HAVE_UNION_SEMUN if union semun defined in ipc])
+AC_MSG_RESULT(yes), 
+AC_MSG_RESULT(no),
+)
+
 dnl Checking if interprocess posix semaphores works....
 AC_MSG_CHECKING(if posix 1003.1b interprocess semaphores works)
 AC_TRY_RUN(

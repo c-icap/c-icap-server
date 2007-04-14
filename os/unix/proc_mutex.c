@@ -40,6 +40,7 @@ static struct sembuf op_unlock[1] = {
      {0, -1, (IPC_NOWAIT | SEM_UNDO)}   /*decrement sem by 1   */
 };
 
+#ifndef HAVE_UNION_SEMUN
 union semun {
      int val;                   /* Value for SETVAL */
      struct semid_ds *buf;      /* Buffer for IPC_STAT, IPC_SET */
@@ -47,6 +48,7 @@ union semun {
      struct seminfo *__buf;     /* Buffer for IPC_INFO
                                    (Linux specific) */
 };
+#endif
 
 int ci_proc_mutex_init(ci_proc_mutex_t * mutex)
 {
