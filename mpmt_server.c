@@ -937,9 +937,11 @@ int start_server()
                                "Server stats: \n\t Childs:%d\n\t Free servers:%d\n"
                                "\tUsed servers:%d\n\tRequests served:%d\n",
                                childs, freeservers, used, maxrequests);
-               if ((child_indx =
-                    find_a_child_nrequests(childs_queue,
-                                           MAX_REQUESTS_PER_CHILD)) >= 0) {
+               if (MAX_REQUESTS_PER_CHILD > 0 && (child_indx =
+                                                  find_a_child_nrequests
+                                                  (childs_queue,
+                                                   MAX_REQUESTS_PER_CHILD)) >=
+                   0) {
                     ci_debug_printf(8,
                                     "Max requests reached for child :%d of pid :%d\n",
                                     child_indx,
