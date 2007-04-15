@@ -212,7 +212,7 @@ static void cancel_all_threads()
           pthread_kill(listener_thread_id, SIGHUP);
 #endif
           ci_thread_cond_signal(&free_server_cond);
-          usleep(1000);
+          ci_usleep(1000);
           wait_listener_time -= 10;
      }
      if (listener_running == 0) {
@@ -947,7 +947,7 @@ int start_server()
                                     child_indx,
                                     childs_queue->childs[child_indx].pid);
                     pid = start_child(LISTEN_SOCKET);
-                    usleep(500);
+           //         usleep(500);
                     childs_queue->childs[child_indx].father_said = GRACEFULLY;
                     /*kill a server ... */
                     kill(childs_queue->childs[child_indx].pid, SIGTERM);

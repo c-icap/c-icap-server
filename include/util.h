@@ -24,6 +24,7 @@
 CI_DECLARE_FUNC(void) ci_strtime(char *buf);
 CI_DECLARE_FUNC(void) ci_strtime_rfc822(char *buf);
 CI_DECLARE_FUNC(int)  ci_mktemp_file(char*dir,char *template,char *filename);
+CI_DECLARE_FUNC(int)  ci_usleep(unsigned long usec);
 
 
 #ifdef _WIN32

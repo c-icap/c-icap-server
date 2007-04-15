@@ -78,3 +78,12 @@ int ci_mktemp_file(char *dir, char *template, char *filename)
      strcat(filename, template);
      return mkstemp(filename);
 }
+
+
+int ci_usleep(unsigned long usec){
+  struct timespec us,ur;
+  us.tv_sec = 0;
+  us.tv_nsec = usec*1000;
+  nanosleep(&us , &ur);
+  return 0;
+}
