@@ -641,7 +641,8 @@ int get_send_body(request_t * req, int parse_only)
                     if (!req->data_locked && req->status == SEND_NOTHING) {
                          update_send_status(req);
                     }
-                    send_current_block_data(req);
+                    if(send_current_block_data(req) == CI_ERROR)
+			 return CI_ERROR;
                }
           }
 
@@ -773,7 +774,8 @@ int rest_responce(request_t * req)
                                     "Timeout sending data. Ending .......\n");
                     return CI_ERROR;
                }
-               send_current_block_data(req);
+               if(send_current_block_data(req) == CI_ERROR)
+		    return CI_ERROR;
           }
 
           if (req->status == SEND_BODY && req->remain_send_block_bytes == 0) {
@@ -908,11 +910,13 @@ void options_responce(request_t * req)
      do {
           if ((ci_wait_for_data(req->connection->fd, TIMEOUT, wait_for_write))
               <= 0) {
-               ci_debug_printf(1, "Timeout sending data. Ending .......\n");
+               ci_debug_printf(3, "Timeout sending data. Ending .......\n");
                return;
           }
-          send_current_block_data(req);
-
+          if(send_current_block_data(req) == CI_ERROR){
+	       ci_debug_printf(3, "Error sending data. Ending .....\n");
+	       return;
+	  }
      } while (req->remain_send_block_bytes > 0);
 
 //     if(responce_body)
