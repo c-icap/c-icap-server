@@ -772,7 +772,7 @@ void child_main(int sockfd, int pipefd)
                                "An error occured while waiting commands from parent. Terminating!\n");
                child_data->to_be_killed = IMMEDIATELY;
           }
-          if (!listener_running) {
+          if (!listener_running && !child_data->to_be_killed) {
                ci_debug_printf(1,
                                "Ohh!! something happen to listener thread! Terminating\n");
                child_data->to_be_killed = GRACEFULLY;
