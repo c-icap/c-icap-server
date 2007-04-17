@@ -5,6 +5,7 @@ MODULESDIR=$(pkglibdir)/
 SERVICESDIR=$(pkglibdir)/
 #CONFIGDIR=$(sysconfdir)/
 LOGDIR=$(localstatedir)/log/
+SOCKDIR=/var/run/c-icap
 
 
 SUBDIRS =  . modules services
@@ -61,7 +62,13 @@ pkginclude_HEADERS = $(ALL_INCS)
 #sysconf_DATA = c-icap.conf c-icap.magic
 
 install-data-local:
-	$(mkinstalldirs) $(CONFIGDIR) $(LOGDIR); chgrp nobody $(LOGDIR);chmod 775 $(LOGDIR)
+	$(mkinstalldirs) $(CONFIGDIR);
+	$(mkinstalldirs)  $(LOGDIR); 
+	$(mkinstalldirs)  $(SOCKDIR);
+	chgrp nobody $(LOGDIR)
+	chmod 775 $(LOGDIR)
+	chgrp nobody $(SOCKDIR)
+	chmod 775 $(SOCKDIR)
 	$(INSTALL) c-icap.conf $(CONFIGDIR)/c-icap.conf.default
 	$(INSTALL) c-icap.magic $(CONFIGDIR)/c-icap.magic.default
 	if test ! -f $(CONFIGDIR)/c-icap.conf; then  $(INSTALL) c-icap.conf $(CONFIGDIR)/c-icap.conf; fi

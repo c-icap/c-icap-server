@@ -40,7 +40,7 @@ struct icap_server_conf CONF = {
 #ifdef _WIN32
      "c:\\TEMP", /*TMPDIR*/ "c:\\TEMP\\c-icap.pid", /*PIDFILE*/ "\\\\.\\pipe\\c-icap",  /*COMMANDS_SOCKET; */
 #else
-     "/var/tmp/", /*TMPDIR*/ "/var/run/c-icap.pid", /*PIDFILE*/ "/var/run/c-icap.ctl",  /*COMMANDS_SOCKET; */
+     "/var/tmp/", /*TMPDIR*/ "/var/run/c-icap.pid", /*PIDFILE*/ "/var/run/c-icap/c-icap.ctl",  /*COMMANDS_SOCKET; */
 #endif
      NULL,                      /* RUN_USER */
      NULL,                      /* RUN_GROUP */

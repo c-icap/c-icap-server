@@ -4,18 +4,36 @@ http://c-icap.sourceforge.net/ for information about how to configure.
 
 COMMENTS:
 *c-icap is more tested in Linux systems. However compiles and runs at least 
-in solaris 10 and FreeBSD 5.x and possibly in other platforms.
-
-*The format of file c-icap.magic has changed. If you use your own c-icap.magic
-file remember to convert it to new format. You can also use the 
-convert_old_magic.pl utility in contrib directory to convert it.
+in FreeBSD 6.x and possibly in other platforms. At regular times I am 
+testing it also in solaris 10. I was not able to check this release due 
+to a problem in my solaris machine. I will do it soon...
 
 *ipv6 support for Linux and Solaris looks that works OK but it is not 
 enough tested.
 
-*Although I was able to compile c-icap with IPv6 support in FreeBSD 5.x
+*Although I was able to compile c-icap with IPv6 support in FreeBSD 5.x-6.x
 it was not possible for me to make it to work. Maybe becouse of bugs in 
 implementation maybe becouse of my inability to correctly setup the ipv6
 in FreeBSD.
 
+NEW FEATURES:
+* ServiceAlias: They are useful in the case the icap client has hardcoded 
+the service name. As an example in the default config  file there is the 
+avscan service alias which can used by samba vscan-icap module.
 
+* You can send commands to the c-icap server from command line using the 
+following syndax:
+   echo -n command_name  > /var/run/c-icap.ctl
+Currently the following commands are implemented:
+  "stop":        The c-icap will shutdown
+  "reconfigure": The service will reread the config file without the need 
+	         for stop and restart the c-icap server. Te services will
+		 be reinitialized
+  "srv_clamav:dbreload"
+	       : It reloads the clamav virus database
+
+Examples:
+ - To reconfigure c-icap:
+      echo -n "reconfigure" > /var/run/c-icap.ctl
+ - To reload clamav virusdb without stoping the c-icap:
+     echo -n "srv_clamav:dbreload" > /var/run/c-icap.ctl
