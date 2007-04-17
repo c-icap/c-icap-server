@@ -53,7 +53,7 @@ icap_stretch_LDADD = @THREADS_LDADD@ @DL_ADD_FLAG@
 icap_stretch_LDFLAGS= @THREADS_LDFLAGS@
 
 INCS = access.h body.h cfg_param.h c-icap.h ci_threads.h debug.h header.h log.h module.h\
-       net_io.h proc_mutex.h proc_threads_queues.h request.h service.h shared_mem.h simple_api.h util.h filetype.h
+       net_io.h proc_mutex.h proc_threads_queues.h request.h service.h shared_mem.h simple_api.h util.h filetype.h mem.h dlib.h commands.h
 
 ALL_INCS=$(INCS:%.h=include/%.h)
 
