@@ -175,9 +175,9 @@ ci_cached_file_t *ci_cached_file_new(int size)
      if (!(body = malloc(sizeof(ci_cached_file_t))))
           return NULL;
 
-/*     if(size==0)
-	  size=BODY_MAX_MEM;
-*/
+     if(size==0)
+	  size=CI_BODY_MAX_MEM;
+
      if (size > 0 && size <= CI_BODY_MAX_MEM) {
           body->buf = malloc(size * sizeof(char));
      }
@@ -352,7 +352,7 @@ int ci_cached_file_read(ci_cached_file_t * body, char *buf, int len)
      }
      else {                     /*?????????????????????????????? */
           bytes = 0;
-          ci_debug_printf(9, "Readed 0, %" PRINTF_OFF_T " %" PRINTF_OFF_T "\n",
+          ci_debug_printf(10, "Readed 0, %" PRINTF_OFF_T " %" PRINTF_OFF_T "\n",
                           body->readpos, body->endpos);
      }
      return bytes;
