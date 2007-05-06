@@ -629,6 +629,10 @@ int get_send_body(request_t * req, int parse_only)
      do {
           ret = 0;
           if (action) {
+	       ci_debug_printf(10,"Going to %s/%s data\n",
+			       (action&wait_for_read?"Read":"-"),
+			       (action&wait_for_write?"Write":"-")
+			       );
                if ((ret =
                     ci_wait_for_data(req->connection->fd, TIMEOUT,
                                      action)) <= 0)
@@ -644,6 +648,7 @@ int get_send_body(request_t * req, int parse_only)
                     if(send_current_block_data(req) == CI_ERROR)
 			 return CI_ERROR;
                }
+	       ci_debug_printf(10,"OK done reading/writing going to process\n");
           }
 
           if (!req->data_locked && req->remain_send_block_bytes == 0) {
@@ -997,7 +1002,7 @@ int process_request(request_t * req)
                          break; //Need no any modification.
                     }
                     if (res == CI_ERROR) {
-                         ci_debug_printf(10,
+                         ci_debug_printf(5,
                                          "An error occured in preview handler!!");
                          ec_responce(req, EC_500);
                          break;
@@ -1021,7 +1026,7 @@ int process_request(request_t * req)
           }
 
           if (req->hasbody && preview_status >= 0) {
-               ci_debug_printf(10, "Going to get_send_data.....\n");
+               ci_debug_printf(9, "Going to get_send_data.....\n");
                res = get_send_body(req, 0);
                if (res != CI_OK) {
                     ci_debug_printf(5,
