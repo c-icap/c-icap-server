@@ -44,7 +44,7 @@ enum SENDDATA_STATUS {SEND_NOTHING=0, SEND_RESPHEAD, SEND_HEAD1, SEND_HEAD2, SEN
 #define MAX_CHUNK_SIZE    4064   /*4096 -EXTRA_CHUNK_SIZE-2*/
 #define MAX_USERNAME_LEN 255
 
-struct ci_buf{
+typedef struct ci_buf{
      char *buf;
      int size;
      int used;
