@@ -36,8 +36,8 @@ enum SENDDATA_STATUS {SEND_NOTHING=0, SEND_RESPHEAD, SEND_HEAD1, SEND_HEAD2, SEN
 #define CI_OK          1
 #define CI_NEEDS_MORE  2
 
-#define CI_ERROR      -1
-#define CI_EOF        -2
+#define CI_ERROR       -1
+#define CI_EOF         -2
 
 
 #define EXTRA_CHUNK_SIZE  30
@@ -90,6 +90,9 @@ typedef struct request{
      int status;
      char *pstrblock_responce;
      int remain_send_block_bytes;
+     /* statistics */
+     uint64_t bytes_in;
+     uint64_t bytes_out;
 } request_t;
 
 #define lock_data(req) (req->data_locked=1)

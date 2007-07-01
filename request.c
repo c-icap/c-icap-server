@@ -48,11 +48,12 @@ request_t *newrequest(ci_connection_t * connection)
 {
      request_t *req;
      int access;
+     int len;
      ci_connection_t *conn;
 
      if ((access = access_check_client(connection)) == CI_ACCESS_DENY) {        /*Check for client access */
-          ci_write(connection->fd, FORBITTEN_STR, strlen(FORBITTEN_STR),
-                   TIMEOUT);
+          len = strlen(FORBITTEN_STR);
+          ci_write(connection->fd, FORBITTEN_STR, len, TIMEOUT);
           return NULL;          /*Or something that means authentication error */
      }
 
@@ -68,10 +69,10 @@ request_t *newrequest(ci_connection_t * connection)
 int recycle_request(request_t * req, ci_connection_t * connection)
 {
      int access;
-
+     int len;
      if ((access = access_check_client(connection)) == CI_ACCESS_DENY) {        /*Check for client access */
-          ci_write(connection->fd, FORBITTEN_STR, strlen(FORBITTEN_STR),
-                   TIMEOUT);
+          len = strlen(FORBITTEN_STR);
+          ci_write(connection->fd, FORBITTEN_STR, len, TIMEOUT);
           return 0;             /*Or something that means authentication error */
      }
      req->access_type = access;
@@ -117,6 +118,7 @@ int ci_read_icap_header(request_t * req, ci_headers_list_t * h, int timeout)
              ci_read(req->connection->fd, buf_end, ICAP_HEADER_READSIZE,
                      timeout)) > 0) {
           readed += bytes;
+          req->bytes_in += bytes;
           for (i = startsearch; i < bytes - 3; i++) {   /*search for end of header.... */
                if (strncmp(buf_end + i, "\r\n\r\n", 4) == 0) {
                     buf_end = buf_end + i + 2;
@@ -175,6 +177,7 @@ int read_encaps_header(request_t * req, ci_headers_list_t * h, int size)
                return bytes;
           remains -= bytes;
           buf_end += bytes;
+          req->bytes_in += bytes;
      }
 
      h->bufused = buf_end - h->buf;     // -1 ;
@@ -391,23 +394,29 @@ int read_preview_data(request_t * req)
 void ec_responce(request_t * req, int ec)
 {
      char buf[256];
+     int len;
      snprintf(buf, 256, "ICAP/1.0 %d %s\r\n\r\n",
               ci_error_code(ec), ci_error_code_string(ec));
      buf[255] = '\0';
-     ci_write(req->connection->fd, buf, strlen(buf), TIMEOUT);
+     len = strlen(buf);
+     ci_write(req->connection->fd, buf, len, TIMEOUT);
+     req->bytes_out += len;
 }
 
 void ec_responce_with_istag(request_t * req, int ec)
 {
      char buf[256];
      service_extra_data_t *srv_xdata;
+     int len;
      srv_xdata = service_data(req->current_service_mod);
      ci_service_data_read_lock(srv_xdata);
      snprintf(buf, 256, "ICAP/1.0 %d %s\r\n%s\r\n\r\n",
               ci_error_code(ec), ci_error_code_string(ec), srv_xdata->ISTag);
      ci_service_data_read_unlock(srv_xdata);
      buf[255] = '\0';
-     ci_write(req->connection->fd, buf, strlen(buf), TIMEOUT);
+     len = strlen(buf);
+     ci_write(req->connection->fd, buf, len, TIMEOUT);
+     req->bytes_out += len;
 }
 
 extern char MY_HOSTNAME[];
@@ -443,7 +452,8 @@ int mk_responce_header(request_t * req)
           }
      }
 
-     snprintf(buf, 512, "Via: ICAP/1.0 %s (C-ICAP/" VERSION " %s )", MY_HOSTNAME,
+     snprintf(buf, 512, "Via: ICAP/1.0 %s (C-ICAP/" VERSION " %s )",
+              MY_HOSTNAME,
               (req->current_service_mod->mod_short_descr ? req->
                current_service_mod->mod_short_descr : req->current_service_mod->
                mod_name));
@@ -479,6 +489,7 @@ int send_current_block_data(request_t * req)
           ci_debug_printf(5, "Error writing to server (errno:%d)", errno);
           return CI_ERROR;
      }
+     req->bytes_out += bytes;
      req->pstrblock_responce += bytes;
      req->remain_send_block_bytes -= bytes;
      return req->remain_send_block_bytes;
@@ -595,11 +606,13 @@ int update_send_status(request_t * req)
      return CI_ERROR;           /*Can not be reached (I thing)...... */
 }
 
-int mod_null_io(char *rbuf,int *rlen,char *wbuf,int *wlen,int iseof, struct request *req){
+int mod_null_io(char *rbuf, int *rlen, char *wbuf, int *wlen, int iseof,
+                struct request *req)
+{
      if (iseof)
-	  *rlen = CI_EOF;
+          *rlen = CI_EOF;
      else
-	  *rlen = 0;
+          *rlen = 0;
      return CI_OK;
 }
 
@@ -613,9 +626,9 @@ int get_send_body(request_t * req, int parse_only)
      int action = 0, rchunkisfull = 0, service_eof = 0, wbytes, rbytes;
 
      if (parse_only)
-	  service_io=mod_null_io;
+          service_io = mod_null_io;
      else
-	  service_io = req->current_service_mod->mod_service_io;
+          service_io = req->current_service_mod->mod_service_io;
      if (!service_io)
           return CI_ERROR;
 
@@ -629,10 +642,10 @@ int get_send_body(request_t * req, int parse_only)
      do {
           ret = 0;
           if (action) {
-	       ci_debug_printf(10,"Going to %s/%s data\n",
-			       (action&wait_for_read?"Read":"-"),
-			       (action&wait_for_write?"Write":"-")
-			       );
+               ci_debug_printf(10, "Going to %s/%s data\n",
+                               (action & wait_for_read ? "Read" : "-"),
+                               (action & wait_for_write ? "Write" : "-")
+                   );
                if ((ret =
                     ci_wait_for_data(req->connection->fd, TIMEOUT,
                                      action)) <= 0)
@@ -645,10 +658,11 @@ int get_send_body(request_t * req, int parse_only)
                     if (!req->data_locked && req->status == SEND_NOTHING) {
                          update_send_status(req);
                     }
-                    if(send_current_block_data(req) == CI_ERROR)
-			 return CI_ERROR;
+                    if (send_current_block_data(req) == CI_ERROR)
+                         return CI_ERROR;
                }
-	       ci_debug_printf(10,"OK done reading/writing going to process\n");
+               ci_debug_printf(10,
+                               "OK done reading/writing going to process\n");
           }
 
           if (!req->data_locked && req->remain_send_block_bytes == 0) {
@@ -779,8 +793,8 @@ int rest_responce(request_t * req)
                                     "Timeout sending data. Ending .......\n");
                     return CI_ERROR;
                }
-               if(send_current_block_data(req) == CI_ERROR)
-		    return CI_ERROR;
+               if (send_current_block_data(req) == CI_ERROR)
+                    return CI_ERROR;
           }
 
           if (req->status == SEND_BODY && req->remain_send_block_bytes == 0) {
@@ -918,10 +932,10 @@ void options_responce(request_t * req)
                ci_debug_printf(3, "Timeout sending data. Ending .......\n");
                return;
           }
-          if(send_current_block_data(req) == CI_ERROR){
-	       ci_debug_printf(3, "Error sending data. Ending .....\n");
-	       return;
-	  }
+          if (send_current_block_data(req) == CI_ERROR) {
+               ci_debug_printf(3, "Error sending data. Ending .....\n");
+               return;
+          }
      } while (req->remain_send_block_bytes > 0);
 
 //     if(responce_body)
@@ -984,7 +998,7 @@ int process_request(request_t * req)
      case ICAP_RESPMOD:
           preview_status = 0;
           if (req->hasbody && req->preview >= 0) {
-	        /*read_preview_data returns CI_OK, CI_EOF or CI_ERROR */
+               /*read_preview_data returns CI_OK, CI_EOF or CI_ERROR */
                if ((preview_status = read_preview_data(req)) == CI_ERROR) {
                     ci_debug_printf(5,
                                     "An error occured while reading preview data (propably timeout)\n");
@@ -1017,11 +1031,11 @@ int process_request(request_t * req)
                                                                        req);
                if (req->allow204 && res == CI_MOD_ALLOW204) {
                     ec_responce_with_istag(req, EC_204);
-		    /*And now parse body data we read and data the client going to send us,
-		      but do not pass them to the service */
-		    if (req->hasbody)
-			 res = get_send_body(req, 1);
-                    break; 
+                    /*And now parse body data we read and data the client going to send us,
+                       but do not pass them to the service */
+                    if (req->hasbody)
+                         res = get_send_body(req, 1);
+                    break;
                }
           }
 

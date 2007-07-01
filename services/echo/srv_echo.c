@@ -55,7 +55,7 @@ CI_DECLARE_MOD_DATA service_module_t service = {
 int echo_init_service(service_extra_data_t * srv_xdata,
                       struct icap_server_conf *server_conf)
 {
-     ci_debug_printf(5,"Initialization of echo module......\n");
+     ci_debug_printf(5, "Initialization of echo module......\n");
      ci_service_set_preview(srv_xdata, 1024);
      ci_service_enable_204(srv_xdata);
      ci_service_set_transfer_preview(srv_xdata, "*");
@@ -71,8 +71,9 @@ void *echo_init_request_data(service_module_t * serv, request_t * req)
      return NULL;
 }
 
-void *echo_release_request_data(void *data){
-     ci_cached_file_t *body=(ci_cached_file_t *)data;
+void *echo_release_request_data(void *data)
+{
+     ci_cached_file_t *body = (ci_cached_file_t *) data;
      ci_cached_file_destroy(body);
 }
 
@@ -84,7 +85,8 @@ int echo_check_preview_handler(char *preview_data, int preview_data_len,
      ci_off_t content_len;
      ci_cached_file_t *data = ci_service_data(req);
      content_len = ci_content_lenght(req);
-     ci_debug_printf(9, "We expect to read :%"PRINTF_OFF_T" body data\n", content_len);
+     ci_debug_printf(9, "We expect to read :%" PRINTF_OFF_T " body data\n",
+                     content_len);
 
      ci_req_unlock_data(req);   /*Icap server can send data before all body has received */
      if (!preview_data_len)
@@ -95,7 +97,7 @@ int echo_check_preview_handler(char *preview_data, int preview_data_len,
           ci_debug_printf(8, "Echo service will process the request\n");
           if (preview_data_len)
                ci_cached_file_write(data, preview_data, preview_data_len,
-                               ci_req_hasalldata(req));
+                                    ci_req_hasalldata(req));
           return CI_MOD_CONTINUE;
      }
      else {

@@ -241,6 +241,9 @@ request_t *ci_request_alloc(ci_connection_t * connection)
      req->remain_send_block_bytes = 0;
      req->data_locked = 1;
 
+     req->bytes_in = 0;
+     req->bytes_out = 0;
+
      for (i = 0; i < 5; i++)    //
           req->entities[i] = NULL;
      for (i = 0; i < 7; i++)    //
@@ -285,6 +288,9 @@ void ci_request_reset(request_t * req)
      req->remain_send_block_bytes = 0;
      req->write_to_module_pending = 0;
      req->data_locked = 1;
+
+     req->bytes_in = 0;
+     req->bytes_out = 0;
 
      for (i = 0; req->entities[i] != NULL; i++) {
           ci_request_release_entity(req, i);
@@ -476,6 +482,7 @@ int net_data_read(request_t * req)
           return CI_ERROR;
      }
      req->pstrblock_read_len += bytes;  /* ... (size of data is readed plus old )... */
+     req->bytes_in += bytes;
      return CI_OK;
 }
 
@@ -624,7 +631,7 @@ int client_send_request_headers(request_t * req, int has_eof, int timeout)
      if (ci_writen
          (req->connection->fd, req->head->buf, req->head->bufused, timeout) < 0)
           return CI_ERROR;
-
+     req->bytes_out += req->head->bufused;
      elist = req->entities;
      while ((e = *elist++) != NULL) {
           if (e->type == ICAP_REQ_HDR || e->type == ICAP_RES_HDR) {
@@ -633,6 +640,7 @@ int client_send_request_headers(request_t * req, int has_eof, int timeout)
                    (req->connection->fd, headers->buf, headers->bufused,
                     timeout) < 0)
                     return CI_ERROR;
+               req->bytes_out += headers->bufused;
           }
      }
 
@@ -640,15 +648,18 @@ int client_send_request_headers(request_t * req, int has_eof, int timeout)
           bytes = sprintf(req->wbuf, "%x\r\n", req->preview);
           if (ci_writen(req->connection->fd, req->wbuf, bytes, timeout) < 0)
                return CI_ERROR;
+          req->bytes_out += bytes;
           if (ci_writen
               (req->connection->fd, req->preview_data.buf, req->preview,
                timeout) < 0)
                return CI_ERROR;
+          req->bytes_out += req->preview;
           if (has_eof) {
                if (ci_writen
                    (req->connection->fd, "\r\n0; ieof\r\n\r\n", 13,
                     timeout) < 0)
                     return CI_ERROR;
+               req->bytes_out += 13;
                req->eof_received = 1;
 
           }
@@ -656,12 +667,14 @@ int client_send_request_headers(request_t * req, int has_eof, int timeout)
                if (ci_writen(req->connection->fd, "\r\n0\r\n\r\n", 7, timeout) <
                    0)
                     return CI_ERROR;
+               req->bytes_out += 7;
           }
      }
-     else if (req->preview == 0
-              && ci_writen(req->connection->fd, "0\r\n\r\n", 5, timeout) < 0)
-          return CI_ERROR;
-
+     else if (req->preview == 0) {
+          if (ci_writen(req->connection->fd, "0\r\n\r\n", 5, timeout) < 0)
+               return CI_ERROR;
+          req->bytes_out += 5;
+     }
      return CI_OK;
 }
 
@@ -1010,6 +1023,7 @@ int client_send_get_data(request_t * req,
                                          req->remain_send_block_bytes);
                if (bytes < 0)
                     return CI_ERROR;
+               req->bytes_out += bytes;
                req->pstrblock_responce += bytes;
                req->remain_send_block_bytes -= bytes;
           }
@@ -1088,7 +1102,9 @@ int ci_client_icapfilter(request_t * req,
      else
           ci_request_create_respmod(req, 0, 1);
 
-     client_send_request_headers(req, pre_eof, timeout);
+     if ((ret = client_send_request_headers(req, pre_eof, timeout)) < 0) {
+          return CI_ERROR;
+     }
 
      /*send body */
 

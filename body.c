@@ -175,8 +175,8 @@ ci_cached_file_t *ci_cached_file_new(int size)
      if (!(body = malloc(sizeof(ci_cached_file_t))))
           return NULL;
 
-     if(size==0)
-	  size=CI_BODY_MAX_MEM;
+     if (size == 0)
+          size = CI_BODY_MAX_MEM;
 
      if (size > 0 && size <= CI_BODY_MAX_MEM) {
           body->buf = malloc(size * sizeof(char));

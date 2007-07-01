@@ -947,7 +947,7 @@ int start_server()
                                     child_indx,
                                     childs_queue->childs[child_indx].pid);
                     pid = start_child(LISTEN_SOCKET);
-           //         usleep(500);
+                    //         usleep(500);
                     childs_queue->childs[child_indx].father_said = GRACEFULLY;
                     /*kill a server ... */
                     kill(childs_queue->childs[child_indx].pid, SIGTERM);
