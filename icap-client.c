@@ -78,6 +78,7 @@ int filewrite(void *fd, char *buf, int len)
 }
 
 char *icap_server = "localhost";
+int port = 1344;
 char *service = "echo";
 char *input_file = NULL;
 char *output_file = NULL;
@@ -88,6 +89,7 @@ int verbose = 0;
 static struct options_entry options[] = {
      {"-i", "icap_servername", &icap_server, ci_cfg_set_str,
       "The icap server name"},
+     {"-p", "port", &port, ci_cfg_set_int, "The server port"},     
      {"-s", "service", &service, ci_cfg_set_str, "The service name"},
      {"-f", "filename", &input_file, ci_cfg_set_str,
       "Send this file to the icap server.\nDefault is to send an options request"},
@@ -118,7 +120,7 @@ void vlog_errors(request_t * req, const char *format, va_list ap)
 int main(int argc, char **argv)
 {
      int fd_in, fd_out;
-     int ret, port = 1344;
+     int ret;
      char ip[CI_IPLEN];
      ci_connection_t *conn;
      request_t *req;
