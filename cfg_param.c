@@ -793,7 +793,7 @@ struct cfg_default_value *cfg_default_value_search(void *param)
 {
      struct cfg_default_value *dval;
      dval = default_values;
-     ci_debug_printf(8, "Searching %p for default valuen", param);
+     ci_debug_printf(8, "Searching %p for default value\n", param);
      while (dval != NULL && dval->param != param)
           dval = dval->next;
      return dval;
