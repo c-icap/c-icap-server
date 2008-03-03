@@ -638,11 +638,18 @@ void set_istag(service_extra_data_t * srv_xdata)
      char *s1, *s2;
      struct cl_cvd *d1;
      int version = 0, cfg_version = 0;
+     struct stat daily_stat;
 
      daily_path = malloc(strlen(cl_retdbdir()) + 20);
      if (!daily_path)           /*???????? */
           return;
      sprintf(daily_path, "%s/daily.cvd", cl_retdbdir());
+     
+     if(stat(daily_path,&daily_stat) != 0){
+	 /* if the clamav_lib_path/daily.cvd does not exists
+	    try to use the clamav_lib_path/daily.inc/daly.info file instead" */
+	 sprintf(daily_path, "%s/daily.inc/daily.info", cl_retdbdir());
+     }
 
      if ((d1 = cl_cvdhead(daily_path))) {
           version = d1->version;
