@@ -57,11 +57,12 @@ typedef struct ci_sockaddr{
 
 
 #define CI_MAXHOSTNAMELEN 256
-#define CI_IPLEN      18
 
 #ifdef HAVE_IPV6
+#define CI_IPLEN      46
 #define CI_SOCKADDR_SIZE sizeof(struct sockaddr_storage)
 #else
+#define CI_IPLEN      16
 #define CI_SOCKADDR_SIZE sizeof(struct sockaddr_in)
 #endif
 
