@@ -27,6 +27,7 @@
 #include "module.h"
 #include "cfg_param.h"
 #include "debug.h"
+#include <errno.h>
 
 logger_module_t *default_logger = NULL;
 
@@ -60,8 +61,10 @@ void log_access(request_t * req, int status)
      if (access_check_logging(req) == CI_ACCESS_ALLOW)
           return;
 
-     ci_conn_remote_ip(req->connection, clientip);
-     ci_conn_local_ip(req->connection, serverip);
+     if (!ci_conn_remote_ip(req->connection, clientip))
+	  strcpy(clientip, "-" );
+     if (!ci_conn_local_ip(req->connection, serverip))
+	  strcpy(serverip, "-");
 
      if (default_logger)
           default_logger->log_access(serverip,
