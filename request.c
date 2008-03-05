@@ -946,6 +946,7 @@ void options_responce(request_t * req)
 int process_request(request_t * req)
 {
      int res, preview_status = 0, auth_status = CI_ACCESS_ALLOW;
+     int ret_status = CI_OK; /*By default ret_status is CI_OK, on error must set to CI_ERROR*/
      res = parse_header(req);
      if (res != EC_100) {
           if (res >= 0)
@@ -992,7 +993,7 @@ int process_request(request_t * req)
      switch (req->type) {
      case ICAP_OPTIONS:
           options_responce(req);
-          res = CI_OK;
+          ret_status = CI_OK;
           break;
      case ICAP_REQMOD:
      case ICAP_RESPMOD:
@@ -1003,6 +1004,7 @@ int process_request(request_t * req)
                     ci_debug_printf(5,
                                     "An error occured while reading preview data (propably timeout)\n");
                     ec_responce(req, EC_408);
+		    ret_status = CI_ERROR;
                     /*Responce with error..... */
                     break;
                }
@@ -1019,6 +1021,7 @@ int process_request(request_t * req)
                          ci_debug_printf(5,
                                          "An error occured in preview handler!!");
                          ec_responce(req, EC_500);
+			 ret_status = CI_ERROR;
                          break;
                     }
                     if (preview_status > 0)
@@ -1034,18 +1037,19 @@ int process_request(request_t * req)
                     /*And now parse body data we read and data the client going to send us,
                        but do not pass them to the service */
                     if (req->hasbody)
-                         res = get_send_body(req, 1);
+			 ret_status = get_send_body(req, 1);
                     break;
                }
           }
 
           if (req->hasbody && preview_status >= 0) {
                ci_debug_printf(9, "Going to get_send_data.....\n");
-               res = get_send_body(req, 0);
-               if (res != CI_OK) {
+               ret_status = get_send_body(req, 0);
+               if (ret_status != CI_OK) {
                     ci_debug_printf(5,
                                     "An error occured. Parse error or the client closed the connection (res:%d, preview status:%d)\n",
-                                    res, preview_status);
+                                    ret_status, preview_status);
+		    ret_status = CI_ERROR;
                     break;
                }
           }
@@ -1062,14 +1066,15 @@ int process_request(request_t * req)
                }
           }
           unlock_data(req);
-          if ((res = rest_responce(req)) != CI_OK)
+          if ((ret_status = rest_responce(req)) != CI_OK) {
                ci_debug_printf(5,
-                               "An error occured while sending rest responce. The client closed the connection (res:%d)\n",
-                               res);
-
+                               "An error occured while sending rest responce. The client closed the connection (ret_status:%d)\n",
+                               ret_status);
+	       ret_status = CI_ERROR;
+	  }
           break;
      default:
-          res = CI_ERROR;
+          ret_status = CI_ERROR;
           break;
      }
 
@@ -1078,5 +1083,5 @@ int process_request(request_t * req)
           req->current_service_mod->mod_release_request_data(req->service_data);
 
 //     debug_print_request(req);
-     return res;
+     return ret_status;
 }
