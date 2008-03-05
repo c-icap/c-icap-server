@@ -640,7 +640,8 @@ void set_istag(service_extra_data_t * srv_xdata)
      int version = 0, cfg_version = 0;
      struct stat daily_stat;
 
-     daily_path = malloc(strlen(cl_retdbdir()) + 20);
+     /*instead of 128 should be strlen("/daily.inc/daily.info")+1*/
+     daily_path = malloc(strlen(cl_retdbdir()) + 128);
      if (!daily_path)           /*???????? */
           return;
      sprintf(daily_path, "%s/daily.cvd", cl_retdbdir());
