@@ -75,16 +75,14 @@ int ci_buf_reset_size(struct ci_buf *buf, int req_size)
      return ci_buf_mem_alloc(buf, req_size);
 }
 
-
-
-void ci_request_pack(request_t * req)
+void request_t_pack(request_t * req, int is_request)
 {
      ci_encaps_entity_t **elist, *e;
      char buf[256];
 
-     if (req->is_client_request && req->preview >= 0) {
+     if (is_request && req->preview >= 0) {
           sprintf(buf, "Preview: %d", req->preview);
-          ci_headers_add(req->head, buf);
+          ci_headers_add(req->request_header, buf);
      }
 
      elist = req->entities;
@@ -119,14 +117,28 @@ void ci_request_pack(request_t * req)
           sprintf(buf, "Encapsulated: %s=%d",
                   ci_encaps_entity_string(elist[0]->type), elist[0]->start);
      }
-     ci_headers_add(req->head, buf);
+     if(is_request)
+	 ci_headers_add(req->request_header, buf);
+     else
+	 ci_headers_add(req->response_header, buf);
 
      while ((e = *elist++) != NULL) {
           if (e->type == ICAP_REQ_HDR || e->type == ICAP_RES_HDR)
                ci_headers_pack((ci_headers_list_t *) e->entity);
      }
      /*e_list is not usable now !!!!!!! */
-     ci_headers_pack(req->head);
+     if(is_request)
+	 ci_headers_pack(req->request_header);
+     else
+	 ci_headers_pack(req->response_header);
+}
+
+void ci_request_pack(request_t *req){
+     request_t_pack(req, 1);
+}
+
+void ci_response_pack(request_t *req){
+     request_t_pack(req, 0);
 }
 
 
@@ -216,7 +228,6 @@ request_t *ci_request_alloc(ci_connection_t * connection)
      req->service_data = NULL;
      req->args[0] = '\0';
      req->type = -1;
-     req->is_client_request = 0;
      req->preview = -1;
      ci_buf_init(&(req->preview_data));
 
@@ -226,7 +237,8 @@ request_t *ci_request_alloc(ci_connection_t * connection)
      req->responce_hasbody = 0;
      req->eof_received = 0;
 
-     req->head = ci_headers_make();
+     req->request_header = ci_headers_make();
+     req->response_header = ci_headers_make();
      req->xheaders = ci_headers_make();
      req->status = SEND_NOTHING;
 
@@ -267,7 +279,6 @@ void ci_request_reset(request_t * req)
      req->service_data = NULL;
      req->args[0] = '\0';
      req->type = -1;
-     req->is_client_request = 0;
      req->preview = -1;
      ci_buf_reset(&(req->preview_data));
 
@@ -275,7 +286,8 @@ void ci_request_reset(request_t * req)
      req->allow204 = 0;
      req->hasbody = 0;
      req->responce_hasbody = 0;
-     ci_headers_reset(req->head);
+     ci_headers_reset(req->request_header);
+     ci_headers_reset(req->response_header);
      ci_headers_reset(req->xheaders);
      req->eof_received = 0;
      req->status = SEND_NOTHING;
@@ -305,7 +317,8 @@ void ci_request_destroy(request_t * req)
           free(req->connection);
 
      ci_buf_mem_free(&(req->preview_data));
-     ci_headers_destroy(req->head);
+     ci_headers_destroy(req->request_header);
+     ci_headers_destroy(req->response_header);
      ci_headers_destroy(req->xheaders);
      for (i = 0; req->entities[i] != NULL; i++)
           destroy_encaps_entity(req->entities[i]);
@@ -502,7 +515,6 @@ request_t *ci_client_request(ci_connection_t * conn, char *server,
      req->req_server[CI_MAXHOSTNAMELEN] = '\0';
      strncpy(req->service, service, MAX_SERVICE_NAME);
      req->service[MAX_SERVICE_NAME] = '\0';
-     req->is_client_request = 1;
      return req;
 }
 
@@ -517,7 +529,8 @@ void ci_client_request_reuse(request_t * req)
 
      req->hasbody = 0;
      req->responce_hasbody = 0;
-     ci_headers_reset(req->head);
+     ci_headers_reset(req->request_header);
+     ci_headers_reset(req->response_header);
      req->eof_received = 0;
      req->status = 0;
 
@@ -548,17 +561,16 @@ int client_create_request(request_t * req, char *servername, char *service,
           return CI_ERROR;
 
      req->type = reqtype;
-     req->is_client_request = 1;
      snprintf(buf, 255, "%s icap://%s/%s ICAP/1.0",
               ci_method_string(reqtype), servername, service);
      buf[255] = '\0';
-     ci_headers_add(req->head, buf);
+     ci_headers_add(req->request_header, buf);
      snprintf(buf, 255, "Host: %s", servername);
      buf[255] = '\0';
-     ci_headers_add(req->head, buf);
-     ci_headers_add(req->head, "User-Agent: C-ICAP-Client-Library/0.01");
+     ci_headers_add(req->request_header, buf);
+     ci_headers_add(req->request_header, "User-Agent: C-ICAP-Client-Library/0.01");
      if (ci_allow204(req))
-          ci_headers_add(req->head, "Allow: 204");
+          ci_headers_add(req->request_header, "Allow: 204");
      return CI_OK;
 }
 
@@ -629,9 +641,9 @@ int client_send_request_headers(request_t * req, int has_eof, int timeout)
 
      ci_request_pack(req);
      if (ci_writen
-         (req->connection->fd, req->head->buf, req->head->bufused, timeout) < 0)
+         (req->connection->fd, req->request_header->buf, req->request_header->bufused, timeout) < 0)
           return CI_ERROR;
-     req->bytes_out += req->head->bufused;
+     req->bytes_out += req->request_header->bufused;
      elist = req->entities;
      while ((e = *elist++) != NULL) {
           if (e->type == ICAP_REQ_HDR || e->type == ICAP_RES_HDR) {
@@ -775,16 +787,16 @@ int ci_client_get_server_options(request_t * req, int timeout)
                                ICAP_OPTIONS))
           return CI_ERROR;
      client_send_request_headers(req, 0, timeout);
-     ci_headers_reset(req->head);
+/*     ci_headers_reset(req->head);*/
 
      do {
           ci_wait_for_incomming_data(req->connection->fd, timeout);
           if (net_data_read(req) == CI_ERROR)
                return CI_ERROR;
-     } while (client_parse_icap_header(req, req->head) == CI_NEEDS_MORE);
+     } while (client_parse_icap_header(req, req->response_header) == CI_NEEDS_MORE);
 
-     ci_headers_unpack(req->head);
-     get_request_options(req, req->head);
+     ci_headers_unpack(req->response_header);
+     get_request_options(req, req->response_header);
 
      return CI_OK;
 }
@@ -890,17 +902,17 @@ int client_parse_incoming_data(request_t * req, void *data_dest,
 
      if (req->status == GET_NOTHING) {
           /*And reading the new ..... */
-          ret = client_parse_icap_header(req, req->head);
+          ret = client_parse_icap_header(req, req->response_header);
           if (ret != CI_OK)
                return ret;
-          sscanf(req->head->buf, "ICAP/%d.%d %d", &v1, &v2, &status);
+          sscanf(req->response_header->buf, "ICAP/%d.%d %d", &v1, &v2, &status);
           ci_debug_printf(3, "Responce was with status:%d \n", status);
-          ci_headers_unpack(req->head);
+          ci_headers_unpack(req->response_header);
 
           if (ci_allow204(req) && status == 204)
                return 204;
 
-          if ((val = ci_headers_search(req->head, "Encapsulated")) == NULL) {
+          if ((val = ci_headers_search(req->response_header, "Encapsulated")) == NULL) {
                ci_debug_printf(1, "No encapsulated entities!\n");
                return CI_ERROR;
           }
@@ -1108,7 +1120,7 @@ int ci_client_icapfilter(request_t * req,
 
      /*send body */
 
-     ci_headers_reset(req->head);
+     /* ci_headers_reset(req->head);*/
      for (i = 0; req->entities[i] != NULL; i++) {
           ci_request_release_entity(req, i);
      }
@@ -1120,14 +1132,14 @@ int ci_client_icapfilter(request_t * req,
                ci_wait_for_incomming_data(req->connection->fd, timeout);
                if (net_data_read(req) == CI_ERROR)
                     return CI_ERROR;
-          } while (client_parse_icap_header(req, req->head) == CI_NEEDS_MORE);
+          } while (client_parse_icap_header(req, req->response_header) == CI_NEEDS_MORE);
 
-          sscanf(req->head->buf, "ICAP/%d.%d %d", &v1, &v2, &preview_status);
+          sscanf(req->response_header->buf, "ICAP/%d.%d %d", &v1, &v2, &preview_status);
           ci_debug_printf(3, "Preview responce was with status:%d \n",
                           preview_status);
           if (req->eof_received && preview_status == 200) {
-               ci_headers_unpack(req->head);
-               if ((val = ci_headers_search(req->head, "Encapsulated")) == NULL) {
+               ci_headers_unpack(req->response_header);
+               if ((val = ci_headers_search(req->response_header, "Encapsulated")) == NULL) {
                     ci_debug_printf(1, "No encapsulated entities!\n");
                     return CI_ERROR;
                }
@@ -1138,7 +1150,7 @@ int ci_client_icapfilter(request_t * req,
                     req->status = GET_HEADERS;
           }
           else
-               ci_headers_reset(req->head);
+	       ci_headers_reset(req->response_header);
      }
 
      if (preview_status == 204)

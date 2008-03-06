@@ -40,8 +40,8 @@ void print_headers(request_t * req)
      int type;
      ci_headers_list_t *headers;
      ci_debug_printf(1, "\nICAP HEADERS:\n");
-     for (i = 0; i < req->head->used; i++) {
-          ci_debug_printf(1, "\t%s\n", req->head->headers[i]);
+     for (i = 0; i < req->response_header->used; i++) {
+          ci_debug_printf(1, "\t%s\n", req->response_header->headers[i]);
      }
      ci_debug_printf(1, "\n");
 

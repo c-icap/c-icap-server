@@ -273,7 +273,7 @@ int parse_header(request_t * req)
      int i, request_status = 0, result;
      ci_headers_list_t *h;
 
-     h = req->head;
+     h = req->request_header;
      if ((request_status = ci_read_icap_header(req, h, TIMEOUT)) < 0)
           return request_status;
 
@@ -427,8 +427,8 @@ int mk_responce_header(request_t * req)
      service_extra_data_t *srv_xdata;
      char buf[512];
      srv_xdata = service_data(req->current_service_mod);
-     head = req->head;
-     ci_headers_reset(req->head);
+     ci_headers_reset(req->response_header);
+     head = req->response_header;
      ci_headers_add(head, "ICAP/1.0 200 OK");
      ci_headers_add(head, "Server: C-ICAP/" VERSION);
      if (req->keepalive)
@@ -466,7 +466,7 @@ int mk_responce_header(request_t * req)
           ci_reqmod_add_header(req, buf);
      }
 
-     ci_request_pack(req);
+     ci_response_pack(req);
      return 1;
 }
 
@@ -559,8 +559,8 @@ int update_send_status(request_t * req)
           }
           req->responce_hasbody = resp_check_body(req);
 
-          req->pstrblock_responce = req->head->buf;
-          req->remain_send_block_bytes = req->head->bufused;
+          req->pstrblock_responce = req->response_header->buf;
+          req->remain_send_block_bytes = req->response_header->bufused;
           req->status = SEND_RESPHEAD;
           return CI_OK;
      }
@@ -829,7 +829,7 @@ void options_responce(request_t * req)
      service_extra_data_t *srv_xdata;
      unsigned int xopts;
      int preview, allow204, xlen;
-     head = req->head;
+     head = req->response_header;
      srv_xdata = service_data(req->current_service_mod);
      ci_headers_reset(head);
      ci_headers_add(head, "ICAP/1.0 200 OK");
@@ -921,7 +921,7 @@ void options_responce(request_t * req)
           if (xlen > 11)
                ci_headers_add(head, buf);
      }
-     ci_request_pack(req);
+     ci_response_pack(req);
 
      req->pstrblock_responce = head->buf;
      req->remain_send_block_bytes = head->bufused;
@@ -953,7 +953,7 @@ int process_request(request_t * req)
                ec_responce(req, res);   /*Bad request or Service not found or Server error or what else...... */
           req->keepalive = 0;   // Error occured, close the connection ......
           ci_debug_printf(5, "Error parsing headers :(%d)\n",
-                          req->head->bufused);
+                          req->request_header->bufused);
           return CI_ERROR;
      }
 
