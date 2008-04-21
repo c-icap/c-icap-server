@@ -166,6 +166,19 @@ AC_DEFINE(HAVE_LIBCLAMAV_09X,1,[Define HAVE_LIBCLAMAV_09X if have clamav 0.90.x 
 AC_MSG_RESULT(yes), 
 AC_MSG_RESULT(no),
 )
+
+AC_MSG_CHECKING([for maxratio field in cl_limits struct])
+AC_TRY_COMPILE(
+[#include <clamav.h>], 
+[struct cl_limits limits; limits.maxratio=200;],
+AC_DEFINE(HAVE_LIBCLAMAV_LIMITS_MAXRATIO,1,[Define HAVE_LIBCLAMAV_LIMITS_MAXRATIO if has cl_limits.maxratio])
+AC_MSG_RESULT(yes), 
+AC_MSG_RESULT(no),
+)
+
+
+
+
 CFLAGS=$OLD_CFLAGS
 
 AC_ARG_WITH(perl, 

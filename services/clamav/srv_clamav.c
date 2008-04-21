@@ -179,7 +179,11 @@ int srvclamav_init_service(service_extra_data_t * srv_xdata,
      limits.maxfiles = 0 /*1000 */ ;    /* max files */
      limits.maxfilesize = 100 * 1048576;        /* maximal archived file size == 100 Mb */
      limits.maxreclevel = 5;    /* maximal recursion level */
+
+#ifdef HAVE_LIBCLAMAV_LIMITS_MAXRATIO
      limits.maxratio = 200;     /* maximal compression ratio */
+#endif
+
      limits.archivememlim = 0;  /* disable memory limit for bzip2 scanner */
 
      /*initialize service commands */
@@ -279,8 +283,10 @@ int srvclamav_check_preview_handler(char *preview_data, int preview_data_len,
 
      ci_debug_printf(9, "OK The preview data size is %d\n", preview_data_len);
 
-     if (!data || !ci_req_hasbody(req))
+     if (!data || !ci_req_hasbody(req)){
+	 ci_debug_printf(9, "No body data, allow 204\n");
           return CI_MOD_ALLOW204;
+     }
 
      /*Going to determine the file type,get_filetype can take preview_data as null ....... */
      file_type = get_filetype(req, preview_data, preview_data_len);
