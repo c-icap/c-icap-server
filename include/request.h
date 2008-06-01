@@ -145,4 +145,8 @@ CI_DECLARE_FUNC(int)          ci_client_icapfilter(ci_request_t *req,
 						   int (*dest_write) (void *,char *,int));
 
 
+#ifdef __CI_COMPAT
+#define request_t   ci_request_t
+#endif
+
 #endif
