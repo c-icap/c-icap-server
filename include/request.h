@@ -25,6 +25,14 @@
 #include "net_io.h"
 
 
+
+/**
+ \defgroup REQUEST ICAP request API
+ \ingroup API
+ * ICAP request related API.
+ */
+
+
 //enum REQUEST_STATUS { WAIT,SERVED };
 
 enum GETDATA_STATUS {GET_NOTHING=0,GET_HEADERS,GET_PREVIEW,GET_BODY,GET_EOF};

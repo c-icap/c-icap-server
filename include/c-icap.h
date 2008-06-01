@@ -164,4 +164,11 @@ CI_DECLARE_DATA extern const struct ci_error_code ci_error_codes[];
 #define ISTAG     "CI0001" /*Always length of 6 chars*/
 #define ISTAG_SIZE 32
 
+/*The following block defines the base doxygen group (API group)*/
+/**
+ \defgroup API  API  Documentation
+ * Functions, typedefs and structures for use with modules and services
+ *
+ */
+
 #endif
