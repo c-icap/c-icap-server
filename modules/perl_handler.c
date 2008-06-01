@@ -53,15 +53,15 @@ CI_DECLARE_DATA service_handler_module_t module = {
 int perl_init_service(service_module_t * this,
                       struct icap_server_conf *server_conf);
 void perl_close_service(service_module_t * this);
-void *perl_init_request_data(service_module_t * this, struct request *);
+void *perl_init_request_data(service_module_t * this, ci_request_t *);
 void perl_release_request_data(void *data);
 
 
 int perl_check_preview_handler(char *preview_data, int preview_data_len,
-                               struct request *);
-int perl_end_of_data_handler(struct request *);
+                               ci_request_t *);
+int perl_end_of_data_handler(ci_request_t *);
 int perl_service_io(char *rbuf, int *rlen, char *wbuf, int *wlen, int iseof,
-                    struct request *req);
+                    ci_request_t *req);
 
 
 int init_perl_handler(struct icap_server_conf *server_conf)
@@ -119,7 +119,7 @@ void perl_close_service(service_module_t * this)
 }
 
 
-void *perl_init_request_data(service_module_t * this, struct request *req)
+void *perl_init_request_data(service_module_t * this, ci_request_t *req)
 {
      return NULL;
 }
@@ -131,19 +131,19 @@ void perl_release_request_data(void *data)
 
 
 int perl_check_preview_handler(char *preview_data, int preview_data_len,
-                               struct request *req)
+                               ci_request_t *req)
 {
      return EC_500;
 }
 
-int perl_end_of_data_handler(struct request *req)
+int perl_end_of_data_handler(ci_request_t *req)
 {
      return 0;
 }
 
 
 int perl_service_io(char *rbuf, int *rlen, char *wbuf, int *wlen, int iseof,
-                    struct request *req)
+                    ci_request_t *req)
 {
      *rlen = 0;
      *wlen = 0;

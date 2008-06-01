@@ -7,7 +7,7 @@
 
 
 /*To be repleced by http_authenticate .......*/
-int http_authorize(request_t * req)
+int http_authorize(ci_request_t * req)
 {
      return http_authenticate(req);
      ci_debug_printf(1, "Allowing http_access.....\n");
@@ -30,7 +30,7 @@ int call_authenticators(authenticator_module_t ** authenticators,
 }
 
 
-int http_authenticate(request_t * req)
+int http_authenticate(ci_request_t * req)
 {
      struct http_auth_method *auth_method;
      authenticator_module_t **authenticators;

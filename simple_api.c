@@ -22,7 +22,7 @@
 
 
 /*
-int ci_resp_check_body(request_t *req){
+int ci_resp_check_body(ci_request_t *req){
      int i;
      ci_encaps_entity_t **e=req->entities;
      for(i=0;e[i]!=NULL;i++)
@@ -33,7 +33,7 @@ int ci_resp_check_body(request_t *req){
 */
 
 
-ci_headers_list_t * ci_http_response_headers(request_t * req)
+ci_headers_list_t * ci_http_response_headers(ci_request_t * req)
 {
      int i;
      ci_encaps_entity_t **e_list;
@@ -46,7 +46,7 @@ ci_headers_list_t * ci_http_response_headers(request_t * req)
      return NULL;
 }
 
-ci_headers_list_t *ci_http_request_headers(request_t * req)
+ci_headers_list_t *ci_http_request_headers(ci_request_t * req)
 {
      ci_encaps_entity_t **e_list;
      e_list = req->entities;
@@ -56,7 +56,7 @@ ci_headers_list_t *ci_http_request_headers(request_t * req)
      return NULL;
 }
 
-int ci_http_response_reset_headers(request_t * req)
+int ci_http_response_reset_headers(ci_request_t * req)
 {
      ci_headers_list_t *heads;
      if (!(heads =  ci_http_response_headers(req)))
@@ -65,7 +65,7 @@ int ci_http_response_reset_headers(request_t * req)
      return 1;
 }
 
-int ci_http_request_reset_headers(request_t * req)
+int ci_http_request_reset_headers(ci_request_t * req)
 {
      ci_headers_list_t *heads;
      if (!(heads = ci_http_request_headers(req)))
@@ -82,7 +82,7 @@ int ci_http_request_reset_headers(request_t * req)
  RESPMOD response encapsulated_list: [reshdr] resbody
  
  */
-int ci_http_response_create(request_t * req, int has_reshdr, int has_body)
+int ci_http_response_create(ci_request_t * req, int has_reshdr, int has_body)
 {
      int i = 0;
      ci_encaps_entity_t **e_list;
@@ -105,7 +105,7 @@ int ci_http_response_create(request_t * req, int has_reshdr, int has_body)
 }
 
 
-char *ci_http_response_add_header(request_t * req, char *header)
+char *ci_http_response_add_header(ci_request_t * req, char *header)
 {
      ci_headers_list_t *heads;
      if (!(heads =  ci_http_response_headers(req)))
@@ -114,7 +114,7 @@ char *ci_http_response_add_header(request_t * req, char *header)
 }
 
 
-char *ci_http_request_add_header(request_t * req, char *header)
+char *ci_http_request_add_header(ci_request_t * req, char *header)
 {
      ci_headers_list_t *heads;
      if (!(heads = ci_http_request_headers(req)))
@@ -122,7 +122,7 @@ char *ci_http_request_add_header(request_t * req, char *header)
      return ci_headers_add(heads, header);
 }
 
-int ci_http_response_remove_header(request_t * req, char *header)
+int ci_http_response_remove_header(ci_request_t * req, char *header)
 {
      ci_headers_list_t *heads;
      if (!(heads =  ci_http_response_headers(req)))
@@ -131,7 +131,7 @@ int ci_http_response_remove_header(request_t * req, char *header)
 }
 
 
-int ci_http_request_remove_header(request_t * req, char *header)
+int ci_http_request_remove_header(ci_request_t * req, char *header)
 {
      ci_headers_list_t *heads;
      if (!(heads = ci_http_request_headers(req)))
@@ -140,7 +140,7 @@ int ci_http_request_remove_header(request_t * req, char *header)
 }
 
 
-char *ci_http_response_get_header(request_t * req, char *head_name)
+char *ci_http_response_get_header(ci_request_t * req, char *head_name)
 {
      ci_headers_list_t *heads;
      char *val;
@@ -151,7 +151,7 @@ char *ci_http_response_get_header(request_t * req, char *head_name)
      return val;
 }
 
-char *ci_http_request_get_header(request_t * req, char *head_name)
+char *ci_http_request_get_header(ci_request_t * req, char *head_name)
 {
      ci_headers_list_t *heads;
      char *val;
@@ -163,7 +163,7 @@ char *ci_http_request_get_header(request_t * req, char *head_name)
 }
 
 
-ci_off_t ci_http_content_lenght(request_t * req)
+ci_off_t ci_http_content_lenght(ci_request_t * req)
 {
      ci_headers_list_t *heads;
      char *val;
@@ -177,7 +177,7 @@ ci_off_t ci_http_content_lenght(request_t * req)
      return ci_strto_off_t(val, NULL, 10);
 }
 
-char *ci_http_request(request_t * req)
+char *ci_http_request(ci_request_t * req)
 {
      ci_headers_list_t *heads;
      if (!(heads = ci_http_request_headers(req)))
@@ -185,7 +185,7 @@ char *ci_http_request(request_t * req)
      return heads->headers[0];
 }
 
-char *ci_icap_add_xheader(request_t * req, char *header)
+char *ci_icap_add_xheader(ci_request_t * req, char *header)
 {
      return ci_headers_add(req->xheaders, header);
 }

@@ -53,7 +53,7 @@ typedef struct ci_buf{
 
 struct service_module;
 
-typedef struct request{
+typedef struct ci_request{
      ci_connection_t *connection;
      int type;
      char req_server[CI_MAXHOSTNAMELEN+1];
@@ -93,20 +93,20 @@ typedef struct request{
      /* statistics */
      uint64_t bytes_in;
      uint64_t bytes_out;
-} request_t;
+} ci_request_t;
 
 #define lock_data(req) (req->data_locked=1)
 #define unlock_data(req) (req->data_locked=0)
 
 /*This functions needed in server (mpmt_server.c ) */
-request_t *newrequest(ci_connection_t *connection);
-int recycle_request(request_t *req,ci_connection_t *connection);
-int process_request(request_t *);
+ci_request_t *newrequest(ci_connection_t *connection);
+int recycle_request(ci_request_t *req,ci_connection_t *connection);
+int process_request(ci_request_t *);
 
 /*Functions used in both server and icap-client library*/
-CI_DECLARE_FUNC(int) parse_chunk_data(request_t *req, char **wdata);
-CI_DECLARE_FUNC(int) net_data_read(request_t *req);
-CI_DECLARE_FUNC(int) process_encapsulated(request_t *req,char *buf);
+CI_DECLARE_FUNC(int) parse_chunk_data(ci_request_t *req, char **wdata);
+CI_DECLARE_FUNC(int) net_data_read(ci_request_t *req);
+CI_DECLARE_FUNC(int) process_encapsulated(ci_request_t *req,char *buf);
 
 /*********************************************/
 /*Buffer functions (I do not know if they must included in ci library....) */
@@ -122,21 +122,21 @@ CI_DECLARE_FUNC(int)   ci_buf_reset_size(struct ci_buf *buf,int req_size);
 #define ci_service_data(req) ((req)->service_data)
 #define ci_allow204(req)     ((req)->allow204)
 /*API functions ......*/
-CI_DECLARE_FUNC(request_t *)  ci_request_alloc(ci_connection_t *connection);
-CI_DECLARE_FUNC(void)         ci_request_reset(request_t *req);
-CI_DECLARE_FUNC(void)         ci_request_destroy(request_t *req);
-CI_DECLARE_FUNC(void)         ci_request_pack(request_t *req);
-CI_DECLARE_FUNC(void)         ci_response_pack(request_t *req);
-CI_DECLARE_FUNC(ci_encaps_entity_t *) ci_request_alloc_entity(request_t *req,int type,int val);
-CI_DECLARE_FUNC(int)          ci_request_release_entity(request_t *req,int pos);
-CI_DECLARE_FUNC(int)          ci_read_icap_header(request_t *req,ci_headers_list_t *h,int timeout);
+CI_DECLARE_FUNC(ci_request_t *)  ci_request_alloc(ci_connection_t *connection);
+CI_DECLARE_FUNC(void)         ci_request_reset(ci_request_t *req);
+CI_DECLARE_FUNC(void)         ci_request_destroy(ci_request_t *req);
+CI_DECLARE_FUNC(void)         ci_request_pack(ci_request_t *req);
+CI_DECLARE_FUNC(void)         ci_response_pack(ci_request_t *req);
+CI_DECLARE_FUNC(ci_encaps_entity_t *) ci_request_alloc_entity(ci_request_t *req,int type,int val);
+CI_DECLARE_FUNC(int)          ci_request_release_entity(ci_request_t *req,int pos);
+CI_DECLARE_FUNC(int)          ci_read_icap_header(ci_request_t *req,ci_headers_list_t *h,int timeout);
 
 /*ICAP client api*/
-CI_DECLARE_FUNC(request_t *)  ci_client_request(ci_connection_t *conn,char *server,char *service);
-CI_DECLARE_FUNC(void)         ci_client_request_reuse(request_t *req);
-CI_DECLARE_FUNC(int)          ci_client_get_server_options(request_t *req,int timeout);
+CI_DECLARE_FUNC(ci_request_t *)  ci_client_request(ci_connection_t *conn,char *server,char *service);
+CI_DECLARE_FUNC(void)         ci_client_request_reuse(ci_request_t *req);
+CI_DECLARE_FUNC(int)          ci_client_get_server_options(ci_request_t *req,int timeout);
 CI_DECLARE_FUNC(ci_connection_t *)  ci_client_connect_to(char *servername,int port,int proto);
-CI_DECLARE_FUNC(int)          ci_client_icapfilter(request_t *req,
+CI_DECLARE_FUNC(int)          ci_client_icapfilter(ci_request_t *req,
 						   int timeout,
 						   ci_headers_list_t *headers,
 						   void *data_source,

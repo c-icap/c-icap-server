@@ -34,7 +34,7 @@
 /*Must declared ....*/
 int CONN_TIMEOUT = 300;
 
-void print_headers(request_t * req)
+void print_headers(ci_request_t * req)
 {
      int i;
      int type;
@@ -104,7 +104,7 @@ static struct options_entry options[] = {
      {NULL, NULL, NULL, NULL}
 };
 
-void log_errors(request_t * req, const char *format, ...)
+void log_errors(ci_request_t * req, const char *format, ...)
 {
      va_list ap;
      va_start(ap, format);
@@ -112,7 +112,7 @@ void log_errors(request_t * req, const char *format, ...)
      va_end(ap);
 }
 
-void vlog_errors(request_t * req, const char *format, va_list ap)
+void vlog_errors(ci_request_t * req, const char *format, va_list ap)
 {
      vfprintf(stderr, format, ap);
 }
@@ -123,7 +123,7 @@ int main(int argc, char **argv)
      int ret;
      char ip[CI_IPLEN];
      ci_connection_t *conn;
-     request_t *req;
+     ci_request_t *req;
      ci_headers_list_t *headers;
 
      CI_DEBUG_LEVEL = 1;        /*Default debug level is 1 */

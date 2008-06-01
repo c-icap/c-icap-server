@@ -27,12 +27,12 @@
 int echo_init_service(service_extra_data_t * srv_xdata,
                       struct icap_server_conf *server_conf);
 int echo_check_preview_handler(char *preview_data, int preview_data_len,
-                               request_t *);
-int echo_end_of_data_handler(request_t * req);
-void *echo_init_request_data(service_module_t * serv, request_t * req);
+                               ci_request_t *);
+int echo_end_of_data_handler(ci_request_t * req);
+void *echo_init_request_data(service_module_t * serv, ci_request_t * req);
 void *echo_release_request_data(void *data);
 int echo_io(char *rbuf, int *rlen, char *wbuf, int *wlen, int iseof,
-            request_t * req);
+            ci_request_t * req);
 
 
 CI_DECLARE_MOD_DATA service_module_t service = {
@@ -63,7 +63,7 @@ int echo_init_service(service_extra_data_t * srv_xdata,
 }
 
 
-void *echo_init_request_data(service_module_t * serv, request_t * req)
+void *echo_init_request_data(service_module_t * serv, ci_request_t * req)
 {
 
      if (ci_req_hasbody(req))
@@ -80,7 +80,7 @@ void *echo_release_request_data(void *data)
 
 static int whattodo = 0;
 int echo_check_preview_handler(char *preview_data, int preview_data_len,
-                               request_t * req)
+                               ci_request_t * req)
 {
      ci_off_t content_len;
      ci_cached_file_t *data = ci_service_data(req);
@@ -108,14 +108,14 @@ int echo_check_preview_handler(char *preview_data, int preview_data_len,
 }
 
 
-int echo_end_of_data_handler(request_t * req)
+int echo_end_of_data_handler(ci_request_t * req)
 {
 
      return CI_MOD_DONE;
 }
 
 int echo_io(char *rbuf, int *rlen, char *wbuf, int *wlen, int iseof,
-            request_t * req)
+            ci_request_t * req)
 {
      int ret;
      ci_cached_file_t *data = ci_service_data(req);

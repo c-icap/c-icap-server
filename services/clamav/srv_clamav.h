@@ -6,7 +6,7 @@
 
 typedef struct av_req_data{
      ci_simple_file_t *body;
-     request_t *req;
+     ci_request_t *req;
      int must_scanned ;
      int allow204;
      int virus_check_done;
@@ -29,9 +29,9 @@ typedef struct av_req_data{
 enum {NO_SCAN=0,SCAN,VIR_SCAN};
 
 #ifdef VIRALATOR_MODE
-void init_vir_mode_data(request_t *req,av_req_data_t *data);
-int send_vir_mode_page(av_req_data_t *data,char *buf,int len,request_t *req);
-void endof_data_vir_mode(av_req_data_t *data,request_t *req);
+void init_vir_mode_data(ci_request_t *req,av_req_data_t *data);
+int send_vir_mode_page(av_req_data_t *data,char *buf,int len,ci_request_t *req);
+void endof_data_vir_mode(av_req_data_t *data,ci_request_t *req);
 #endif
 
 #endif

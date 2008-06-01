@@ -34,11 +34,11 @@ extern char *VIR_HTTP_SERVER;
 extern int VIR_UPDATE_TIME;
 
 
-char *srvclamav_compute_name(request_t * req);
+char *srvclamav_compute_name(ci_request_t * req);
 char *construct_url(char *strformat, char *filename, char *user);
 
 
-void init_vir_mode_data(request_t * req, av_req_data_t * data)
+void init_vir_mode_data(ci_request_t * req, av_req_data_t * data)
 {
      ci_http_response_reset_headers(req);
      ci_http_response_add_header(req, "HTTP/1.1 200 OK");
@@ -68,7 +68,7 @@ void init_vir_mode_data(request_t * req, av_req_data_t * data)
 
 
 int send_vir_mode_page(av_req_data_t * data, char *buf, int len,
-                       request_t * req)
+                       ci_request_t * req)
 {
      int bytes;
      char *filename, *str;
@@ -136,7 +136,7 @@ static const char *msg2 =
     "</b><p>Ask your administration for info how to get it";
 
 
-void endof_data_vir_mode(av_req_data_t * data, request_t * req)
+void endof_data_vir_mode(av_req_data_t * data, ci_request_t * req)
 {
      ci_membuf_t *error_page;
 
@@ -159,7 +159,7 @@ void endof_data_vir_mode(av_req_data_t * data, request_t * req)
 }
 
 
-char *srvclamav_compute_name(request_t * req)
+char *srvclamav_compute_name(ci_request_t * req)
 {
      char *str, *filename, *last_delim;
      int namelen;

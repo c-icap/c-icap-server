@@ -72,9 +72,9 @@ CI_DECLARE_FUNC(int) ci_get_data_group_id(struct ci_magics_db *db,char *group);
 
 CI_DECLARE_FUNC(int) ci_filetype(struct ci_magics_db *db,char *buf, int buflen);
 /* compiler does not allow me to define this function here :-(
-   because of request_t .......
+   because of ci_request_t .......
 CI_DECLARE_FUNC(int) ci_extend_filetype(struct ci_magics_db *db,
-					request_t *req,
+					ci_request_t *req,
 					char *buf,int len,int *iscompressed);
 */
 #endif

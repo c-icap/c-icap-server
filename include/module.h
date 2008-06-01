@@ -26,7 +26,7 @@
 #include "service.h"
 #include "cfg_param.h"
 
-struct request;
+struct ci_request;
 
 enum module_type{
      UNKNOWN,

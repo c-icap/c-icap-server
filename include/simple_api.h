@@ -36,20 +36,20 @@
 
 CI_DECLARE_FUNC(void)                ci_base64_decode(char *str,char *result,int len);
 
-CI_DECLARE_FUNC(ci_headers_list_t *) ci_http_response_headers(request_t *req);
-CI_DECLARE_FUNC(ci_headers_list_t *) ci_http_request_headers(request_t *req);
-CI_DECLARE_FUNC(char *)              ci_http_response_add_header(request_t *req,char *header);
-CI_DECLARE_FUNC(char *)              ci_http_request_add_header(request_t *req,char *header);
-CI_DECLARE_FUNC(int)                 ci_http_response_remove_header(request_t *req,char *header);
-CI_DECLARE_FUNC(int)                 ci_http_request_remove_header(request_t *req,char *header);
-CI_DECLARE_FUNC(char *)              ci_http_response_get_header(request_t *req,char *head_name);
-CI_DECLARE_FUNC(char *)              ci_http_request_get_header(request_t *req,char *head_name);
-CI_DECLARE_FUNC(int)                 ci_http_response_reset_headers(request_t *req);
-CI_DECLARE_FUNC(int)                 ci_http_request_reset_headers(request_t *req);
-CI_DECLARE_FUNC(int)                 ci_http_response_create(request_t *req, int has_reshdr ,int has_body);
-CI_DECLARE_FUNC(ci_off_t)            ci_http_content_lenght(request_t *req);
-CI_DECLARE_FUNC(char *)              ci_http_request(request_t *req);
-CI_DECLARE_FUNC(char *)              ci_icap_add_xheader(request_t *req,char *header);
+CI_DECLARE_FUNC(ci_headers_list_t *) ci_http_response_headers(ci_request_t *req);
+CI_DECLARE_FUNC(ci_headers_list_t *) ci_http_request_headers(ci_request_t *req);
+CI_DECLARE_FUNC(char *)              ci_http_response_add_header(ci_request_t *req,char *header);
+CI_DECLARE_FUNC(char *)              ci_http_request_add_header(ci_request_t *req,char *header);
+CI_DECLARE_FUNC(int)                 ci_http_response_remove_header(ci_request_t *req,char *header);
+CI_DECLARE_FUNC(int)                 ci_http_request_remove_header(ci_request_t *req,char *header);
+CI_DECLARE_FUNC(char *)              ci_http_response_get_header(ci_request_t *req,char *head_name);
+CI_DECLARE_FUNC(char *)              ci_http_request_get_header(ci_request_t *req,char *head_name);
+CI_DECLARE_FUNC(int)                 ci_http_response_reset_headers(ci_request_t *req);
+CI_DECLARE_FUNC(int)                 ci_http_request_reset_headers(ci_request_t *req);
+CI_DECLARE_FUNC(int)                 ci_http_response_create(ci_request_t *req, int has_reshdr ,int has_body);
+CI_DECLARE_FUNC(ci_off_t)            ci_http_content_lenght(ci_request_t *req);
+CI_DECLARE_FUNC(char *)              ci_http_request(ci_request_t *req);
+CI_DECLARE_FUNC(char *)              ci_icap_add_xheader(ci_request_t *req,char *header);
 
 
 #ifdef __CI_COMPAT

@@ -46,7 +46,7 @@
 #define CI_XAuthenticatedUser     8
 #define CI_XAuthenticatedGroups  16
 
-struct request;
+struct ci_request;
 
 typedef struct  service_module service_module_t;
 
@@ -71,12 +71,12 @@ struct  service_module{
      int (*mod_init_service)(service_extra_data_t *srv_xdata,struct icap_server_conf *server_conf);
      int (*mod_post_init_service)(service_extra_data_t *srv_xdata,struct icap_server_conf *server_conf);
      void (*mod_close_service)(service_module_t *thismod);
-     void *(*mod_init_request_data)(service_module_t *thismod,struct request *);
+     void *(*mod_init_request_data)(service_module_t *thismod,struct ci_request *);
      void (*mod_release_request_data)(void *module_data);
 
-     int (*mod_check_preview_handler)(char *preview_data,int preview_data_len,struct request*);
-     int (*mod_end_of_data_handler)(struct request*);
-     int (*mod_service_io)(char *rbuf,int *rlen,char *wbuf,int *wlen,int iseof, struct request *);
+     int (*mod_check_preview_handler)(char *preview_data,int preview_data_len,struct ci_request*);
+     int (*mod_end_of_data_handler)(struct ci_request*);
+     int (*mod_service_io)(char *rbuf,int *rlen,char *wbuf,int *wlen,int iseof, struct ci_request *);
 
      struct conf_entry *mod_conf_table;
      void *mod_data;

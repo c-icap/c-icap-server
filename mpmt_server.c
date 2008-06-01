@@ -56,7 +56,7 @@ typedef struct server_decl {
      int srv_id;
      ci_thread_t srv_pthread;
      struct connections_queue *con_queue;
-     request_t *current_req;
+     ci_request_t *current_req;
      int served_requests;
      int served_requests_no_reallocation;
 } server_decl_t;

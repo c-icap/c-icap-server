@@ -38,15 +38,15 @@
 extern int TIMEOUT;
 
  /**/
-    void send_headers_block(request_t * req, ci_headers_list_t * responce_head);
+    void send_headers_block(ci_request_t * req, ci_headers_list_t * responce_head);
 
 
 #define FORBITTEN_STR "ICAP/1.0 403 Forbidden\r\n\r\n"
 /*#define ISTAG         "\"5BDEEEA9-12E4-2\""*/
 
-request_t *newrequest(ci_connection_t * connection)
+ci_request_t *newrequest(ci_connection_t * connection)
 {
-     request_t *req;
+     ci_request_t *req;
      int access;
      int len;
      ci_connection_t *conn;
@@ -66,7 +66,7 @@ request_t *newrequest(ci_connection_t * connection)
 }
 
 
-int recycle_request(request_t * req, ci_connection_t * connection)
+int recycle_request(ci_request_t * req, ci_connection_t * connection)
 {
      int access;
      int len;
@@ -106,7 +106,7 @@ int icap_header_check_realloc(char **buf, int *size, int used, int mustadded)
 }
 
 
-int ci_read_icap_header(request_t * req, ci_headers_list_t * h, int timeout)
+int ci_read_icap_header(ci_request_t * req, ci_headers_list_t * h, int timeout)
 {
      int bytes, request_status = 0, i, eoh = 0, startsearch = 0, readed = 0;
      char *buf_end;
@@ -146,7 +146,7 @@ int ci_read_icap_header(request_t * req, ci_headers_list_t * h, int timeout)
 }
 
 
-int read_encaps_header(request_t * req, ci_headers_list_t * h, int size)
+int read_encaps_header(ci_request_t * req, ci_headers_list_t * h, int size)
 {
      int bytes = 0, remains, readed = 0;
      char *buf_end = NULL;
@@ -188,7 +188,7 @@ int read_encaps_header(request_t * req, ci_headers_list_t * h, int size)
 }
 
 
-int parse_request(request_t * req, char *buf)
+int parse_request(ci_request_t * req, char *buf)
 {
      char *start, *end;
      int servnamelen, len, args_len;
@@ -268,7 +268,7 @@ int get_method(char *buf)
      }
 }
 
-int parse_header(request_t * req)
+int parse_header(ci_request_t * req)
 {
      int i, request_status = 0, result;
      ci_headers_list_t *h;
@@ -313,7 +313,7 @@ int parse_header(request_t * req)
 }
 
 
-int parse_encaps_headers(request_t * req)
+int parse_encaps_headers(ci_request_t * req)
 {
      int size, i, request_status = 0;
      ci_encaps_entity_t *e = NULL;
@@ -342,7 +342,7 @@ int parse_encaps_headers(request_t * req)
   In read_preview_data I must check if readed data are more than 
   those client said in preview header
 */
-int read_preview_data(request_t * req)
+int read_preview_data(ci_request_t * req)
 {
      int ret;
      char *wdata;
@@ -391,7 +391,7 @@ int read_preview_data(request_t * req)
      return CI_ERROR;
 }
 
-void ec_responce(request_t * req, int ec)
+void ec_responce(ci_request_t * req, int ec)
 {
      char buf[256];
      int len;
@@ -403,7 +403,7 @@ void ec_responce(request_t * req, int ec)
      req->bytes_out += len;
 }
 
-void ec_responce_with_istag(request_t * req, int ec)
+void ec_responce_with_istag(ci_request_t * req, int ec)
 {
      char buf[256];
      service_extra_data_t *srv_xdata;
@@ -420,7 +420,7 @@ void ec_responce_with_istag(request_t * req, int ec)
 }
 
 extern char MY_HOSTNAME[];
-int mk_responce_header(request_t * req)
+int mk_responce_header(ci_request_t * req)
 {
      ci_headers_list_t *head;
      ci_encaps_entity_t **e_list;
@@ -478,7 +478,7 @@ const char *eol_str = "\r\n";
 const char *eof_str = "0\r\n\r\n";
 
 
-int send_current_block_data(request_t * req)
+int send_current_block_data(ci_request_t * req)
 {
      int bytes;
      if (req->remain_send_block_bytes == 0)
@@ -496,7 +496,7 @@ int send_current_block_data(request_t * req)
 }
 
 
-int format_body_chunk(request_t * req)
+int format_body_chunk(ci_request_t * req)
 {
      int def_bytes;
      char *wbuf = NULL;
@@ -529,7 +529,7 @@ int format_body_chunk(request_t * req)
 
 
 
-int resp_check_body(request_t * req)
+int resp_check_body(ci_request_t * req)
 {
      int i;
      ci_encaps_entity_t **e = req->entities;
@@ -547,7 +547,7 @@ if((ret=send_current_block_data(req))!=0)
 must called after this function....
 */
 
-int update_send_status(request_t * req)
+int update_send_status(ci_request_t * req)
 {
      int i, status;
      ci_encaps_entity_t *e;
@@ -607,7 +607,7 @@ int update_send_status(request_t * req)
 }
 
 int mod_null_io(char *rbuf, int *rlen, char *wbuf, int *wlen, int iseof,
-                struct request *req)
+                ci_request_t *req)
 {
      if (iseof)
           *rlen = CI_EOF;
@@ -617,12 +617,12 @@ int mod_null_io(char *rbuf, int *rlen, char *wbuf, int *wlen, int iseof,
 }
 
 
-int get_send_body(request_t * req, int parse_only)
+int get_send_body(ci_request_t * req, int parse_only)
 {
      char *wchunkdata = NULL, *rchunkdata = NULL;
      int ret, parse_chunk_ret, has_formated_data = 0;
      int (*service_io) (char *rbuf, int *rlen, char *wbuf, int *wlen, int iseof,
-                        struct request *);
+                        ci_request_t *);
      int action = 0, rchunkisfull = 0, service_eof = 0, wbytes, rbytes;
 
      if (parse_only)
@@ -769,11 +769,11 @@ int get_send_body(request_t * req, int parse_only)
 
 
 
-int rest_responce(request_t * req)
+int rest_responce(ci_request_t * req)
 {
      int ret = 0;
      int (*service_io) (char *rbuf, int *rlen, char *wbuf, int *wlen, int iseof,
-                        struct request *);
+                        ci_request_t *);
      service_io = req->current_service_mod->mod_service_io;
 
      if (!service_io)
@@ -821,7 +821,7 @@ int rest_responce(request_t * req)
      return CI_OK;
 }
 
-void options_responce(request_t * req)
+void options_responce(ci_request_t * req)
 {
      char buf[MAX_HEADER_SIZE + 1];
      char *str;
@@ -943,7 +943,7 @@ void options_responce(request_t * req)
 
 }
 
-int process_request(request_t * req)
+int process_request(ci_request_t * req)
 {
      int res, preview_status = 0, auth_status = CI_ACCESS_ALLOW;
      int ret_status = CI_OK; /*By default ret_status is CI_OK, on error must set to CI_ERROR*/

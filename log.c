@@ -52,7 +52,7 @@ void log_reset()
      default_logger = NULL;
 }
 
-void log_access(request_t * req, int status)
+void log_access(ci_request_t * req, int status)
 {                               /*req can not be NULL */
      char serverip[CI_IPLEN], clientip[CI_IPLEN];
      if (!req)
@@ -76,7 +76,7 @@ void log_access(request_t * req, int status)
 }
 
 
-void log_server(request_t * req, const char *format, ...)
+void log_server(ci_request_t * req, const char *format, ...)
 {                               /*req can be NULL......... */
      va_list ap;
      va_start(ap, format);
@@ -85,7 +85,7 @@ void log_server(request_t * req, const char *format, ...)
      va_end(ap);
 }
 
-void vlog_server(request_t * req, const char *format, va_list ap)
+void vlog_server(ci_request_t * req, const char *format, va_list ap)
 {
      if (default_logger)
           default_logger->log_server("", format, ap);

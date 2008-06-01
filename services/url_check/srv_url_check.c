@@ -28,15 +28,15 @@
 
 int url_check_init_service(service_extra_data_t * srv_xdata,
                            struct icap_server_conf *server_conf);
-void *url_check_init_request_data(service_module_t * serv, request_t * req);
+void *url_check_init_request_data(service_module_t * serv, ci_request_t * req);
 void url_check_release_data(void *data);
-int url_check_process(request_t *);
+int url_check_process(ci_request_t *);
 int url_check_check_preview(char *preview_data, int preview_data_len,
-                            request_t *);
+                            ci_request_t *);
 int url_check_io(char *rbuf, int *rlen, char *wbuf, int *wlen, int iseof,
-                 request_t * req);
-//int    url_check_write(char *buf,int len ,int iseof,request_t *req);
-//int    url_check_read(char *buf,int len,request_t *req);
+                 ci_request_t * req);
+//int    url_check_write(char *buf,int len ,int iseof,ci_request_t *req);
+//int    url_check_read(char *buf,int len,ci_request_t *req);
 
 
 //service_module echo={
@@ -85,7 +85,7 @@ int url_check_init_service(service_extra_data_t * srv_xdata,
 }
 
 
-void *url_check_init_request_data(service_module_t * serv, request_t * req)
+void *url_check_init_request_data(service_module_t * serv, ci_request_t * req)
 {
      struct url_check_data *uc = malloc(sizeof(struct url_check_data));
      uc->body = NULL;
@@ -103,7 +103,7 @@ void url_check_release_data(void *data)
 }
 
 
-int get_http_info(request_t * req, ci_headers_list_t * req_header,
+int get_http_info(ci_request_t * req, ci_headers_list_t * req_header,
                   struct http_info *httpinf)
 {
      char *str;
@@ -172,7 +172,7 @@ int check_destination(struct http_info *httpinf)
 static char *error_message = "<H1>Permition deny!<H1>";
 
 int url_check_check_preview(char *preview_data, int preview_data_len,
-                            request_t * req)
+                            ci_request_t * req)
 {
      ci_headers_list_t *req_header;
      struct url_check_data *uc = ci_service_data(req);
@@ -230,7 +230,7 @@ int url_check_check_preview(char *preview_data, int preview_data_len,
 }
 
 
-int url_check_process(request_t * req)
+int url_check_process(ci_request_t * req)
 {
 
 /*
@@ -241,7 +241,7 @@ int url_check_process(request_t * req)
 }
 
 int url_check_io(char *rbuf, int *rlen, char *wbuf, int *wlen, int iseof,
-                 request_t * req)
+                 ci_request_t * req)
 {
      int ret;
      struct url_check_data *uc = ci_service_data(req);

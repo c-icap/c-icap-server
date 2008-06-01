@@ -75,7 +75,7 @@ int ci_buf_reset_size(struct ci_buf *buf, int req_size)
      return ci_buf_mem_alloc(buf, req_size);
 }
 
-void request_t_pack(request_t * req, int is_request)
+void ci_request_t_pack(ci_request_t * req, int is_request)
 {
      ci_encaps_entity_t **elist, *e;
      char buf[256];
@@ -133,12 +133,12 @@ void request_t_pack(request_t * req, int is_request)
 	 ci_headers_pack(req->response_header);
 }
 
-void ci_request_pack(request_t *req){
-     request_t_pack(req, 1);
+void ci_request_pack(ci_request_t *req){
+     ci_request_t_pack(req, 1);
 }
 
-void ci_response_pack(request_t *req){
-     request_t_pack(req, 0);
+void ci_response_pack(ci_request_t *req){
+     ci_request_t_pack(req, 0);
 }
 
 
@@ -159,7 +159,7 @@ TODO:
 */
 
 //alloc_an_entity
-ci_encaps_entity_t *ci_request_alloc_entity(request_t * req, int type, int val)
+ci_encaps_entity_t *ci_request_alloc_entity(ci_request_t * req, int type, int val)
 {
      ci_encaps_entity_t *e = NULL;
 
@@ -182,7 +182,7 @@ ci_encaps_entity_t *ci_request_alloc_entity(request_t * req, int type, int val)
 }
 
 
-int ci_request_release_entity(request_t * req, int pos)
+int ci_request_release_entity(ci_request_t * req, int pos)
 {
      int type = 0;
      if (!req->entities[pos])
@@ -212,11 +212,11 @@ int ci_request_release_entity(request_t * req, int pos)
 }
 
 
-request_t *ci_request_alloc(ci_connection_t * connection)
+ci_request_t *ci_request_alloc(ci_connection_t * connection)
 {
-     request_t *req;
+     ci_request_t *req;
      int i;
-     req = (request_t *) malloc(sizeof(request_t));
+     req = (ci_request_t *) malloc(sizeof(ci_request_t));
 
      req->connection = connection;
      req->user[0] = '\0';
@@ -268,7 +268,7 @@ request_t *ci_request_alloc(ci_connection_t * connection)
 /*reset_request simply reset request to use it with tunneled requests
   The req->access_type must not be reset!!!!!
 */
-void ci_request_reset(request_t * req)
+void ci_request_reset(ci_request_t * req)
 {
      int i;
      /*     memset(req->connections,0,sizeof(ci_connection)) *//*Not really needed... */
@@ -310,7 +310,7 @@ void ci_request_reset(request_t * req)
 
 }
 
-void ci_request_destroy(request_t * req)
+void ci_request_destroy(ci_request_t * req)
 {
      int i;
      if (req->connection)
@@ -332,7 +332,7 @@ void ci_request_destroy(request_t * req)
 }
 
 
-int process_encapsulated(request_t * req, char *buf)
+int process_encapsulated(ci_request_t * req, char *buf)
 {
      char *start;
      char *pos;
@@ -361,9 +361,9 @@ enum chunk_status { READ_CHUNK_DEF = 1, READ_CHUNK_DATA };
 
 
 /*
-  maybe the wdata must moved to the request_t and write_to_module_pending must replace wdata_len
+  maybe the wdata must moved to the ci_request_t and write_to_module_pending must replace wdata_len
 */
-int parse_chunk_data(request_t * req, char **wdata)
+int parse_chunk_data(ci_request_t * req, char **wdata)
 {
      char *end;
      int num_len, remains, tmp;
@@ -471,7 +471,7 @@ int parse_chunk_data(request_t * req, char **wdata)
      return CI_OK;
 }
 
-int net_data_read(request_t * req)
+int net_data_read(ci_request_t * req)
 {
      int bytes;
 
@@ -506,10 +506,10 @@ int net_data_read(request_t * req)
 /* ICAP client functions                                                 */
 
 
-request_t *ci_client_request(ci_connection_t * conn, char *server,
+ci_request_t *ci_client_request(ci_connection_t * conn, char *server,
                              char *service)
 {
-     request_t *req;
+     ci_request_t *req;
      req = ci_request_alloc(conn);
      strncpy(req->req_server, server, CI_MAXHOSTNAMELEN);
      req->req_server[CI_MAXHOSTNAMELEN] = '\0';
@@ -519,7 +519,7 @@ request_t *ci_client_request(ci_connection_t * conn, char *server,
 }
 
 
-void ci_client_request_reuse(request_t * req)
+void ci_client_request_reuse(ci_request_t * req)
 {
      int i;
 
@@ -551,7 +551,7 @@ void ci_client_request_reuse(request_t * req)
 
 
 
-int client_create_request(request_t * req, char *servername, char *service,
+int client_create_request(ci_request_t * req, char *servername, char *service,
                           int reqtype)
 {
      char buf[256];
@@ -574,7 +574,7 @@ int client_create_request(request_t * req, char *servername, char *service,
      return CI_OK;
 }
 
-int get_request_options(request_t * req, ci_headers_list_t * h)
+int get_request_options(ci_request_t * req, ci_headers_list_t * h)
 {
      char *pstr;
 
@@ -633,7 +633,7 @@ int ci_writen(int fd, char *buf, int len, int timeout)
 
 
 
-int client_send_request_headers(request_t * req, int has_eof, int timeout)
+int client_send_request_headers(ci_request_t * req, int has_eof, int timeout)
 {
      ci_encaps_entity_t **elist, *e;
      ci_headers_list_t *headers;
@@ -708,7 +708,7 @@ static int check_realloc(char **buf, int *size, int used, int mustadded)
 }
 
 
-int client_parse_icap_header(request_t * req, ci_headers_list_t * h)
+int client_parse_icap_header(ci_request_t * req, ci_headers_list_t * h)
 {
      int readed = 0, eoh = 0;
      char *buf, *end;
@@ -738,7 +738,7 @@ int client_parse_icap_header(request_t * req, ci_headers_list_t * h)
      return CI_OK;
 }
 
-int client_parse_encaps_header(request_t * req, ci_headers_list_t * h, int size)
+int client_parse_encaps_header(ci_request_t * req, ci_headers_list_t * h, int size)
 {
      int remains, readed = 0;
      char *buf_end = NULL;
@@ -779,7 +779,7 @@ int client_parse_encaps_header(request_t * req, ci_headers_list_t * h, int size)
 }
 
 
-int ci_client_get_server_options(request_t * req, int timeout)
+int ci_client_get_server_options(ci_request_t * req, int timeout)
 {
 
      if (CI_OK !=
@@ -863,7 +863,7 @@ ci_connection_t *ci_client_connect_to(char *servername, int port, int proto)
 }
 
 
-int client_prepere_body_chunk(request_t * req, void *data,
+int client_prepere_body_chunk(ci_request_t * req, void *data,
                               int (*readdata) (void *data, char *, int))
 {
      int chunksize, def_bytes;
@@ -893,7 +893,7 @@ int client_prepere_body_chunk(request_t * req, void *data,
 }
 
 
-int client_parse_incoming_data(request_t * req, void *data_dest,
+int client_parse_incoming_data(ci_request_t * req, void *data_dest,
                                int (*dest_write) (void *, char *, int))
 {
      int ret, v1, v2, status, bytes, size;
@@ -1001,7 +1001,7 @@ int client_parse_incoming_data(request_t * req, void *data_dest,
 
 const char *eof_str = "0\r\n\r\n";
 
-int client_send_get_data(request_t * req,
+int client_send_get_data(ci_request_t * req,
                          int timeout,
                          void *data_source, int (*source_read) (void *, char *,
                                                                 int),
@@ -1068,7 +1068,7 @@ int client_send_get_data(request_t * req,
 
 
 
-int ci_client_icapfilter(request_t * req,
+int ci_client_icapfilter(ci_request_t * req,
                          int timeout,
                          ci_headers_list_t * headers,
                          void *data_source, int (*source_read) (void *, char *,

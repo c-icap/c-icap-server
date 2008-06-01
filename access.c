@@ -112,7 +112,7 @@ int access_check_client(ci_connection_t * connection)
 
 
 
-int access_check_request(request_t * req)
+int access_check_request(ci_request_t * req)
 {
      char *user;
      int i, res;
@@ -149,7 +149,7 @@ int access_check_request(request_t * req)
 
 /* Returns CI_ACCESS_DENY to log CI_ACCESS_ALLOW to not log .........*/
 
-int access_check_logging(request_t * req)
+int access_check_logging(ci_request_t * req)
 {
      char *user;
      int i, res;
@@ -183,7 +183,7 @@ int access_check_logging(request_t * req)
 
 
 
-int access_authenticate_request(request_t * req)
+int access_authenticate_request(ci_request_t * req)
 {
      int i, res;
 
@@ -298,7 +298,7 @@ struct acl_spec {
      char name[MAX_NAME_LEN + 1];
      char *username;
      char *servicename;
-     int request_type;
+     int ci_request_type;
      int family;
      unsigned int port;
      acl_in_addr_t hclient_address;
@@ -399,7 +399,7 @@ int default_acl_client_access(ci_sockaddr_t * client_address,
                     return CI_ACCESS_HTTP_AUTH;
                }
                else if (spec->username == NULL && spec->servicename == NULL
-                        && spec->request_type == 0) {
+                        && spec->ci_request_type == 0) {
                     /* So no user or service name and type check needed */
                     return entry->type;
                }
@@ -427,7 +427,7 @@ int default_acl_request_access(char *dec_user, char *service,
 
      req_spec.username = dec_user;      /*dec_user always non null (required) */
      req_spec.servicename = service;
-     req_spec.request_type = req_type;
+     req_spec.ci_request_type = req_type;
      req_spec.family = server_address->ci_sin_family;
      req_spec.port = server_address->ci_sin_port;
      acl_copy_inaddr(&req_spec.hserver_address, server_address->ci_sin_addr,
@@ -459,7 +459,7 @@ int default_acl_http_request_access(char *dec_user, char *service,
 
      req_spec.username = dec_user;      /*dec_user always non null (required) */
      req_spec.servicename = service;
-     req_spec.request_type = req_type;
+     req_spec.ci_request_type = req_type;
      req_spec.family = server_address->ci_sin_family;
      req_spec.port = server_address->ci_sin_port;
      acl_copy_inaddr(&req_spec.hserver_address, server_address->ci_sin_addr,
@@ -495,7 +495,7 @@ int default_acl_log_access(char *dec_user, char *service,
 
      req_spec.username = dec_user;      /*dec_user always non null (required) */
      req_spec.servicename = service;
-     req_spec.request_type = req_type;
+     req_spec.ci_request_type = req_type;
      req_spec.family = server_address->ci_sin_family;
      req_spec.port = server_address->ci_sin_port;
      acl_copy_inaddr(&req_spec.hserver_address, server_address->ci_sin_addr,
@@ -587,8 +587,8 @@ int match_request(acl_spec_t * spec, acl_spec_t * req_spec)
      if (spec->servicename != NULL
          && strcmp(spec->servicename, req_spec->servicename) != 0)
           return 0;
-     if (spec->request_type != 0
-         && spec->request_type != req_spec->request_type) {
+     if (spec->ci_request_type != 0
+         && spec->ci_request_type != req_spec->ci_request_type) {
           return 0;
      }
 
@@ -732,7 +732,7 @@ void fill_ipv6_addresses(acl_spec_t * a_spec,
 
 #endif
 
-acl_spec_t *new_acl_spec(char *name, char *username, int port, char *service, int request_type, int socket_family,      /*AF_INET, AF_INET6 */
+acl_spec_t *new_acl_spec(char *name, char *username, int port, char *service, int ci_request_type, int socket_family,      /*AF_INET, AF_INET6 */
                          acl_in_addr_t * client_address,
                          acl_in_addr_t * client_netmask,
                          acl_in_addr_t * server_address)
@@ -758,7 +758,7 @@ acl_spec_t *new_acl_spec(char *name, char *username, int port, char *service, in
      else
           a_spec->servicename = NULL;
 
-     a_spec->request_type = request_type;
+     a_spec->ci_request_type = ci_request_type;
      a_spec->port = htons(port);
 
      a_spec->family = socket_family;    /*AF_INET */
@@ -784,7 +784,7 @@ acl_spec_t *new_acl_spec(char *name, char *username, int port, char *service, in
      ci_debug_printf(6,
                      "ACL spec name:%s username:%s service:%s type:%d port:%d src_ip:%s src_netmask:%s server_ip:%s  \n",
                      name, (username != NULL ? username : "-"),
-                     (service != NULL ? service : "-"), request_type, port,
+                     (service != NULL ? service : "-"), ci_request_type, port,
                      ci_inet_ntoa(socket_family, &(a_spec->hclient_address),
                                   str_cl_addr, CI_IPLEN),
                      ci_inet_ntoa(socket_family, &(a_spec->hclient_netmask),
@@ -826,7 +826,7 @@ void release_acl_list(acl_spec_t * list)
 int cfg_acl_add(char *directive, char **argv, void *setdata)
 {
      char *name, *username, *service, *str;
-     int i, res, request_type;
+     int i, res, ci_request_type;
      unsigned int port;
 #ifdef HAVE_IPV6
      int family = 0;
@@ -837,7 +837,7 @@ int cfg_acl_add(char *directive, char **argv, void *setdata)
      username = NULL;
      service = NULL;
      port = 0;
-     request_type = 0;
+     ci_request_type = 0;
      acl_inaddr_zero(client_address);
      acl_inaddr_zero(client_netmask);
      acl_inaddr_zero(server_address);
@@ -922,11 +922,11 @@ int cfg_acl_add(char *directive, char **argv, void *setdata)
           }
           else if (strcmp(argv[i], "type") == 0) {
                if (strcasecmp(argv[i + 1], "options") == 0)
-                    request_type = ICAP_OPTIONS;
+                    ci_request_type = ICAP_OPTIONS;
                else if (strcasecmp(argv[i + 1], "reqmod") == 0)
-                    request_type = ICAP_REQMOD;
+                    ci_request_type = ICAP_REQMOD;
                else if (strcasecmp(argv[i + 1], "respmod") == 0)
-                    request_type = ICAP_RESPMOD;
+                    ci_request_type = ICAP_RESPMOD;
                else {
                     ci_debug_printf(1,
                                     "Invalid request type  %s. Disabling %s acl spec \n",
@@ -943,7 +943,7 @@ int cfg_acl_add(char *directive, char **argv, void *setdata)
           i += 2;
      }
 
-     new_acl_spec(name, username, port, service, request_type, family,
+     new_acl_spec(name, username, port, service, ci_request_type, family,
                   &client_address, &client_netmask, &server_address);
 
      return 1;

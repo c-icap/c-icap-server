@@ -28,8 +28,8 @@ void log_close();
 void log_reset();
 void log_flush();
 
-void log_access(request_t *req,int status);
-void log_server(request_t *req, const char *format, ... );
-void vlog_server(request_t *req, const char *format, va_list ap);
+void log_access(ci_request_t *req,int status);
+void log_server(ci_request_t *req, const char *format, ... );
+void vlog_server(ci_request_t *req, const char *format, va_list ap);
 
 #endif

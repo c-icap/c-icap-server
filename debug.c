@@ -47,7 +47,7 @@ void __ldebug_printf(int i, const char *format, ...)
 #endif
 
 /*
-void debug_print_request(request_t *req){
+void debug_print_request(ci_request_t *req){
      int i,j;
 
      ci_debug_printf(1,"Request Type :\n");

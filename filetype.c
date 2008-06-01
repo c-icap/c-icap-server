@@ -600,7 +600,7 @@ int ci_uncompress(int compress_method, char *buf, int len, char *unzipped_buf,
 }
 #endif
 
-int ci_extend_filetype(struct ci_magics_db *db, request_t * req, char *buf,
+int ci_extend_filetype(struct ci_magics_db *db, ci_request_t * req, char *buf,
                        int len, int *iscompressed)
 {
      int file_type;

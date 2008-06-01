@@ -51,8 +51,8 @@ struct virus_db *old_virusdb = NULL;
 ci_thread_mutex_t db_mutex;
 
 
-void generate_error_page(av_req_data_t * data, request_t * req);
-char *srvclamav_compute_name(request_t * req);
+void generate_error_page(av_req_data_t * data, ci_request_t * req);
+char *srvclamav_compute_name(ci_request_t * req);
 /***********************************************************************************/
 /* Module definitions                                                              */
 
@@ -80,12 +80,12 @@ int srvclamav_init_service(service_extra_data_t * srv_xdata,
                            struct icap_server_conf *server_conf);
 void srvclamav_close_service(service_module_t * this);
 int srvclamav_check_preview_handler(char *preview_data, int preview_data_len,
-                                    request_t *);
-int srvclamav_end_of_data_handler(request_t *);
-void *srvclamav_init_request_data(service_module_t * serv, request_t * req);
+                                    ci_request_t *);
+int srvclamav_end_of_data_handler(ci_request_t *);
+void *srvclamav_init_request_data(service_module_t * serv, ci_request_t * req);
 void srvclamav_release_request_data(void *data);
 int srvclamav_io(char *rbuf, int *rlen, char *wbuf, int *wlen, int iseof,
-                 request_t * req);
+                 ci_request_t * req);
 
 /*Arguments parse*/
 void srvclamav_parse_args(av_req_data_t * data, char *args);
@@ -96,7 +96,7 @@ int cfg_ClamAvTmpDir(char *directive, char **argv, void *setdata);
 /*Commands functions*/
 void dbreload_command(char *name, int type, char **argv);
 /*General functions*/
-int get_filetype(request_t * req, char *buf, int len);
+int get_filetype(ci_request_t * req, char *buf, int len);
 int init_virusdb();
 CL_ENGINE *get_virusdb();
 void release_virusdb(CL_ENGINE *);
@@ -203,7 +203,7 @@ void srvclamav_close_service(service_module_t * this)
 
 
 
-void *srvclamav_init_request_data(service_module_t * serv, request_t * req)
+void *srvclamav_init_request_data(service_module_t * serv, ci_request_t * req)
 {
      int preview_size;
      av_req_data_t *data;
@@ -275,7 +275,7 @@ void srvclamav_release_request_data(void *data)
 
 
 int srvclamav_check_preview_handler(char *preview_data, int preview_data_len,
-                                    request_t * req)
+                                    ci_request_t * req)
 {
      ci_off_t content_size = 0;
      int file_type;
@@ -337,7 +337,7 @@ int srvclamav_check_preview_handler(char *preview_data, int preview_data_len,
 
 
 
-int srvclamav_read_from_net(char *buf, int len, int iseof, request_t * req)
+int srvclamav_read_from_net(char *buf, int len, int iseof, ci_request_t * req)
 {
      /*We can put here scanning hor jscripts and html and raw data ...... */
      int allow_transfer;
@@ -372,7 +372,7 @@ int srvclamav_read_from_net(char *buf, int len, int iseof, request_t * req)
 
 
 
-int srvclamav_write_to_net(char *buf, int len, request_t * req)
+int srvclamav_write_to_net(char *buf, int len, ci_request_t * req)
 {
      int bytes;
      av_req_data_t *data = ci_service_data(req);
@@ -399,7 +399,7 @@ int srvclamav_write_to_net(char *buf, int len, request_t * req)
 }
 
 int srvclamav_io(char *rbuf, int *rlen, char *wbuf, int *wlen, int iseof,
-                 request_t * req)
+                 ci_request_t * req)
 {
      int ret = CI_OK;
      if (wbuf && wlen) {
@@ -415,7 +415,7 @@ int srvclamav_io(char *rbuf, int *rlen, char *wbuf, int *wlen, int iseof,
      return CI_OK;
 }
 
-int srvclamav_end_of_data_handler(request_t * req)
+int srvclamav_end_of_data_handler(ci_request_t * req)
 {
      av_req_data_t *data = ci_service_data(req);
      CL_ENGINE *vdb;
@@ -684,9 +684,9 @@ void set_istag(service_extra_data_t * srv_xdata)
 
 /* Content-Encoding: gzip*/
 int ci_extend_filetype(struct ci_magics_db *db,
-                       request_t * req, char *buf, int len, int *iscompressed);
+                       ci_request_t * req, char *buf, int len, int *iscompressed);
 
-int get_filetype(request_t * req, char *buf, int len)
+int get_filetype(ci_request_t * req, char *buf, int len)
 {
      int iscompressed, filetype;
      filetype = ci_extend_filetype(magic_db, req, buf, len, &iscompressed);
@@ -745,7 +745,7 @@ static const char *clamav_tail_message =
     "</body>\n"
     "</html>\n";
 
-void generate_error_page(av_req_data_t * data, request_t * req)
+void generate_error_page(av_req_data_t * data, ci_request_t * req)
 {
      int new_size = 0;
      ci_membuf_t *error_page;
