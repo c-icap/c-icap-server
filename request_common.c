@@ -237,9 +237,9 @@ request_t *ci_request_alloc(ci_connection_t * connection)
      req->responce_hasbody = 0;
      req->eof_received = 0;
 
-     req->request_header = ci_headers_make();
-     req->response_header = ci_headers_make();
-     req->xheaders = ci_headers_make();
+     req->request_header = ci_headers_create();
+     req->response_header = ci_headers_create();
+     req->xheaders = ci_headers_create();
      req->status = SEND_NOTHING;
 
 
@@ -1106,13 +1106,13 @@ int ci_client_icapfilter(request_t * req,
 
      /*Add the user supplied headers */
      if (headers) {
-          ci_request_create_respmod(req, 1, 1);
+          ci_http_response_create(req, 1, 1);
           for (i = 0; i < headers->used; i++) {
-               ci_respmod_add_header(req, headers->headers[i]);
+               ci_http_response_add_header(req, headers->headers[i]);
           }
      }
      else
-          ci_request_create_respmod(req, 0, 1);
+          ci_http_response_create(req, 0, 1);
 
      if ((ret = client_send_request_headers(req, pre_eof, timeout)) < 0) {
           return CI_ERROR;

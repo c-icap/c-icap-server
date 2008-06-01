@@ -45,8 +45,8 @@ void print_headers(request_t * req)
      }
      ci_debug_printf(1, "\n");
 
-     if ((headers = ci_respmod_headers(req)) == NULL) {
-          headers = ci_reqmod_headers(req);
+     if ((headers =  ci_http_response_headers(req)) == NULL) {
+          headers = ci_http_request_headers(req);
           type = ICAP_REQMOD;
      }
      else
@@ -190,7 +190,7 @@ int main(int argc, char **argv)
           ci_debug_printf(10, "OK allocating request going to send request\n");
 
           if (send_headers) {
-               headers = ci_headers_make();
+               headers = ci_headers_create();
                ci_headers_add(headers, "Filetype: Unknown");
                ci_headers_add(headers, "User: chtsanti");
           }

@@ -150,7 +150,7 @@ const char *ci_encaps_entity_string(int e)
 }
 #endif
 
-ci_headers_list_t *ci_headers_make()
+ci_headers_list_t *ci_headers_create()
 {
      ci_headers_list_t *h;
      h = malloc(sizeof(ci_headers_list_t));
@@ -467,7 +467,7 @@ ci_encaps_entity_t *mk_encaps_entity(int type, int val)
      h->start = val;
      h->type = type;
      if (type == ICAP_REQ_HDR || type == ICAP_RES_HDR)
-          h->entity = ci_headers_make();
+          h->entity = ci_headers_create();
      else
           h->entity = NULL;
      return h;

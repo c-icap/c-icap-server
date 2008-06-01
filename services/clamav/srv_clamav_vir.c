@@ -40,12 +40,12 @@ char *construct_url(char *strformat, char *filename, char *user);
 
 void init_vir_mode_data(request_t * req, av_req_data_t * data)
 {
-     ci_respmod_reset_headers(req);
-     ci_respmod_add_header(req, "HTTP/1.1 200 OK");
-     ci_respmod_add_header(req, "Server: C-ICAP/srvclamav");
-     ci_respmod_add_header(req, "Connection: close");
-     ci_respmod_add_header(req, "Content-Type: text/html");
-     ci_respmod_add_header(req, "Content-Language: en");
+     ci_http_response_reset_headers(req);
+     ci_http_response_add_header(req, "HTTP/1.1 200 OK");
+     ci_http_response_add_header(req, "Server: C-ICAP/srvclamav");
+     ci_http_response_add_header(req, "Connection: close");
+     ci_http_response_add_header(req, "Content-Type: text/html");
+     ci_http_response_add_header(req, "Content-Language: en");
 
      data->last_update = time(NULL);
      data->requested_filename = NULL;
@@ -163,7 +163,7 @@ char *srvclamav_compute_name(request_t * req)
 {
      char *str, *filename, *last_delim;
      int namelen;
-     if ((filename = ci_respmod_get_header(req, "Location")) != NULL) {
+     if ((filename = ci_http_response_get_header(req, "Location")) != NULL) {
           if ((str = strrchr(filename, '/'))) {
                filename = str + 1;
                if ((str = strrchr(filename, '?')))

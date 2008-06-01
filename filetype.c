@@ -617,7 +617,7 @@ int ci_extend_filetype(struct ci_magics_db *db, request_t * req, char *buf,
           return CI_BIN_DATA;
 
      if (ci_req_type(req) == ICAP_RESPMOD) {
-          content_encoding = ci_respmod_get_header(req, "Content-Encoding");
+          content_encoding = ci_http_response_get_header(req, "Content-Encoding");
           ci_debug_printf(8, "Content-Encoding :%s\n", content_encoding);
           if (content_encoding) {
 #ifdef HAVE_ZLIB
@@ -665,7 +665,7 @@ int ci_extend_filetype(struct ci_magics_db *db, request_t * req, char *buf,
                      ci_data_type_descr(db, file_type));
      /*The following until we have an internal html recognizer ..... */
      if (ci_belongs_to_group(db, file_type, CI_TEXT_DATA)
-         && (content_type = ci_respmod_get_header(req, "Content-Type")) != NULL) {
+         && (content_type = ci_http_response_get_header(req, "Content-Type")) != NULL) {
           if (strstr(content_type, "text/html")
               || strstr(content_type, "text/css")
               || strstr(content_type, "text/javascript"))

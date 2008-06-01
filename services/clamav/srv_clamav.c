@@ -295,7 +295,7 @@ int srvclamav_check_preview_handler(char *preview_data, int preview_data_len,
           return CI_MOD_ALLOW204;
      }
 
-     content_size = ci_content_lenght(req);
+     content_size = ci_http_content_lenght(req);
 #ifdef VIRALATOR_MODE
      /*Lets see ........... */
      if (data->must_scanned == VIR_SCAN && ci_req_type(req) == ICAP_RESPMOD) {
@@ -754,19 +754,19 @@ void generate_error_page(av_req_data_t * data, request_t * req)
      snprintf(buf, 128, "X-Infection-Found: Type=0; Resolution=2; Threat=%s;",
               data->virus_name);
      buf[127] = '\0';
-     ci_request_add_xheader(req, buf);
+     ci_icap_add_xheader(req, buf);
      new_size =
          strlen(clamav_error_message) + strlen(clamav_tail_message) +
          strlen(data->virus_name) + 10;
-     if (ci_respmod_headers(req))
-          ci_respmod_reset_headers(req);
+     if ( ci_http_response_headers(req))
+          ci_http_response_reset_headers(req);
      else
-          ci_request_create_respmod(req, 1, 1);
-     ci_respmod_add_header(req, "HTTP/1.0 403 Forbidden");
-     ci_respmod_add_header(req, "Server: C-ICAP");
-     ci_respmod_add_header(req, "Connection: close");
-     ci_respmod_add_header(req, "Content-Type: text/html");
-     ci_respmod_add_header(req, "Content-Language: en");
+          ci_http_response_create(req, 1, 1);
+     ci_http_response_add_header(req, "HTTP/1.0 403 Forbidden");
+     ci_http_response_add_header(req, "Server: C-ICAP");
+     ci_http_response_add_header(req, "Connection: close");
+     ci_http_response_add_header(req, "Content-Type: text/html");
+     ci_http_response_add_header(req, "Content-Language: en");
 
 
      error_page = ci_membuf_new_sized(new_size);

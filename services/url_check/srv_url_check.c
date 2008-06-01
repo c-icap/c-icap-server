@@ -179,7 +179,7 @@ int url_check_check_preview(char *preview_data, int preview_data_len,
      struct http_info httpinf;
      int allow = 1;
 
-     if ((req_header = ci_reqmod_headers(req)) == NULL) /*It is not possible but who knows ..... */
+     if ((req_header = ci_http_request_headers(req)) == NULL) /*It is not possible but who knows ..... */
           return CI_ERROR;
 
      get_http_info(req, req_header, &httpinf);
@@ -196,13 +196,13 @@ int url_check_check_preview(char *preview_data, int preview_data_len,
 
           uc->denied = 1;
           uc->body = ci_cached_file_new(strlen(error_message) + 10);
-          ci_request_create_respmod(req, 1, 1); /*Build the responce headers */
+          ci_http_response_create(req, 1, 1); /*Build the responce headers */
 
-          ci_respmod_add_header(req, "HTTP/1.0 403 Forbidden"); /*Send an 403 Forbidden http responce to web client */
-          ci_respmod_add_header(req, "Server: C-ICAP");
-          ci_respmod_add_header(req, "Content-Type: text/html");
-          ci_respmod_add_header(req, "Content-Language: en");
-          ci_respmod_add_header(req, "Connection: close");
+          ci_http_response_add_header(req, "HTTP/1.0 403 Forbidden"); /*Send an 403 Forbidden http responce to web client */
+          ci_http_response_add_header(req, "Server: C-ICAP");
+          ci_http_response_add_header(req, "Content-Type: text/html");
+          ci_http_response_add_header(req, "Content-Language: en");
+          ci_http_response_add_header(req, "Connection: close");
 
           ci_cached_file_write(uc->body, error_message, strlen(error_message),
                                1);
@@ -219,7 +219,7 @@ int url_check_check_preview(char *preview_data, int preview_data_len,
              Allocate a new body for it 
            */
           if (ci_req_hasbody(req)) {
-               int clen = ci_content_lenght(req) + 100;
+               int clen = ci_http_content_lenght(req) + 100;
                uc->body = ci_cached_file_new(clen);
           }
 

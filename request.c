@@ -460,10 +460,10 @@ int mk_responce_header(request_t * req)
      buf[511] = '\0';
      /*Here we must append it to an existsing Via header not just add a new header */
      if (req->type == ICAP_RESPMOD) {
-          ci_respmod_add_header(req, buf);
+          ci_http_response_add_header(req, buf);
      }
      else if (req->type == ICAP_REQMOD) {
-          ci_reqmod_add_header(req, buf);
+          ci_http_request_add_header(req, buf);
      }
 
      ci_response_pack(req);

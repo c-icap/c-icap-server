@@ -39,7 +39,7 @@ int http_authenticate(request_t * req)
      int len, res;
 
      if ((method_str =
-          ci_reqmod_get_header(req, "Proxy-Authorization")) != NULL) {
+          ci_http_request_get_header(req, "Proxy-Authorization")) != NULL) {
           ci_debug_printf(10, "Str is %s ....\n", method_str);
           if ((auth_str = strchr(method_str, ' ')) == NULL)
                return 0;

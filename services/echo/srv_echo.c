@@ -84,7 +84,7 @@ int echo_check_preview_handler(char *preview_data, int preview_data_len,
 {
      ci_off_t content_len;
      ci_cached_file_t *data = ci_service_data(req);
-     content_len = ci_content_lenght(req);
+     content_len = ci_http_content_lenght(req);
      ci_debug_printf(9, "We expect to read :%" PRINTF_OFF_T " body data\n",
                      content_len);
 

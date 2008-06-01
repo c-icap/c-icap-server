@@ -76,7 +76,7 @@ typedef struct ci_encaps_entity{
 #define ci_headers_not_empty(h) ((h)->used)
 #define ci_headers_is_empty(h) ((h)->used==0)
 
-CI_DECLARE_FUNC(ci_headers_list_t *) ci_headers_make();
+CI_DECLARE_FUNC(ci_headers_list_t *) ci_headers_create();
 CI_DECLARE_FUNC(void)    ci_headers_destroy(ci_headers_list_t *);
 CI_DECLARE_FUNC(int)     ci_headers_setsize(ci_headers_list_t *h, int size);
 CI_DECLARE_FUNC(char *)  ci_headers_add(ci_headers_list_t *h, char *line);
@@ -93,4 +93,8 @@ CI_DECLARE_FUNC(int)  sizeofheader(ci_headers_list_t *h);
 CI_DECLARE_FUNC(int)  sizeofencaps(ci_encaps_entity_t *e);
 CI_DECLARE_FUNC(void) ci_headers_pack(ci_headers_list_t *h);
 CI_DECLARE_FUNC(int)  ci_headers_unpack(ci_headers_list_t *h);
+
+#ifdef __CI_COMPAT
+#define ci_headers_make ci_header_create
+#endif
 #endif
