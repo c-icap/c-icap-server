@@ -883,6 +883,7 @@ int start_server()
      int child_indx, pid, i, ctl_socket;
      int childs, freeservers, used, maxrequests, ret;
      char command_buffer[COMMANDS_BUFFER_SIZE];
+     int user_informed = 0;
 
      ctl_socket = ci_named_pipe_create(CONF.COMMANDS_SOCKET);
      if (ctl_socket < 0) {
@@ -974,14 +975,17 @@ int start_server()
                                          child_indx);
                          /*kill a server ... */
                          kill(childs_queue->childs[child_indx].pid, SIGTERM);
-
+			 user_informed = 0;
                     }
                }
                else if (childs == MAX_CHILDS && freeservers < MIN_FREE_SERVERS) {
-                    ci_debug_printf(1,
-                                    "ATTENTION!!!! Not enought available servers!!!!! "
-                                    "Maybe you must increase the MaxServers and the "
-                                    "ThreadsPerChild values in c-icap.conf file!!!!!!!!!");
+		 if(! user_informed) {
+		         ci_debug_printf(1,
+					 "ATTENTION!!!! Not enought available servers (childs %d, free servers %d used servers %d)!!!!! "
+					 "Maybe you must increase the MaxServers and the "
+					 "ThreadsPerChild values in c-icap.conf file!!!!!!!!!",childs , freeservers, used);
+			 user_informed = 1;
+		 }
                }
                if (c_icap_going_to_term)
                     break;
