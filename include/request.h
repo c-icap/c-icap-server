@@ -63,6 +63,7 @@ struct service_module;
 
 typedef struct ci_request{
      ci_connection_t *connection;
+     int packed;
      int type;
      char req_server[CI_MAXHOSTNAMELEN+1];
      int access_type;

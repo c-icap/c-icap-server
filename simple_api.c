@@ -108,6 +108,8 @@ int ci_http_response_create(ci_request_t * req, int has_reshdr, int has_body)
 char *ci_http_response_add_header(ci_request_t * req, char *header)
 {
      ci_headers_list_t *heads;
+     if(req->packed)   /*Not in edit mode*/
+	  return NULL;
      if (!(heads =  ci_http_response_headers(req)))
           return NULL;
      return ci_headers_add(heads, header);
@@ -117,6 +119,8 @@ char *ci_http_response_add_header(ci_request_t * req, char *header)
 char *ci_http_request_add_header(ci_request_t * req, char *header)
 {
      ci_headers_list_t *heads;
+     if(req->packed)   /*Not in edit mode*/
+	  return NULL;
      if (!(heads = ci_http_request_headers(req)))
           return NULL;
      return ci_headers_add(heads, header);
@@ -125,6 +129,8 @@ char *ci_http_request_add_header(ci_request_t * req, char *header)
 int ci_http_response_remove_header(ci_request_t * req, char *header)
 {
      ci_headers_list_t *heads;
+     if(req->packed)   /*Not in edit mode*/
+	  return NULL;
      if (!(heads =  ci_http_response_headers(req)))
           return 0;
      return ci_headers_remove(heads, header);
@@ -134,6 +140,8 @@ int ci_http_response_remove_header(ci_request_t * req, char *header)
 int ci_http_request_remove_header(ci_request_t * req, char *header)
 {
      ci_headers_list_t *heads;
+     if(req->packed)   /*Not in edit mode*/
+	  return NULL;
      if (!(heads = ci_http_request_headers(req)))
           return 0;
      return ci_headers_remove(heads, header);

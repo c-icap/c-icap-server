@@ -58,6 +58,7 @@ typedef struct ci_headers_list{
      int bufsize;
      int bufused;
      char *buf;
+     int packed;
 } ci_headers_list_t;
 
 

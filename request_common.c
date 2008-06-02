@@ -80,6 +80,8 @@ void ci_request_t_pack(ci_request_t * req, int is_request)
      ci_encaps_entity_t **elist, *e;
      char buf[256];
 
+     req->packed = 1;
+
      if (is_request && req->preview >= 0) {
           sprintf(buf, "Preview: %d", req->preview);
           ci_headers_add(req->request_header, buf);
@@ -217,8 +219,9 @@ ci_request_t *ci_request_alloc(ci_connection_t * connection)
      ci_request_t *req;
      int i;
      req = (ci_request_t *) malloc(sizeof(ci_request_t));
-
+    
      req->connection = connection;
+     req->packed = 0;
      req->user[0] = '\0';
 
      req->access_type = 0;
@@ -273,6 +276,7 @@ void ci_request_reset(ci_request_t * req)
      int i;
      /*     memset(req->connections,0,sizeof(ci_connection)) *//*Not really needed... */
 
+     req->packed = 0;
      req->user[0] = '\0';
      req->service[0] = '\0';
      req->current_service_mod = NULL;
@@ -523,6 +527,7 @@ void ci_client_request_reuse(ci_request_t * req)
 {
      int i;
 
+     req->packed = 0;
      req->args[0] = '\0';
      req->type = -1;
      ci_buf_reset(&(req->preview_data));

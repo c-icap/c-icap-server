@@ -25,7 +25,6 @@
 #include "header.h"
 
 
-
 const char *ci_common_headers[] = {
      "Cache-Control",
      "Connection",
@@ -173,6 +172,7 @@ ci_headers_list_t *ci_headers_create()
      h->used = 0;
      h->bufsize = HEADSBUFSIZE;
      h->bufused = 0;
+     h->packed = 0;
 
      return h;
 }
@@ -206,6 +206,7 @@ int ci_headers_setsize(ci_headers_list_t * h, int size)
 
 void ci_headers_reset(ci_headers_list_t * h)
 {
+     h->packed = 0;
      h->used = 0;
      h->bufused = 0;
 }
@@ -215,6 +216,10 @@ char *ci_headers_add(ci_headers_list_t * h, char *line)
      char *newhead, **newspace, *newbuf;
      int len, linelen;
      int i = 0;
+
+     if (h->packed) { /*Not in edit mode*/
+	  return NULL;
+     }
 
      if (h->used == h->size) {
           len = h->size + HEADERSTARTSIZE;
@@ -257,6 +262,10 @@ char *ci_headers_addheaders(ci_headers_list_t * h, ci_headers_list_t * headers)
 {
      int remains, len, i;
      char *newbuf, **newspace;
+
+     if (h->packed) { /*Not in edit mode*/
+	  return NULL;
+     }
 
      while (h->size - h->used < headers->used) {
           len = h->size + HEADERSTARTSIZE;
@@ -323,6 +332,11 @@ int ci_headers_remove(ci_headers_list_t * h, char *header)
 {
      char *phead;
      int i, j, header_len, rest_len;
+
+     if (h->packed) { /*Not in edit mode*/
+	  return NULL;
+     }
+
      for (i = 0; i < h->used; i++) {
           if (strncasecmp(h->headers[i], header, strlen(header)) == 0) {
                /*remove it........ */
@@ -361,6 +375,9 @@ int ci_headers_remove(ci_headers_list_t * h, char *header)
 
 char *ci_headers_replace(ci_headers_list_t * h, char *header, char *newval)
 {
+    if (h->packed) /*Not in edit mode*/
+	 return NULL;
+
      return NULL;
 }
 
@@ -388,6 +405,7 @@ void ci_headers_pack(ci_headers_list_t * h)
           h->buf[h->bufused] = '\n';
           h->bufused++;
      }
+     h->packed = 0;
 }
 
 
@@ -447,8 +465,10 @@ int ci_headers_unpack(ci_headers_list_t * h)
                     str++;      /*   handle the case that headers seperated with a '\n' only */
                h->headers[h->used] = str;
                h->used++;
-          }
-     }                          /*OK headers index construction ...... */
+          }	  
+     }     
+     h->packed = 0;
+                     /*OK headers index construction ...... */
      return EC_100;
 }
 
