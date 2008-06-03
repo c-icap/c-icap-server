@@ -35,7 +35,7 @@ struct perl_data {
 };
 
 int init_perl_handler(struct icap_server_conf *server_conf);
-service_module_t *load_perl_module(char *service_file);
+ci_service_module_t *load_perl_module(char *service_file);
 
 
 CI_DECLARE_DATA service_handler_module_t module = {
@@ -50,10 +50,10 @@ CI_DECLARE_DATA service_handler_module_t module = {
 
 
 
-int perl_init_service(service_module_t * this,
+int perl_init_service(ci_service_module_t * this,
                       struct icap_server_conf *server_conf);
-void perl_close_service(service_module_t * this);
-void *perl_init_request_data(service_module_t * this, ci_request_t *);
+void perl_close_service(ci_service_module_t * this);
+void *perl_init_request_data(ci_service_module_t * this, ci_request_t *);
 void perl_release_request_data(void *data);
 
 
@@ -70,14 +70,14 @@ int init_perl_handler(struct icap_server_conf *server_conf)
 }
 
 
-service_module_t *load_perl_module(char *service_file)
+ci_service_module_t *load_perl_module(char *service_file)
 {
-     service_module_t *service = NULL;
+     ci_service_module_t *service = NULL;
      struct perl_data *perl_data;
      char *argv[2];
      argv[0] = NULL;
      argv[1] = service_file;
-     service = malloc(sizeof(service_module_t));
+     service = malloc(sizeof(ci_service_module_t));
      perl_data = malloc(sizeof(struct perl_data));
 
      perl_data->perl = perl_alloc();    /*Maybe it is better to allocate a perl interpreter per request */
@@ -107,19 +107,19 @@ service_module_t *load_perl_module(char *service_file)
 
 
 
-int perl_init_service(service_module_t * this,
+int perl_init_service(ci_service_module_t * this,
                       struct icap_server_conf *server_conf)
 {
      return 0;
 }
 
-void perl_close_service(service_module_t * this)
+void perl_close_service(ci_service_module_t * this)
 {
 
 }
 
 
-void *perl_init_request_data(service_module_t * this, ci_request_t *req)
+void *perl_init_request_data(ci_service_module_t * this, ci_request_t *req)
 {
      return NULL;
 }

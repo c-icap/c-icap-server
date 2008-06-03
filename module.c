@@ -36,7 +36,7 @@ struct modules_list {
 
 
 /*
- service_module_t **module_list=NULL;
+ ci_service_module_t **module_list=NULL;
  int module_list_size;
  int modules_num=0;
 */

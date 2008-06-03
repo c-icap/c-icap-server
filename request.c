@@ -192,7 +192,7 @@ int parse_request(ci_request_t * req, char *buf)
 {
      char *start, *end;
      int servnamelen, len, args_len;
-     service_module_t *service = NULL;
+     ci_service_module_t *service = NULL;
      service_alias_t *salias = NULL;
 
      if ((start = strstr(buf, "icap://")) != NULL) {
@@ -406,7 +406,7 @@ void ec_responce(ci_request_t * req, int ec)
 void ec_responce_with_istag(ci_request_t * req, int ec)
 {
      char buf[256];
-     service_extra_data_t *srv_xdata;
+     ci_service_xdata_t *srv_xdata;
      int len;
      srv_xdata = service_data(req->current_service_mod);
      ci_service_data_read_lock(srv_xdata);
@@ -424,7 +424,7 @@ int mk_responce_header(ci_request_t * req)
 {
      ci_headers_list_t *head;
      ci_encaps_entity_t **e_list;
-     service_extra_data_t *srv_xdata;
+     ci_service_xdata_t *srv_xdata;
      char buf[512];
      srv_xdata = service_data(req->current_service_mod);
      ci_headers_reset(req->response_header);
@@ -826,7 +826,7 @@ void options_responce(ci_request_t * req)
      char buf[MAX_HEADER_SIZE + 1];
      char *str;
      ci_headers_list_t *head;
-     service_extra_data_t *srv_xdata;
+     ci_service_xdata_t *srv_xdata;
      unsigned int xopts;
      int preview, allow204, xlen;
      head = req->response_header;

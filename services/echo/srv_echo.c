@@ -24,18 +24,18 @@
 #include "simple_api.h"
 #include "debug.h"
 
-int echo_init_service(service_extra_data_t * srv_xdata,
+int echo_init_service(ci_service_xdata_t * srv_xdata,
                       struct icap_server_conf *server_conf);
 int echo_check_preview_handler(char *preview_data, int preview_data_len,
                                ci_request_t *);
 int echo_end_of_data_handler(ci_request_t * req);
-void *echo_init_request_data(service_module_t * serv, ci_request_t * req);
+void *echo_init_request_data(ci_service_module_t * serv, ci_request_t * req);
 void *echo_release_request_data(void *data);
 int echo_io(char *rbuf, int *rlen, char *wbuf, int *wlen, int iseof,
             ci_request_t * req);
 
 
-CI_DECLARE_MOD_DATA service_module_t service = {
+CI_DECLARE_MOD_DATA ci_service_module_t service = {
      "echo",                    /*Module name */
      "Echo demo service",       /*Module short description */
      ICAP_RESPMOD | ICAP_REQMOD,        /*Service type responce or request modification */
@@ -52,7 +52,7 @@ CI_DECLARE_MOD_DATA service_module_t service = {
 };
 
 
-int echo_init_service(service_extra_data_t * srv_xdata,
+int echo_init_service(ci_service_xdata_t * srv_xdata,
                       struct icap_server_conf *server_conf)
 {
      ci_debug_printf(5, "Initialization of echo module......\n");
@@ -63,7 +63,7 @@ int echo_init_service(service_extra_data_t * srv_xdata,
 }
 
 
-void *echo_init_request_data(service_module_t * serv, ci_request_t * req)
+void *echo_init_request_data(ci_service_module_t * serv, ci_request_t * req)
 {
 
      if (ci_req_hasbody(req))

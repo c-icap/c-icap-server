@@ -48,9 +48,9 @@
 
 struct ci_request;
 
-typedef struct  service_module service_module_t;
+typedef struct  ci_service_module ci_service_module_t;
 
-typedef struct service_extra_data {
+typedef struct ci_service_xdata {
      char ISTag[SRV_ISTAG_SIZE+1];
      char xincludes[XINCLUDES_SIZE+1];
      char TransferPreview[MAX_HEADER_SIZE+1];
@@ -60,18 +60,18 @@ typedef struct service_extra_data {
      int allow_204;
      unsigned int xopts;
      ci_thread_rwlock_t lock;
-} service_extra_data_t;
+} ci_service_xdata_t;
 
 
-struct  service_module{
+struct  ci_service_module{
      char *mod_name;
      char *mod_short_descr;
      int  mod_type;
 
-     int (*mod_init_service)(service_extra_data_t *srv_xdata,struct icap_server_conf *server_conf);
-     int (*mod_post_init_service)(service_extra_data_t *srv_xdata,struct icap_server_conf *server_conf);
-     void (*mod_close_service)(service_module_t *thismod);
-     void *(*mod_init_request_data)(service_module_t *thismod,struct ci_request *);
+     int (*mod_init_service)(ci_service_xdata_t *srv_xdata,struct icap_server_conf *server_conf);
+     int (*mod_post_init_service)(ci_service_xdata_t *srv_xdata,struct icap_server_conf *server_conf);
+     void (*mod_close_service)(ci_service_module_t *thismod);
+     void *(*mod_init_request_data)(ci_service_module_t *thismod,struct ci_request *);
      void (*mod_release_request_data)(void *module_data);
 
      int (*mod_check_preview_handler)(char *preview_data,int preview_data_len,struct ci_request*);
@@ -85,31 +85,36 @@ struct  service_module{
 typedef struct service_alias {
      char alias[MAX_SERVICE_NAME+1];
      char args[MAX_SERVICE_ARGS+1];
-     service_module_t *service;
+     ci_service_module_t *service;
 } service_alias_t;
 
 /*Internal function */
-service_module_t * register_service(char *module_file);
+ci_service_module_t * register_service(char *module_file);
 service_alias_t *add_service_alias(char *service_alias,char *service_name,char *args);
-service_module_t *find_service(char *service_name);
+ci_service_module_t *find_service(char *service_name);
 service_alias_t *find_service_alias(char *service_name);
-service_extra_data_t *service_data(service_module_t *srv);
+ci_service_xdata_t *service_data(ci_service_module_t *srv);
 int post_init_services();
 int release_services();
 
 /*Library functions */
-CI_DECLARE_FUNC(void) ci_service_data_read_lock(service_extra_data_t *srv_xdata);
-CI_DECLARE_FUNC(void) ci_service_data_read_unlock(service_extra_data_t *srv_xdata);
-CI_DECLARE_FUNC(void) ci_service_set_istag(service_extra_data_t *srv_xdata,char *istag);
-CI_DECLARE_FUNC(void) ci_service_set_xopts(service_extra_data_t *srv_xdata, int xopts);
-CI_DECLARE_FUNC(void) ci_service_add_xopts(service_extra_data_t *srv_xdata, int xopts);
-CI_DECLARE_FUNC(void) ci_service_set_transfer_preview(service_extra_data_t *srv_xdata,char *preview);
-CI_DECLARE_FUNC(void) ci_service_set_transfer_ignore(service_extra_data_t *srv_xdata,char *ignore);
-CI_DECLARE_FUNC(void) ci_service_set_transfer_complete(service_extra_data_t *srv_xdata,char *complete);
-CI_DECLARE_FUNC(void) ci_service_set_preview(service_extra_data_t *srv_xdata, int preview);
-CI_DECLARE_FUNC(void) ci_service_enable_204(service_extra_data_t *srv_xdata);
-CI_DECLARE_FUNC(void) ci_service_add_xincludes(service_extra_data_t *srv_xdata, char **xincludes);
+CI_DECLARE_FUNC(void) ci_service_data_read_lock(ci_service_xdata_t *srv_xdata);
+CI_DECLARE_FUNC(void) ci_service_data_read_unlock(ci_service_xdata_t *srv_xdata);
+CI_DECLARE_FUNC(void) ci_service_set_istag(ci_service_xdata_t *srv_xdata,char *istag);
+CI_DECLARE_FUNC(void) ci_service_set_xopts(ci_service_xdata_t *srv_xdata, int xopts);
+CI_DECLARE_FUNC(void) ci_service_add_xopts(ci_service_xdata_t *srv_xdata, int xopts);
+CI_DECLARE_FUNC(void) ci_service_set_transfer_preview(ci_service_xdata_t *srv_xdata,char *preview);
+CI_DECLARE_FUNC(void) ci_service_set_transfer_ignore(ci_service_xdata_t *srv_xdata,char *ignore);
+CI_DECLARE_FUNC(void) ci_service_set_transfer_complete(ci_service_xdata_t *srv_xdata,char *complete);
+CI_DECLARE_FUNC(void) ci_service_set_preview(ci_service_xdata_t *srv_xdata, int preview);
+CI_DECLARE_FUNC(void) ci_service_enable_204(ci_service_xdata_t *srv_xdata);
+CI_DECLARE_FUNC(void) ci_service_add_xincludes(ci_service_xdata_t *srv_xdata, char **xincludes);
 
+#ifdef __CI_COMPAT
+#define service_module_t ci_service_module_t
+#define service_extra_data_t ci_service_xdata_t
+
+#endif
 
 
 #endif

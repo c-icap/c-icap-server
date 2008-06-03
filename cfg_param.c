@@ -300,7 +300,7 @@ int cfg_set_body_maxmem(char *directive, char **argv, void *setdata)
 
 int cfg_load_service(char *directive, char **argv, void *setdata)
 {
-     service_module_t *service = NULL;
+     ci_service_module_t *service = NULL;
      if (argv == NULL || argv[0] == NULL || argv[1] == NULL) {
           ci_debug_printf(1, "Missing arguments in LoadService directive\n");
           return 0;

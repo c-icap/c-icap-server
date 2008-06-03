@@ -73,16 +73,16 @@ char *VIR_HTTP_SERVER = NULL;
 int VIR_UPDATE_TIME = 15;
 
 /*srv_clamav service extra data ... */
-service_extra_data_t *srv_clamav_xdata = NULL;
+ci_service_xdata_t *srv_clamav_xdata = NULL;
 
 
-int srvclamav_init_service(service_extra_data_t * srv_xdata,
+int srvclamav_init_service(ci_service_xdata_t * srv_xdata,
                            struct icap_server_conf *server_conf);
-void srvclamav_close_service(service_module_t * this);
+void srvclamav_close_service(ci_service_module_t * this);
 int srvclamav_check_preview_handler(char *preview_data, int preview_data_len,
                                     ci_request_t *);
 int srvclamav_end_of_data_handler(ci_request_t *);
-void *srvclamav_init_request_data(service_module_t * serv, ci_request_t * req);
+void *srvclamav_init_request_data(ci_service_module_t * serv, ci_request_t * req);
 void srvclamav_release_request_data(void *data);
 int srvclamav_io(char *rbuf, int *rlen, char *wbuf, int *wlen, int iseof,
                  ci_request_t * req);
@@ -101,7 +101,7 @@ int init_virusdb();
 CL_ENGINE *get_virusdb();
 void release_virusdb(CL_ENGINE *);
 void destroy_virusdb();
-void set_istag(service_extra_data_t * srv_xdata);
+void set_istag(ci_service_xdata_t * srv_xdata);
 
 /*It is dangerous to pass directly fields of the limits structure in conf_variables,
   becouse in the feature some of this fields will change type (from int to unsigned int 
@@ -134,7 +134,7 @@ static struct conf_entry conf_variables[] = {
 };
 
 
-CI_DECLARE_MOD_DATA service_module_t service = {
+CI_DECLARE_MOD_DATA ci_service_module_t service = {
      "srv_clamav",              /*Module name */
      "Clamav/Antivirus service",        /*Module short description */
      ICAP_RESPMOD | ICAP_REQMOD,        /*Service type responce or request modification */
@@ -152,7 +152,7 @@ CI_DECLARE_MOD_DATA service_module_t service = {
 
 
 
-int srvclamav_init_service(service_extra_data_t * srv_xdata,
+int srvclamav_init_service(ci_service_xdata_t * srv_xdata,
                            struct icap_server_conf *server_conf)
 {
      int ret, i;
@@ -194,7 +194,7 @@ int srvclamav_init_service(service_extra_data_t * srv_xdata,
 }
 
 
-void srvclamav_close_service(service_module_t * this)
+void srvclamav_close_service(ci_service_module_t * this)
 {
      free(scantypes);
      free(scangroups);
@@ -203,7 +203,7 @@ void srvclamav_close_service(service_module_t * this)
 
 
 
-void *srvclamav_init_request_data(service_module_t * serv, ci_request_t * req)
+void *srvclamav_init_request_data(ci_service_module_t * serv, ci_request_t * req)
 {
      int preview_size;
      av_req_data_t *data;
@@ -636,7 +636,7 @@ void destroy_virusdb()
      }
 }
 
-void set_istag(service_extra_data_t * srv_xdata)
+void set_istag(ci_service_xdata_t * srv_xdata)
 {
      char istag[SERVICE_ISTAG_SIZE + 1];
      char str_version[64];

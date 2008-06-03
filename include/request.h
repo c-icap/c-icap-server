@@ -59,7 +59,7 @@ typedef struct ci_buf{
 } ci_buf_t;
 
 
-struct service_module;
+struct ci_service_module;
 
 typedef struct ci_request{
      ci_connection_t *connection;
@@ -76,7 +76,7 @@ typedef struct ci_request{
      int hasbody;
      int responce_hasbody;
      struct ci_buf preview_data;
-     struct service_module *current_service_mod;
+     struct ci_service_module *current_service_mod;
      ci_headers_list_t *request_header;
      ci_headers_list_t *response_header;
      ci_encaps_entity_t *entities[5];//At most 3 and 1 for termination.....

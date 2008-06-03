@@ -21,17 +21,17 @@
 #include "service.h"
 #include "debug.h"
 
-void ci_service_data_read_lock(service_extra_data_t * srv_xdata)
+void ci_service_data_read_lock(ci_service_xdata_t * srv_xdata)
 {
      ci_thread_rwlock_rdlock(&srv_xdata->lock);
 }
 
-void ci_service_data_read_unlock(service_extra_data_t * srv_xdata)
+void ci_service_data_read_unlock(ci_service_xdata_t * srv_xdata)
 {
      ci_thread_rwlock_unlock(&srv_xdata->lock);
 }
 
-void ci_service_set_istag(service_extra_data_t * srv_xdata, char *istag)
+void ci_service_set_istag(ci_service_xdata_t * srv_xdata, char *istag)
 {
      ci_thread_rwlock_wrlock(&srv_xdata->lock);
      strncpy(srv_xdata->ISTag + SRV_ISTAG_POS, istag,
@@ -40,7 +40,7 @@ void ci_service_set_istag(service_extra_data_t * srv_xdata, char *istag)
      ci_thread_rwlock_unlock(&srv_xdata->lock);
 }
 
-void ci_service_set_transfer_preview(service_extra_data_t * srv_xdata,
+void ci_service_set_transfer_preview(ci_service_xdata_t * srv_xdata,
                                      char *preview)
 {
      ci_thread_rwlock_wrlock(&srv_xdata->lock);
@@ -50,7 +50,7 @@ void ci_service_set_transfer_preview(service_extra_data_t * srv_xdata,
      ci_thread_rwlock_unlock(&srv_xdata->lock);
 }
 
-void ci_service_set_transfer_ignore(service_extra_data_t * srv_xdata,
+void ci_service_set_transfer_ignore(ci_service_xdata_t * srv_xdata,
                                     char *ignore)
 {
      ci_thread_rwlock_wrlock(&srv_xdata->lock);
@@ -60,7 +60,7 @@ void ci_service_set_transfer_ignore(service_extra_data_t * srv_xdata,
      ci_thread_rwlock_unlock(&srv_xdata->lock);
 }
 
-void ci_service_set_transfer_complete(service_extra_data_t * srv_xdata,
+void ci_service_set_transfer_complete(ci_service_xdata_t * srv_xdata,
                                       char *complete)
 {
      ci_thread_rwlock_wrlock(&srv_xdata->lock);
@@ -71,14 +71,14 @@ void ci_service_set_transfer_complete(service_extra_data_t * srv_xdata,
 }
 
 
-void ci_service_set_preview(service_extra_data_t * srv_xdata, int preview)
+void ci_service_set_preview(ci_service_xdata_t * srv_xdata, int preview)
 {
      ci_thread_rwlock_wrlock(&srv_xdata->lock);
      srv_xdata->preview_size = preview;
      ci_thread_rwlock_unlock(&srv_xdata->lock);
 }
 
-void ci_service_enable_204(service_extra_data_t * srv_xdata)
+void ci_service_enable_204(ci_service_xdata_t * srv_xdata)
 {
      ci_thread_rwlock_wrlock(&srv_xdata->lock);
      srv_xdata->allow_204 = 1;
@@ -86,21 +86,21 @@ void ci_service_enable_204(service_extra_data_t * srv_xdata)
 }
 
 
-void ci_service_set_xopts(service_extra_data_t * srv_xdata, int xopts)
+void ci_service_set_xopts(ci_service_xdata_t * srv_xdata, int xopts)
 {
      ci_thread_rwlock_wrlock(&srv_xdata->lock);
      srv_xdata->xopts = xopts;
      ci_thread_rwlock_unlock(&srv_xdata->lock);
 }
 
-void ci_service_add_xopts(service_extra_data_t * srv_xdata, int xopts)
+void ci_service_add_xopts(ci_service_xdata_t * srv_xdata, int xopts)
 {
      ci_thread_rwlock_wrlock(&srv_xdata->lock);
      srv_xdata->xopts |= xopts;
      ci_thread_rwlock_unlock(&srv_xdata->lock);
 }
 
-void ci_service_add_xincludes(service_extra_data_t * srv_xdata,
+void ci_service_add_xincludes(ci_service_xdata_t * srv_xdata,
                               char **xincludes)
 {
      int len, i;

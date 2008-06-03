@@ -36,8 +36,8 @@
 *****************************************************************/
 #define STEP 32
 
-static service_module_t **service_list = NULL;
-static service_extra_data_t *service_extra_data_list = NULL;
+static ci_service_module_t **service_list = NULL;
+static ci_service_xdata_t *service_extra_data_list = NULL;
 static int service_list_size;
 static int services_num = 0;
 
@@ -45,10 +45,10 @@ static int services_num = 0;
 static service_alias_t *service_aliases = NULL;
 static int service_aliases_size;
 static int service_aliases_num = 0;
-service_module_t *find_service_by_alias(char *service_name);
+ci_service_module_t *find_service_by_alias(char *service_name);
 
 
-service_module_t *create_service(char *service_file)
+ci_service_module_t *create_service(char *service_file)
 {
      char *extension;
      service_handler_module_t *service_handler;
@@ -61,7 +61,7 @@ service_module_t *create_service(char *service_file)
 
 }
 
-void init_extra_data(service_extra_data_t * srv_xdata)
+void init_extra_data(ci_service_xdata_t * srv_xdata)
 {
      ci_thread_rwlock_init(&srv_xdata->lock);
      strcpy(srv_xdata->ISTag, "ISTag: ");
@@ -78,24 +78,24 @@ void init_extra_data(service_extra_data_t * srv_xdata)
 /*Must called only in initialization procedure.
   It is not thread-safe!
 */
-service_module_t *register_service(char *service_file)
+ci_service_module_t *register_service(char *service_file)
 {
-     service_module_t *service = NULL;
+     ci_service_module_t *service = NULL;
 
      if (service_list == NULL) {
           service_list_size = STEP;
-          service_list = malloc(service_list_size * sizeof(service_module_t *));
+          service_list = malloc(service_list_size * sizeof(ci_service_module_t *));
           service_extra_data_list =
-              malloc(service_list_size * sizeof(service_extra_data_t));
+              malloc(service_list_size * sizeof(ci_service_xdata_t));
      }
      else if (services_num == service_list_size) {
           service_list_size += STEP;
           service_list =
               realloc(service_list,
-                      service_list_size * sizeof(service_module_t *));
+                      service_list_size * sizeof(ci_service_module_t *));
           service_extra_data_list = realloc(service_extra_data_list,
                                             service_list_size *
-                                            sizeof(service_extra_data_t));
+                                            sizeof(ci_service_xdata_t));
      }
 
      if (service_list == NULL || service_extra_data_list == NULL) {
@@ -126,7 +126,7 @@ service_module_t *register_service(char *service_file)
 }
 
 
-service_module_t *find_service(char *service_name)
+ci_service_module_t *find_service(char *service_name)
 {
      int i;
      for (i = 0; i < services_num; i++) {
@@ -137,7 +137,7 @@ service_module_t *find_service(char *service_name)
 /*     return find_service_by_alias(service_name);*/
 }
 
-service_extra_data_t *service_data(service_module_t * srv)
+ci_service_xdata_t *service_data(ci_service_module_t * srv)
 {
      int i;
      for (i = 0; i < services_num; i++) {
@@ -178,7 +178,7 @@ int release_services()
 service_alias_t *add_service_alias(char *service_alias, char *service_name,
                                    char *args)
 {
-     service_module_t *service = NULL;
+     ci_service_module_t *service = NULL;
      service_alias_t *salias = NULL;
      int len = 0;
      int alias_indx = 0;
@@ -233,7 +233,7 @@ service_alias_t *add_service_alias(char *service_alias, char *service_name,
      return &(service_aliases[alias_indx]);
 }
 
-service_module_t *find_service_by_alias(char *service_name)
+ci_service_module_t *find_service_by_alias(char *service_name)
 {
      int i;
      for (i = 0; i < service_aliases_num; i++) {
@@ -259,7 +259,7 @@ service_alias_t *find_service_alias(char *service_name)
   and loaded as dynamic libraries
  **********************************************************************/
 
-service_module_t *load_c_service(char *service_file);
+ci_service_module_t *load_c_service(char *service_file);
 void release_c_handler();
 
 service_handler_module_t c_service_handler = {
@@ -272,9 +272,9 @@ service_handler_module_t c_service_handler = {
      NULL                       /*config table .... */
 };
 
-service_module_t *load_c_service(char *service_file)
+ci_service_module_t *load_c_service(char *service_file)
 {
-     service_module_t *service = NULL;
+     ci_service_module_t *service = NULL;
      CI_DLIB_HANDLE service_handle;
 
      service_handle = ci_module_load(service_file, CONF.SERVICES_DIR);

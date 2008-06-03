@@ -43,7 +43,7 @@ typedef struct  service_handler_module{
      int (*init_service_handler)(struct icap_server_conf *server_conf);
      int (*post_init_service_handler)(struct icap_server_conf *server_conf);
      void (*release_service_handler)();
-     service_module_t *(*create_service)(char *service_file);
+     ci_service_module_t *(*create_service)(char *service_file);
      struct conf_entry *conf_table;
 } service_handler_module_t;
 
