@@ -130,7 +130,7 @@ int ci_http_response_remove_header(ci_request_t * req, char *header)
 {
      ci_headers_list_t *heads;
      if(req->packed)   /*Not in edit mode*/
-	  return NULL;
+	  return 0;
      if (!(heads =  ci_http_response_headers(req)))
           return 0;
      return ci_headers_remove(heads, header);
@@ -141,7 +141,7 @@ int ci_http_request_remove_header(ci_request_t * req, char *header)
 {
      ci_headers_list_t *heads;
      if(req->packed)   /*Not in edit mode*/
-	  return NULL;
+	  return 0;
      if (!(heads = ci_http_request_headers(req)))
           return 0;
      return ci_headers_remove(heads, header);
