@@ -164,7 +164,7 @@ int release_services()
      int i;
      for (i = 0; i < services_num; i++) {
           if (service_list[i]->mod_close_service != NULL) {
-               service_list[i]->mod_close_service(service_list[i]);
+               service_list[i]->mod_close_service();
                ci_thread_rwlock_destroy(&service_extra_data_list[i].lock);
           }
      }

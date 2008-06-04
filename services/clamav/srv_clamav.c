@@ -78,11 +78,11 @@ ci_service_xdata_t *srv_clamav_xdata = NULL;
 
 int srvclamav_init_service(ci_service_xdata_t * srv_xdata,
                            struct icap_server_conf *server_conf);
-void srvclamav_close_service(ci_service_module_t * this);
+void srvclamav_close_service();
 int srvclamav_check_preview_handler(char *preview_data, int preview_data_len,
                                     ci_request_t *);
 int srvclamav_end_of_data_handler(ci_request_t *);
-void *srvclamav_init_request_data(ci_service_module_t * serv, ci_request_t * req);
+void *srvclamav_init_request_data(ci_request_t * req);
 void srvclamav_release_request_data(void *data);
 int srvclamav_io(char *rbuf, int *rlen, char *wbuf, int *wlen, int iseof,
                  ci_request_t * req);
@@ -194,7 +194,7 @@ int srvclamav_init_service(ci_service_xdata_t * srv_xdata,
 }
 
 
-void srvclamav_close_service(ci_service_module_t * this)
+void srvclamav_close_service()
 {
      free(scantypes);
      free(scangroups);
@@ -203,7 +203,7 @@ void srvclamav_close_service(ci_service_module_t * this)
 
 
 
-void *srvclamav_init_request_data(ci_service_module_t * serv, ci_request_t * req)
+void *srvclamav_init_request_data(ci_request_t * req)
 {
      int preview_size;
      av_req_data_t *data;

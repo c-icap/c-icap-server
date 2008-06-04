@@ -50,10 +50,10 @@ CI_DECLARE_DATA service_handler_module_t module = {
 
 
 
-int perl_init_service(ci_service_module_t * this,
+int perl_init_service(ci_service_xdata_t *srv_xdata,
                       struct icap_server_conf *server_conf);
-void perl_close_service(ci_service_module_t * this);
-void *perl_init_request_data(ci_service_module_t * this, ci_request_t *);
+void perl_close_service();
+void *perl_init_request_data(ci_request_t *);
 void perl_release_request_data(void *data);
 
 
@@ -107,19 +107,19 @@ ci_service_module_t *load_perl_module(char *service_file)
 
 
 
-int perl_init_service(ci_service_module_t * this,
+int perl_init_service(ci_service_xdata_t *srv_xdata,
                       struct icap_server_conf *server_conf)
 {
      return 0;
 }
 
-void perl_close_service(ci_service_module_t * this)
+void perl_close_service()
 {
 
 }
 
 
-void *perl_init_request_data(ci_service_module_t * this, ci_request_t *req)
+void *perl_init_request_data(ci_request_t *req)
 {
      return NULL;
 }

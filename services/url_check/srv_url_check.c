@@ -28,7 +28,7 @@
 
 int url_check_init_service(ci_service_xdata_t * srv_xdata,
                            struct icap_server_conf *server_conf);
-void *url_check_init_request_data(ci_service_module_t * serv, ci_request_t * req);
+void *url_check_init_request_data(ci_request_t * req);
 void url_check_release_data(void *data);
 int url_check_process(ci_request_t *);
 int url_check_check_preview(char *preview_data, int preview_data_len,
@@ -85,7 +85,7 @@ int url_check_init_service(ci_service_xdata_t * srv_xdata,
 }
 
 
-void *url_check_init_request_data(ci_service_module_t * serv, ci_request_t * req)
+void *url_check_init_request_data(ci_request_t * req)
 {
      struct url_check_data *uc = malloc(sizeof(struct url_check_data));
      uc->body = NULL;

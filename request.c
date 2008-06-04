@@ -981,9 +981,7 @@ int process_request(ci_request_t * req)
 
      if (req->current_service_mod->mod_init_request_data)
           req->service_data =
-              req->current_service_mod->mod_init_request_data(req->
-                                                              current_service_mod,
-                                                              req);
+              req->current_service_mod->mod_init_request_data(req);
      else
           req->service_data = NULL;
 

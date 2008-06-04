@@ -29,7 +29,7 @@ int echo_init_service(ci_service_xdata_t * srv_xdata,
 int echo_check_preview_handler(char *preview_data, int preview_data_len,
                                ci_request_t *);
 int echo_end_of_data_handler(ci_request_t * req);
-void *echo_init_request_data(ci_service_module_t * serv, ci_request_t * req);
+void *echo_init_request_data(ci_request_t * req);
 void *echo_release_request_data(void *data);
 int echo_io(char *rbuf, int *rlen, char *wbuf, int *wlen, int iseof,
             ci_request_t * req);
@@ -63,7 +63,7 @@ int echo_init_service(ci_service_xdata_t * srv_xdata,
 }
 
 
-void *echo_init_request_data(ci_service_module_t * serv, ci_request_t * req)
+void *echo_init_request_data(ci_request_t * req)
 {
 
      if (ci_req_hasbody(req))

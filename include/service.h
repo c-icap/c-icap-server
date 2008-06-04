@@ -70,8 +70,8 @@ struct  ci_service_module{
 
      int (*mod_init_service)(ci_service_xdata_t *srv_xdata,struct icap_server_conf *server_conf);
      int (*mod_post_init_service)(ci_service_xdata_t *srv_xdata,struct icap_server_conf *server_conf);
-     void (*mod_close_service)(ci_service_module_t *thismod);
-     void *(*mod_init_request_data)(ci_service_module_t *thismod,struct ci_request *);
+     void (*mod_close_service)();
+     void *(*mod_init_request_data)(struct ci_request *);
      void (*mod_release_request_data)(void *module_data);
 
      int (*mod_check_preview_handler)(char *preview_data,int preview_data_len,struct ci_request*);
