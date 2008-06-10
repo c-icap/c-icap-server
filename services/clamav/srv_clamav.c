@@ -654,8 +654,14 @@ void set_istag(ci_service_xdata_t * srv_xdata)
      
      if(stat(daily_path,&daily_stat) != 0){
 	 /* if the clamav_lib_path/daily.cvd does not exists
-	    try to use the clamav_lib_path/daily.inc/daly.info file instead" */
-	 sprintf(daily_path, "%s/daily.inc/daily.info", cl_retdbdir());
+	  */
+	 sprintf(daily_path, "%s/daily.cld", cl_retdbdir());
+     
+	 if(stat(daily_path,&daily_stat) != 0){
+	     /*
+	       else try to use the clamav_lib_path/daily.inc/daly.info file instead" */
+	     sprintf(daily_path, "%s/daily.inc/daily.info", cl_retdbdir());
+	 }
      }
 
      if ((d1 = cl_cvdhead(daily_path))) {
