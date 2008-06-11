@@ -882,11 +882,11 @@ void options_responce(ci_request_t * req)
      if (xopts) {
           strcpy(buf, "X-Include: ");
           xlen = 11;            /*sizeof("X-Include: ") */
-          if ((xopts & CI_XClientIP)) {
+          if ((xopts & CI_XCLIENTIP)) {
                strcat(buf, "X-Client-IP");
                xlen += sizeof("X-Client-IP");
           }
-          if ((xopts & CI_XServerIP)) {
+          if ((xopts & CI_XSERVERIP)) {
                if (xlen > 11) {
                     strcat(buf, ", ");
                     xlen += 2;
@@ -894,7 +894,7 @@ void options_responce(ci_request_t * req)
                strcat(buf, "X-Server-IP");
                xlen += sizeof("X-Server-IP");
           }
-          if ((xopts & CI_XSubscriberID)) {
+          if ((xopts & CI_XSUBSCRIBERID)) {
                if (xlen > 11) {
                     strcat(buf, ", ");
                     xlen += 2;
@@ -902,7 +902,7 @@ void options_responce(ci_request_t * req)
                strcat(buf, "X-Subscriber-ID");
                xlen += sizeof("X-Subscriber-ID");
           }
-          if ((xopts & CI_XAuthenticatedUser)) {
+          if ((xopts & CI_XAUTHENTICATEDUSER)) {
                if (xlen > 11) {
                     strcat(buf, ", ");
                     xlen += 2;
@@ -910,7 +910,7 @@ void options_responce(ci_request_t * req)
                strcat(buf, "X-Authenticated-User");
                xlen += sizeof("X-Authenticated-User");
           }
-          if ((xopts & CI_XAuthenticatedGroups)) {
+          if ((xopts & CI_XAUTHENTICATEDGROUPS)) {
                if (xlen > 11) {
                     strcat(buf, ", ");
                     xlen += 2;

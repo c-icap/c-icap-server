@@ -78,8 +78,8 @@ int url_check_init_service(ci_service_xdata_t * srv_xdata,
      unsigned int xops;
      printf("Initialization of url_check module......\n");
      ci_service_set_preview(srv_xdata, 0);
-     xops = CI_XClientIP | CI_XServerIP;
-     xops |= CI_XAuthenticatedUser | CI_XAuthenticatedGroups;
+     xops = CI_XCLIENTIP | CI_XSERVERIP;
+     xops |= CI_XAUTHENTICATEDUSER | CI_XAUTHENTICATEDGROUPS;
      ci_service_set_xopts(srv_xdata, xops);
      return CI_OK;
 }

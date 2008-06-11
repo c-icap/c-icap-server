@@ -64,6 +64,10 @@
 #include <dlfcn.h>
 #endif
 
+#ifdef HAVE_STDINT_H
+#include <stdint.h>
+#endif
+
 /*some defines */
 #ifdef _WIN32
 # define CI_FILENAME_LEN _MAX_PATH

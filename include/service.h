@@ -45,11 +45,11 @@
 #define SERVICE_ISTAG_SIZE 26 
 #define XINCLUDES_SIZE    511 /* it is enough I think ....*/
 
-#define CI_XClientIP              1
-#define CI_XServerIP              2
-#define CI_XSubscriberID          4
-#define CI_XAuthenticatedUser     8
-#define CI_XAuthenticatedGroups  16
+#define CI_XCLIENTIP              1
+#define CI_XSERVERIP              2
+#define CI_XSUBSCRIBERID          4
+#define CI_XAUTHENTICATEDUSER     8
+#define CI_XAUTHENTICATEDGROUPS  16
 
 struct ci_request;
 
@@ -69,7 +69,7 @@ typedef struct ci_service_xdata {
      char TransferComplete[MAX_HEADER_SIZE+1];
      int preview_size;
      int allow_204;
-     unsigned int xopts;
+     uint64_t xopts;
      ci_thread_rwlock_t lock;
 } ci_service_xdata_t;
 
@@ -203,8 +203,8 @@ CI_DECLARE_FUNC(void) ci_service_data_read_unlock(ci_service_xdata_t *srv_xdata)
  \param istag is a string contains the new ISTAG for the service
  */
 CI_DECLARE_FUNC(void) ci_service_set_istag(ci_service_xdata_t *srv_xdata,char *istag);
-CI_DECLARE_FUNC(void) ci_service_set_xopts(ci_service_xdata_t *srv_xdata, int xopts);
-CI_DECLARE_FUNC(void) ci_service_add_xopts(ci_service_xdata_t *srv_xdata, int xopts);
+CI_DECLARE_FUNC(void) ci_service_set_xopts(ci_service_xdata_t *srv_xdata, uint64_t xopts);
+CI_DECLARE_FUNC(void) ci_service_add_xopts(ci_service_xdata_t *srv_xdata, uint64_t xopts);
 CI_DECLARE_FUNC(void) ci_service_set_transfer_preview(ci_service_xdata_t *srv_xdata,char *preview);
 CI_DECLARE_FUNC(void) ci_service_set_transfer_ignore(ci_service_xdata_t *srv_xdata,char *ignore);
 CI_DECLARE_FUNC(void) ci_service_set_transfer_complete(ci_service_xdata_t *srv_xdata,char *complete);
