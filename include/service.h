@@ -326,6 +326,13 @@ CI_DECLARE_FUNC(void) ci_service_add_xincludes(ci_service_xdata_t *srv_xdata, ch
 #define service_module_t ci_service_module_t
 #define service_extra_data_t ci_service_xdata_t
 
+/*The Old CI_X* defines*/
+#define CI_XClientIP              1
+#define CI_XServerIP              2
+#define CI_XSubscriberID          4
+#define CI_XAuthenticatedUser     8
+#define CI_XAuthenticatedGroups  16
+
 #endif
 
 
