@@ -78,6 +78,13 @@ typedef struct ci_service_xdata {
  *Is the structure  which represents a service
  */
 struct  ci_service_module{
+
+/**
+ \example services/echo/srv_echo.c
+ \ingroup SERVICES
+ \brief The srv_echo.c is an example service implementation, which does not modifies the content 
+ *
+ */
      /**
        \brief The service name 
       */
@@ -199,17 +206,120 @@ CI_DECLARE_FUNC(void) ci_service_data_read_unlock(ci_service_xdata_t *srv_xdata)
  \ingroup SERVICES
  \brief Sets the ISTAG for the service.
  *
+ *Normally this function called in ci_service_module::mod_init_service()  or ci_service_module::mod_post_init_service()
+ *function, while the service initialization.
  \param srv_xdata is a pointer to the c-icap internal service data.
- \param istag is a string contains the new ISTAG for the service
+ \param istag is a string contains the new ISTAG for the service. The istag size can not be more than a size of 
+ * SERVICE_ISTAG_SIZE.  If the lenght of istag is greater than SERVICE_ISTAG_SIZE the extra bytes ignored.
  */
 CI_DECLARE_FUNC(void) ci_service_set_istag(ci_service_xdata_t *srv_xdata,char *istag);
+
+/**
+ \ingroup SERVICES
+ \brief Sets the service x-headers mask which defines the X-Headers supported by the service.The c-icap
+ * server will adverdise these headers in options responses.
+ *
+ * Normally this function called in ci_service_module::mod_init_service()  or ci_service_module::mod_post_init_service()
+ * function, while the service initialization.
+ \param srv_xdata is a pointer to the c-icap internal service data.
+ \param xopts is a compination of one or more of the following defines:
+ * - CI_XCLIENTIP: Refers to the X-Client-IP header. The HTTP proxy (or the ICAP client) will sends 
+ * the ip address of the HTTP client using this header if supports this header.
+ * - CI_XSERVERIP: The X-Server-IP header. The HTTP proxy will incluse the IP of the HTTP destination 
+ * host in the X-Server-IP header if supports this header.
+ * - CI_XSUBSCRIBERID: The X-Subscriber-ID header. This header can include a unique subscriber ID of the
+ * user who issued the HTTP request
+ * - CI_XAUTHENTICATEDUSER: The X-Authenticated-User header. If the user has been authenticated on 
+ * HTTP proxy the HTTP proxy will send the authenticated user name.
+ * - CI_XAUTHENTICATEDGROUPS: The X-Authenticated-Group header. If the user has been authenticated on 
+ * HTTP proxy and belongs to some groups the HTTP proxy will send these groups using this header.
+ *
+ * example usage:
+ \code
+ * ci_service_set_xopts(srv_xdata,CI_XCLIENTIP|CI_XAUTHENTICATEDUSER);
+ \endcode
+ * 
+ * For more informations about ICAP common X-Headers look at: 
+ * http://www.icap-forum.org/documents/specification/draft-stecher-icap-subid-00.txt
+ */
 CI_DECLARE_FUNC(void) ci_service_set_xopts(ci_service_xdata_t *srv_xdata, uint64_t xopts);
+
+/**
+ \ingroup SERVICES
+ \brief it is similar to the function ci_service_set_xopts but just adds (not sets) the X-Headers
+ * defined by the xopts parameter to the existing x-headers mask of service.
+ *
+ */
 CI_DECLARE_FUNC(void) ci_service_add_xopts(ci_service_xdata_t *srv_xdata, uint64_t xopts);
+
+/**
+ \ingroup SERVICES
+ \brief Set the list of file extensions that should previewed by the service.
+ *
+ * The c-icap will inform the ICAP client that should send preview data for the files which have 
+ * the extensions contained in the preview string. The wildcard value "*" specifies all files 
+ * extensions, which is the default.
+ \param srv_xdata is a pointer to the c-icap internal service data.
+ \param preview is the string which contains the list of the file extensions.
+ *
+ * example usage:
+ \code
+ *   ci_service_set_transfer_preview(srv_xdata,"zip, tar");
+ \endcode
+ */
 CI_DECLARE_FUNC(void) ci_service_set_transfer_preview(ci_service_xdata_t *srv_xdata,char *preview);
+
+/**
+ \ingroup SERVICES
+ \brief Set the list of file extensions that should NOT be send for this service.
+ *
+ * The c-icap will inform the ICAP client that should not send files which have the extensions 
+ * contained in the ignore string.
+ \param srv_xdata is a pointer to the c-icap internal service data.
+ \param ignore is the string which contains the list of the file extensions.
+ *
+ * example usage:
+ \code
+ *   ci_service_set_transfer_ignore(srv_xdata,"gif, jpeg");
+ \endcode
+ */
 CI_DECLARE_FUNC(void) ci_service_set_transfer_ignore(ci_service_xdata_t *srv_xdata,char *ignore);
+
+/**
+ \ingroup SERVICES
+ \brief Set the list of file extensions that should be send in their entirety (without preview) to this service.
+ *
+ * The c-icap will inform the ICAP client that should send files which have the extensions 
+ * contained in the complete string, in their entirety to this service.
+ \param srv_xdata is a pointer to the c-icap internal service data.
+ \param complete is the string which contains the list of the file extensions.
+ *
+ *example usage:
+ \code
+ *   ci_service_set_transfer_complete(srv_xdata,"exe, bat, com, ole");
+ \endcode
+ */
 CI_DECLARE_FUNC(void) ci_service_set_transfer_complete(ci_service_xdata_t *srv_xdata,char *complete);
+
+/**
+  \ingroup SERVICES
+  \brief Sets the maximum preview size supported by this service
+  *
+  \param srv_xdata is a pointer to the c-icap internal service data.
+  \param preview is the size of preview data supported by this service
+ */
 CI_DECLARE_FUNC(void) ci_service_set_preview(ci_service_xdata_t *srv_xdata, int preview);
+
+
+/**
+  \ingroup SERVICES
+  \brief  Enable the allow 204 responses for this service.
+  *
+  * The service will supports the allow 204 responses if the icap client support it too.
+  \param srv_xdata is a pointer to the c-icap internal service data.
+ */
 CI_DECLARE_FUNC(void) ci_service_enable_204(ci_service_xdata_t *srv_xdata);
+
 CI_DECLARE_FUNC(void) ci_service_add_xincludes(ci_service_xdata_t *srv_xdata, char **xincludes);
 
 #ifdef __CI_COMPAT
