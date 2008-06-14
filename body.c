@@ -276,6 +276,9 @@ int ci_cached_file_write(ci_cached_file_t * body, char *buf, int len, int iseof)
                           ((ci_cached_file_t *) body)->endpos);
      }
 
+     if(len == 0)  /*If no data to write just return 0;*/
+	 return 0;
+
      if (body->fd > 0) {        /*A file was open so write the data at the end of file....... */
           lseek(body->fd, 0, SEEK_END);
           if (write(body->fd, buf, len) < 0) {
@@ -321,6 +324,10 @@ int ci_cached_file_read(ci_cached_file_t * body, char *buf, int len)
 
      if ((body->readpos == body->endpos) && (body->flags & CI_FILE_HAS_EOF))
           return CI_EOF;
+     
+     if(len == 0)  /*If no data to read just return 0*/
+	 return 0;
+
 
      if (body->fd > 0) {
           if ((body->flags & CI_FILE_USELOCK) && body->unlocked >= 0)
