@@ -334,7 +334,7 @@ int ci_headers_remove(ci_headers_list_t * h, char *header)
      int i, j, header_len, rest_len;
 
      if (h->packed) { /*Not in edit mode*/
-	  return NULL;
+	  return 0;
      }
 
      for (i = 0; i < h->used; i++) {
