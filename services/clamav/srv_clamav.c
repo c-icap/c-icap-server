@@ -84,7 +84,7 @@ int srvclamav_check_preview_handler(char *preview_data, int preview_data_len,
 int srvclamav_end_of_data_handler(ci_request_t *);
 void *srvclamav_init_request_data(ci_request_t * req);
 void srvclamav_release_request_data(void *data);
-int srvclamav_io(char *rbuf, int *rlen, char *wbuf, int *wlen, int iseof,
+int srvclamav_io(char *wbuf, int *wlen, char *rbuf, int *rlen, int iseof,
                  ci_request_t * req);
 
 /*Arguments parse*/
@@ -398,19 +398,19 @@ int srvclamav_write_to_net(char *buf, int len, ci_request_t * req)
      return bytes;
 }
 
-int srvclamav_io(char *rbuf, int *rlen, char *wbuf, int *wlen, int iseof,
+int srvclamav_io(char *wbuf, int *wlen, char *rbuf, int *rlen, int iseof,
                  ci_request_t * req)
 {
      int ret = CI_OK;
-     if (wbuf && wlen) {
-          *wlen = srvclamav_read_from_net(wbuf, *wlen, iseof, req);
-          if (*wlen < 0)
+     if (rbuf && rlen) {
+          *rlen = srvclamav_read_from_net(rbuf, *rlen, iseof, req);
+          if (*rlen < 0)
                ret = CI_OK;
      }
      else if (iseof)
           srvclamav_read_from_net(NULL, 0, iseof, req);
-     if (rbuf && rlen) {
-          *rlen = srvclamav_write_to_net(rbuf, *rlen, req);
+     if (wbuf && wlen) {
+          *wlen = srvclamav_write_to_net(wbuf, *wlen, req);
      }
      return CI_OK;
 }

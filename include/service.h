@@ -27,7 +27,8 @@
 /**
  \defgroup SERVICES Services API
  \ingroup API
- * Services related API.
+ * Services related API. For detailed information about implementing a service look the documentation 
+ * of struct ci_service_module
  */
 
 #define CI_MOD_NOT_READY  0
@@ -75,7 +76,20 @@ typedef struct ci_service_xdata {
 
 /**
  \ingroup SERVICES
- *Is the structure  which represents a service
+ * Is the structure  which implements a service
+ *
+ * To implement a service someones needs to implement the member functions of this struct. These functions 
+ * will be called by c-icap as follows:
+ *   - New request arrives for this service  ->  The  ci_service_module::mod_init_request_data called
+ *   - The icap client sends preview data -> The ci_service_module::mod_check_preview_handler called. 
+ *     If this function return CI_MOD_ALLOW204 the ICAP transaction stops here. If this function return 
+ *     CI_MOD_CONTINUE the ICAP client will send the rest body data if exists.
+ *   - The client starts sends more data -> ci_service_module::mod_service_io called multiple times until the 
+ *     client has send all the body data. The service can start send data using this function to the client 
+ *     before all data has received 
+ *   - The client has send all data -> the ci_service_module::mod_end_of_data_handler called
+ *   - The client waits to read the rest data from c-icap ->  ci_service_module::mod_service_io called multiple
+ *     times until all the body data send to the client
  */
 struct  ci_service_module{
 
@@ -109,6 +123,8 @@ struct  ci_service_module{
      *
      * This function called exactly when the service loaded by c-icap. Can be used to initialize 
      * the service.
+     \param srv_xdata Pointer to the ci_service_xdata_t object of this service
+     \return CI_OK on success, CI_ERROR on any error.
      */
      int (*mod_init_service)(ci_service_xdata_t *srv_xdata,struct icap_server_conf *server_conf);
     
@@ -120,6 +136,8 @@ struct  ci_service_module{
      * ci_service_module::mod_init_service when this function called the c-icap has initialized
      * and it is known other system parameters like the services and modules which are loaded,
      * network ports and addresses c-icap is listening etc.
+     \param srv_xdata Pointer to the ci_service_xadata_t object of this service
+     \return CI_OK on success, CI_ERROR on errors.
      */
      int (*mod_post_init_service)(ci_service_xdata_t *srv_xdata,struct icap_server_conf *server_conf);
 
@@ -137,6 +155,8 @@ struct  ci_service_module{
      * This function should inititalize the data and structures required for serving the request.
      \param req a pointer to the related ci_request_t structure
      \return a void pointer to the user defined data required for serving the request.
+     * The developer can obtain the service data from the related ci_request_t object using the 
+     * macro ci_service_data
      */
      void *(*mod_init_request_data)(struct ci_request *req);
     
@@ -150,27 +170,55 @@ struct  ci_service_module{
      void (*mod_release_request_data)(void *srv_data);
 
     /**
-     \brief Pointer to the function which is used to preview the request of icap client
+     \brief Pointer to the function which is used to preview the ICAP client request
      *
-     *TODO: write more
+     * The client if supports preview sends some data for examination.
+     * The service using this function will decide if the client request must processed so the client 
+     * must send more data or no modification/processing needed so the request ended here.
+     \param preview_data Pointer to the preview data
+     \param preview_data_len The size of preview data
+     \param req pointer to the related ci_request struct
+     \return CI_MOD_CONTINUE if the client must send more data, CI_MOD_ALLOW204 if the service does 
+     * not want to modify anything, or CI_ERROR on errors.
      */
-     int (*mod_check_preview_handler)(char *preview_data,int preview_data_len,struct ci_request*);
+     int (*mod_check_preview_handler)(char *preview_data,int preview_data_len,struct ci_request *req);
     
     /**
      \brief Pointer to the function called when the icap client has send all the data to the service
      *
-     *TODO: write more
+     *This function called when the ICAP client has send all data.
+     \param req pointer to the related ci_request struct
+     \return CI_MOD_DONE if all are OK, CI_MOD_ALLOW204 if the ICAP client request supports 204 responses
+     * and we are not planning to modify anything, or CI_ERROR on errors.
+     * The service must not return CI_MOD_ALLOW204 if has already send some data to the client, or the 
+     * client does not support allow204 responses. To examine if client supports 204 responses the 
+     * developer should use the ci_req_allow204 macro
      */
      int (*mod_end_of_data_handler)(struct ci_request*);
-    /**
-     \brief Pointer to the function called to retrieve/send body data from/to icap client.
-     *
-     * TODO: write mode
-     */
-     int (*mod_service_io)(char *rbuf,int *rlen,char *wbuf,int *wlen,int iseof, struct ci_request *);
 
     /**
-       \brief Pointer to the config table of the service
+     \brief Pointer to the function called to read/send body data from/to icap client.
+     *
+     * This function reads body data from the ICAP client and sends back the modified body data 
+     * To allow c-icap send data to the ICAP client before all data received by the c-icap a call
+     * to the  ci_req_unlock_data function required.
+     \param wbuf The buffer for writing data to the ICAP client
+     \param wlen The size of the write buffer. It must modified to be the size of writing data. If 
+     * the service has send all the data to the client this parameter must set to CI_EOF.
+     \param rbuf Pointer to the data read from the ICAP client
+     \param rlen The lenght of the data read from the ICAP client. If this function for a reason
+     * can not read all the data, it must modify the rlen to be equal to the read data
+     \param iseof It has non zero value if the data in rbuf buffer are the last data from the ICAP client.
+     \param req pointer to the related ci_request struct
+     \return Return CI_OK if all are OK or CI_ERROR on errors
+     */
+     int (*mod_service_io)(char *wbuf,int *wlen,char *rbuf,int *rlen,int iseof, struct ci_request *req);
+
+    /**
+     \brief Pointer to the config table of the service
+     *
+     * Is an array which contains the definitions of configuration parameters used by the service. 
+     * The configuration parameters defined in this array can be used in c-icap.conf file.
      */
      struct conf_entry *mod_conf_table;
 

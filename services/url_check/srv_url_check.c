@@ -33,7 +33,7 @@ void url_check_release_data(void *data);
 int url_check_process(ci_request_t *);
 int url_check_check_preview(char *preview_data, int preview_data_len,
                             ci_request_t *);
-int url_check_io(char *rbuf, int *rlen, char *wbuf, int *wlen, int iseof,
+int url_check_io(char *wbuf, int *wlen, char *rbuf, int *rlen, int iseof,
                  ci_request_t * req);
 //int    url_check_write(char *buf,int len ,int iseof,ci_request_t *req);
 //int    url_check_read(char *buf,int len,ci_request_t *req);
@@ -240,7 +240,7 @@ int url_check_process(ci_request_t * req)
      return CI_MOD_DONE;
 }
 
-int url_check_io(char *rbuf, int *rlen, char *wbuf, int *wlen, int iseof,
+int url_check_io(char *wbuf, int *wlen, char *rbuf, int *rlen, int iseof,
                  ci_request_t * req)
 {
      int ret;
@@ -250,18 +250,18 @@ int url_check_io(char *rbuf, int *rlen, char *wbuf, int *wlen, int iseof,
 
      ret = CI_OK;
      if (uc->denied == 0) {
-          if (wbuf && wlen) {
-               *wlen = ci_cached_file_write(uc->body, wbuf, *wlen, iseof);
-               if (*wlen == CI_ERROR)
+          if (rbuf && rlen) {
+               *rlen = ci_cached_file_write(uc->body, rbuf, *rlen, iseof);
+               if (*rlen == CI_ERROR)
                     ret = CI_ERROR;
           }
           else if (iseof)
                ci_cached_file_write(uc->body, NULL, 0, iseof);
      }
 
-     if (rbuf && rlen) {
-          *rlen = ci_cached_file_read(uc->body, rbuf, *rlen);
-          if (*rlen == CI_ERROR)
+     if (wbuf && wlen) {
+          *wlen = ci_cached_file_read(uc->body, wbuf, *wlen);
+          if (*wlen == CI_ERROR)
                ret = CI_ERROR;
      }
 
