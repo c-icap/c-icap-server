@@ -258,13 +258,13 @@ char *ci_headers_add(ci_headers_list_t * h, char *line)
 }
 
 
-char *ci_headers_addheaders(ci_headers_list_t * h, ci_headers_list_t * headers)
+int ci_headers_addheaders(ci_headers_list_t * h, ci_headers_list_t * headers)
 {
      int remains, len, i;
      char *newbuf, **newspace;
 
      if (h->packed) { /*Not in edit mode*/
-	  return NULL;
+	  return 0;
      }
 
      while (h->size - h->used < headers->used) {
@@ -272,7 +272,7 @@ char *ci_headers_addheaders(ci_headers_list_t * h, ci_headers_list_t * headers)
           newspace = realloc(h->headers, len * sizeof(char *));
           if (!newspace) {
                ci_debug_printf(1, "Server Error:Error allocation memory \n");
-               return NULL;
+               return 0;
           }
           h->headers = newspace;
           h->size = len;
@@ -283,7 +283,7 @@ char *ci_headers_addheaders(ci_headers_list_t * h, ci_headers_list_t * headers)
           newbuf = realloc(h->buf, len * sizeof(char));
           if (!newbuf) {
                ci_debug_printf(1, "Server Error:Error allocation memory \n");
-               return NULL;
+               return 0;
           }
           h->buf = newbuf;
           h->bufsize = len;
@@ -299,7 +299,7 @@ char *ci_headers_addheaders(ci_headers_list_t * h, ci_headers_list_t * headers)
 
      for (i = 1; i < h->used; i++)
           h->headers[i] = h->headers[i - 1] + strlen(h->headers[i - 1]) + 2;
-     return h->headers[0];
+     return 1;
 }
 
 

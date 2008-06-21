@@ -27,7 +27,7 @@
 /**
  \defgroup HTTP API for HTTP object manipulation
  \ingroup API
- * Defines, functions and structures used for manipulating the encupsulated HTTP objects 
+ * Macros, functions and structures used for manipulating the encupsulated HTTP objects 
  * (HTTP requests or HTTP responses).
  */
 
@@ -39,62 +39,71 @@
 
 /*The following defines are request related and should be moved to request.h include file*/
 /**
- \def ci_req_lock_data
+ \def ci_req_lock_data(ci_request_t)
  \ingroup REQUEST
- * Lock a ci_request_t object.
+ * Lock a ci_request_t object. After called the c-icap server stops sending body data
+ * to the ICAP client.
+ \param req is pointer to an object of type ci_request_t
  */
-#define ci_req_lock_data(req) (req->data_locked=1)
+#define ci_req_lock_data(req) ((req)->data_locked=1)
 
 /**
- \def ci_req_unlock_data
+ \def ci_req_unlock_data(ci_request_t)
  \ingroup REQUEST
- * Unlock a ci_request_t object.
+ * Unlock a ci_request_t object. When called the c-icap server will start sending body data 
+ * to the ICAP client.
+ \param req is pointer to an object of type ci_request_t
  */
-#define ci_req_unlock_data(req) (req->data_locked=0)
+#define ci_req_unlock_data(req) ((req)->data_locked=0)
 
 /**
- \def ci_req_hasbody
+ \def ci_req_hasbody(ci_request_t)
  \ingroup REQUEST
+ \param req  is pointer to an object of type ci_request_t
  \return true (non zero int) if the ICAP request contains body data else zero
  */
-#define ci_req_hasbody(req) (req->hasbody)
+#define ci_req_hasbody(req) ((req)->hasbody)
 
 /**
  \def ci_req_type(ci_request_t) 
  \ingroup REQUEST
  \return  ICAP_OPTIONS, ICAP_REQMOD or ICAP_RESPMOD if the ICAP request is options, 
- * request modification or response modification icap request
+ * request modification or response modification ICAP request
  */
-#define ci_req_type(req) (req->type)
+#define ci_req_type(req) ((req)->type)
 
 /**
  \def ci_req_preview_size(ci_request_t) 
  \ingroup REQUEST
+ \param req  is pointer to an object of type ci_request_t
  \return The ICAP preview size
  */
-#define ci_req_preview_size(req) (req->preview) /*The preview data size*/
+#define ci_req_preview_size(req) ((req)->preview) /*The preview data size*/
 
 /**
  \def ci_req_allow204(ci_request_t) 
  \ingroup REQUEST
+ \param req  is pointer to an object of type ci_request_t
  \return True (non zero int) if the ICAP request supports "Allow 204"
  */
-#define ci_req_allow204(req)    (req->allow204)
+#define ci_req_allow204(req)    ((req)->allow204)
 
 /**
  \def ci_req_sent_data(ci_request_t) 
  \ingroup REQUEST
+ \param req  is pointer to an object of type ci_request_t
  \return True (non zero int) if the c-icap server has send data to the client
  */
-#define ci_req_sent_data(req)(req->status)
+#define ci_req_sent_data(req)((req)->status)
 
 /**
  \def ci_req_hasalldata(ci_request_t) 
  \ingroup REQUEST
+ \param req is pointer to an object of type ci_request_t
  \return True (non zero int) if the ICAP client has sent all the data (headers and body data) 
  * to the ICAP server
  */
-#define ci_req_hasalldata(req)(req->eof_received)
+#define ci_req_hasalldata(req)((req)->eof_received)
 
 
 /**

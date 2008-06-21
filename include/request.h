@@ -61,6 +61,14 @@ typedef struct ci_buf{
 
 struct ci_service_module;
 
+
+/**
+   \typedef ci_request_t
+   \ingroup REQUEST
+   * This is the struct which holds all the data which represent an ICAP request. The
+   * developers should not access directly the fields of this struct but better use
+   * the documented macros and functions
+*/
 typedef struct ci_request{
      ci_connection_t *connection;
      int packed;
