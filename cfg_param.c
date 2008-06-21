@@ -35,7 +35,7 @@ int ARGC;
 char **ARGV;
 
 
-struct icap_server_conf CONF = {
+struct ci_server_conf CONF = {
      1344, /*PORT*/ AF_INET,    /*SOCK_FAMILY */
 #ifdef _WIN32
      "c:\\TEMP", /*TMPDIR*/ "c:\\TEMP\\c-icap.pid", /*PIDFILE*/ "\\\\.\\pipe\\c-icap",  /*COMMANDS_SOCKET; */
@@ -102,10 +102,10 @@ int cfg_acl_access(char *directive, char **argv, void *setdata);
 struct sub_table {
      char *name;
      int type;
-     struct conf_entry *conf_table;
+     struct ci_conf_entry *conf_table;
 };
 
-static struct conf_entry conf_variables[] = {
+static struct ci_conf_entry conf_variables[] = {
      {"PidFile", &CONF.PIDFILE, intl_cfg_set_str, NULL},
      {"CommandsSocket", &CONF.COMMANDS_SOCKET, intl_cfg_set_str, NULL},
      {"Timeout", (void *) (&TIMEOUT), intl_cfg_set_int, NULL},
@@ -151,7 +151,7 @@ int conf_tables_list_size = 0;
 int conf_tables_num = 0;
 
 
-struct conf_entry *search_conf_table(struct conf_entry *table, char *varname)
+struct ci_conf_entry *search_conf_table(struct ci_conf_entry *table, char *varname)
 {
      int i;
      for (i = 0; table[i].name != NULL; i++) {
@@ -176,7 +176,7 @@ void reset_conf_tables()
      conf_tables_num = 0;
 }
 
-int register_conf_table(char *name, struct conf_entry *table, int type)
+int register_conf_table(char *name, struct ci_conf_entry *table, int type)
 {
      struct sub_table *new;
      if (!extra_conf_tables)
@@ -197,7 +197,7 @@ int register_conf_table(char *name, struct conf_entry *table, int type)
      return 1;
 }
 
-struct conf_entry *search_variables(char *table, char *varname)
+struct ci_conf_entry *search_variables(char *table, char *varname)
 {
      int i;
      if (table == NULL)
@@ -219,7 +219,7 @@ struct conf_entry *search_variables(char *table, char *varname)
      return NULL;
 }
 
-void print_conf_variables(struct conf_entry *table)
+void print_conf_variables(struct ci_conf_entry *table)
 {
      int i;
      for (i = 0; table[i].name != NULL; i++) {
@@ -494,7 +494,7 @@ int fread_line(FILE * f_conf, char *line)
 }
 
 
-struct conf_entry *find_action(char *str, char **arg)
+struct ci_conf_entry *find_action(char *str, char **arg)
 {
      char *end, *table, *s;
      int size;
@@ -574,7 +574,7 @@ void free_args(char **argv)
 int process_line(char *line)
 {
      char *str, *args, **argv = NULL;
-     struct conf_entry *entry;
+     struct ci_conf_entry *entry;
 
      str = line;
      while (*str != '\0' && isspace(*str))      /*Eat the spaces in the begging */
@@ -637,7 +637,7 @@ int parse_file(char *conf_file)
 #define opt_pre "-"
 /* #endif */
 
-static struct options_entry options[] = {
+static struct ci_options_entry options[] = {
      {opt_pre "f", "filename", &CONF.cfg_file, ci_cfg_set_str,
       "Specify the configuration file"},
      {opt_pre "N", NULL, &DAEMON_MODE, ci_cfg_disable, "Do not run as daemon"},

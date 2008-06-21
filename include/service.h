@@ -126,7 +126,7 @@ struct  ci_service_module{
      \param srv_xdata Pointer to the ci_service_xdata_t object of this service
      \return CI_OK on success, CI_ERROR on any error.
      */
-     int (*mod_init_service)(ci_service_xdata_t *srv_xdata,struct icap_server_conf *server_conf);
+     int (*mod_init_service)(ci_service_xdata_t *srv_xdata,struct ci_server_conf *server_conf);
     
     /**
        \brief Pointer to the function which called after the c-icap initialized, but before 
@@ -139,7 +139,7 @@ struct  ci_service_module{
      \param srv_xdata Pointer to the ci_service_xadata_t object of this service
      \return CI_OK on success, CI_ERROR on errors.
      */
-     int (*mod_post_init_service)(ci_service_xdata_t *srv_xdata,struct icap_server_conf *server_conf);
+     int (*mod_post_init_service)(ci_service_xdata_t *srv_xdata,struct ci_server_conf *server_conf);
 
     /**
      \brief Pointer to the function which called on c-icap server shutdown
@@ -220,7 +220,7 @@ struct  ci_service_module{
      * Is an array which contains the definitions of configuration parameters used by the service. 
      * The configuration parameters defined in this array can be used in c-icap.conf file.
      */
-     struct conf_entry *mod_conf_table;
+     struct ci_conf_entry *mod_conf_table;
 
     /**
      \brief NULL pointer

@@ -50,7 +50,7 @@ extern int MIN_FREE_SERVERS;
 extern int MAX_FREE_SERVERS;
 extern int MAX_REQUESTS_BEFORE_REALLOCATE_MEM;
 extern int MAX_REQUESTS_PER_CHILD;
-extern struct icap_server_conf CONF;
+extern struct ci_server_conf CONF;
 
 typedef struct server_decl {
      int srv_id;

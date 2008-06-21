@@ -40,29 +40,29 @@ enum module_type{
 typedef struct  service_handler_module{
      char *name;
      char *extensions;
-     int (*init_service_handler)(struct icap_server_conf *server_conf);
-     int (*post_init_service_handler)(struct icap_server_conf *server_conf);
+     int (*init_service_handler)(struct ci_server_conf *server_conf);
+     int (*post_init_service_handler)(struct ci_server_conf *server_conf);
      void (*release_service_handler)();
      ci_service_module_t *(*create_service)(char *service_file);
-     struct conf_entry *conf_table;
+     struct ci_conf_entry *conf_table;
 } service_handler_module_t;
 
 
 typedef struct  logger_module{
      char *name;
-     int  (*init_logger)(struct icap_server_conf *server_conf);
+     int  (*init_logger)(struct ci_server_conf *server_conf);
      int  (*log_open)(); /*Or better post_init_logger .......*/
      void (*log_close)();
      void  (*log_access)(char *server,char *clientname,char *method,
 			 char *request, char *args, char *status);
      void  (*log_server)(char *server, const char *format, va_list ap);
-     struct conf_entry *conf_table;
+     struct ci_conf_entry *conf_table;
 } logger_module_t;
 
 typedef struct  access_control_module{
      char *name;
-     int (*init_access_controller)(struct icap_server_conf *server_conf);
-     int (*post_init_access_controller)(struct icap_server_conf *server_conf);
+     int (*init_access_controller)(struct ci_server_conf *server_conf);
+     int (*post_init_access_controller)(struct ci_server_conf *server_conf);
      void (*release_access_controller)();
      int (*client_access)(ci_sockaddr_t *client_address, ci_sockaddr_t *server_address);
      int (*request_access)(char *dec_user,char *service,int req_type, 
@@ -75,29 +75,29 @@ typedef struct  access_control_module{
 				ci_sockaddr_t *client_address, 
 				ci_sockaddr_t *server_address);
 
-     struct conf_entry *conf_table;
+     struct ci_conf_entry *conf_table;
 } access_control_module_t;
 
 
 typedef struct http_auth_method{
      char *name;
-     int (*init_auth_method)(struct icap_server_conf *server_conf);
-     int (*post_init_auth_method)(struct icap_server_conf *server_conf);
+     int (*init_auth_method)(struct ci_server_conf *server_conf);
+     int (*post_init_auth_method)(struct ci_server_conf *server_conf);
      void (*close_auth_method)();
      void *(*create_auth_data)(char *auth_line,char **username);
      void (*release_auth_data)(void *data);
-     struct conf_entry *conf_table;
+     struct ci_conf_entry *conf_table;
 } http_auth_method_t;
 
 
 typedef struct authenticator_module{
      char *name;
      char *method;
-     int (*init_authenticator)(struct icap_server_conf *server_conf);
-     int (*post_init_authenticator)(struct icap_server_conf *server_conf);
+     int (*init_authenticator)(struct ci_server_conf *server_conf);
+     int (*post_init_authenticator)(struct ci_server_conf *server_conf);
      void (*close_authenticator)();
      int (*authenticate)(void *data);
-     struct conf_entry *conf_table;
+     struct ci_conf_entry *conf_table;
 } authenticator_module_t;
 
 

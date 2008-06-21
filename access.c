@@ -29,8 +29,8 @@
 
 /*********************************************************************************************/
 /* Default Authenticator  definitions                                                        */
-int default_acl_init(struct icap_server_conf *server_conf);
-int default_acl_post_init(struct icap_server_conf *server_conf);
+int default_acl_init(struct ci_server_conf *server_conf);
+int default_acl_post_init(struct ci_server_conf *server_conf);
 void default_acl_release();
 int default_acl_client_access(ci_sockaddr_t * client_address,
                               ci_sockaddr_t * server_address);
@@ -52,7 +52,7 @@ int cfg_acl_access(char *directive, char **argv, void *setdata);
 
 
 /*Configuration Table .....*/
-static struct conf_entry acl_conf_variables[] = {
+static struct ci_conf_entry acl_conf_variables[] = {
      {"acl", NULL, cfg_acl_add, NULL},
      {"icap_access", NULL, cfg_acl_access, NULL},
      {NULL, NULL, NULL, NULL}
@@ -335,7 +335,7 @@ int match_request(acl_spec_t * spec, acl_spec_t * req_spec);
 void release_access_list(struct access_entry_list *list);
 void release_acl_list(acl_spec_t * list);
 
-int default_acl_init(struct icap_server_conf *server_conf)
+int default_acl_init(struct ci_server_conf *server_conf)
 {
      acl_spec_list = NULL;      /*Not needed ...... */
      acl_spec_last = NULL;
@@ -346,7 +346,7 @@ int default_acl_init(struct icap_server_conf *server_conf)
      return 1;
 }
 
-int default_acl_post_init(struct icap_server_conf *server_conf)
+int default_acl_post_init(struct ci_server_conf *server_conf)
 {
 #ifdef HAVE_IPV6
      if (server_conf->PROTOCOL_FAMILY == AF_INET6) {

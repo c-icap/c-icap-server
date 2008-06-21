@@ -25,7 +25,7 @@
 #include "debug.h"
 
 int echo_init_service(ci_service_xdata_t * srv_xdata,
-                      struct icap_server_conf *server_conf);
+                      struct ci_server_conf *server_conf);
 int echo_check_preview_handler(char *preview_data, int preview_data_len,
                                ci_request_t *);
 int echo_end_of_data_handler(ci_request_t * req);
@@ -64,7 +64,7 @@ struct echo_req_data {
 
 /* This function will be called when the service loaded  */
 int echo_init_service(ci_service_xdata_t * srv_xdata,
-                      struct icap_server_conf *server_conf)
+                      struct ci_server_conf *server_conf)
 {
      ci_debug_printf(5, "Initialization of echo module......\n");
      

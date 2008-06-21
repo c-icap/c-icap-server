@@ -48,7 +48,7 @@ int cfg_set_priority(char *directive, char **argv, void *setdata);
 /*int cfg_set_prefix(char *directive,char **argv,void *setdata);*/
 
 /*Configuration Table .....*/
-static struct conf_entry conf_variables[] = {
+static struct ci_conf_entry conf_variables[] = {
      {"Facility", NULL, cfg_set_facility, NULL},
      {"acces_priority", &ACCESS_PRIORITY, cfg_set_priority, NULL},
      {"server_priority", &SERVER_PRIORITY, cfg_set_priority, NULL},

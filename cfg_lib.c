@@ -30,7 +30,7 @@ void *ci_cfg_alloc_mem(int size)
 /****************************************************************/
 /* Command line options implementation, function and structures */
 
-void ci_args_usage(char *progname, struct options_entry *options)
+void ci_args_usage(char *progname, struct ci_options_entry *options)
 {
      int i;
      printf("Usage : \n");
@@ -47,8 +47,8 @@ void ci_args_usage(char *progname, struct options_entry *options)
 }
 
 
-struct options_entry *search_options_table(char *directive,
-                                           struct options_entry *options)
+struct ci_options_entry *search_options_table(char *directive,
+                                           struct ci_options_entry *options)
 {
      int i;
      for (i = 0; options[i].name != NULL; i++) {
@@ -59,10 +59,10 @@ struct options_entry *search_options_table(char *directive,
 }
 
 
-int ci_args_apply(int argc, char **argv, struct options_entry *options)
+int ci_args_apply(int argc, char **argv, struct ci_options_entry *options)
 {
      int i;
-     struct options_entry *entry;
+     struct ci_options_entry *entry;
      for (i = 1; i < argc; i++) {
           if ((entry = search_options_table(argv[i], options)) == NULL)
                return 0;

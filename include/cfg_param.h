@@ -23,7 +23,7 @@
 #include "body.h"
 
 
-struct icap_server_conf{
+struct ci_server_conf{
      int  PORT;
      int  PROTOCOL_FAMILY;
      char *TMPDIR;
@@ -40,7 +40,7 @@ struct icap_server_conf{
 
 
 
-struct conf_entry{
+struct ci_conf_entry{
      char *name;
      void *data;
      int (*action)(char *name, char **argv,void *setdata);
@@ -48,7 +48,7 @@ struct conf_entry{
 };
 
 /* Command line options implementation structure */
-struct options_entry{
+struct ci_options_entry{
      char *name;
      char *parameter;
      void *data;
@@ -68,14 +68,14 @@ struct cfg_default_value{
 #define ALIAS_TABLE 2
 
 #ifndef CI_BUILD_LIB
-extern struct icap_server_conf CONF;
+extern struct ci_server_conf CONF;
 
 struct cfg_default_value * cfg_default_value_store(void *param, void *value,int size);
 struct cfg_default_value * cfg_default_value_replace(void *param, void *value);
 void *                     cfg_default_value_restore(void *value);
 struct cfg_default_value * cfg_default_value_search(void *param);
 
-int register_conf_table(char *name,struct conf_entry *table,int type);
+int register_conf_table(char *name,struct ci_conf_entry *table,int type);
 int config(int argc, char **argv);
 
 int intl_cfg_set_str(char *directive,char **argv,void *setdata);
@@ -100,8 +100,15 @@ CI_DECLARE_FUNC(int) ci_cfg_enable(char *directive,char **argv,void *setdata);
 CI_DECLARE_FUNC(int) ci_cfg_size_off(char *directive,char **argv,void *setdata);
 CI_DECLARE_FUNC(int) ci_cfg_size_long(char *directive,char **argv,void *setdata);
 
-CI_DECLARE_FUNC(void) ci_args_usage(char *progname,struct options_entry *options);
-CI_DECLARE_FUNC(int)  ci_args_apply(int argc, char **argv,struct options_entry *options);
+CI_DECLARE_FUNC(void) ci_args_usage(char *progname,struct ci_options_entry *options);
+CI_DECLARE_FUNC(int)  ci_args_apply(int argc, char **argv,struct ci_options_entry *options);
+
+
+#ifdef __CI_COMPAT
+#define  icap_server_conf   ci_server_conf
+#define  conf_entry         ci_conf_entry
+#define  options_entry      ci_options_entry
+#endif
 
 
 #endif

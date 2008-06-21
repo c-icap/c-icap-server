@@ -136,7 +136,7 @@ authenticator_module_t file_basic = {
      NULL,                      /* int (*post_init_authenticator)(); */
      NULL,                      /*  void (*close_authenticator)(); */
      (int (*)(void *)) file_basic_athenticate,  /* int (*authenticate)(void *data); */
-     NULL                       /* struct conf_entry *conf_table; */
+     NULL                       /* struct ci_conf_entry *conf_table; */
 };
 
 

@@ -34,7 +34,7 @@ struct perl_data {
      PerlInterpreter *perl;
 };
 
-int init_perl_handler(struct icap_server_conf *server_conf);
+int init_perl_handler(struct ci_server_conf *server_conf);
 ci_service_module_t *load_perl_module(char *service_file);
 
 
@@ -51,7 +51,7 @@ CI_DECLARE_DATA service_handler_module_t module = {
 
 
 int perl_init_service(ci_service_xdata_t *srv_xdata,
-                      struct icap_server_conf *server_conf);
+                      struct ci_server_conf *server_conf);
 void perl_close_service();
 void *perl_init_request_data(ci_request_t *);
 void perl_release_request_data(void *data);
@@ -64,7 +64,7 @@ int perl_service_io(char *rbuf, int *rlen, char *wbuf, int *wlen, int iseof,
                     ci_request_t *req);
 
 
-int init_perl_handler(struct icap_server_conf *server_conf)
+int init_perl_handler(struct ci_server_conf *server_conf)
 {
      return 0;
 }
@@ -108,7 +108,7 @@ ci_service_module_t *load_perl_module(char *service_file)
 
 
 int perl_init_service(ci_service_xdata_t *srv_xdata,
-                      struct icap_server_conf *server_conf)
+                      struct ci_server_conf *server_conf)
 {
      return 0;
 }

@@ -27,7 +27,7 @@
 
 
 int url_check_init_service(ci_service_xdata_t * srv_xdata,
-                           struct icap_server_conf *server_conf);
+                           struct ci_server_conf *server_conf);
 void *url_check_init_request_data(ci_request_t * req);
 void url_check_release_data(void *data);
 int url_check_process(ci_request_t *);
@@ -73,7 +73,7 @@ struct http_info {
 
 
 int url_check_init_service(ci_service_xdata_t * srv_xdata,
-                           struct icap_server_conf *server_conf)
+                           struct ci_server_conf *server_conf)
 {
      unsigned int xops;
      printf("Initialization of url_check module......\n");

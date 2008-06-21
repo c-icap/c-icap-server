@@ -77,7 +77,7 @@ ci_service_xdata_t *srv_clamav_xdata = NULL;
 
 
 int srvclamav_init_service(ci_service_xdata_t * srv_xdata,
-                           struct icap_server_conf *server_conf);
+                           struct ci_server_conf *server_conf);
 void srvclamav_close_service();
 int srvclamav_check_preview_handler(char *preview_data, int preview_data_len,
                                     ci_request_t *);
@@ -112,7 +112,7 @@ void set_istag(ci_service_xdata_t * srv_xdata);
 */
 
 /*Configuration Table .....*/
-static struct conf_entry conf_variables[] = {
+static struct ci_conf_entry conf_variables[] = {
      {"SendPercentData", NULL, cfg_SendPercentBytes, NULL},
      {"ScanFileTypes", NULL, cfg_ScanFileTypes, NULL},
      {"MaxObjectSize", &MAX_OBJECT_SIZE, ci_cfg_size_off, NULL},
@@ -153,7 +153,7 @@ CI_DECLARE_MOD_DATA ci_service_module_t service = {
 
 
 int srvclamav_init_service(ci_service_xdata_t * srv_xdata,
-                           struct icap_server_conf *server_conf)
+                           struct ci_server_conf *server_conf)
 {
      int ret, i;
      magic_db = server_conf->MAGIC_DB;
