@@ -105,20 +105,32 @@
  */
 #define ci_req_hasalldata(req)((req)->eof_received)
 
-
 /**
+ * Decodes a base64 encoded string.
  \ingroup UTILITY
- \fn void ci_base64_decode(char *str,char *result,int len)
- \brief Decodes an base64 encoded string.
+ *
  \param str   is a buffer which holds the base64 encoded data
  \param result    is a buffer where the decoded data will be stored
  \param len    is the length of the result buffer
+ \return the number of decoded bytes
  */
-CI_DECLARE_FUNC(void)                ci_base64_decode(char *str,char *result,int len);
+CI_DECLARE_FUNC(int)                ci_base64_decode(char *str,char *result,int len);
 
 /**
+ * Decodes a base64 encoded string, and also allocate memory for the result.
+ \ingroup UTILITY
+ *
+ \param str is a buffer which holds the base64 encoded data
+ \return a pointer to the decoded string. It uses malloc to allocate space for the 
+ * decoded string so the free function should used to release allocated memory.
+ */
+CI_DECLARE_FUNC(char *)             ci_base64_decode_dup(char *str);
+
+/**
+ */
+/**
+ * Returns the HTTP response headers.
  \ingroup HTTP
- \brief Returns the HTTP response headers.
  *
  * This function is only valid for an ICAP responce modification request. If the ICAP request is not
  * responce modification ICAP request or there are not response headers (HTTP 0.9) 
