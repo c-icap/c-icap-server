@@ -3,11 +3,13 @@
 
 #SUBDIRS = @BUILD_SERVICES@
 
-SUBDIRS=echo url_check
+SUBDIRS=echo
 
-if USECLAMAV
-SUBDIRS += clamav
-endif
+#SUBDIRS += url_check
+
+#if USECLAMAV
+#SUBDIRS += clamav
+#endif
 
 #if USEPERL
 #SUBDIRS += a_perl
