@@ -6,7 +6,7 @@ dnl AC_INIT(c_icap,030606rc1)
 
 AC_CONFIG_SRCDIR(aserver.c)
 AM_MAINTAINER_MODE
-AM_CONFIG_HEADER(config.h)
+AM_CONFIG_HEADER(include/c-icap-conf.h)
 
 AM_INIT_AUTOMAKE([subdir-objects])
 

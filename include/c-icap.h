@@ -22,7 +22,7 @@
 
 
 #ifdef HAVE_CONFIG_H
-#include "config.h"
+#include "c-icap-conf.h"
 #elif defined (_MSC_VER)
 #include "config-w32.h"
 #endif
