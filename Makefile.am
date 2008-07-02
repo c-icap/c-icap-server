@@ -53,8 +53,10 @@ icap_stretch_CFLAGS= -Iinclude/
 icap_stretch_LDADD = @THREADS_LDADD@ @DL_ADD_FLAG@
 icap_stretch_LDFLAGS= @THREADS_LDFLAGS@
 
-INCS = access.h body.h cfg_param.h c-icap.h ci_threads.h debug.h header.h log.h module.h\
-       net_io.h proc_mutex.h proc_threads_queues.h request.h service.h shared_mem.h simple_api.h util.h filetype.h mem.h dlib.h commands.h
+INCS = access.h body.h cfg_param.h c-icap-conf.h c-icap.h ci_threads.h \
+	commands.h debug.h dlib.h filetype.h header.h log.h mem.h module.h \
+	net_io.h proc_mutex.h proc_threads_queues.h request.h service.h \
+	shared_mem.h simple_api.h util.h
 
 ALL_INCS=$(INCS:%.h=include/%.h)
 
@@ -62,17 +64,18 @@ pkginclude_HEADERS = $(ALL_INCS)
 #sysconf_DATA = c-icap.conf c-icap.magic
 
 install-data-local:
-	$(mkinstalldirs) $(CONFIGDIR);
-	$(mkinstalldirs)  $(LOGDIR); 
-	$(mkinstalldirs)  $(SOCKDIR);
-	chgrp nobody $(LOGDIR)
-	chmod 775 $(LOGDIR)
-	chgrp nobody $(SOCKDIR)
-	chmod 775 $(SOCKDIR)
-	$(INSTALL) c-icap.conf $(CONFIGDIR)/c-icap.conf.default
-	$(INSTALL) c-icap.magic $(CONFIGDIR)/c-icap.magic.default
-	if test ! -f $(CONFIGDIR)/c-icap.conf; then  $(INSTALL) c-icap.conf $(CONFIGDIR)/c-icap.conf; fi
-	if test ! -f $(CONFIGDIR)/c-icap.magic; then $(INSTALL) c-icap.magic $(CONFIGDIR)/c-icap.magic; fi
+	$(INSTALL) c-icap-config $(DESTDIR)$(bindir)/c-icap-config
+	$(mkinstalldirs) $(DESTDIR)$(CONFIGDIR);
+	$(INSTALL) c-icap.conf $(DESTDIR)$(CONFIGDIR)/c-icap.conf.default
+	$(INSTALL) c-icap.magic $(DESTDIR)$(CONFIGDIR)/c-icap.magic.default
+	if test ! -f $(DESTDIR)$(CONFIGDIR)/c-icap.conf; then  $(INSTALL) c-icap.conf $(DESTDIR)$(CONFIGDIR)/c-icap.conf; fi
+	if test ! -f $(DESTDIR)$(CONFIGDIR)/c-icap.magic; then $(INSTALL) c-icap.magic $(DESTDIR)$(CONFIGDIR)/c-icap.magic; fi
+	$(mkinstalldirs)  $(DESTDIR)$(LOGDIR); 
+	$(mkinstalldirs)  $(DESTDIR)$(SOCKDIR);
+	chgrp nobody $(DESTDIR)$(LOGDIR)
+	chmod 775 $(DESTDIR)$(LOGDIR)
+	chgrp nobody $(DESTDIR)$(SOCKDIR)
+	chmod 775 $(DESTDIR)$(SOCKDIR)
 
 EXTRA_DIST= RECONF INSTALL.txt config-w32.h makefile.w32 c-icap.conf c_icap_dll.mak c-icap.conf.in c-icap.magic  c_icap.mak c_icap.def \
              contrib/get_file.pl contrib/convert_old_magic.pl \
