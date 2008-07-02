@@ -1,0 +1,50 @@
+#!/bin/sh
+
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+
+includedir=@includedir@
+datadir=@datadir@
+libdir=@libdir@
+sysconfdir=@sysconfdir@
+localstatedir=@localstatedir@
+
+pkgdatadir=$datadir/@PACKAGE@
+pkglibdir=$libdir/@PACKAGE@
+pkgincludedir=$includedir/@PACKAGE@
+
+
+
+PKGLIBDIR=$pkglibdir/
+MODULESDIR=$pkglibdir/
+SERVICESDIR=$pkglibdir/
+CONFIGDIR=$sysconfdir/
+LOGDIR=$localstatedir/log/
+SOCKDIR=/var/run/c-icap
+
+INCDIR=@includedir@/@PACKAGE@
+LIBDIR=@libdir@
+
+VERSION=@VERSION@
+CFLAGS="@CFLAGS@ -DCI_BUILD_MODULE"
+LIBS=@MODULES_LIBADD@
+LDFLAGS=""
+
+case $1 in
+    '--cflags')
+        echo $CFLAGS" -I"$INCDIR;
+        ;;
+    '--libs')
+       echo $LIBS;
+       ;;
+    '--version')
+       echo $VERSION;
+       ;;
+    '--config')
+	echo "c-icap version: "$VERSION;
+        echo "cflags: "$CFLAGS;
+        echo "libs: "$LIBS;
+       ;;
+    *)
+       echo
+esac;
