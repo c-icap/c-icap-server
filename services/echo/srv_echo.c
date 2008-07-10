@@ -208,9 +208,11 @@ int echo_io(char *wbuf, int *wlen, char *rbuf, int *rlen, int iseof,
      ret = CI_OK;
 
      /*write the data read from icap_client to the echo_data->body*/
-     *rlen = ci_cached_file_write(echo_data->body, rbuf, *rlen, iseof);
-     if (*rlen < 0)
-	 ret = CI_ERROR;
+     if(rlen && rbuf) {
+         *rlen = ci_cached_file_write(echo_data->body, rbuf, *rlen, iseof);
+         if (*rlen < 0)
+	    ret = CI_ERROR;
+     }
 
      /*read some data from the echo_data->body and put them to the write buffer to be send
       to the ICAP client*/
