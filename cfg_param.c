@@ -29,7 +29,7 @@
 #include "filetype.h"
 #include "cfg_param.h"
 
-#define LINESIZE 512
+#define LINESIZE 8192
 #define MAX_DIRECTIVE_SIZE 80
 #define MAX_ARGS 50
 int ARGC;
