@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include "debug.h"
 
 
 struct ci_cache_entry {
@@ -17,7 +18,7 @@ struct ci_cache_entry {
 #define CI_CACHE_CONT_MEMBLOCK       0x1
 #define CI_CACHE_ALLOC_MEMOBJECTS    0x2
 
-struct cache_table { 
+struct ci_cache_table { 
     struct ci_cache_entry *first_queue_entry; 
     struct ci_cache_entry *last_queue_entry;
     struct ci_cache_entry **hash_table;
@@ -100,7 +101,7 @@ struct ci_cache_table *ci_cache_build(unsigned int hash_size,
 	   new_hash_size = (new_hash_size << 1) -1;
        }
    }
-   printf ("Hash size: %d\n",new_hash_size);
+   ci_debug_printf(7,"Hash size: %d\n",new_hash_size);
    cache->hash_table=calloc(new_hash_size,sizeof(struct ci_cache_entry *));
    cache->hash_table_size = new_hash_size; 
    cache->ttl = ttl;
@@ -118,7 +119,7 @@ void *ci_cache_search(struct ci_cache_table *cache,void *key,int key_len) {
 
     e=cache->hash_table[hash];
     while(e!=NULL) {
-	printf(" \t\t->>>>Val %s\n",e->val);
+	ci_debug_printf(10," \t\t->>>>Val %s\n",e->val);
 	if(cache->compare(e->key, e->keylen, key, key_len))
            return e->val;
        e=e->hnext;
@@ -130,7 +131,7 @@ void *ci_cache_update(struct ci_cache_table *cache, void *key, int key_len, void
     struct ci_cache_entry *e,*tmp;
     unsigned int hash=compute_hash(cache, key, key_len);
 
-    printf("Adding :%s:%s\n",key,val);
+    ci_debug_printf(10,"Adding :%s:%s\n",key,val);
 
     if (cache->cache_size) { /*It is a cache with static size */
         /*Get the oldest entry (TODO:check the cache ttl value if exists)*/
@@ -172,7 +173,7 @@ void *ci_cache_update(struct ci_cache_table *cache, void *key, int key_len, void
    
 
     if(cache->hash_table[hash])
-	printf("\t\t:::Found %s\n",cache->hash_table[hash]->val);
+	ci_debug_printf(10,"\t\t:::Found %s\n",cache->hash_table[hash]->val);
     /*Make it the first entry in the current hash entry*/
     e->hnext=cache->hash_table[hash];
     cache->hash_table[hash] = e;
@@ -188,16 +189,14 @@ int strmatch(void *key1, int keylen1, void *key2, int keylen2)
 }
 
 void strrelease(void *key, void *val){
-    printf("FReeing mem for :%s\n",(char *)val);
+    printf("Freeing mem for :%s\n",(char *)val);
     free(val);
 }
-
 
 
 int main(int argc,char *argv[]) {
     struct ci_cache_table *cache;
     char *s;
-    printf("Hi re\n");
     cache = ci_cache_build(3,3,10,0,strmatch,strrelease);
 
     s=strdup("test1");
