@@ -170,12 +170,13 @@ void free_records_group(struct ci_magic_record *record)
      }
 }
 
+#define RECORD_LINE 32768
 int read_record(FILE * f, struct ci_magic_record *record)
 {
-     char line[512], *s, *end, num[4];
+     char line[RECORD_LINE], *s, *end, num[4];
      int len, c, i;
 
-     if (fgets(line, 512, f) == NULL)
+     if (fgets(line, RECORD_LINE, f) == NULL)
           return -1;
      if ((len = strlen(line)) < 4)      /*must have at least 4 ':' */
           return 0;
