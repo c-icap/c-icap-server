@@ -22,6 +22,14 @@
 
 #include "c-icap.h"
 
+typedef struct ci_mem_allocator {
+    void *(*alloc)(struct ci_mem_allocator *,int size);
+    void (*free)(struct ci_mem_allocator *,void *);
+    void (*reset)(struct ci_mem_allocator *);
+    void (*destroy)(struct ci_mem_allocator *);
+    void *data;
+} ci_mem_allocator_t;
+
 typedef struct ci_serial_allocator{
      void *memchunk;
      void *curpos;
