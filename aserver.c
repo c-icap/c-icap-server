@@ -44,7 +44,7 @@ int start_server();
 int store_pid(char *pidfile);
 int is_icap_running(char *pidfile);
 int set_running_permissions(char *user, char *group);
-
+void init_internal_lookup_tables();
 
 void compute_my_hostname()
 {
@@ -92,6 +92,7 @@ int main(int argc, char **argv)
      }
      init_conf_tables();
      init_modules();
+     init_internal_lookup_tables();
      config(argc, argv);
      compute_my_hostname();
      ci_debug_printf(1, "My hostname is:%s\n", MY_HOSTNAME);
