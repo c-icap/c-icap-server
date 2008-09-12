@@ -23,24 +23,15 @@
 #include "c-icap.h"
 
 typedef struct ci_mem_allocator {
-    void *(*alloc)(struct ci_mem_allocator *,int size);
+    void *(*alloc)(struct ci_mem_allocator *,size_t size);
     void (*free)(struct ci_mem_allocator *,void *);
     void (*reset)(struct ci_mem_allocator *);
     void (*destroy)(struct ci_mem_allocator *);
     void *data;
 } ci_mem_allocator_t;
 
-typedef struct ci_serial_allocator{
-     void *memchunk;
-     void *curpos;
-     void *endpos;
-     struct ci_serial_allocator *next;
-} ci_serial_allocator_t;
-
-CI_DECLARE_FUNC(ci_serial_allocator_t *) ci_serial_allocator_create(int size);
-CI_DECLARE_FUNC(void) ci_serial_allocator_release(ci_serial_allocator_t *allocator);
-CI_DECLARE_FUNC(void) ci_serial_allocator_reset(ci_serial_allocator_t *allocator);
-CI_DECLARE_FUNC(void) *ci_serial_allocator_alloc(ci_serial_allocator_t *allocator,int size);
+CI_DECLARE_FUNC(ci_mem_allocator_t *) ci_create_os_allocator(int size);
+CI_DECLARE_FUNC(ci_mem_allocator_t *) ci_create_serial_allocator(int size);
 
 
 #endif

@@ -9,21 +9,21 @@
 
 #define ALLOCATOR_SIZE 65536
 
-ci_serial_allocator_t *cfg_params_allocator = NULL;
+ci_mem_allocator_t *cfg_params_allocator = NULL;
 
 void ci_cfg_lib_init()
 {
-     cfg_params_allocator = ci_serial_allocator_create(ALLOCATOR_SIZE);
+     cfg_params_allocator = ci_create_serial_allocator(ALLOCATOR_SIZE);
 }
 
 void ci_cfg_lib_reset()
 {
-     ci_serial_allocator_reset(cfg_params_allocator);
+     cfg_params_allocator->reset(cfg_params_allocator);
 }
 
 void *ci_cfg_alloc_mem(int size)
 {
-     return ci_serial_allocator_alloc(cfg_params_allocator, size);
+     return cfg_params_allocator->alloc(cfg_params_allocator, size);
 }
 
 
