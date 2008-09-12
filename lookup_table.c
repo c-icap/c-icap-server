@@ -1,5 +1,6 @@
 #include "lookup_table.h"
 #include "debug.h"
+#include "mem.h"
 //#include <string.h>
 
 
@@ -8,15 +9,19 @@ const struct ci_lookup_table_type *lookup_tables_types[128];
 int lookup_tables_types_num = 0;
 
 
-void *stringdup(const char *str, ci_mem_allocator_t *alloc)
+void *stringdup(const char *str, ci_mem_allocator_t *allocator)
 {
-    return (void *)strdup(str);
+    char *new_s = allocator->alloc(allocator,strlen(str)+1);
+    if(!new_s)
+      strcpy(new_s, str);
+    return new_s;
 }
 
 int stringcmp(void *key1,void *key2)
 {
     return strcmp((char *)key1,(char *)key2);
 }
+
 
 struct ci_lookup_table_type *ci_lookup_table_type_add( struct ci_lookup_table_type *lt_type)
 {
@@ -48,7 +53,7 @@ struct ci_lookup_table *ci_lookup_table_create(const char *table)
 	/*A debug message.....*/
 	return NULL;
     }
-
+    
     /*Normaly the table has the form tabletype:/path/{args}*/
     s = index(stable,':'); 
     
@@ -103,7 +108,12 @@ struct ci_lookup_table *ci_lookup_table_create(const char *table)
     lt->close = lt_type->close;
     lt->search = lt_type->search;
     lt->release_result = lt_type->release_result;
-    lt->allocator = NULL;
+    lt->allocator = ci_create_os_allocator(-1);
+    if(!lt->allocator) {
+      ci_lookup_table_destroy(lt);
+      return NULL;
+    }
+
     return lt;
 }
 

@@ -8,7 +8,7 @@ struct ci_lookup_table;
 struct ci_lookup_table_type {
     void *(*open)(struct ci_lookup_table *table); 
     void  (*close)(struct ci_lookup_table *table);
-    void **(*search)(struct ci_lookup_table *table, void *key);
+    void *(*search)(struct ci_lookup_table *table, void *key, void ***vals);
     void  (*release_result)(struct ci_lookup_table *table_data, void **val);
     char *type;
 };
@@ -16,7 +16,7 @@ struct ci_lookup_table_type {
 struct ci_lookup_table {
     void *(*open)(struct ci_lookup_table *table); 
     void  (*close)(struct ci_lookup_table *table);
-    void **(*search)(struct ci_lookup_table *table, void *key);
+    void *(*search)(struct ci_lookup_table *table, void *key, void ***vals);
     void  (*release_result)(struct ci_lookup_table *table, void **val);
     char *type;
     char *path;

@@ -7,7 +7,7 @@
 
 void *file_table_open(struct ci_lookup_table *table); 
 void  file_table_close(struct ci_lookup_table *table);
-void **file_table_search(struct ci_lookup_table *table, void *key);
+void *file_table_search(struct ci_lookup_table *table, void *key, void ***vals);
 void  file_table_release_result(struct ci_lookup_table *table_data,void **val);
 
 struct ci_lookup_table_type file_table_type={
@@ -45,7 +45,7 @@ struct text_table_entry *read_row(FILE *f, int cols,
 
      if((line_len=strlen(line))>65535) {
         line[64]='\0';
-        ci_debug_printf(1,"Too long line: %s...",line); 
+        ci_debug_printf(1, "Too long line: %s...", line); 
         return NULL;
      }
      if(line[line_len-1]=='\n') line[line_len-1]='\0'; /*eat the newline char*/ 
@@ -63,9 +63,9 @@ struct text_table_entry *read_row(FILE *f, int cols,
      else
         row_cols=cols;
     
-     e = malloc(sizeof(struct text_table_entry)); 
+     e = allocator->alloc(allocator, sizeof(struct text_table_entry)); 
      if (row_cols>1) 
-         e->vals = malloc((row_cols)*sizeof(char *));
+         e->vals = allocator->alloc(allocator, (row_cols)*sizeof(char *));
      else
          e->vals = NULL; /*Only key */
 
@@ -89,7 +89,7 @@ struct text_table_entry *read_row(FILE *f, int cols,
      if(row_cols!=1) {
          for (i=0; *s!='\0'; i++) { /*probably we have vals*/
              if(i>=row_cols) {
-                ci_debug_printf(1,"What the hell hapens!!!!!\n");
+                ci_debug_printf(1, "What the hell hapens!!!!!\n");
                 return NULL;
               }
 
@@ -137,7 +137,8 @@ int load_text_table(char *filename, struct ci_lookup_table *table) {
 
 void *file_table_open(struct ci_lookup_table *table)
 {
-  struct text_table *text_table=malloc(sizeof(struct text_table));
+  struct ci_mem_allocator *allocator = table->allocator;
+  struct text_table *text_table=allocator->alloc(allocator, sizeof(struct text_table));
 
   if(!text_table)
     return NULL;
@@ -145,7 +146,7 @@ void *file_table_open(struct ci_lookup_table *table)
   text_table->entries=NULL;
   table->data=(void *)text_table;
   if(!load_text_table(table->path, table)) {
-    free(text_table);
+    allocator->free(allocator, text_table);
     return (table->data=NULL);
   }
   return text_table;
@@ -156,7 +157,8 @@ void  file_table_close(struct ci_lookup_table *table)
     int i;
     void **vals;
     struct text_table_entry *e,*tmp;
-    struct text_table *text_table=(struct text_table *)table->data;
+    struct ci_mem_allocator *allocator = table->allocator;
+    struct text_table *text_table = (struct text_table *)table->data;
     e=text_table->entries;
     
     while(e) {
@@ -164,24 +166,26 @@ void  file_table_close(struct ci_lookup_table *table)
 	e = e->next;
 	vals=(void **)tmp->vals;
 	for(i=0;vals[i]!=NULL;i++)
-	    free(vals[i]);
+	    allocator->free(allocator,vals[i]);
 	
-	free(tmp->vals);
-	free(tmp->key);
-	free(tmp);
+	allocator->free(allocator, tmp->vals);
+	allocator->free(allocator, tmp->key);
+	allocator->free(allocator, tmp);
     }
-    free(text_table);
+    allocator->free(allocator, text_table);
     table->data=NULL;
 }
 
-void **file_table_search(struct ci_lookup_table *table, void *key)
+void *file_table_search(struct ci_lookup_table *table, void *key, void ***vals)
 {
   struct text_table_entry *e;
   struct text_table *text_table=(struct text_table *)table->data;
   e=text_table->entries;
   while(e) {
-      if(table->keycomp((void *)e->key,key)==0)
-      return (void **)e->vals;
+      if (table->keycomp((void *)e->key,key)==0) {
+           *vals=(void **)e->vals;
+           return (void *)e->key;
+      }
     e = e->next;
   }
   return NULL;
