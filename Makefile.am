@@ -19,7 +19,7 @@ UTIL_SOURCES=net_io.c os/unix/net_io.c os/unix/proc_mutex.c os/unix/shared_mem.c
 
 libicapapi_la_SOURCES=  header.c body.c base64.c simple_api.c request_common.c \
                         filetype.c debug.c cfg_lib.c mem.c  service_lib.c \
-                        cache.c lookup_table.c lookup_file_table.c \
+                        cache.c lookup_table.c lookup_file_table.c hash.c \
 			$(UTIL_SOURCES)
 c_icap_SOURCES = aserver.c request.c cfg_param.c \
                    proc_threads_queues.c http_auth.c \
@@ -58,7 +58,7 @@ icap_stretch_LDFLAGS= @THREADS_LDFLAGS@
 INCS = access.h body.h cfg_param.h c-icap-conf.h c-icap.h ci_threads.h \
 	commands.h debug.h dlib.h filetype.h header.h log.h mem.h module.h \
 	net_io.h proc_mutex.h proc_threads_queues.h request.h service.h \
-	shared_mem.h simple_api.h util.h lookup_table.h
+	shared_mem.h simple_api.h util.h lookup_table.h hash.h
 
 ALL_INCS=$(INCS:%.h=include/%.h)
 
