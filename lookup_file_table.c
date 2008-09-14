@@ -1,4 +1,5 @@
 #include "lookup_table.h"
+#include "hash.h"
 #include "debug.h"
 //#include <string.h>
 
@@ -20,14 +21,15 @@ struct ci_lookup_table_type file_table_type={
 
 
 struct text_table_entry {
-    char *key;
-    char **vals;
+    void *key;
+    void **vals;
     struct text_table_entry *next;
 };
 
 struct text_table {
-     struct text_table_entry *entries;
-     int rows;
+    struct text_table_entry *entries;
+    struct ci_hash_table *hash_table;
+    int rows;
 };
 
 struct text_table_entry *read_row(FILE *f, int cols, 
@@ -122,7 +124,10 @@ int load_text_table(char *filename, struct ci_lookup_table *table) {
 	 return 0;
      }
      rows = 0;
-     while((e=read_row(f,table->cols,table->allocator, table->keydup,table->valdup))) {
+     while((e=read_row(f, table->cols,
+		       table->allocator, 
+		       table->key_ops->dup,
+		       table->val_ops->dup))) {
          e->next = text_table->entries;
          text_table->entries = e;
          rows++;
@@ -149,6 +154,7 @@ void *file_table_open(struct ci_lookup_table *table)
     allocator->free(allocator, text_table);
     return (table->data=NULL);
   }
+  text_table->hash_table = NULL;
   return text_table;
 }
 
@@ -182,7 +188,7 @@ void *file_table_search(struct ci_lookup_table *table, void *key, void ***vals)
   struct text_table *text_table=(struct text_table *)table->data;
   e=text_table->entries;
   while(e) {
-      if (table->keycomp((void *)e->key,key)==0) {
+      if (table->key_ops->compare((void *)e->key,key)==0) {
            *vals=(void **)e->vals;
            return (void *)e->key;
       }
@@ -194,6 +200,75 @@ void *file_table_search(struct ci_lookup_table *table, void *key, void ***vals)
 void  file_table_release_result(struct ci_lookup_table *table_data,void **val)
 {
   /*do nothing*/
+}
+
+/******************************************************/
+/* hash lookup table implementation                   */
+
+void *hash_table_open(struct ci_lookup_table *table); 
+void  hash_table_close(struct ci_lookup_table *table);
+void *hash_table_search(struct ci_lookup_table *table, void *key, void ***vals);
+void  hash_table_release_result(struct ci_lookup_table *table_data,void **val);
+
+struct ci_lookup_table_type hash_table_type={
+    hash_table_open,
+    hash_table_close,
+    hash_table_search,
+    hash_table_release_result,
+    "hash"
+};
+
+
+void *hash_table_open(struct ci_lookup_table *table)
+{
+    struct text_table_entry *e;
+    struct text_table *text_table=file_table_open(table);
+    if (!text_table)
+	return NULL;
+
+    /* build the hash table*/
+    text_table->hash_table = ci_hash_build(text_table->rows, 
+					   table->key_ops, 
+					   table->allocator);
+    if(!text_table->hash_table) {
+	file_table_close(table);
+	return NULL;
+    }
+    
+    e=text_table->entries;
+    while(e) {
+	ci_hash_add(text_table->hash_table,e->key, e);
+	e = e->next;
+    }
+
+    return text_table;
+}
+
+void  hash_table_close(struct ci_lookup_table *table)
+{
+    struct text_table *text_table = (struct text_table *)table->data;
+    /*destroy the hash table */
+    ci_hash_destroy(text_table->hash_table);
+    /*... and then call the file_table_close:*/
+    file_table_close(table);
+}
+
+void *hash_table_search(struct ci_lookup_table *table, void *key, void ***vals)
+{
+    struct text_table_entry *e;
+    struct text_table *text_table = (struct text_table *)table->data;
+    e = ci_hash_search(text_table->hash_table, key);
+    if(!e)
+	return NULL;
+
+    *vals = e->vals;
+
+    return e->key;
+}
+
+void  hash_table_release_result(struct ci_lookup_table *table_data,void **val)
+{
+    /*do nothing*/
 }
 
 
