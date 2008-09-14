@@ -4,10 +4,15 @@
 //#include <string.h>
 
 
+/***********************************************************/
+/* Global variables                                        */
+
 /*we can support up to 128  lookup table types, looks enough*/
 const struct ci_lookup_table_type *lookup_tables_types[128]; 
 int lookup_tables_types_num = 0;
 
+/****************************************************************/
+/* operators for table elements                                 */
 
 void *stringdup(const char *str, ci_mem_allocator_t *allocator)
 {
@@ -22,6 +27,19 @@ int stringcmp(void *key1,void *key2)
     return strcmp((char *)key1,(char *)key2);
 }
 
+size_t stringlen(void *key){
+    return strlen((const char *)key);
+}
+
+ci_type_ops_t  ci_str_ops = {
+    stringdup,
+    stringcmp,
+    stringlen
+};
+
+
+/*********************************************************************/
+/*Lookuptable library functions                                      */
 
 struct ci_lookup_table_type *ci_lookup_table_type_add( struct ci_lookup_table_type *lt_type)
 {
@@ -100,9 +118,8 @@ struct ci_lookup_table *ci_lookup_table_create(const char *table)
 
 
     lt->cols = -1;
-    lt->keydup = stringdup;
-    lt->valdup = stringdup;
-    lt->keycomp = stringcmp;
+    lt->key_ops = &ci_str_ops;
+    lt->val_ops = &ci_str_ops;
     lt->type = lt_type->type;
     lt->open = lt_type->open;
     lt->close = lt_type->close;
