@@ -187,6 +187,7 @@ void *file_table_search(struct ci_lookup_table *table, void *key, void ***vals)
   struct text_table_entry *e;
   struct text_table *text_table=(struct text_table *)table->data;
   e=text_table->entries;
+  *vals=NULL;
   while(e) {
       if (table->key_ops->compare((void *)e->key,key)==0) {
            *vals=(void **)e->vals;
@@ -257,6 +258,7 @@ void *hash_table_search(struct ci_lookup_table *table, void *key, void ***vals)
 {
     struct text_table_entry *e;
     struct text_table *text_table = (struct text_table *)table->data;
+    *vals=NULL;
     e = ci_hash_search(text_table->hash_table, key);
     if(!e)
 	return NULL;
@@ -271,57 +273,3 @@ void  hash_table_release_result(struct ci_lookup_table *table_data,void **val)
     /*do nothing*/
 }
 
-
-#if 0
-int main(int argc, char **argv) {
-  struct ci_lookup_table *table;
-  struct text_table *text_table;
-  struct text_table_entry *e;
-  void **vals;
-  int i;
-  
-  ci_lookup_table_type_add(&file_table_type);
-  
-  if(argc<2) exit(-1);
-  
-  table=ci_lookup_table_create(argv[1]);
-
-  if(!table) {
-    printf("Table :%s not found!!!\n",argv[1]);
-    exit(-1);
-  }
-
-  if(!table->open(table)) {
-    printf("Can not open table %s\n",argv[1]);
-    exit(-2);
-  }
-
-  printf("A simple search:\n");
-  vals=table->search(table, "test3", 0);
-  if(!e)
-    printf("E with key %s not found!\n","test3");
-  else {
-    printf("Key: %s ", "test3");
-    if(e->vals) {
-      printf("|Values: ");
-      i=0;
-      while(vals[i]) printf("%s ", vals[i++]);
-    }
-    printf("\n\n");
-  }
-
-  text_table=(struct text_table *)table->data;
-
-   e=text_table->entries;
-   while(e) {
-       printf("Key: %s ", e->key);
-       if(e->vals) {
-          printf("|Values: ");
-          i=0;
-          while(e->vals[i]) printf("%s ", e->vals[i++]);
-       }
-       printf("\n");
-       e = e->next;
-   }
-}
-#endif
