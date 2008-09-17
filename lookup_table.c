@@ -14,10 +14,11 @@ int lookup_tables_types_num = 0;
 /****************************************************************/
 /* operators for table elements                                 */
 
+/*string operators */
 void *stringdup(const char *str, ci_mem_allocator_t *allocator)
 {
     char *new_s = allocator->alloc(allocator,strlen(str)+1);
-    if(!new_s)
+    if(new_s)
       strcpy(new_s, str);
     return new_s;
 }
@@ -27,16 +28,22 @@ int stringcmp(void *key1,void *key2)
     return strcmp((char *)key1,(char *)key2);
 }
 
-size_t stringlen(void *key){
+size_t stringlen(void *key)
+{
     return strlen((const char *)key);
+}
+
+void stringfree(void *key, ci_mem_allocator_t *allocator)
+{
+    allocator->free(allocator, key);
 }
 
 ci_type_ops_t  ci_str_ops = {
     stringdup,
     stringcmp,
-    stringlen
+    stringlen,
+    stringfree
 };
-
 
 /*********************************************************************/
 /*Lookuptable library functions                                      */
@@ -150,7 +157,9 @@ void ci_lookup_table_destroy(struct ci_lookup_table *lt)
 
 
 extern struct ci_lookup_table_type file_table_type;
+extern struct ci_lookup_table_type hash_table_type;
 
 void init_internal_lookup_tables(){
     ci_lookup_table_type_add(&file_table_type);
+    ci_lookup_table_type_add(&hash_table_type);
 }

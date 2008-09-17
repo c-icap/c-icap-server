@@ -2,6 +2,9 @@
 #include "hash.h"
 #include "debug.h"
 //#include <string.h>
+#ifdef HAVE_REGEX_H
+#include <regex.h>
+#endif
 
 /******************************************************/
 /* file lookup table implementation                   */
@@ -34,8 +37,10 @@ struct text_table {
 
 struct text_table_entry *read_row(FILE *f, int cols, 
 				  ci_mem_allocator_t *allocator,
-				  void *(*keydup)(const char *, ci_mem_allocator_t *),
-				  void *(*valdup)(const char *, ci_mem_allocator_t *) ) 
+				  ci_type_ops_t *key_ops,
+				  ci_type_ops_t *val_ops)
+//				  void *(*keydup)(const char *, ci_mem_allocator_t *),
+//				  void *(*valdup)(const char *, ci_mem_allocator_t *) ) 
 {
      struct text_table_entry *e;
      char line[65536];
@@ -86,7 +91,7 @@ struct text_table_entry *read_row(FILE *f, int cols,
      end--; 
      while(*end==' ' || *end=='\t') end--;
      *(end+1)='\0';
-     e->key=keydup(val, allocator);
+     e->key=key_ops->dup(val, allocator);
 
      if(row_cols!=1) {
          for (i=0; *s!='\0'; i++) { /*probably we have vals*/
@@ -107,7 +112,7 @@ struct text_table_entry *read_row(FILE *f, int cols,
               end--;
               while(*end == ' ' || *end == '\t') end--;
               *(end+1)='\0';
-              e->vals[i] = valdup(val, allocator);
+              e->vals[i] = val_ops->dup(val, allocator);
           }
           e->vals[i]='\0';
      }
@@ -126,8 +131,8 @@ int load_text_table(char *filename, struct ci_lookup_table *table) {
      rows = 0;
      while((e=read_row(f, table->cols,
 		       table->allocator, 
-		       table->key_ops->dup,
-		       table->val_ops->dup))) {
+		       table->key_ops,
+		       table->val_ops))) {
          e->next = text_table->entries;
          text_table->entries = e;
          rows++;
@@ -172,10 +177,10 @@ void  file_table_close(struct ci_lookup_table *table)
 	e = e->next;
 	vals=(void **)tmp->vals;
 	for(i=0;vals[i]!=NULL;i++)
-	    allocator->free(allocator,vals[i]);
-	
+	    table->val_ops->free(vals[i],allocator);
 	allocator->free(allocator, tmp->vals);
-	allocator->free(allocator, tmp->key);
+      
+	table->key_ops->free(allocator, tmp->key);
 	allocator->free(allocator, tmp);
     }
     allocator->free(allocator, text_table);
@@ -263,12 +268,197 @@ void *hash_table_search(struct ci_lookup_table *table, void *key, void ***vals)
     if(!e)
 	return NULL;
 
+    while(e) {
+	if (table->key_ops->compare((void *)e->key,key)==0) {
+	    *vals=(void **)e->vals;
+	    return (void *)e->key;
+	}
+	e = e->next;
+    }
     *vals = e->vals;
 
     return e->key;
 }
 
 void  hash_table_release_result(struct ci_lookup_table *table_data,void **val)
+{
+    /*do nothing*/
+}
+
+/******************************************************/
+/* regex lookup table implementation                   */
+
+void *regex_table_open(struct ci_lookup_table *table); 
+void  regex_table_close(struct ci_lookup_table *table);
+void *regex_table_search(struct ci_lookup_table *table, void *key, void ***vals);
+void  regex_table_release_result(struct ci_lookup_table *table_data,void **val);
+
+struct ci_lookup_table_type regex_table_type={
+    regex_table_open,
+    regex_table_close,
+    regex_table_search,
+    regex_table_release_result,
+    "regex"
+};
+
+
+/*regular expresion operator definition  */
+#ifdef HAVE_REGEX
+/*We only need the preg field which holds the compiled regular expression 
+  but keep the uncompiled string too just for debuging reasons */
+struct ci_regex {
+    char *str;
+    int flags;
+    regex_t preg;
+};
+
+/*Parse the a regular expression in the form: /regexpression/flags
+  where flags nothing or 'i'. Examples:
+        /^\{[a-z| ]*\}/i
+	/^some test.*t/
+*/
+void *regex_dup(const char *str, ci_mem_allocator_t *allocator)
+{
+    struct ci_regex *reg;
+    char *newstr,*s;
+    int slen, flags;
+
+    s=(char *)str;
+
+    if(!*s=='/') {
+	ci_debug_printf(1, "Parse error, regex should has the form '/expresion/flags'");
+	return NULL;
+    }
+    s++;
+    slen=strlen(s);
+    newstr = allocator->alloc(allocator,slen+1);    
+    if(!newstr) {
+	ci_debug_printf(1,"Error allocating memory for regex_dup!\n");
+	return NULL;
+    }
+    strcpy(newstr, s);
+    s=newstr+slen; /*Points to the end of string*/
+    while(*s!='/' && s!=newstr) s--;
+
+    if(s==newstr) {
+	ci_debug_printf(1,"Parse error, regex should has the form '/expression/flags' (regex=%s)!\n",newstr);
+	allocator->free(allocator, newstr);
+	return NULL;
+    }
+    /*Else found the last '/' char:*/
+    *s='\0';
+    /*parse flags:*/
+    flags=0;
+    s++;
+    while(*s!='\0') {
+	if(*s=='i')
+	    flags = flags | REG_ICASE;
+	else { /*other flags*/
+	}
+    }
+    flags |= REG_EXTENDED; /*or beter the 'e' option?*/
+    flags |= REG_NOSUB; /*we do not need it*/
+    
+    reg = allocator->alloc(allocator,sizeof(struct ci_regex));
+    if(!reg) {
+	ci_debug_printf(1,"Error allocating memory for regex_dup (1)!\n");
+	allocator->free(allocator, newstr);
+	return NULL;
+    }
+
+    if (regcomp(&(reg->preg), newstr, REG_EXTENDED) != 0) {
+	ci_debug_printf(1, "Error compiling regular expression :%s\n", str);
+	allocator->free(allocator, reg);
+	allocator->free(allocator, newstr);
+	return NULL;
+    }
+
+    reg->str = newstr;
+    reg->flags = flags;
+
+    return reg;
+}
+
+/*
+The following method is a litle bit dangerous because the key1 and key2 had different types
+  but OK it is a temporary ci_type_ops object
+*/
+
+int regex_cmp(void *key1,void *key2)
+{
+    regmatch_t pmatch[1];
+    struct ci_regex *reg=(struct ci_regex *)key1;
+    return regexec(&reg->preg, (char *)key2, 1, pmatch, reg->flags);
+}
+
+size_t regex_len(void *key)
+{
+    return strlen(((const struct ci_regex *)key)->str);
+}
+
+void regex_free(void *key, ci_mem_allocator_t *allocator)
+{
+    struct ci_regex *reg=(struct ci_regex *)key;
+    regfree(&(reg->preg));
+    allocator->free(allocator, reg->str);
+    allocator->free(allocator, reg);
+}
+
+
+ci_type_ops_t  ci_regex_ops = {
+    regex_dup,
+    regex_cmp,
+    regex_len,
+    regex_free
+};
+#endif
+
+
+
+
+void *regex_table_open(struct ci_lookup_table *table)
+{
+#ifdef HAVE_REGEX
+    struct text_table *text_table;
+    if(table->key_ops != &ci_str_ops) {
+	ci_debug_printf(1,"This type of table is not compatible with regex tables!\n");
+	return NULL;
+    }
+    table->key_ops = &ci_regex_ops;
+    
+    text_table=file_table_open(table);
+    if (!text_table)
+	return NULL;
+    
+    return text_table;
+#else
+    ci_debug_printf(1,"regex lookup tables are not supported on this system!\n");
+    return NULL;
+#endif
+}
+
+void  regex_table_close(struct ci_lookup_table *table)
+{
+#ifdef HAVE_REGEX
+    /*just call the file_table_close:*/
+    file_table_close(table);
+#else
+    ci_debug_printf(1,"regex lookup tables are not supported on this system!\n");
+    return NULL;
+#endif
+}
+
+void *regex_table_search(struct ci_lookup_table *table, void *key, void ***vals)
+{
+#ifdef HAVE_REGEX
+    return file_table_search(table, key, vals);
+#else
+    ci_debug_printf(1,"regex lookup tables are not supported on this system!\n");
+    return NULL;
+#endif
+}
+
+void  regex_table_release_result(struct ci_lookup_table *table_data,void **val)
 {
     /*do nothing*/
 }
