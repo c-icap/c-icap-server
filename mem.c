@@ -22,8 +22,17 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <ctype.h>
+#include "ci_threads.h"
 #include "debug.h"
 #include "mem.h"
+
+/*General Functions */
+
+void ci_mem_allocator_destroy(ci_mem_allocator_t *allocator)
+{
+    allocator->destroy(allocator);
+    free(allocator);
+}
 
 /*******************************************************************/
 /*A simple allocator implementation which uses the system malloc    */
@@ -171,5 +180,140 @@ ci_mem_allocator_t *ci_create_serial_allocator(int size)
   allocator->reset = serial_allocator_reset;
   allocator->destroy = serial_allocator_destroy;
   allocator->data = sdata;
+  return allocator;
+}
+
+
+/****************************************************************/
+
+struct mem_block_item {
+  void *data;
+  struct mem_block_item *next;
+};
+
+struct pool_allocator {
+  int items_size;
+  int strict;
+  ci_thread_mutex_t mutex;
+  struct mem_block_item *free;
+  struct mem_block_item *allocated;
+};
+
+struct pool_allocator *pool_allocator_build(int items_size, 
+					    int strict)
+{
+  struct pool_allocator *palloc;
+  
+  palloc = malloc(sizeof(struct pool_allocator));
+  if(!palloc) {
+    return NULL;
+  }
+
+  palloc->items_size = items_size;
+  palloc->strict = strict;
+  palloc->free = NULL;
+  palloc->allocated = NULL;
+  ci_thread_mutex_init(&palloc->mutex);
+  return palloc;
+}
+
+void *pool_allocator_alloc(ci_mem_allocator_t *allocator,size_t size)
+{
+  struct mem_block_item *mem_item;
+  void *data = NULL;
+  struct pool_allocator *palloc = (struct pool_allocator *)allocator->data;
+
+  if(size > palloc->items_size)
+      return NULL;
+
+  ci_thread_mutex_lock(&palloc->mutex);
+
+  if(palloc->free) {
+    mem_item=palloc->free;
+    palloc->free=palloc->free->next;
+    data=mem_item->data;
+    mem_item->data=NULL;
+  }
+  else {
+    mem_item = malloc(sizeof(struct mem_block_item));
+    mem_item->data=NULL;
+    data = malloc(palloc->items_size);
+  }
+ 
+  mem_item->next=palloc->allocated;
+  palloc->allocated = mem_item;
+
+  ci_thread_mutex_unlock(&palloc->mutex);
+  return data;
+}
+
+void pool_allocator_free(ci_mem_allocator_t *allocator,void *p)
+{
+  struct mem_block_item *mem_item;
+  struct pool_allocator *palloc = (struct pool_allocator *)allocator->data;
+  
+  ci_thread_mutex_lock(&palloc->mutex);
+  if(!palloc->allocated) {
+    /*Yes can happen! after a reset but users did not free all objects*/
+    free(p);
+  }
+  else {
+    mem_item=palloc->allocated;
+    palloc->allocated = palloc->allocated->next;
+    
+    mem_item->data = p;
+    mem_item->next = palloc->free;
+    palloc->free = mem_item;
+  }
+  ci_thread_mutex_unlock(&palloc->mutex);
+}
+
+void pool_allocator_reset(ci_mem_allocator_t *allocator)
+{
+  struct mem_block_item *mem_item, *cur;
+  struct pool_allocator *palloc = (struct pool_allocator *)allocator->data;
+  
+  ci_thread_mutex_lock(&palloc->mutex);
+  if(palloc->allocated) {
+    mem_item = palloc->allocated;
+    while(mem_item!=NULL) {
+      cur = mem_item;
+      mem_item = mem_item->next;
+      free(cur);
+    }
+      
+  }
+  palloc->allocated = NULL;
+  if(palloc->free) {
+    mem_item = palloc->free;
+    while(mem_item!=NULL) {
+      cur = mem_item;
+      mem_item = mem_item->next;
+      free(cur->data);
+      free(cur);
+    }
+  }
+  palloc->free = NULL;
+  ci_thread_mutex_unlock(&palloc->mutex);
+}
+
+
+void pool_allocator_destroy(ci_mem_allocator_t *allocator)
+{
+  pool_allocator_reset(allocator);
+  struct pool_allocator *palloc = (struct pool_allocator *)allocator->data;
+  free(palloc);
+}
+
+ci_mem_allocator_t *ci_create_pool_allocator(int size)
+{
+  ci_mem_allocator_t *allocator = malloc(sizeof(ci_mem_allocator_t));
+  if(!allocator)
+    return NULL;
+  allocator->alloc = pool_allocator_alloc;
+  allocator->free = pool_allocator_free;
+  allocator->reset = pool_allocator_reset;
+  allocator->destroy = pool_allocator_destroy;
+  allocator->data = NULL;
   return allocator;
 }
