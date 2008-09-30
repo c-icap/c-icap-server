@@ -1,7 +1,6 @@
 #include "lookup_table.h"
 #include "hash.h"
 #include "debug.h"
-//#include <string.h>
 #ifdef HAVE_REGEX_H
 #include <regex.h>
 #endif
@@ -22,7 +21,6 @@ struct ci_lookup_table_type file_table_type={
     "file"
 };
 
-
 struct text_table_entry {
     void *key;
     void **vals;
@@ -35,25 +33,25 @@ struct text_table {
     int rows;
 };
 
-struct text_table_entry *read_row(FILE *f, int cols, 
+int read_row(FILE *f, int cols, struct text_table_entry **e,
 				  ci_mem_allocator_t *allocator,
 				  ci_type_ops_t *key_ops,
 				  ci_type_ops_t *val_ops)
-//				  void *(*keydup)(const char *, ci_mem_allocator_t *),
-//				  void *(*valdup)(const char *, ci_mem_allocator_t *) ) 
 {
-     struct text_table_entry *e;
      char line[65536];
      char *s,*val,*end;
      int row_cols,line_len,i;
-     if(!fgets(line,65535,f))
-          return NULL;
-     line[65535]='\0';
 
+     (*e)=NULL;
+
+     if(!fgets(line,65535,f))
+          return 0;
+     line[65535]='\0';
+     
      if((line_len=strlen(line))>65535) {
         line[64]='\0';
         ci_debug_printf(1, "Too long line: %s...", line); 
-        return NULL;
+        return 0;
      }
      if(line[line_len-1]=='\n') line[line_len-1]='\0'; /*eat the newline char*/ 
 
@@ -70,11 +68,22 @@ struct text_table_entry *read_row(FILE *f, int cols,
      else
         row_cols=cols;
     
-     e = allocator->alloc(allocator, sizeof(struct text_table_entry)); 
-     if (row_cols>1) 
-         e->vals = allocator->alloc(allocator, (row_cols)*sizeof(char *));
+     (*e) = allocator->alloc(allocator, sizeof(struct text_table_entry)); 
+     if(!(*e)) {
+	 ci_debug_printf(1,"Error allocating memory for table entry:%s\n", line);
+	 return 0;
+     }
+     if (row_cols>1) {
+         (*e)->vals = allocator->alloc(allocator, (row_cols)*sizeof(char *));
+	 if(!(*e)->vals) {
+	     allocator->free(allocator,(*e));
+	     (*e)=NULL;
+	     ci_debug_printf(1,"Error allocating memory for values of  table entry:%s\n", line);
+	     return 0;
+	 }
+     }
      else
-         e->vals = NULL; /*Only key */
+         (*e)->vals = NULL; /*Only key */
 
      s=line;
     
@@ -91,13 +100,14 @@ struct text_table_entry *read_row(FILE *f, int cols,
      end--; 
      while(*end==' ' || *end=='\t') end--;
      *(end+1)='\0';
-     e->key=key_ops->dup(val, allocator);
+     (*e)->key=key_ops->dup(val, allocator);
 
      if(row_cols!=1) {
          for (i=0; *s!='\0'; i++) { /*probably we have vals*/
              if(i>=row_cols) {
-                ci_debug_printf(1, "What the hell hapens!!!!!\n");
-                return NULL;
+		 /*here we are leaving memory leak, I think qill never enter this if ...*/
+		 ci_debug_printf(1, "Error in read_row of file lookup table!(line:%s!!!)\n", line);
+		 return 0;
               }
 
               while(*s==' ' || *s =='\t') s++; /*find the start of the string*/
@@ -112,33 +122,44 @@ struct text_table_entry *read_row(FILE *f, int cols,
               end--;
               while(*end == ' ' || *end == '\t') end--;
               *(end+1)='\0';
-              e->vals[i] = val_ops->dup(val, allocator);
+              (*e)->vals[i] = val_ops->dup(val, allocator);
           }
-          e->vals[i]='\0';
+	 (*e)->vals[i]='\0';
      }
-     return e;
+     return 1;
 }
 
 int load_text_table(char *filename, struct ci_lookup_table *table) {
      FILE *f;
-     struct text_table_entry *e;
-     int rows;
+     struct text_table_entry *e, *l = NULL;
+     int rows, ret;
      struct text_table *text_table = (struct text_table *)table->data;
      if ((f = fopen(filename, "r+")) == NULL) {
 	 ci_debug_printf(1, "Error opening file: %s\n", filename);
 	 return 0;
      }
      rows = 0;
-     while((e=read_row(f, table->cols,
-		       table->allocator, 
-		       table->key_ops,
-		       table->val_ops))) {
-         e->next = text_table->entries;
-         text_table->entries = e;
+     while(0 != (ret=read_row(f, table->cols, &e,
+			       table->allocator, 
+			       table->key_ops,
+			       table->val_ops))) {
+	 e->next = NULL;
+	 if(text_table->entries==NULL) {
+	     text_table->entries = e;
+	     l = e;
+	 }
+	 else {
+	     l->next = e;
+	     l = e;
+	 }
          rows++;
      }
-
      fclose(f);
+
+     if(ret==-1) {
+	 file_table_close(table);
+	 return 0;
+     }
 
      text_table->rows = rows;
      return 1;
@@ -156,7 +177,6 @@ void *file_table_open(struct ci_lookup_table *table)
   text_table->entries=NULL;
   table->data=(void *)text_table;
   if(!load_text_table(table->path, table)) {
-    allocator->free(allocator, text_table);
     return (table->data=NULL);
   }
   text_table->hash_table = NULL;
