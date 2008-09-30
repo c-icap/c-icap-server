@@ -158,8 +158,9 @@ void ci_lookup_table_destroy(struct ci_lookup_table *lt)
 
 extern struct ci_lookup_table_type file_table_type;
 extern struct ci_lookup_table_type hash_table_type;
-
+extern struct ci_lookup_table_type regex_table_type;
 void init_internal_lookup_tables(){
     ci_lookup_table_type_add(&file_table_type);
     ci_lookup_table_type_add(&hash_table_type);
+    ci_lookup_table_type_add(&regex_table_type);
 }
