@@ -695,20 +695,26 @@ void release_modules();
 void ci_dlib_closeall();
 int log_open();
 
+void system_shutdown()
+{
+    /*
+      - reset commands table
+    */
+    
+    reset_commands();
+    /*
+      - close/release services and modules
+    */
+    release_services();
+    release_modules();
+    ci_dlib_closeall();
+}
+
 void system_reconfigure()
 {
      int old_port;
      ci_debug_printf(1, "Going to reconfigure system!\n");
-     /*
-        - reset commands table
-      */
-     reset_commands();
-     /*
-        - close/release services and modules
-      */
-     release_services();
-     release_modules();
-     ci_dlib_closeall();
+     system_shutdown();
      reset_conf_tables();
      ci_debug_printf(1, "All resources released. Going to reload!\n");
      init_modules();

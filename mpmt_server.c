@@ -193,7 +193,7 @@ static void exit_normaly()
      }
      free(threads_list);
      dettach_childs_queue(childs_queue);
-     log_close();
+     system_shutdown();
 }
 
 
