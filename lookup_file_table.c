@@ -288,16 +288,8 @@ void *hash_table_search(struct ci_lookup_table *table, void *key, void ***vals)
     if(!e)
 	return NULL;
 
-    while(e) {
-	if (table->key_ops->compare((void *)e->key,key)==0) {
-	    *vals=(void **)e->vals;
-	    return (void *)e->key;
-	}
-	e = e->next;
-    }
-    *vals = e->vals;
-
-    return e->key;
+    *vals = (void **)e->vals;
+    return (void *)e->key;
 }
 
 void  hash_table_release_result(struct ci_lookup_table *table_data,void **val)
@@ -341,7 +333,8 @@ void *regex_dup(const char *str, ci_mem_allocator_t *allocator)
 {
     struct ci_regex *reg;
     char *newstr,*s;
-    int slen, flags;
+    int slen;
+    unsigned flags;
 
     s=(char *)str;
 
@@ -386,8 +379,8 @@ void *regex_dup(const char *str, ci_mem_allocator_t *allocator)
 	return NULL;
     }
 
-    if (regcomp(&(reg->preg), newstr, REG_EXTENDED) != 0) {
-	ci_debug_printf(1, "Error compiling regular expression :%s\n", str);
+    if (regcomp(&(reg->preg), newstr, flags) != 0) {
+	ci_debug_printf(1, "Error compiling regular expression :%s (%s)\n", str, newstr);
 	allocator->free(allocator, reg);
 	allocator->free(allocator, newstr);
 	return NULL;
@@ -408,7 +401,7 @@ int regex_cmp(void *key1,void *key2)
 {
     regmatch_t pmatch[1];
     struct ci_regex *reg=(struct ci_regex *)key1;
-    return regexec(&reg->preg, (char *)key2, 1, pmatch, reg->flags);
+    return regexec(&reg->preg, (char *)key2, 1, pmatch, 0);
 }
 
 size_t regex_len(void *key)

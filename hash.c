@@ -18,6 +18,7 @@
  */
 
 #include "hash.h"
+#include "debug.h"
 
 unsigned int ci_hash_compute(unsigned long hash_max_value, void *key, int len)
 {
@@ -85,7 +86,7 @@ void * ci_hash_search(struct ci_hash_table *htable,void *key)
     
     e = htable->hash_table[hash];
     while(e != NULL) {
-	if(htable->ops->compare(e->key, key))
+	if(htable->ops->compare(e->key, key) == 0)
 	    return e->val;
 	e=e->hnext;
     }
