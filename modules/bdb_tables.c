@@ -1,0 +1,157 @@
+#include "c-icap.h"
+#include "module.h"
+#include "lookup_table.h"
+#include "debug.h"
+#include <db.h>
+
+
+int init_bdb_tables(struct ci_server_conf *server_conf);
+void release_bdb_tables();
+
+CI_DECLARE_MOD_DATA common_module_t module = {
+    "bdb_tables",
+    init_bdb_tables,
+    NULL,
+    release_bdb_tables,
+    NULL,
+};
+
+
+
+void *bdb_table_open(struct ci_lookup_table *table); 
+void  bdb_table_close(struct ci_lookup_table *table);
+void *bdb_table_search(struct ci_lookup_table *table, void *key, void ***vals);
+void  bdb_table_release_result(struct ci_lookup_table *table_data,void **val);
+
+struct ci_lookup_table_type bdb_table_type={
+    bdb_table_open,
+    bdb_table_close,
+    bdb_table_search,
+    bdb_table_release_result,
+    "bdb"
+};
+
+
+int init_bdb_tables(struct ci_server_conf *server_conf)
+{
+    return (ci_lookup_table_type_register(&bdb_table_type) != NULL);
+}
+
+void release_bdb_tables()
+{
+    ci_lookup_table_type_unregister(&bdb_table_type);
+}
+
+/***********************************************************/
+/*  bdb_table_type inmplementation                         */
+
+struct bdb_data {
+    DB_ENV *env_db;
+    DB *db;
+};
+
+void *bdb_table_open(struct ci_lookup_table *table)
+{
+    int ret;
+    char *s,home[CI_MAX_PATH];
+    struct ci_mem_allocator *allocator = table->allocator;
+    struct bdb_data *dbdata = allocator->alloc(allocator, sizeof(struct bdb_data));
+    if(!dbdata)
+	return NULL;
+    
+    strncpy(home,table->path,CI_MAX_PATH);
+    home[CI_MAX_PATH-1] = '\0';
+    s=strrchr(home,'/');
+    if(s)
+	*s = '\0';
+    else /*no path in filename?*/
+	home[0]='\0';
+    
+    /* * Create an environment and initialize it for additional error * reporting. */ 
+    if ((ret = db_env_create(&dbdata->env_db, 0)) != 0) { 
+	return (NULL); 
+    } 
+    ci_debug_printf(5, "bdb_table_open: Environment created OK.\n");
+    
+    
+    dbdata->env_db->set_data_dir(dbdata->env_db, home);
+    ci_debug_printf(5, "bdb_table_open: Data dir set to %s.\n", home);
+
+    /* Open the environment  */ 
+    if ((ret = dbdata->env_db->open(dbdata->env_db, home, 
+				     DB_CREATE | DB_INIT_LOCK | DB_INIT_MPOOL /*| DB_SYSTEM_MEM*/, 
+				     0)) != 0){ 
+	ci_debug_printf(1, "bdb_table_open: Environment open failed: %s\n", db_strerror(ret));
+	dbdata->env_db->close(dbdata->env_db, 0); 
+	return NULL; 
+    }
+    ci_debug_printf(5, "bdb_table_open: DB environment setup OK.\n");
+
+    
+    if ((ret = db_create(&dbdata->db, dbdata->env_db, 0)) != 0) {
+	ci_debug_printf(1, "db_create: %s\n", db_strerror(ret));
+	return NULL;
+    }
+
+
+#if(DB_VERSION_MINOR>=1)
+    if ((ret = dbdata->db->open( dbdata->db, NULL, table->path, NULL,
+				 DB_BTREE, DB_RDONLY, 0)) != 0) {
+#else
+    if ((ret = dbdata->db->open( dbdata->db, table->path, NULL,
+				 DB_BTREE, DB_RDONLY, 0)) != 0) {
+#endif
+	    ci_debug_printf(1, "open db %s: %s\n", table->path, db_strerror(ret));
+	    dbdata->db->close(dbdata->db, 0);
+	    return NULL;
+	}
+    
+
+    table->data = dbdata;
+    return table->data;
+}
+
+void  bdb_table_close(struct ci_lookup_table *table)
+{
+    struct ci_mem_allocator *allocator = table->allocator;
+    struct bdb_data *dbdata = table->data;
+    
+    dbdata->db->close(dbdata->db,0);
+    dbdata->env_db->close(dbdata->env_db,0);
+    
+    if(table->data) {
+	allocator->free(allocator,table->data);
+	table->data = NULL;
+    }
+}
+
+void *bdb_table_search(struct ci_lookup_table *table, void *key, void ***vals)
+{
+    struct ci_mem_allocator *allocator = table->allocator;
+    struct bdb_data *dbdata = (struct bdb_data *)table->data;
+    DBT db_key, db_data;
+    int ret;
+
+    memset(&db_data, 0, sizeof(db_data));
+    memset(&db_key, 0, sizeof(db_key));
+    db_key.data = key;
+    db_key.size = table->key_ops->length(key);
+
+    /*A pool allocator should used here.... */
+    db_data.data = allocator->alloc(allocator, 32768);
+    db_data.size = 32768;
+
+    if ((ret = dbdata->db->get(dbdata->db, NULL, &db_key, &db_data, 0)) != 0){
+	ci_debug_printf(5, "db_entry_exists does not exists: %s\n", db_strerror(ret));
+	*vals = NULL;
+	return NULL;
+    }
+    *vals = db_data.data;
+    return key;
+}
+
+void  bdb_table_release_result(struct ci_lookup_table *table,void **val)
+{
+    struct ci_mem_allocator *allocator = table->allocator;
+    allocator->free(allocator, val);
+}

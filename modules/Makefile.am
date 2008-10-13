@@ -7,6 +7,9 @@ if USEPERL
 pkglib_LTLIBRARIES += perl_handler.la
 endif
 
+if USEBDB
+pkglib_LTLIBRARIES += bdb_tables.la
+endif
 
 INCLUDES = -I$(top_srcdir)
 
@@ -20,6 +23,12 @@ perl_handler_la_LIBADD = @MODULES_LIBADD@ @perllib@  -L@perlcore@ -lperl
 perl_handler_la_CFLAGS=  -I../include/ @perlccflags@ -I@perlcore@
 perl_handler_la_LDFLAGS= -module -avoid-version @perlldflags@
 perl_handler_la_SOURCES = perl_handler.c
+
+
+bdb_tables_la_LIBADD = @MODULES_LIBADD@ @BDB_ADD_LDFLAG@
+bdb_tables_la_CFLAGS=  -I../include/  @BDB_ADD_FLAG@
+bdb_tables_la_LDFLAGS= -module -avoid-version
+bdb_tables_la_SOURCES = bdb_tables.c
 
 
 

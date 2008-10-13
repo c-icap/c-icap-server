@@ -220,6 +220,40 @@ if test a"$zlib" = "ano"; then
     AC_MSG_WARN("zlib required for the c-icap's internal filetype recognizer!")
 fi
 
+libdb="yes"
+AC_ARG_WITH(libdb,
+[  --with-bdb        Where to find Berkeley DB library ],
+[ case "$withval" in
+    yes)
+         libdb="yes"
+    ;;
+    no )
+         libdb="no"
+    ;;
+    * )
+        libdb=$withval
+    ;;
+  esac
+],
+)
+
+if test a"libdb" != "ano"; then
+   if test a"$libdb" != "ayes"; then
+      	AC_CHECK_LIB(db,  db_version, 
+		     [BDB_ADD_LDFLAG="-L $libdb/lib -ldb"; BDB_ADD_FLAG="-I$libdb/lib"; AC_DEFINE(HAVE_BDB, 1, [Define HAVE_BDB if berkeley DB is installed])], 
+		     [libdb = "no"]
+		     )
+	AC_SUBST(BDB_ADD_LDFLAG)
+	AC_SUBST(BDB_ADD_FLAG)
+   else
+	AC_CHECK_LIB(db,  db_version, 
+	 	     [BDB_ADD_LDFLAG=" -ldb"; AC_DEFINE(HAVE_BDB, 1, [Define HAVE_BDB if berkeley DB is installed])], 
+		     [libdb = "no"]
+		     )
+	AC_SUBST(BDB_ADD_LDFLAG)
+   fi
+fi
+
 
 # Check for header files
 AC_HEADER_STDC
@@ -361,7 +395,7 @@ AM_CONDITIONAL(ISCYGWIN,[test a"$iscygwin" != a])
 # Now determine which modules will going to build .....
 
 AM_CONDITIONAL(USEPERL,[test a"$perlcore" != a])
-AM_CONDITIONAL(USECLAMAV,[test a"$clamav" != ano])
+AM_CONDITIONAL(USEBDB,   [test a"$libdb" != ano])
 
 AC_OUTPUT([Makefile c-icap.conf services/Makefile services/echo/Makefile modules/Makefile c-icap-config], [chmod 755 c-icap-config])
 
