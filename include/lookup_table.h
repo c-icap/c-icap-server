@@ -36,7 +36,8 @@ struct ci_lookup_table {
     void *data;
 };
 
-CI_DECLARE_FUNC(struct ci_lookup_table_type *) ci_lookup_table_type_add(struct ci_lookup_table_type *lt_type);
+CI_DECLARE_FUNC(struct ci_lookup_table_type *) ci_lookup_table_type_register(struct ci_lookup_table_type *lt_type);
+CI_DECLARE_FUNC(void) ci_lookup_table_type_unregister(struct ci_lookup_table_type *lt_type);
 CI_DECLARE_FUNC(const struct ci_lookup_table_type *) ci_lookup_table_type_search(const char *type);
 CI_DECLARE_FUNC(struct ci_lookup_table *) ci_lookup_table_create(const char *table);
 CI_DECLARE_FUNC(void) ci_lookup_table_destroy(struct ci_lookup_table *lt);
