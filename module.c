@@ -51,7 +51,7 @@ static struct modules_list loggers;
 static struct modules_list access_controllers;
 static struct modules_list auth_methods;
 static struct modules_list authenticators;
-
+static struct modules_list common_modules;
 
 
 static struct modules_list *modules_lists_table[] = {   /*Must follows the 'enum module_type' 
@@ -61,7 +61,8 @@ static struct modules_list *modules_lists_table[] = {   /*Must follows the 'enum
      &loggers,
      &access_controllers,
      &auth_methods,
-     &authenticators
+     &authenticators,
+     &common_modules
 };
 
 
@@ -129,6 +130,9 @@ static int module_type(char *type)
      else if (strcmp(type, "authenticator") == 0) {
           return AUTHENTICATOR;
      }
+     else if(strcmp(type, "common") == 0) {
+          return COMMON;
+     }
 
      ci_debug_printf(1, "Uknown type of module:%s\n", type);
      return UNKNOWN;
@@ -187,6 +191,15 @@ static int init_module(void *module, enum module_type type)
                                    ((authenticator_module_t *) module)->
                                    conf_table, MAIN_TABLE);
           break;
+     case COMMON:
+          if (((common_module_t *) module)->init_module)
+               ret = ((common_module_t *) module)->init_module(&CONF);
+          if (((common_module_t *) module)->conf_table)
+               register_conf_table(((common_module_t *) module)->name,
+                                   ((common_module_t *) module)->conf_table,
+                                   MAIN_TABLE);
+
+          break;
      default:
           return 0;
      }
@@ -219,6 +232,18 @@ access_control_module_t *find_access_controller(char *name)
      return NULL;
 }
 
+common_module_t *find_common(char *name)
+{
+     common_module_t *m;
+     int i;
+     for (i = 0; i < common_modules.modules_num; i++) {
+          m = (common_module_t *) common_modules.modules[i];
+          if (m->name && strcmp(m->name, name) == 0)
+               return m;
+     }
+     return NULL;
+
+}
 
 /******************************************************************/
 
@@ -308,6 +333,10 @@ void *find_module(char *name, int *type)
      if ((mod = find_authenticator(name)) != NULL) {
           *type = AUTHENTICATOR;
           return mod;
+     }
+     if ((mod = find_common(name)) != NULL) {
+	 *type = COMMON;
+	 return mod;
      }
      *type = UNKNOWN;
      return NULL;
@@ -557,6 +586,15 @@ int init_modules()
 int post_init_modules()
 {
      int i;
+
+/*     common modules */
+     for (i = 0; i < common_modules.modules_num ; i++) {
+          if (((common_module_t *) common_modules.modules[i])->
+              post_init_module != NULL)
+               ((common_module_t *) common_modules.modules[i])->
+                   post_init_module(&CONF);
+     }     
+
 /*     service_handlers */
      for (i = 0; i < service_handlers.modules_num; i++) {
           if (((service_handler_module_t *) service_handlers.modules[i])->
@@ -649,6 +687,15 @@ int release_modules()
                    close_authenticator(&CONF);
      }
      authenticators.modules_num = 0;
+
+/*     common modules */
+     for (i = common_modules.modules_num-1; i >= 0 ; i--) {
+          if (((common_module_t *) common_modules.modules[i])->
+              close_module != NULL)
+               ((common_module_t *) common_modules.modules[i])->
+                   close_module(&CONF);
+     }
+     common_modules.modules_num = 0;
 
      return 1;
 }

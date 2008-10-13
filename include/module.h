@@ -35,7 +35,8 @@ enum module_type{
      LOGGER,
      ACCESS_CONTROLLER,
      AUTH_METHOD,
-     AUTHENTICATOR
+     AUTHENTICATOR,
+     COMMON
 };
 
 typedef struct  service_handler_module{
@@ -48,6 +49,13 @@ typedef struct  service_handler_module{
      struct ci_conf_entry *conf_table;
 } service_handler_module_t;
 
+typedef struct common_module{
+     char *name;
+     int (*init_module)(struct ci_server_conf *server_conf);
+     int (*post_init_module)(struct ci_server_conf *server_conf);
+     void (*close_module)();
+     struct ci_conf_entry *conf_table;
+} common_module_t;
 
 typedef struct  logger_module{
      char *name;
