@@ -8,10 +8,10 @@ LOGDIR=$(localstatedir)/log/
 SOCKDIR=/var/run/c-icap
 
 
-SUBDIRS =  . modules services
+SUBDIRS =  . utils modules services
 
 lib_LTLIBRARIES=libicapapi.la
-bin_PROGRAMS = c-icap icap-client icap-stretch
+bin_PROGRAMS = c-icap
 
 UTIL_SOURCES=net_io.c os/unix/net_io.c os/unix/proc_mutex.c os/unix/shared_mem.c os/unix/threads.c os/unix/utilfunc.c os/unix/proc_utils.c os/unix/dlib.c
 
@@ -43,17 +43,6 @@ c_icap_LDADD = @THREADS_LDADD@ libicapapi.la @DL_ADD_FLAG@
 c_icap_LDFLAGS = -rdynamic -rpath @libdir@ @THREADS_LDFLAGS@
 
 
-
-#other .....
-icap_client_SOURCES = icap-client.c
-icap_client_CFLAGS= -Iinclude/
-icap_client_LDADD= @THREADS_LDADD@ libicapapi.la @DL_ADD_FLAG@
-icap_client_LDFLAGS = -rdynamic -rpath @libdir@ @THREADS_LDFLAGS@
-
-icap_stretch_SOURCES = icap-stretch.c
-icap_stretch_CFLAGS= -Iinclude/
-icap_stretch_LDADD = @THREADS_LDADD@ @DL_ADD_FLAG@
-icap_stretch_LDFLAGS= @THREADS_LDFLAGS@
 
 INCS = access.h body.h cfg_param.h c-icap-conf.h c-icap.h ci_threads.h \
 	commands.h debug.h dlib.h filetype.h header.h log.h mem.h module.h \
