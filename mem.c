@@ -31,6 +31,8 @@
 void ci_mem_allocator_destroy(ci_mem_allocator_t *allocator)
 {
     allocator->destroy(allocator);
+    /*space for ci_mem_allocator_t struct always should allocated 
+      using malloc */
     free(allocator);
 }
 
@@ -57,7 +59,7 @@ void os_allocator_destroy(ci_mem_allocator_t *allocator)
   /*nothing to do*/
 }
 
-ci_mem_allocator_t *ci_create_os_allocator(int size)
+ci_mem_allocator_t *ci_create_os_allocator()
 {
   ci_mem_allocator_t *allocator = malloc(sizeof(ci_mem_allocator_t));
   if(!allocator)
@@ -194,25 +196,44 @@ struct mem_block_item {
 struct pool_allocator {
   int items_size;
   int strict;
+  ci_mem_allocator_t *allocator;
+  int free_allocator;
   ci_thread_mutex_t mutex;
   struct mem_block_item *free;
   struct mem_block_item *allocated;
 };
 
 struct pool_allocator *pool_allocator_build(int items_size, 
-					    int strict)
+					    int strict,
+					    ci_mem_allocator_t *use_alloc)
 {
+  int free_allocator = 0; 
   struct pool_allocator *palloc;
   
-  palloc = malloc(sizeof(struct pool_allocator));
+  if(!use_alloc) {
+      free_allocator = 1;
+      use_alloc = ci_create_os_allocator();
+  }
+
+  if(!use_alloc) {
+      /*a debug message*/
+      return NULL;
+  }
+  palloc = use_alloc->alloc(use_alloc, sizeof(struct pool_allocator));
+  
   if(!palloc) {
-    return NULL;
+      /*An error message*/
+      if(free_allocator)
+	  ci_mem_allocator_destroy(use_alloc);
+      return NULL;
   }
 
   palloc->items_size = items_size;
   palloc->strict = strict;
   palloc->free = NULL;
   palloc->allocated = NULL;
+  palloc->free_allocator = free_allocator; 
+  palloc->allocator = use_alloc;
   ci_thread_mutex_init(&palloc->mutex);
   return palloc;
 }
@@ -235,9 +256,10 @@ void *pool_allocator_alloc(ci_mem_allocator_t *allocator,size_t size)
     mem_item->data=NULL;
   }
   else {
-    mem_item = malloc(sizeof(struct mem_block_item));
+    mem_item = palloc->allocator->alloc(palloc->allocator, 
+					sizeof(struct mem_block_item));
     mem_item->data=NULL;
-    data = malloc(palloc->items_size);
+    data = palloc->allocator->alloc(palloc->allocator, palloc->items_size);
   }
  
   mem_item->next=palloc->allocated;
@@ -279,7 +301,7 @@ void pool_allocator_reset(ci_mem_allocator_t *allocator)
     while(mem_item!=NULL) {
       cur = mem_item;
       mem_item = mem_item->next;
-      free(cur);
+      palloc->allocator->free(palloc->allocator, cur);
     }
       
   }
@@ -289,8 +311,8 @@ void pool_allocator_reset(ci_mem_allocator_t *allocator)
     while(mem_item!=NULL) {
       cur = mem_item;
       mem_item = mem_item->next;
-      free(cur->data);
-      free(cur);
+      palloc->allocator->free(palloc->allocator, cur->data);
+      palloc->allocator->free(palloc->allocator, cur);
     }
   }
   palloc->free = NULL;
@@ -300,9 +322,14 @@ void pool_allocator_reset(ci_mem_allocator_t *allocator)
 
 void pool_allocator_destroy(ci_mem_allocator_t *allocator)
 {
+  int free_allocator = 0;
   pool_allocator_reset(allocator);
   struct pool_allocator *palloc = (struct pool_allocator *)allocator->data;
-  free(palloc);
+  ci_mem_allocator_t *use_alloc = palloc->allocator;
+  free_allocator = palloc->free_allocator;
+  use_alloc->free(use_alloc, palloc);
+  if(free_allocator)
+      ci_mem_allocator_destroy(use_alloc);
 }
 
 ci_mem_allocator_t *ci_create_pool_allocator(int size)

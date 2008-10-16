@@ -144,7 +144,7 @@ struct ci_lookup_table *ci_lookup_table_create(const char *table)
     lt->close = lt_type->close;
     lt->search = lt_type->search;
     lt->release_result = lt_type->release_result;
-    lt->allocator = ci_create_os_allocator(-1);
+    lt->allocator = ci_create_os_allocator();
     if(!lt->allocator) {
       ci_lookup_table_destroy(lt);
       return NULL;
