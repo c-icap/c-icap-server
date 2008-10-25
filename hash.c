@@ -79,7 +79,7 @@ void ci_hash_destroy(struct ci_hash_table *htable)
 void * ci_hash_search(struct ci_hash_table *htable,void *key)
 {
     struct ci_hash_entry *e;
-    unsigned int hash=ci_hash_compute(htable->hash_table_size, key, htable->ops->length(key));
+    unsigned int hash=ci_hash_compute(htable->hash_table_size, key, htable->ops->size(key));
     
     if(hash >= htable->hash_table_size) /*is it possible?*/
 	return NULL;
@@ -96,7 +96,7 @@ void * ci_hash_search(struct ci_hash_table *htable,void *key)
 void * ci_hash_add(struct ci_hash_table *htable, void *key, void *val)
 {
     struct ci_hash_entry *e;
-    unsigned int hash=ci_hash_compute(htable->hash_table_size, key, htable->ops->length(key));
+    unsigned int hash=ci_hash_compute(htable->hash_table_size, key, htable->ops->size(key));
     
     e = htable->allocator->alloc(htable->allocator, sizeof(struct ci_hash_entry));
 
