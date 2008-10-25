@@ -180,22 +180,62 @@ void reset_conf_tables()
 int register_conf_table(char *name, struct ci_conf_entry *table, int type)
 {
      struct sub_table *new;
+     int i, insert_pos;
      if (!extra_conf_tables)
           return 0;
-     if (conf_tables_num == conf_tables_list_size) {    /*tables list is full, reallocating space ...... */
-          if (NULL ==
-              (new =
-               realloc(extra_conf_tables, conf_tables_list_size + STEPSIZE)))
-               return 0;
-          extra_conf_tables = new;
-          conf_tables_list_size += STEPSIZE;
+
+     insert_pos = -1;
+     for (i = 0; insert_pos < 0 && i < conf_tables_num; i++) {
+	 if (extra_conf_tables[i].name && strcmp(name, extra_conf_tables[i].name) == 0) {
+	     ci_debug_printf(1,"Config table :%s already exists!\n", name);
+	     return 0;
+	 }
+	 else if(extra_conf_tables[i].name == NULL) { /*empty pos use this one*/
+	     insert_pos = i;
+	 }
      }
+
+     if(insert_pos < 0) { /*if not empry pos found add it to the end*/
+	 insert_pos = conf_tables_num;
+
+	 if (conf_tables_num == conf_tables_list_size) {    
+	     /*tables list is full, reallocating space ...... */
+	     if (NULL ==
+		 (new =
+		  realloc(extra_conf_tables, conf_tables_list_size + STEPSIZE)))
+		 return 0;
+	     extra_conf_tables = new;
+	     conf_tables_list_size += STEPSIZE;
+	 }
+	 conf_tables_num++;
+     }
+
      ci_debug_printf(10, "Registering conf table:%s\n", name);
-     extra_conf_tables[conf_tables_num].name = name;    /*It works. Points to the modules.name. (????) */
-     extra_conf_tables[conf_tables_num].type = type;
-     extra_conf_tables[conf_tables_num].conf_table = table;
-     conf_tables_num++;
+
+     extra_conf_tables[insert_pos].name = name;    /*It works. Points to the modules.name. (????) */
+     extra_conf_tables[insert_pos].type = type;
+     extra_conf_tables[insert_pos].conf_table = table;
      return 1;
+}
+
+struct ci_conf_entry *unregister_conf_table(char *name)
+{
+    int i;
+    struct ci_conf_entry *table;
+
+    if (extra_conf_tables) {   /*Not really needed........ */
+	for (i = 0; i < conf_tables_num; i++) {
+	    if (extra_conf_tables[i].name && strcmp(name, extra_conf_tables[i].name) == 0) {
+		table = extra_conf_tables[i].conf_table;
+		extra_conf_tables[i].name = NULL;
+		extra_conf_tables[i].type = 0;
+		extra_conf_tables[i].conf_table = NULL;
+		return table;
+	    }
+	}
+    }
+    ci_debug_printf(1, "Table %s not found!\n", name);
+    return NULL;
 }
 
 struct ci_conf_entry *search_variables(char *table, char *varname)
@@ -211,7 +251,7 @@ struct ci_conf_entry *search_variables(char *table, char *varname)
           return NULL;
 
      for (i = 0; i < conf_tables_num; i++) {
-          if (strcmp(table, extra_conf_tables[i].name) == 0) {
+          if (extra_conf_tables[i].name && strcmp(table, extra_conf_tables[i].name) == 0) {
                return search_conf_table(extra_conf_tables[i].conf_table,
                                         varname);
           }
@@ -270,9 +310,11 @@ int print_variables()
           return 1;
 
      for (i = 0; i < conf_tables_num; i++) {
-          ci_debug_printf(9, "Printing variables in table %s\n",
-                          extra_conf_tables[i].name);
-          print_conf_variables(extra_conf_tables[i].conf_table);
+	 if( extra_conf_tables[i].name) {
+	     ci_debug_printf(9, "Printing variables in table %s\n",
+			     extra_conf_tables[i].name);
+	     print_conf_variables(extra_conf_tables[i].conf_table);
+	 }
      }
      return 1;
 }

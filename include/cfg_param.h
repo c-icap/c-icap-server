@@ -119,6 +119,7 @@ void *                     cfg_default_value_restore(void *value);
 struct cfg_default_value * cfg_default_value_search(void *param);
 
 int register_conf_table(char *name,struct ci_conf_entry *table,int type);
+struct ci_conf_entry * unregister_conf_table(char *name);
 int config(int argc, char **argv);
 
 int intl_cfg_set_str(char *directive,char **argv,void *setdata);
