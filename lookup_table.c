@@ -30,7 +30,7 @@ int stringcmp(void *key1,void *key2)
 
 size_t stringlen(void *key)
 {
-    return strlen((const char *)key);
+    return strlen((const char *)key)+1;
 }
 
 void stringfree(void *key, ci_mem_allocator_t *allocator)
