@@ -125,28 +125,50 @@ void  bdb_table_close(struct ci_lookup_table *table)
     }
 }
 
+#define DATA_SIZE 32768
+#define BDB_MAX_COLS 1024 /*Shound be: BDB_MAX_COLS*sizeof(void *) < DATA_SIZE */
+
 void *bdb_table_search(struct ci_lookup_table *table, void *key, void ***vals)
 {
     struct ci_mem_allocator *allocator = table->allocator;
     struct bdb_data *dbdata = (struct bdb_data *)table->data;
+    void *store;
+    void **store_index;
+    void *endstore;
     DBT db_key, db_data;
-    int ret;
+    int ret, i, parse_error=0;
 
+    *vals = NULL;
     memset(&db_data, 0, sizeof(db_data));
     memset(&db_key, 0, sizeof(db_key));
     db_key.data = key;
-    db_key.size = table->key_ops->length(key);
+    db_key.size = table->key_ops->size(key);
 
     /*A pool allocator should used here.... */
-    db_data.data = allocator->alloc(allocator, 32768);
-    db_data.size = 32768;
+    db_data.data = allocator->alloc(allocator, DATA_SIZE);
+    db_data.size = DATA_SIZE;
 
     if ((ret = dbdata->db->get(dbdata->db, NULL, &db_key, &db_data, 0)) != 0){
 	ci_debug_printf(5, "db_entry_exists does not exists: %s\n", db_strerror(ret));
 	*vals = NULL;
 	return NULL;
     }
-    *vals = db_data.data;
+
+    if(db_data.size) {
+	store = db_data.data;
+	store_index = store;
+	endstore=store+db_data.size;
+	for(i=0; store_index[i]!= NULL && i < BDB_MAX_COLS && !parse_error; i++) {
+	    store_index[i]=store+(unsigned long int)store_index[i];
+	    if(store_index[i] > endstore)
+		parse_error = 1;
+	}
+	if(!parse_error)
+	    *vals = store;
+	else {
+	    ci_debug_printf(1, "Error while parsing data in bdb_table_search.Is this a c-icap bdb table?\n");
+	}
+    }
     return key;
 }
 
