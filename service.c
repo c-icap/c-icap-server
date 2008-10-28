@@ -29,12 +29,10 @@
 #endif
 #include "dlib.h"
 #include "cfg_param.h"
+#include <errno.h>
 
 
-
-/****************************************************************
- Base functions for services support ....
-*****************************************************************/
+/*Services tables declarations */
 #define STEP 32
 
 static ci_service_module_t **service_list = NULL;
@@ -46,6 +44,145 @@ static int services_num = 0;
 static service_alias_t *service_aliases = NULL;
 static int service_aliases_size;
 static int service_aliases_num = 0;
+
+
+
+/**************************************************************/
+/*service globale config table                                */
+
+int cfg_srv_transfer_preview(char *directive, char **argv, void *setdata);
+int cfg_srv_transfer_ignore(char *directive, char **argv, void *setdata);
+int cfg_srv_transfer_complete(char *directive, char **argv, void *setdata);
+int cfg_srv_preview_size(char *directive, char **argv, void *setdata);
+int cfg_srv_max_connections(char *directive, char **argv, void *setdata);
+
+
+static struct ci_conf_entry services_global_conf_table[] = {
+  {"TransferPreview", NULL, cfg_srv_transfer_preview, NULL},
+  {"TransferIgnore", NULL, cfg_srv_transfer_ignore, NULL},
+  {"TransferComplete", NULL, cfg_srv_transfer_complete, NULL},
+  {"PreviewSize", NULL, cfg_srv_preview_size, NULL},
+  {"MaxConnections", NULL, cfg_srv_max_connections, NULL},
+  {NULL, NULL, NULL, NULL}
+};
+
+int cfg_srv_transfer_preview(char *directive, char **argv, void *setdata)
+{
+    struct ci_service_xdata *srv_xdata = ( struct ci_service_xdata *)setdata;
+    if (argv == NULL || argv[0] == NULL) {
+	ci_debug_printf(1, "Missing arguments in directive %s \n", directive);
+	return 0;
+    }
+    ci_debug_printf(1, "Setting parameter :%s=%s\n", directive, argv[0]);
+    ci_service_set_transfer_preview(srv_xdata,argv[0]);
+    return 1;
+}
+
+int cfg_srv_transfer_ignore(char *directive, char **argv, void *setdata)
+{
+    struct ci_service_xdata *srv_xdata = ( struct ci_service_xdata *)setdata;
+    if (argv == NULL || argv[0] == NULL) {
+	ci_debug_printf(1, "Missing arguments in directive %s \n", directive);
+	return 0;
+    }
+    ci_debug_printf(1, "Setting parameter :%s=%s\n", directive, argv[0]);
+    ci_service_set_transfer_ignore(srv_xdata,argv[0]);
+    return 1;
+}
+
+int cfg_srv_transfer_complete(char *directive, char **argv, void *setdata)
+{
+    struct ci_service_xdata *srv_xdata = ( struct ci_service_xdata *)setdata;
+    if (argv == NULL || argv[0] == NULL) {
+	ci_debug_printf(1, "Missing arguments in directive %s \n", directive);
+	return 0;
+    }
+    ci_debug_printf(1, "Setting parameter :%s=%s\n", directive, argv[0]);
+    ci_service_set_transfer_complete(srv_xdata,argv[0]);
+    return 1;
+}
+
+int cfg_srv_preview_size(char *directive, char **argv, void *setdata)
+{
+    int preview;
+    char *end;
+    struct ci_service_xdata *srv_xdata = ( struct ci_service_xdata *)setdata;
+    if (argv == NULL || argv[0] == NULL) {
+	ci_debug_printf(1, "Missing arguments in directive %s \n", directive);
+	return 0;
+    }
+    errno = 0;
+    preview = strtoll(argv[0], &end, 10);
+    if (errno != 0 || preview < 0) {
+	ci_debug_printf(1, "Invalid argument in directive %s \n", directive);
+	return 0;
+    }
+    ci_debug_printf(1, "Setting parameter :%s=%d\n", directive, preview);
+    ci_service_set_preview(srv_xdata, preview);
+    return 1;
+}
+
+int cfg_srv_max_connections(char *directive, char **argv, void *setdata)
+{
+    int max_connections;
+    char *end;
+    struct ci_service_xdata *srv_xdata = ( struct ci_service_xdata *)setdata;
+    if (argv == NULL || argv[0] == NULL) {
+	ci_debug_printf(1, "Missing arguments in directive %s \n", directive);
+	return 0;
+    }
+    errno = 0;
+    max_connections = strtoll(argv[0], &end, 10);
+    if (errno != 0 || max_connections < 0) {
+	ci_debug_printf(1, "Invalid argument in directive %s \n", directive);
+	return 0;
+    }
+    ci_debug_printf(1, "Setting parameter :%s=%d\n", directive, max_connections);
+    ci_service_set_max_connections(srv_xdata, max_connections);
+    return 1;
+}
+
+struct ci_conf_entry *create_service_conf_table(struct ci_service_xdata *srv_xdata,struct ci_conf_entry *user_table)
+{
+    int i,k,size;
+    struct ci_conf_entry *table;
+    for(i=0; services_global_conf_table[i].name!=NULL; i++);
+    size = i;
+    if(user_table) {
+	for(i=0; user_table[i].name!=NULL; i++);
+	size += i;
+    }
+    
+    table=malloc((size+1)*sizeof(struct ci_conf_entry));
+    if(!table)
+	return NULL;
+    
+    for(i=0;  services_global_conf_table[i].name!=NULL; i++){
+	table[i].name = services_global_conf_table[i].name;
+	table[i].data = srv_xdata;
+	table[i].action = services_global_conf_table[i].action;
+	table[i].msg = services_global_conf_table[i].msg;	
+    }
+    k=i;
+    if(user_table) {
+	for(i=0;  user_table[i].name!=NULL; i++,k++){
+	    table[k].name = user_table[i].name;
+	    table[k].data = user_table[i].data;
+	    table[k].action = user_table[i].action;
+	    table[k].msg = user_table[i].msg;
+	}
+    }
+    table[k].name = NULL;
+    table[k].data = NULL;
+    table[k].action = NULL;
+    table[k].msg = NULL;
+    return table;
+}
+
+/****************************************************************
+ Base functions for services support ....
+*****************************************************************/
+
 ci_service_module_t *find_service_by_alias(char *service_name);
 
 
@@ -82,6 +219,8 @@ void init_extra_data(ci_service_xdata_t * srv_xdata)
 ci_service_module_t *register_service(char *service_file)
 {
      ci_service_module_t *service = NULL;
+     struct ci_service_xdata *xdata=NULL;
+     struct ci_conf_entry *cfg_table;
 
      if (service_list == NULL) {
           service_list_size = STEP;
@@ -112,15 +251,18 @@ ci_service_module_t *register_service(char *service_file)
           return NULL;
      }
 
-     init_extra_data(&service_extra_data_list[services_num]);
+     xdata = &service_extra_data_list[services_num];
+     init_extra_data(xdata);
      if (service->mod_init_service)
-          service->mod_init_service(&service_extra_data_list[services_num],
-                                    &CONF);
+          service->mod_init_service(xdata, &CONF);
 
      service_list[services_num++] = service;
 
-     if (service->mod_conf_table)
-          register_conf_table(service->mod_name, service->mod_conf_table,
+     cfg_table = create_service_conf_table(xdata, service->mod_conf_table);
+     xdata->intl_srv_conf_table = cfg_table;
+
+     if (cfg_table)
+          register_conf_table(service->mod_name, cfg_table,
                               MAIN_TABLE);
 
      return service;
@@ -163,10 +305,24 @@ int post_init_services()
 int release_services()
 {
      int i;
+     struct ci_conf_entry *table;
+
+     for (i = 0; i < service_aliases_num; i++) {
+	 unregister_conf_table(service_aliases[i].alias);
+     }
+
      for (i = 0; i < services_num; i++) {
           if (service_list[i]->mod_close_service != NULL) {
                service_list[i]->mod_close_service();
                ci_thread_rwlock_destroy(&service_extra_data_list[i].lock);
+	       table = unregister_conf_table(service_list[i]->mod_name);
+	       if(table!=service_extra_data_list[i].intl_srv_conf_table){
+		   ci_debug_printf(1, "Error unregistering service %s configuration table\n",
+				   service_list[i]->mod_name);
+	       }
+	       if(table)
+		   free(table);
+	       service_extra_data_list[i].intl_srv_conf_table = NULL;
           }
      }
      services_num = 0;
@@ -181,6 +337,8 @@ service_alias_t *add_service_alias(char *service_alias, char *service_name,
 {
      ci_service_module_t *service = NULL;
      service_alias_t *salias = NULL;
+     ci_service_xdata_t *xdata = NULL;
+
      int len = 0;
      int alias_indx = 0;
      if (service_aliases == NULL) {
@@ -207,6 +365,8 @@ service_alias_t *add_service_alias(char *service_alias, char *service_name,
                return NULL;
           service = salias->service;
      }
+     xdata = service_data(service);
+
      alias_indx = service_aliases_num;
      service_aliases_num++;
      service_aliases[alias_indx].service = service;
@@ -227,9 +387,9 @@ service_alias_t *add_service_alias(char *service_alias, char *service_name,
      }
      service_aliases[alias_indx].args[MAX_SERVICE_ARGS] = '\0';
 
-     if (service->mod_conf_table)
+     if (xdata->intl_srv_conf_table)
           register_conf_table(service_aliases[alias_indx].alias,
-                              service->mod_conf_table, ALIAS_TABLE);
+                              xdata->intl_srv_conf_table, ALIAS_TABLE);
 
      return &(service_aliases[alias_indx]);
 }

@@ -64,15 +64,17 @@ typedef struct  ci_service_module ci_service_module_t;
  *Stores required data and settings for a service
  */
 typedef struct ci_service_xdata {
+     ci_thread_rwlock_t lock;
+     struct ci_conf_entry *intl_srv_conf_table;
+     uint64_t xopts;
      char ISTag[SRV_ISTAG_SIZE+1];
      char xincludes[XINCLUDES_SIZE+1];
      char TransferPreview[MAX_HEADER_SIZE+1];
      char TransferIgnore[MAX_HEADER_SIZE+1];
      char TransferComplete[MAX_HEADER_SIZE+1];
      int preview_size;
+     int max_connections;
      int allow_204;
-     uint64_t xopts;
-     ci_thread_rwlock_t lock;
 } ci_service_xdata_t;
 
 /**
@@ -368,6 +370,15 @@ CI_DECLARE_FUNC(void) ci_service_set_preview(ci_service_xdata_t *srv_xdata, int 
   \param srv_xdata is a pointer to the c-icap internal service data.
  */
 CI_DECLARE_FUNC(void) ci_service_enable_204(ci_service_xdata_t *srv_xdata);
+
+/**
+  \ingroup SERVICES
+  \brief Sets the maximum connection should opened by icap client to the c-icap for this service
+  *
+  \param srv_xdata is a pointer to the c-icap internal service data.
+  \param max_connections is the maximum connections
+ */
+CI_DECLARE_FUNC(void) ci_service_set_max_connections(ci_service_xdata_t *srv_xdata, int max_connections);
 
 CI_DECLARE_FUNC(void) ci_service_add_xincludes(ci_service_xdata_t *srv_xdata, char **xincludes);
 
