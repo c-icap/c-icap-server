@@ -186,21 +186,23 @@ void *file_table_open(struct ci_lookup_table *table)
 void  file_table_close(struct ci_lookup_table *table)
 {
     int i;
-    void **vals;
+    void **vals = NULL;
     struct text_table_entry *e,*tmp;
     struct ci_mem_allocator *allocator = table->allocator;
     struct text_table *text_table = (struct text_table *)table->data;
     e=text_table->entries;
     
     while(e) {
-	tmp=e;
+	tmp = e;
 	e = e->next;
-	vals=(void **)tmp->vals;
-	for(i=0;vals[i]!=NULL;i++)
-	    table->val_ops->free(vals[i],allocator);
-	allocator->free(allocator, tmp->vals);
+	if(tmp->vals) {
+	    vals=(void **)tmp->vals;
+	    for(i=0;vals[i]!=NULL;i++)
+		table->val_ops->free(vals[i], allocator);
+	    allocator->free(allocator, tmp->vals);
+	}
       
-	table->key_ops->free(allocator, tmp->key);
+	table->key_ops->free(tmp->key, allocator);
 	allocator->free(allocator, tmp);
     }
     allocator->free(allocator, text_table);
