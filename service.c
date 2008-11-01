@@ -210,6 +210,7 @@ void init_extra_data(ci_service_xdata_t * srv_xdata)
      memset(srv_xdata->TransferComplete, 0, MAX_HEADER_SIZE + 1);
      srv_xdata->preview_size = 0;
      srv_xdata->allow_204 = 0;
+     srv_xdata->max_connections = 0;
      srv_xdata->xopts = 0;
 }
 
