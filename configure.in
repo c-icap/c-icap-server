@@ -145,6 +145,13 @@ AC_ARG_ENABLE(lib_compat,
 
 
 # Checks for programs
+AC_CHECK_PROG(has_doxygen, doxygen, "yes", "no")
+if test a"$has_doxygen" == "ayes"; then
+   doxygen_bin=doxygen
+else
+   doxygen_bin="echo Doxygen is not installed /"
+fi
+AC_SUBST(doxygen_bin)
 
 # Checks for libraries
 
@@ -253,7 +260,6 @@ if test a"libdb" != "ano"; then
 	AC_SUBST(BDB_ADD_LDFLAG)
    fi
 fi
-
 
 # Check for header files
 AC_HEADER_STDC

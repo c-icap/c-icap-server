@@ -7,6 +7,8 @@ SERVICESDIR=$(pkglibdir)/
 LOGDIR=$(localstatedir)/log/
 SOCKDIR=/var/run/c-icap
 
+DOXYGEN=@doxygen_bin@
+
 
 SUBDIRS =  . utils modules services
 
@@ -53,6 +55,9 @@ ALL_INCS=$(INCS:%.h=include/%.h)
 
 pkginclude_HEADERS = $(ALL_INCS)
 #sysconf_DATA = c-icap.conf c-icap.magic
+
+doc:
+	$(DOXYGEN) c-icap.dox
 
 install-data-local:
 	$(INSTALL) c-icap-config $(DESTDIR)$(bindir)/c-icap-config
