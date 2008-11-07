@@ -915,8 +915,10 @@ int client_parse_incoming_data(ci_request_t * req, void *data_dest,
           ci_debug_printf(3, "Responce was with status:%d \n", status);
           ci_headers_unpack(req->response_header);
 
-          if (ci_allow204(req) && status == 204)
+          if (ci_allow204(req) && status == 204) {
+	       req->status = GET_EOF;
                return 204;
+	  }
 
           if ((val = ci_headers_search(req->response_header, "Encapsulated")) == NULL) {
                ci_debug_printf(1, "No encapsulated entities!\n");
@@ -1016,6 +1018,19 @@ int client_send_get_data(ci_request_t * req,
     )
 {
      int io_ret, read_status, bytes, io_action;
+
+     if( req->pstrblock_read_len != 0) {
+	 /*We have read data, parse them before enter the io loop*/
+	  if ((read_status =
+	        client_parse_incoming_data(req, data_dest,
+					 dest_write)) == CI_ERROR)
+	       return CI_ERROR;
+	  if (read_status == 204)
+	       return 204;
+	  if (req->status == GET_EOF)
+ 	       return CI_OK;
+     }
+
      if (!req->eof_received) {
           io_action = wait_for_readwrite;
      }
