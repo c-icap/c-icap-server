@@ -26,6 +26,8 @@ ci_mem_allocator_t *allocator = NULL;
 int cfg_set_type(char *directive, char **argv, void *setdata);
 
 static struct ci_options_entry options[] = {
+    {"-d", "debug_level", &CI_DEBUG_LEVEL, ci_cfg_set_int,
+     "The debug level"},
      {"-i", "file.txt", &txtfile, ci_cfg_set_str,
       "The file contains the data (required)"},
      {"-o", "file.db", &dbfile, ci_cfg_set_str,
@@ -88,6 +90,7 @@ int open_db(char *path)
 	return 0;
     }
    
+    ci_debug_printf(5, "bdb_table_open: file %s created OK.\n",path);
     return 1;
 }
 
@@ -355,6 +358,10 @@ int main(int argc, char **argv)
 	    exit(0);
 	}
 	strcat(outfile,".db");
+    }
+    else {
+	strncpy(outfile, dbfile, CI_MAX_PATH);
+	outfile[CI_MAX_PATH-1] = '\0';
     }
 
     if (!open_db(outfile)) {
