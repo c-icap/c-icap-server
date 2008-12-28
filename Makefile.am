@@ -10,7 +10,7 @@ SOCKDIR=/var/run/c-icap
 DOXYGEN=@doxygen_bin@
 
 
-SUBDIRS =  . utils modules services
+SUBDIRS =  . utils modules services tests
 
 lib_LTLIBRARIES=libicapapi.la
 bin_PROGRAMS = c-icap

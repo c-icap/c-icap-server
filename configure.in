@@ -403,5 +403,5 @@ AM_CONDITIONAL(ISCYGWIN,[test a"$iscygwin" != a])
 AM_CONDITIONAL(USEPERL,[test a"$perlcore" != a])
 AM_CONDITIONAL(USEBDB,   [test a"$libdb" != ano])
 
-AC_OUTPUT([Makefile c-icap.conf utils/Makefile services/Makefile services/echo/Makefile modules/Makefile c-icap-config], [chmod 755 c-icap-config])
+AC_OUTPUT([Makefile c-icap.conf utils/Makefile services/Makefile services/echo/Makefile modules/Makefile tests/Makefile c-icap-config], [chmod 755 c-icap-config])
 
