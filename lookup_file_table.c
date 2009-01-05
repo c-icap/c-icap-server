@@ -190,6 +190,11 @@ void  file_table_close(struct ci_lookup_table *table)
     struct text_table_entry *e,*tmp;
     struct ci_mem_allocator *allocator = table->allocator;
     struct text_table *text_table = (struct text_table *)table->data;
+
+    if(!text_table) {
+	ci_debug_printf(1,"file lookup table is not open?\n");
+	return;
+    }
     e=text_table->entries;
     
     while(e) {
@@ -213,6 +218,12 @@ void *file_table_search(struct ci_lookup_table *table, void *key, void ***vals)
 {
   struct text_table_entry *e;
   struct text_table *text_table=(struct text_table *)table->data;
+
+  if(!text_table) {
+      ci_debug_printf(1,"file lookup table is not open?\n");
+      return NULL;
+  }
+
   e=text_table->entries;
   *vals=NULL;
   while(e) {
@@ -285,6 +296,12 @@ void *hash_table_search(struct ci_lookup_table *table, void *key, void ***vals)
 {
     struct text_table_entry *e;
     struct text_table *text_table = (struct text_table *)table->data;
+
+    if(!text_table) {
+	ci_debug_printf(1,"file lookup table is not open?\n");
+	return NULL;
+    }
+
     *vals=NULL;
     e = ci_hash_search(text_table->hash_table, key);
     if(!e)
