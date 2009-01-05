@@ -114,14 +114,17 @@ void *bdb_table_open(struct ci_lookup_table *table)
 void  bdb_table_close(struct ci_lookup_table *table)
 {
     //  struct ci_mem_allocator *allocator = table->allocator;
-    struct bdb_data *dbdata = table->data;
-    
-    dbdata->db->close(dbdata->db,0);
-    dbdata->env_db->close(dbdata->env_db,0);
-    
+    struct bdb_data *dbdata;
     if(table->data) {
+
+	struct bdb_data *dbdata = table->data;
+	dbdata->db->close(dbdata->db,0);
+	dbdata->env_db->close(dbdata->env_db,0);
 	free(table->data);
 	table->data = NULL;
+    }
+    else {
+	ci_debug_printf(1,"table %s is not open?\n", table->path);
     }
 }
 
@@ -130,13 +133,18 @@ void  bdb_table_close(struct ci_lookup_table *table)
 
 void *bdb_table_search(struct ci_lookup_table *table, void *key, void ***vals)
 {
-    struct ci_mem_allocator *allocator = table->allocator;
-    struct bdb_data *dbdata = (struct bdb_data *)table->data;
     void *store;
     void **store_index;
     void *endstore;
     DBT db_key, db_data;
     int ret, i, parse_error=0;
+    struct ci_mem_allocator *allocator = table->allocator;
+    struct bdb_data *dbdata = (struct bdb_data *)table->data;
+
+    if(!dbdata) {
+	ci_debug_printf(1,"table %s is not open?\n", table->path);
+	return NULL;
+    }
 
     *vals = NULL;
     memset(&db_data, 0, sizeof(db_data));
