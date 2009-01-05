@@ -54,8 +54,8 @@ void *bdb_table_open(struct ci_lookup_table *table)
 {
     int ret;
     char *s,home[CI_MAX_PATH];
-    struct ci_mem_allocator *allocator = table->allocator;
-    struct bdb_data *dbdata = allocator->alloc(allocator, sizeof(struct bdb_data));
+//    struct ci_mem_allocator *allocator = table->allocator;
+    struct bdb_data *dbdata = malloc(sizeof(struct bdb_data));
     if(!dbdata)
 	return NULL;
     
@@ -113,14 +113,14 @@ void *bdb_table_open(struct ci_lookup_table *table)
 
 void  bdb_table_close(struct ci_lookup_table *table)
 {
-    struct ci_mem_allocator *allocator = table->allocator;
+    //  struct ci_mem_allocator *allocator = table->allocator;
     struct bdb_data *dbdata = table->data;
     
     dbdata->db->close(dbdata->db,0);
     dbdata->env_db->close(dbdata->env_db,0);
     
     if(table->data) {
-	allocator->free(allocator,table->data);
+	free(table->data);
 	table->data = NULL;
     }
 }
