@@ -158,7 +158,7 @@ void ci_lookup_table_destroy(struct ci_lookup_table *lt)
     if (!lt)
 	return;
     
-    lt->close(lt->data);
+    lt->close(lt);
     free(lt->path);
     if(lt->args)
 	free(lt->args);
