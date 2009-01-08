@@ -184,6 +184,79 @@ ci_mem_allocator_t *ci_create_serial_allocator(int size)
   allocator->data = sdata;
   return allocator;
 }
+/****************************************************************/
+
+
+typedef struct pack_allocator{
+     void *memchunk;
+     void *curpos;
+     void *endpos;
+} pack_allocator_t;
+
+
+
+void *pack_allocator_alloc(ci_mem_allocator_t *allocator,size_t size)
+{
+     int max_size;
+     void *mem;
+     pack_allocator_t *pack_alloc = (pack_allocator_t *)allocator->data;
+
+     if(!pack_alloc)
+       return NULL;
+
+     if (size % 4)              /*round size to a multiple of 4 */
+          size = (size / 4 + 1) * 4;
+
+     max_size = pack_alloc->endpos - pack_alloc->curpos;
+
+     if (size > max_size)
+          return NULL;
+
+     mem = pack_alloc->curpos;
+     pack_alloc->curpos += size;
+     return mem;
+}
+
+void pack_allocator_free(ci_mem_allocator_t *allocator,void *p)
+{
+  /* We can not free :-)  */
+}
+
+void pack_allocator_reset(ci_mem_allocator_t *allocator)
+{
+  pack_allocator_t *pack_alloc;
+  pack_alloc = (pack_allocator_t *)allocator->data;
+  pack_alloc->curpos = pack_alloc->memchunk;
+}
+
+void pack_allocator_destroy(ci_mem_allocator_t *allocator)
+{
+    if(allocator->data) {
+	free(allocator->data);
+	allocator->data = NULL;
+    }
+}
+
+ci_mem_allocator_t *ci_create_pack_allocator(char *memblock, int size)
+{
+  ci_mem_allocator_t *allocator;
+  pack_allocator_t *pack_alloc = malloc(sizeof(pack_allocator_t));
+  if(!pack_alloc)
+      return NULL;
+  pack_alloc->memchunk = memblock;
+  pack_alloc->curpos =pack_alloc->memchunk;
+  pack_alloc->endpos = pack_alloc->memchunk + size;
+  
+  allocator = malloc(sizeof(ci_mem_allocator_t));
+  if(!allocator)
+    return NULL;
+  allocator->alloc = pack_allocator_alloc;
+  allocator->free = pack_allocator_free;
+  allocator->reset = pack_allocator_reset;
+  allocator->destroy = pack_allocator_destroy;
+  allocator->data = pack_alloc;
+  return allocator;
+}
 
 
 /****************************************************************/

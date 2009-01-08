@@ -34,5 +34,6 @@ CI_DECLARE_FUNC(void) ci_mem_allocator_destroy(ci_mem_allocator_t *allocator);
 CI_DECLARE_FUNC(ci_mem_allocator_t *) ci_create_os_allocator();
 CI_DECLARE_FUNC(ci_mem_allocator_t *) ci_create_serial_allocator(int size);
 CI_DECLARE_FUNC(ci_mem_allocator_t *) ci_create_pool_allocator(int size);
+CI_DECLARE_FUNC(ci_mem_allocator_t *) ci_create_pack_allocator(char *memblock, int size);
 
 #endif
