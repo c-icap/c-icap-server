@@ -106,23 +106,28 @@ void *ci_cache_search(struct ci_cache_table *cache,void *key, void **val, ci_mem
 int ci_cache_update(struct ci_cache_table *cache, void *key, void *val) {
     struct ci_cache_entry *e,*tmp;
     int key_size;
+    time_t current_time;
     unsigned int hash=ci_hash_compute(cache->hash_table_size, key, cache->key_ops->size(key));
 
     ci_debug_printf(10,"Adding :%s:%s\n",(char *)key, (char *)val);
 
-    /*Get the oldest entry (TODO:check the cache ttl value if exists)*/
+    /*Get the oldest entry*/
     e=cache->first_queue_entry;
-    cache->first_queue_entry=cache->first_queue_entry->qnext;
-    /*Make it the newest entry (make it last entry in queue)*/
-    cache->last_queue_entry->qnext = e;
-    cache->last_queue_entry = e;
-    e->qnext = NULL;
+    current_time = ci_internal_time();
+    
+    /*if the oldest entry does not expired do not store tke key/value pair*/
+    if((current_time - e->time)< cache->ttl)
+	return 0;
     
     /*If it has data release its data*/
-    if (e->key)
+    if (e->key) {
 	cache->key_ops->free(e->key, cache->allocator);
-    if (e->val)
+	e->key = NULL;
+    }
+    if (e->val) {
 	cache->allocator->free(cache->allocator, e->val);
+	e->val = NULL;
+    }
 
     /*If it is in the hash table remove it...*/
     if(e->hash) {
@@ -134,19 +139,32 @@ int ci_cache_update(struct ci_cache_table *cache, void *key, void *val) {
 	    if(tmp->hnext)
 		tmp->hnext = tmp->hnext->hnext;
 	}
+	e->hash = 0;
     }
     
     e->hnext = NULL;
-    e->time = ci_internal_time();
+    e->time = 0;
 
     /*I should implement a ci_type_ops::clone method. Maybe the memcpy is not enough....*/
     key_size = cache->key_ops->size(key);
     e->key = cache->allocator->alloc(cache->allocator, key_size);
+    if(!e->key)
+	return 0;
     memcpy(e->key, key, key_size);
 
     e->val = cache->copy_to(val, cache->allocator);
+    if(!e->val) {
+	cache->allocator->free(cache->allocator, e->key);
+	return 0;
+    }
+
     e->hash = hash;
-   
+    e->time = current_time;
+    cache->first_queue_entry = cache->first_queue_entry->qnext;
+    /*Make it the newest entry (make it last entry in queue)*/
+    cache->last_queue_entry->qnext = e;
+    cache->last_queue_entry = e;
+    e->qnext = NULL;
 
     if(cache->hash_table[hash])
 	ci_debug_printf(10,"\t\t:::Found %s\n", (char *)cache->hash_table[hash]->val);
