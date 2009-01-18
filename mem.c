@@ -237,6 +237,7 @@ void pack_allocator_destroy(ci_mem_allocator_t *allocator)
     }
 }
 
+/*Api functions for pack allocator:*/
 ci_mem_allocator_t *ci_create_pack_allocator(char *memblock, int size)
 {
   ci_mem_allocator_t *allocator;
@@ -258,6 +259,11 @@ ci_mem_allocator_t *ci_create_pack_allocator(char *memblock, int size)
   return allocator;
 }
 
+int ci_pack_allocator_data_size(ci_mem_allocator_t *allocator)
+{
+   pack_allocator_t *pack_alloc = (pack_allocator_t *)allocator->data;
+   return (int) (pack_alloc->curpos - pack_alloc->memchunk);
+}
 
 /****************************************************************/
 
