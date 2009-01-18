@@ -15,19 +15,19 @@ void log_errors(void *unused, const char *format, ...)
      va_end(ap);                                      
 }
 
-void *copy_to_str(void *val, ci_mem_allocator_t *allocator)
+void *copy_to_str(void *val, int *val_size, ci_mem_allocator_t *allocator)
 {
     return (void *)ci_str_ops.dup((char *)val, allocator);
 }
 
-void *copy_from_str(void *val, ci_mem_allocator_t *allocator)
+void *copy_from_str(void *val, int val_size, ci_mem_allocator_t *allocator)
 {
     return (void *)ci_str_ops.dup((char *)val, allocator);
 }
 
 
 int main(int argc,char *argv[]) {
-    struct ci_cache_table *cache;
+    struct ci_cache *cache;
     ci_mem_allocator_t *allocator;
     char *s;
     printf("Hi re\n");
@@ -38,7 +38,8 @@ int main(int argc,char *argv[]) {
     __log_error = (void (*)(void *, const char *,...)) log_errors;     /*set c-icap library log  function */                                                    
     
     allocator = ci_create_os_allocator();
-    cache = ci_cache_build(3, /*cache_size*/
+    cache = ci_cache_build(65536, /*cache_size*/
+                           512, /*max_key_size*/
 			   1024, /*max_object_size*/ 
 			   0, /*ttl*/
 			   &ci_str_ops, /*key_ops*/
