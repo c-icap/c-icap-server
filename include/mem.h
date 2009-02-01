@@ -37,4 +37,13 @@ CI_DECLARE_FUNC(ci_mem_allocator_t *) ci_create_pool_allocator(int items_size, c
 CI_DECLARE_FUNC(ci_mem_allocator_t *) ci_create_pack_allocator(char *memblock, int size);
 CI_DECLARE_FUNC(int) ci_pack_allocator_data_size(ci_mem_allocator_t *allocator);
 
+
+CI_DECLARE_FUNC(void *)  ci_buffer_alloc(int block_size);
+CI_DECLARE_FUNC(void)    ci_buffer_free(void *data);
+
+CI_DECLARE_FUNC(int)     ci_object_pool_register(char *name, int size);
+CI_DECLARE_FUNC(void)    ci_object_pool_unregister(int id);
+CI_DECLARE_FUNC(void *)  ci_object_pool_alloc(int id);
+CI_DECLARE_FUNC(void)    ci_object_pool_free(void *ptr);
+
 #endif
