@@ -29,6 +29,7 @@
 #include "simple_api.h"
 #include "debug.h"
 #include "request.h"
+#include "mem.h"
 #include "filetype.h"
 
 
@@ -563,13 +564,23 @@ int ci_filetype(struct ci_magics_db *db, char *buf, int buflen)
 #define ZIP_ORIG_NAME    0x08   /* bit 3 set: original file name present */
 #define ZIP_COMMENT      0x10   /* bit 4 set: file comment present */
 
+void *alloc_a_buffer(void *op, unsigned int items, unsigned int size)
+{
+    return ci_buffer_alloc(items*size);
+}
+
+void free_a_buffer(void *op, void *ptr)
+{
+    ci_buffer_free(ptr);
+}
+
 int ci_uncompress(int compress_method, char *buf, int len, char *unzipped_buf,
                   int *unzipped_buf_len)
 {
      int ret;
      z_stream strm;
-     strm.zalloc = Z_NULL;
-     strm.zfree = Z_NULL;
+     strm.zalloc = alloc_a_buffer;
+     strm.zfree = free_a_buffer;
      strm.opaque = Z_NULL;
      strm.avail_in = 0;
      strm.next_in = Z_NULL;
@@ -635,7 +646,7 @@ int ci_extend_filetype(struct ci_magics_db *db, ci_request_t * req, char *buf,
 
                if (*iscompressed == CI_ENCODE_GZIP
                    || *iscompressed == CI_ENCODE_DEFLATE) {
-                    unzipped_buf = malloc(len); /*Will I implement memory pools? when????? */
+                    unzipped_buf = ci_buffer_alloc(len); /*Will I implement memory pools? when????? */
                     unzipped_buf_len = len;
                     if (ci_uncompress
                         (*iscompressed, buf, len, unzipped_buf,
@@ -650,7 +661,7 @@ int ci_extend_filetype(struct ci_magics_db *db, ci_request_t * req, char *buf,
                     else {
                          ci_debug_printf(2,
                                          "Error uncompressing gzip encoded obejct\n");
-                         free(unzipped_buf);
+                         ci_buffer_free(unzipped_buf);
                          unzipped_buf = NULL;
                     }
                }
@@ -689,7 +700,7 @@ int ci_extend_filetype(struct ci_magics_db *db, ci_request_t * req, char *buf,
                      ci_data_type_descr(db, file_type));
 #ifdef HAVE_ZLIB
      if (unzipped_buf)
-          free(unzipped_buf);
+          ci_buffer_free(unzipped_buf);
 #endif
      return file_type;
 }
