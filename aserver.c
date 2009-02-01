@@ -86,13 +86,15 @@ int main(int argc, char **argv)
      __vlog_error = vlog_server;        /*set c-icap library  log function */
 #endif
 
+     mem_init();
+     init_internal_lookup_tables();
+
      if (!(CONF.MAGIC_DB = ci_magics_db_build(CONF.magics_file))) {
           ci_debug_printf(1, "Can not load magic file %s!!!\n",
                           CONF.magics_file);
      }
      init_conf_tables();
      init_modules();
-     init_internal_lookup_tables();
      config(argc, argv);
      compute_my_hostname();
      ci_debug_printf(1, "My hostname is:%s\n", MY_HOSTNAME);
