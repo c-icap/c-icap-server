@@ -8,7 +8,10 @@ LOGDIR=$(localstatedir)/log/
 SOCKDIR=/var/run/c-icap
 
 
-bin_PROGRAMS = icap-client mk_bdb icap-stretch
+bin_PROGRAMS = icap-client icap-stretch
+if USEBDB
+bin_PROGRAMS += mk_bdb
+endif
 
 #other .....
 icap_client_SOURCES = icap-client.c
