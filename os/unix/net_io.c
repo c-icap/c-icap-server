@@ -38,7 +38,7 @@ const char *ci_sockaddr_t_to_host(ci_sockaddr_t * addr, char *hname,
 
 
 #ifdef HAVE_IPV6
-int icap_init_server_ipv6(int port, int *protocol_family, int secs_to_linger)
+int icap_init_server_ipv6(char *address, int port, int *protocol_family, int secs_to_linger)
 {
      int fd;
      struct sockaddr_in6 addr;
@@ -53,7 +53,17 @@ int icap_init_server_ipv6(int port, int *protocol_family, int secs_to_linger)
 
      addr.sin6_family = AF_INET6;
      addr.sin6_port = htons(port);
-     memcpy(&(addr.sin6_addr), &(in6addr_any), sizeof(struct in6_addr));
+     if(address == NULL) // ListenAddress is not set in configuration file. Bind to all interfaces
+         addr.sin6_addr = in6addr_any;
+     else {
+         if(inet_pton(AF_INET6, address, (void *) &addr.sin6_addr) != 1) {
+             ci_debug_printf(1, "Error converting ipv6 address to the network byte order \n");
+             close(fd);
+             return CI_SOCKET_ERROR;
+         }
+     }
+
+
 
      if (bind(fd, (struct sockaddr *) &addr, sizeof(addr))) {
           ci_debug_printf(1, "Error bind  at ipv6 address \n");;
@@ -72,14 +82,14 @@ int icap_init_server_ipv6(int port, int *protocol_family, int secs_to_linger)
 
 #endif
 
-int icap_init_server(int port, int *protocol_family, int secs_to_linger)
+int icap_init_server(char *address, int port, int *protocol_family, int secs_to_linger)
 {
      int fd;
      struct sockaddr_in addr;
 
 #ifdef HAVE_IPV6
      if ((fd =
-          icap_init_server_ipv6(port, protocol_family,
+          icap_init_server_ipv6(address, port, protocol_family,
                                 secs_to_linger)) != CI_SOCKET_ERROR)
           return fd;
      ci_debug_printf(1,
@@ -96,7 +106,14 @@ int icap_init_server(int port, int *protocol_family, int secs_to_linger)
 
      addr.sin_family = AF_INET;
      addr.sin_port = htons(port);
-     addr.sin_addr.s_addr = INADDR_ANY;
+     if(address == NULL) // ListenAddress is not set in configuration file
+          addr.sin_addr.s_addr = INADDR_ANY;
+     else
+         if(inet_pton(AF_INET, address, (void *) &addr.sin_addr.s_addr) != 1) {
+             ci_debug_printf(1, "Error converting ipv4 address to the network byte order \n");
+             close(fd);
+             return CI_SOCKET_ERROR;
+         }
 
      if (bind(fd, (struct sockaddr *) &addr, sizeof(addr))) {
           ci_debug_printf(1, "Error bind  \n");;

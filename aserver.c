@@ -39,7 +39,7 @@ char MY_HOSTNAME[CI_MAXHOSTNAMELEN + 1];
 
 void init_conf_tables();
 int config(int, char **);
-int init_server(int port, int *family);
+int init_server(char *address, int port, int *family);
 int start_server();
 int store_pid(char *pidfile);
 int is_icap_running(char *pidfile);
@@ -115,7 +115,7 @@ int main(int argc, char **argv)
           ci_debug_printf(1, "Can not init loggers. Exiting.....\n");
           exit(-1);
      }
-     if (!init_server(CONF.PORT, &(CONF.PROTOCOL_FAMILY)))
+     if (!init_server(CONF.ADDRESS, CONF.PORT, &(CONF.PROTOCOL_FAMILY)))
           return -1;
      post_init_modules();
      post_init_services();

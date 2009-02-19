@@ -88,7 +88,7 @@ int c_icap_reconfigure = 0;
 #define close_connection(connection) ci_linger_close(connection->fd,MAX_SECS_TO_LINGER)
 #define check_for_keepalive_data(fd) ci_wait_for_data(fd,KEEPALIVE_TIMEOUT,wait_for_read)
 void init_commands();
-int init_server(int port, int *family);
+int init_server(char *address, int port, int *family);
 int start_child(int fd);
 /***************************************************************************************/
 /*Signals managment functions                                                          */
@@ -861,12 +861,12 @@ void test_command(char *name, int type, char **argv)
      ci_debug_printf(1, "\n");
 }
 
-int init_server(int port, int *family)
+int init_server(char *address, int port, int *family)
 {
      if (LISTEN_SOCKET != -1)
           close(LISTEN_SOCKET);
 
-     LISTEN_SOCKET = icap_init_server(port, family, MAX_SECS_TO_LINGER);
+     LISTEN_SOCKET = icap_init_server(address, port, family, MAX_SECS_TO_LINGER);
      if (LISTEN_SOCKET == CI_SOCKET_ERROR)
           return 0;
      return 1;

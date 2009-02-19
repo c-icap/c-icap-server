@@ -37,7 +37,7 @@ char **ARGV;
 
 
 struct ci_server_conf CONF = {
-     1344, /*PORT*/ AF_INET,    /*SOCK_FAMILY */
+     NULL, /* LISTEN ADDRESS */ 1344, /*PORT*/ AF_INET,    /*SOCK_FAMILY */
 #ifdef _WIN32
      "c:\\TEMP", /*TMPDIR*/ "c:\\TEMP\\c-icap.pid", /*PIDFILE*/ "\\\\.\\pipe\\c-icap",  /*COMMANDS_SOCKET; */
 #else
@@ -107,6 +107,7 @@ struct sub_table {
 };
 
 static struct ci_conf_entry conf_variables[] = {
+     {"ListenAddress", &CONF.ADDRESS, intl_cfg_set_str, NULL},
      {"PidFile", &CONF.PIDFILE, intl_cfg_set_str, NULL},
      {"CommandsSocket", &CONF.COMMANDS_SOCKET, intl_cfg_set_str, NULL},
      {"Timeout", (void *) (&TIMEOUT), intl_cfg_set_int, NULL},
@@ -732,7 +733,7 @@ int reconfig()
 }
 
 
-int init_server(int port, int *family);
+int init_server(char *address, int port, int *family);
 void release_modules();
 void ci_dlib_closeall();
 int log_open();
@@ -755,6 +756,7 @@ void system_shutdown()
 void system_reconfigure()
 {
      int old_port;
+
      ci_debug_printf(1, "Going to reconfigure system!\n");
      system_shutdown();
      reset_conf_tables();
@@ -772,7 +774,7 @@ void system_reconfigure()
         - reinit listen socket if needed
       */
      if (old_port != CONF.PORT) {
-          init_server(CONF.PORT, &(CONF.PROTOCOL_FAMILY));
+          init_server(CONF.ADDRESS, CONF.PORT, &(CONF.PROTOCOL_FAMILY));
      }
 
      log_open();

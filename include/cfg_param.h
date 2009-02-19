@@ -37,6 +37,7 @@
  * Do not use directly this struct but better use the documended macros
  */
 struct ci_server_conf{
+     char *ADDRESS;
      int  PORT;
      int  PROTOCOL_FAMILY;
      char *TMPDIR;
