@@ -45,7 +45,7 @@
 
 
 typedef struct ci_sockaddr{
-#ifdef HAVE_IPV6
+#ifdef USE_IPV6
      struct sockaddr_storage  sockaddr;
 #else
      struct sockaddr_in   sockaddr;
@@ -59,7 +59,7 @@ typedef struct ci_sockaddr{
 
 #define CI_MAXHOSTNAMELEN 256
 
-#ifdef HAVE_IPV6
+#ifdef USE_IPV6
 #define CI_IPLEN      46
 #define CI_SOCKADDR_SIZE sizeof(struct sockaddr_storage)
 #else
@@ -89,7 +89,7 @@ CI_DECLARE_FUNC(const char *) ci_sockaddr_t_to_ip(ci_sockaddr_t *addr, char *ip,
 #define ci_conn_remote_ip(conn,ip) ci_sockaddr_t_to_ip(&(conn->claddr),ip,CI_IPLEN)
 #define ci_conn_local_ip(conn,ip)  ci_sockaddr_t_to_ip(&(conn->srvaddr),ip,CI_IPLEN)
 
-#ifdef HAVE_IPV6
+#ifdef USE_IPV6
 CI_DECLARE_FUNC(void) ci_sockaddr_set_port(ci_sockaddr_t *addr, int port);
 #define ci_sockaddr_set_family(addr,port) ((addr).sockaddr.ss_family=family)
 #else

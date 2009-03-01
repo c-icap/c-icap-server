@@ -17,14 +17,14 @@
  *  MA  02110-1301  USA.
  */
 
-
+#include "common.h"
 #include "c-icap.h"
 #include "shared_mem.h"
 
-#ifdef HAVE_SYSV_IPC
+#ifdef USE_SYSV_IPC
 #include <sys/ipc.h>
 #include <sys/shm.h>
-#elif defined HAVE_POSIX_MAPPED_FILES
+#elif defined USE_POSIX_MAPPED_FILES
 #include <sys/mman.h>
 #endif
 
@@ -33,7 +33,7 @@
 
 #define  PERMS 0600
 
-#ifdef HAVE_SYSV_IPC
+#ifdef USE_SYSV_IPC
 
 void *ci_shared_mem_create(ci_shared_mem_id_t * id, int size)
 {
@@ -78,7 +78,7 @@ int ci_shared_mem_destroy(ci_shared_mem_id_t * id, void *shmem)
      return 1;
 }
 
-#elif defined HAVE_POSIX_MAPPED_FILES
+#elif defined USE_POSIX_MAPPED_FILES
 
 void *ci_shared_mem_create(ci_shared_mem_id_t * id, int size)
 {

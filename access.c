@@ -17,7 +17,7 @@
  *  MA  02110-1301  USA.
  */
 
-
+#include "common.h"
 #include "c-icap.h"
 #include "request.h"
 #include "module.h"
@@ -221,7 +221,7 @@ int access_authenticate_request(ci_request_t * req)
 #define MAX_NAME_LEN 31         /*Must implement it as general limit of names ....... */
 
 
-#ifdef HAVE_IPV6
+#ifdef USE_IPV6
 
 void acl_list_ipv4_to_ipv6();
 
@@ -276,7 +276,7 @@ typedef union acl_inaddr {
                                        acl_in6_addr_u32(addr)[0]= htonl(0xFFFFFFFF),\
                                        acl_in6_addr_u32(addr)[1]= htonl(0xFFFFFFFF),\
                                        acl_in6_addr_u32(addr)[2]= htonl(0xFFFFFFFF))
-#else                           /*if no HAVE_IPV6 */
+#else                           /*if no USE_IPV6 */
 
 typedef struct in_addr acl_in_addr_t;
 
@@ -290,7 +290,7 @@ typedef struct in_addr acl_in_addr_t;
 #define acl_inaddr_zero(addr) ((addr).s_addr=0)
 #define acl_inaddr_copy(dest,src) ((dest)=(src))
 
-#endif                          /*ifdef HAVE_IPV6 */
+#endif                          /*ifdef USE_IPV6 */
 
 #define acl_copy_inaddr(dest,src,len) memcpy(dest,src,len)
 
@@ -349,7 +349,7 @@ int default_acl_init(struct ci_server_conf *server_conf)
 
 int default_acl_post_init(struct ci_server_conf *server_conf)
 {
-#ifdef HAVE_IPV6
+#ifdef USE_IPV6
      if (server_conf->PROTOCOL_FAMILY == AF_INET6) {
           ci_debug_printf(5,
                           "We are listening to a ipv6 address. Going to change all acl address to ipv6 address!\n");
@@ -523,7 +523,7 @@ int default_acl_log_access(char *dec_user, char *service,
 int match_ipv4_connection(acl_spec_t * spec, acl_spec_t * conn_spec)
 {
 
-#ifdef HAVE_IPV6
+#ifdef USE_IPV6
      if (spec->family != conn_spec->family)
           return 0;
 #endif
@@ -546,7 +546,7 @@ int match_ipv4_connection(acl_spec_t * spec, acl_spec_t * conn_spec)
      return 1;
 }
 
-#ifdef HAVE_IPV6
+#ifdef USE_IPV6
 int match_ipv6_connection(acl_spec_t * spec, acl_spec_t * conn_spec)
 {
 /*
@@ -682,7 +682,7 @@ void fill_ipv4_addresses(acl_spec_t * a_spec,
      acl_inaddr_copy(a_spec->hserver_address, *server_address);
 }
 
-#ifdef HAVE_IPV6
+#ifdef USE_IPV6
 
 void acl_list_ipv4_to_ipv6()
 {
@@ -764,7 +764,7 @@ acl_spec_t *new_acl_spec(char *name, char *username, int port, char *service, in
 
      a_spec->family = socket_family;    /*AF_INET */
 
-#ifdef HAVE_IPV6
+#ifdef USE_IPV6
      if (socket_family == AF_INET6)
           fill_ipv6_addresses(a_spec, client_address, client_netmask,
                               server_address);
@@ -796,7 +796,7 @@ acl_spec_t *new_acl_spec(char *name, char *username, int port, char *service, in
      return a_spec;
 }
 
-#ifdef HAVE_IPV6
+#ifdef USE_IPV6
 int check_protocol_family(char *ip)
 {
      if (strchr(ip, ':') != NULL)
@@ -829,7 +829,7 @@ int cfg_acl_add(char *directive, char **argv, void *setdata)
      char *name, *username, *service, *str;
      int i, res, ci_request_type;
      unsigned int port;
-#ifdef HAVE_IPV6
+#ifdef USE_IPV6
      int family = 0;
 #else
      int family = AF_INET;
@@ -856,7 +856,7 @@ int cfg_acl_add(char *directive, char **argv, void *setdata)
           }
 
           if (strcmp(argv[i], "src") == 0) {    /*has the form ip/netmask */
-#ifdef HAVE_IPV6
+#ifdef USE_IPV6
                if (family == 0)
                     family = check_protocol_family(argv[i]);
                else {
@@ -888,7 +888,7 @@ int cfg_acl_add(char *directive, char **argv, void *setdata)
                }
           }
           else if (strcmp(argv[i], "srvip") == 0) {     /*has the form ip */
-#ifdef HAVE_IPV6
+#ifdef USE_IPV6
                if (family == 0)
                     family = check_protocol_family(argv[i]);
                else {

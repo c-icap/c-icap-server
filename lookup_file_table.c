@@ -1,3 +1,4 @@
+#include "common.h"
 #include "lookup_table.h"
 #include "hash.h"
 #include "debug.h"

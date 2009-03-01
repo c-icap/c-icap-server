@@ -17,7 +17,7 @@
  *  MA  02110-1301  USA.
  */
 
-
+#include "common.h"
 #include "c-icap.h"
 #include <errno.h>
 #include "net_io.h"
@@ -25,7 +25,7 @@
 #include "net_io.h"
 
 
-#ifdef HAVE_IPV6
+#ifdef USE_IPV6
 void ci_fill_sockaddr(ci_sockaddr_t * addr)
 {
      addr->ci_sin_family = addr->sockaddr.ss_family;
@@ -73,7 +73,7 @@ void ci_copy_sockaddr(ci_sockaddr_t * dest, ci_sockaddr_t * src)
 
 #endif
 
-#ifdef HAVE_IPV6
+#ifdef USE_IPV6
 
 void ci_sockaddr_set_port(ci_sockaddr_t * addr, int port)
 {
@@ -108,7 +108,7 @@ const char *ci_sockaddr_t_to_ip(ci_sockaddr_t * addr, char *ip, int maxlen)
 
 int ci_inet_aton(int af, const char *cp, void *addr)
 {
-#ifdef HAVE_IPV6
+#ifdef USE_IPV6
      return inet_pton(af, cp, addr);
 #else
 #ifdef HAVE_INET_ATON
@@ -120,14 +120,14 @@ int ci_inet_aton(int af, const char *cp, void *addr)
           return 0;             /*0xffffffff =255.255.255.255 which is a valid address */
      return 1;
 #endif
-#endif                          /*HAVE_IPV6 */
+#endif                          /*USE_IPV6 */
 }
 
 
 
 const char *ci_inet_ntoa(int af, const void *src, char *dst, int cnt)
 {
-#ifdef HAVE_IPV6
+#ifdef USE_IPV6
      return inet_ntop(af, src, dst, cnt);
 #else
      unsigned char *addr_bytes;

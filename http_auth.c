@@ -1,3 +1,4 @@
+#include "common.h"
 #include "c-icap.h"
 #include "request.h"
 #include "access.h"

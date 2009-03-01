@@ -1,3 +1,4 @@
+#include "common.h"
 #include <ldap.h>
 #include "c-icap.h"
 #include "module.h"

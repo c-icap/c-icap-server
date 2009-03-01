@@ -17,7 +17,7 @@
  *  MA  02110-1301  USA.
  */
 
-
+#include "common.h"
 #include "c-icap.h"
 #include <errno.h>
 #include "debug.h"
@@ -26,7 +26,7 @@
 
 
 
-#if defined(HAVE_SYSV_IPC)
+#if defined(USE_SYSV_IPC)
 
 #define  SEMKEY 888888L         /*A key but what key;The IPC_PRIVATE must used instead ..... */
 #define  PERMS 0600
@@ -92,7 +92,7 @@ int ci_proc_mutex_unlock(ci_proc_mutex_t * mutex)
      return 1;
 }
 
-#elif defined (HAVE_POSIX_SEMAPHORES)
+#elif defined (USE_POSIX_SEMAPHORES)
 
 int ci_proc_mutex_init(ci_proc_mutex_t * mutex)
 {
@@ -124,7 +124,7 @@ int ci_proc_mutex_unlock(ci_proc_mutex_t * mutex)
      return 1;
 }
 
-#elif defined (HAVE_POSIX_FILE_LOCK)
+#elif defined (USE_POSIX_FILE_LOCK)
 
 /*NOTE: mkstemp does not exists for some platforms */
 

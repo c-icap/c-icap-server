@@ -1,3 +1,4 @@
+#include "common.h"
 #include "c-icap.h"
 #include <errno.h>
 #include "cfg_param.h"

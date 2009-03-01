@@ -23,11 +23,11 @@
 
 #include "c-icap.h"
 
-#ifdef HAVE_SYSV_IPC
+#ifdef USE_SYSV_IPC
 
 #define ci_shared_mem_id_t int
 
-#elif defined (HAVE_POSIX_MAPPED_FILES)
+#elif defined (USE_POSIX_MAPPED_FILES)
 
 typedef struct ci_shared_mem_id {
      char *mem;

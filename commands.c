@@ -17,7 +17,7 @@
  *  MA  02110-1301  USA.
  */
 
-
+#include "common.h"
 #include "c-icap.h"
 #include "net_io.h"
 #include "debug.h"

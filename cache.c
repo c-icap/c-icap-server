@@ -1,5 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
+#include "common.h"
 #include <time.h>
 #include "debug.h"
 #include "ci_threads.h"

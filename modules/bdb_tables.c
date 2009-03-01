@@ -1,3 +1,4 @@
+#include "common.h"
 #include "c-icap.h"
 #include "module.h"
 #include "lookup_table.h"

@@ -22,51 +22,18 @@
 #define   __C_ICAP_H
 
 
-#ifdef HAVE_CONFIG_H
+#if defined (_MSC_VER)
+#include "c-icap-conf-w32.h"
+#else
 #include "c-icap-conf.h"
-#elif defined (_MSC_VER)
-#include "config-w32.h"
 #endif
 
-
-#ifdef HAVE_STDLIB_H
-#include <stdlib.h>
-#endif
-
-#ifdef HAVE_STRINGS_H
-#include <strings.h>
-#endif
-
-#ifdef HAVE_STRING_H
-#include <string.h>
-#endif
-
-#ifdef HAVE_SYS_STAT_H
-#include <sys/stat.h>
-#endif
-
-#ifdef HAVE_SYS_TYPES_H
+#ifdef __SYS_TYPES_H_EXISTS
 #include <sys/types.h>
 #endif
 
-#ifdef HAVE_UNISTD_H
-#include <unistd.h>
-#endif
-
-#if HAVE_SYS_PARAM_H
-#include <sys/param.h>
-#endif
-
-#ifdef HAVE_MALLOC_H
-#include <malloc.h>
-#endif
-
-#ifdef HAVE_DLFCN_H 
-#include <dlfcn.h>
-#endif
-
-#ifdef HAVE_STDINT_H
-#include <stdint.h>
+#ifdef __INTTYPES_H_EXISTS
+#include <inttypes.h>
 #endif
 
 /*some defines */
@@ -129,7 +96,7 @@
   
 */
 typedef off_t ci_off_t;
-#if SIZEOF_OFF_T > 4 
+#if CI_SIZEOF_OFF_T > 4 
 #   define PRINTF_OFF_T "llu" 
 #   define ci_strto_off_t strtoull
 #else

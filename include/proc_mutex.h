@@ -23,20 +23,20 @@
 
 #include "c-icap.h"
 
-#if defined (HAVE_SYSV_IPC)
+#if defined (USE_SYSV_IPC)
 
 #include <sys/ipc.h>
 #include <sys/sem.h>
 
 #define ci_proc_mutex_t int
 
-#elif defined (HAVE_POSIX_SEMAPHORES)
+#elif defined (USE_POSIX_SEMAPHORES)
 
 #include <semaphore.h>
 
 #define ci_proc_mutex_t sem_t
 
-#elif defined (HAVE_POSIX_FILE_LOCK)
+#elif defined (USE_POSIX_FILE_LOCK)
 
 #include <fcntl.h>
 

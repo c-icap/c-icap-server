@@ -17,10 +17,11 @@
  *  MA  02110-1301  USA.
  */
 
+#include "common.h"
 #include "ci_threads.h"
 
 
-#ifndef HAVE_PTHREADS_RWLOCK
+#ifndef USE_PTHREADS_RWLOCK
 /*We can implement a better solution here using a mutex and a cond 
   object to simulate rwlocks (TODO)
 */

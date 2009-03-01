@@ -4,7 +4,7 @@ PKGLIBDIR=@pkglibdir@
 MODULESDIR=$(pkglibdir)/
 SERVICESDIR=$(pkglibdir)/
 #CONFIGDIR=$(sysconfdir)/
-AM_CFLAGS= -Iinclude/
+AM_CFLAGS= -I../include/
 AM_LDFLAGS = -rdynamic -rpath @libdir@ @THREADS_LDFLAGS@
 LIBS=@THREADS_LDADD@ ../libicapapi.la @DL_ADD_FLAG@
 
