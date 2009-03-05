@@ -265,6 +265,40 @@ if test a"$libdb" != "ano"; then
    fi
 fi
 
+libldap="yes"
+AC_ARG_WITH(libldap,
+[  --with-ldap        Where to find LDAP libraries ],
+[ case "$withval" in
+    yes)
+         libldap="yes"
+    ;;
+    no )
+         libldap="no"
+    ;;
+    * )
+        libldap=$withval
+    ;;
+  esac
+],
+)
+
+if test a"$libldap" != "ano"; then
+   if test a"$libldap" != "ayes"; then
+        AC_CHECK_LIB(ldap,  ldap_search_ext_s,
+                     [LDAP_ADD_LDFLAG="-L $libdb/lib -lldap"; LDAP_ADD_FLAG="-I$libldap/include"; AC_DEFINE(HAVE_LDAP, 1, [Define HAVE_LDAP if LDAP libraries are installed])],
+                     [libldap="no"]
+                     )
+        AC_SUBST(LDAP_ADD_LDFLAG)
+        AC_SUBST(LDAP_ADD_FLAG)
+   else
+        AC_CHECK_LIB(ldap,  ldap_search_ext_s,
+                     [LDAP_ADD_LDFLAG=" -lldap"; AC_DEFINE(HAVE_LDAP, 1, [Define HAVE_LDAP if LDAP libraries are installed])],
+                     [libldap="no"]
+                     )
+        AC_SUBST(LDAP_ADD_LDFLAG)
+   fi
+fi
+
 # Check for header files
 AC_HEADER_STDC
 AC_CHECK_HEADERS(strings.h unistd.h sys/stat.h)
@@ -451,6 +485,7 @@ AM_CONDITIONAL(ISCYGWIN,[test a"$iscygwin" != a])
 
 AM_CONDITIONAL(USEPERL,[test a"$perlcore" != a])
 AM_CONDITIONAL(USEBDB,   [test a"$libdb" != ano])
+AM_CONDITIONAL(USELDAP, [test a"$libldap" != ano])
 
 AC_OUTPUT([include/c-icap-conf.h Makefile c-icap.conf utils/Makefile services/Makefile services/echo/Makefile modules/Makefile tests/Makefile c-icap-config], [chmod 755 c-icap-config])
 
