@@ -36,22 +36,7 @@
 
 struct ci_membuf *ci_membuf_new()
 {
-     struct ci_membuf *b;
-     b = malloc(sizeof(struct ci_membuf));
-     if (!b)
-          return NULL;
-
-     b->len = 0;
-     b->endpos = 0;
-     b->readpos = 0;
-     b->hasalldata = 0;
-     b->buf = malloc(STARTLEN * sizeof(char));
-     if (b->buf == NULL) {
-          free(b);
-          return NULL;
-     }
-     b->bufsize = STARTLEN;
-     return b;
+    return ci_membuf_new_sized(STARTLEN);
 }
 
 struct ci_membuf *ci_membuf_new_sized(int size)
@@ -65,12 +50,12 @@ struct ci_membuf *ci_membuf_new_sized(int size)
      b->endpos = 0;
      b->readpos = 0;
      b->hasalldata = 0;
-     b->buf = malloc(STARTLEN * sizeof(char));
+     b->buf = malloc(size * sizeof(char));
      if (b->buf == NULL) {
           free(b);
           return NULL;
      }
-     b->bufsize = STARTLEN;
+     b->bufsize = size;
      return b;
 }
 
