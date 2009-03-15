@@ -146,3 +146,21 @@ void ci_copy_connection(ci_connection_t * dest, ci_connection_t * src)
      ci_copy_sockaddr(&dest->claddr, &src->claddr);
      ci_copy_sockaddr(&dest->srvaddr, &src->srvaddr);
 }
+
+int ci_host_to_sockaddr_t(char *servername, ci_sockaddr_t * addr, int proto)
+{
+     int ret = 0;
+     struct addrinfo hints, *res;
+     memset(&hints, 0, sizeof(hints));
+     hints.ai_family = proto;
+     hints.ai_socktype = SOCK_STREAM;
+     hints.ai_protocol = 0;
+     if ((ret = getaddrinfo(servername, NULL, &hints, &res)) != 0) {
+	 ci_debug_printf(5, "Error geting addrinfo:%s\n", gai_strerror(ret));
+	 return 0;
+     }
+     //fill the addr..... and
+     memcpy(&(addr->sockaddr), res->ai_addr, CI_SOCKADDR_SIZE);
+     freeaddrinfo(res);
+     return 1;
+}

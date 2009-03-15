@@ -808,25 +808,6 @@ int ci_client_get_server_options(ci_request_t * req, int timeout)
 }
 
 
-int ci_host_to_sockaddr_t(char *servername, ci_sockaddr_t * addr, int proto)
-{
-     int ret = 0;
-     struct addrinfo hints, *res;
-     memset(&hints, 0, sizeof(hints));
-     hints.ai_family = proto;
-     hints.ai_socktype = SOCK_STREAM;
-     hints.ai_protocol = 0;
-     if ((ret = getaddrinfo(servername, NULL, &hints, &res)) != 0) {
-          ci_debug_printf(1, "Error geting addrinfo\n");
-          return 0;
-     }
-     //fill the addr..... and 
-     memcpy(&(addr->sockaddr), res->ai_addr, CI_SOCKADDR_SIZE);
-     freeaddrinfo(res);
-     return 1;
-}
-
-
 ci_connection_t *ci_client_connect_to(char *servername, int port, int proto)
 {
      ci_connection_t *connection = malloc(sizeof(ci_connection_t));
@@ -842,6 +823,7 @@ ci_connection_t *ci_client_connect_to(char *servername, int port, int proto)
      }
 
      if (!ci_host_to_sockaddr_t(servername, &(connection->srvaddr), proto)) {
+	  ci_debug_printf(1, "Error getting address info for host %s\n", servername);
           free(connection);
           return NULL;
      }
