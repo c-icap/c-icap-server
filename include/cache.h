@@ -62,8 +62,8 @@ typedef struct ci_cache{
 } ci_cache_t;
 
 CI_DECLARE_FUNC(struct ci_cache *) ci_cache_build( unsigned int cache_size,
+                                                   unsigned int max_key_size,
 						   unsigned int max_object_size,
-						   unsigned int max_key_size,
 						   int ttl,
 						   ci_type_ops_t *key_ops,
 						   void *(copy_to_cache)(void *val, int *val_size, ci_mem_allocator_t *allocator),
