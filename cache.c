@@ -214,14 +214,18 @@ int ci_cache_update(struct ci_cache *cache, void *key, void *val) {
     }
     memcpy(e->key, key, key_size);
 
-    e->val = cache->copy_to(val, &e->val_size, cache->allocator);
-    if(!e->val) {
-	cache->allocator->free(cache->allocator, e->key);
-	e->key = NULL;
-	common_mutex_unlock(&cache->mtx);
-	ci_debug_printf(6, "ci_cache_update: failed to allocate memory for cache data.\n");
-	return 0;
+    if (val != NULL) {
+	e->val = cache->copy_to(val, &e->val_size, cache->allocator);
+	if(!e->val) {
+	    cache->allocator->free(cache->allocator, e->key);
+	    e->key = NULL;
+	    common_mutex_unlock(&cache->mtx);
+	    ci_debug_printf(6, "ci_cache_update: failed to allocate memory for cache data.\n");
+	    return 0;
+	}
     }
+    else
+	e->val = NULL;
 
     e->hash = hash;
     e->time = current_time;
