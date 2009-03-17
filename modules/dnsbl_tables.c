@@ -52,11 +52,21 @@ struct dnsbl_data {
     ci_cache_t *cache;
 };
 
+void *store_val(void *val,int *val_size, ci_mem_allocator_t *allocator)
+{
+    return val;
+}
+
+void *read_val(void *val, int val_size, ci_mem_allocator_t *allocator)
+{
+    return val;
+}
+
 void *dnsbl_table_open(struct ci_lookup_table *table)
 {
     struct dnsbl_data *dnsbl_data;
     if (strlen(table->path) >= CI_MAXHOSTNAMELEN ) {
-        ci_debug_printf(1, "dnsbl_table_open: too long domain name: %s\n",
+         ci_debug_printf(1, "dnsbl_table_open: too long domain name: %s\n",
                         table->path);
         return NULL;
     }
@@ -67,7 +77,9 @@ void *dnsbl_table_open(struct ci_lookup_table *table)
         return NULL;
     }
     strcpy(dnsbl_data->check_domain, table->path);
-    dnsbl_data->cache = NULL;
+    dnsbl_data->cache = ci_cache_build(65536, CI_MAXHOSTNAMELEN+1, 0, 60, &ci_str_ops,
+				       store_val,
+				       read_val);
 
     table->data = dnsbl_data; 
     return table->data;
@@ -85,6 +97,7 @@ void *dnsbl_table_search(struct ci_lookup_table *table, void *key, void ***vals)
     ci_sockaddr_t  addr;
     char dnsname[CI_MAXHOSTNAMELEN];
     char *server;
+    void *val;
     struct dnsbl_data *dnsbl_data = table->data;
 
     if(table->key_ops != &ci_str_ops) {
@@ -92,14 +105,26 @@ void *dnsbl_table_search(struct ci_lookup_table *table, void *key, void ***vals)
 	return NULL;
     }
     server = (char *)key;
+
+    if (dnsbl_data->cache && ci_cache_search(dnsbl_data->cache, server, &val, table->allocator)) {
+	ci_debug_printf(6,"dnsbl_table_search: cache hit for %s value %p\n", server,  val);
+	return (val == (void *)0x0)? NULL: key;
+    }
+
     snprintf(dnsname, CI_MAXHOSTNAMELEN, "%s.%s", server, dnsbl_data->check_domain);
-    if(! ci_host_to_sockaddr_t(dnsname, &addr, AF_INET))
+    if(! ci_host_to_sockaddr_t(dnsname, &addr, AF_INET)) {
+	if (dnsbl_data->cache)
+	    ci_cache_update(dnsbl_data->cache, server, (void *)0x0);
 	return NULL;
+    }
     /*Are we interested for returning any data?
       Well, some of the dns lists uses different ip addresses to categorize
       hosts in various categories. TODO.
      */
     *vals = NULL;
+    if (dnsbl_data->cache)
+	ci_cache_update(dnsbl_data->cache, server, (void *)0x1);
+
     return key;
 }
 
