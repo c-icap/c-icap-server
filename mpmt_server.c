@@ -750,7 +750,9 @@ void child_main(int sockfd, int pipefd)
                             (void *) &sockfd);
      listener_thread_id = thread;
      listener_running = 1;
-
+     
+     /*set srand for child......*/
+     srand(((unsigned int)time(NULL)) + (unsigned int)getpid());
      /*I suppose that all my threads are up now. We can setup our signal handlers */
      child_signals();
      for (;;) {
