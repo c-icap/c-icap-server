@@ -36,9 +36,13 @@
 0:RIFF:RIFF:RIFF video/audio stream:STREAM
 0:OggS:OGG:Ogg Stream:STREAM
 0:ID3:MP3:MP3 audio stream:STREAM
-0:\377\373\220:MP3:MP3 audio stream:STREAM
+0:\377\373:MP3:MP3 audio stream:STREAM
+0:\377\372:MP3:MP3 audio stream:STREAM
 0:\060\046\262\165\216\146\317:ASF:WMA/WMV/ASF:STREAM
 0:.RMF:RMF:Real Media File:STREAM
+
+#Responce from stream server :-)
+0:ICY 200 OK:ShouthCast:Shouthcast audio stream:STREAM
 
 #Documents
 0:\320\317\021\340\241\261\032\341:MSOFFICE:MS Office Document:DOCUMENT
