@@ -22,6 +22,7 @@ UTIL_SOURCES=net_io.c os/unix/net_io.c os/unix/proc_mutex.c os/unix/shared_mem.c
 libicapapi_la_SOURCES=  header.c body.c base64.c simple_api.c request_common.c \
                         filetype.c debug.c cfg_lib.c mem.c  service_lib.c \
                         cache.c lookup_table.c lookup_file_table.c hash.c \
+			txt_format.c \
 			$(UTIL_SOURCES)
 c_icap_SOURCES = aserver.c request.c cfg_param.c \
                    proc_threads_queues.c http_auth.c \
