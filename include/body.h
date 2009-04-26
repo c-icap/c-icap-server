@@ -109,4 +109,18 @@ CI_DECLARE_FUNC(int) ci_simple_file_read(ci_simple_file_t *body,char *buf,int le
 #define ci_simple_file_size(body)            (body->endpos)
 #define ci_simple_file_haseof(body)        (body->flags&CI_FILE_HAS_EOF)
 
+
+/*******************************************************************/
+/*ring memory buffer functions and structures                      */
+
+
+typedef struct ci_ring_buf {
+  char *buf;
+  char *end_buf;
+  char *read_pos;
+  char *write_pos;
+  int full;
+} ci_ring_buf_t;
+
+
 #endif
