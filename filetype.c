@@ -632,8 +632,8 @@ int ci_extend_filetype(struct ci_magics_db *db, ci_request_t * req, char *buf,
 
      if (ci_req_type(req) == ICAP_RESPMOD) {
           content_encoding = ci_http_response_get_header(req, "Content-Encoding");
-          ci_debug_printf(8, "Content-Encoding :%s\n", content_encoding);
           if (content_encoding) {
+               ci_debug_printf(8, "Content-Encoding :%s\n", content_encoding);
 #ifdef HAVE_ZLIB
                /*the following must be faster in the feature...... */
                if (strstr(content_encoding, "gzip") != NULL) {
