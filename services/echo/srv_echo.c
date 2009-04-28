@@ -58,8 +58,10 @@ CI_DECLARE_MOD_DATA ci_service_module_t service = {
   The echo_req_data structure will store the data required to serve an ICAP request.
 */
 struct echo_req_data {
-    /*Currently only the body data needed*/
-    ci_cached_file_t *body;
+    /*the body data*/
+    ci_ring_buf_t *body;
+    /*flag for marking the eof*/
+    int eof;
 };
 
 
@@ -106,10 +108,11 @@ void *echo_init_request_data(ci_request_t * req)
       and not only headers allocate a ci_cached_file_t object to store the body data.
      */
      if (ci_req_hasbody(req))
-          echo_data->body = ci_cached_file_new(0);
+          echo_data->body = ci_ring_buf_new(4096);
      else
 	 echo_data->body = NULL;
 
+     echo_data->eof = 0;
      /*Return to the c-icap server the allocated data*/
      return echo_data;
 }
@@ -122,7 +125,7 @@ void echo_release_request_data(void *data)
     
     /*if we had body data, release the related allocated data*/
     if(echo_data->body)
-	ci_cached_file_destroy(echo_data->body);
+	ci_ring_buf_destroy(echo_data->body);
 
     free(echo_data);
 }
@@ -174,9 +177,10 @@ int echo_check_preview_handler(char *preview_data, int preview_data_len,
 	    we should store the preview data. There are cases where all the body
 	    data of the encapsulated HTTP object included in preview data. Someone can use
 	    the ci_req_hasalldata macro to  identify these cases*/
-          if (preview_data_len)
-	      ci_cached_file_write(echo_data->body, preview_data, preview_data_len,
-				   ci_req_hasalldata(req));
+          if (preview_data_len) {
+	      ci_ring_buf_write(echo_data->body, preview_data, preview_data_len);
+	      echo_data->eof = ci_req_hasalldata(req);
+	  }
           return CI_MOD_CONTINUE;
      }
      else {
@@ -192,7 +196,10 @@ int echo_check_preview_handler(char *preview_data, int preview_data_len,
  function, after we read all the data from the ICAP client*/
 int echo_end_of_data_handler(ci_request_t * req)
 {
-    /*Nothing to do here just return CI_MOD_DONE */
+    struct echo_req_data *echo_data = ci_service_data(req);
+    /*mark the eof*/
+    echo_data->eof = 1;
+    /*and return CI_MOD_DONE */
      return CI_MOD_DONE;
 }
 
@@ -209,7 +216,7 @@ int echo_io(char *wbuf, int *wlen, char *rbuf, int *rlen, int iseof,
 
      /*write the data read from icap_client to the echo_data->body*/
      if(rlen && rbuf) {
-         *rlen = ci_cached_file_write(echo_data->body, rbuf, *rlen, iseof);
+         *rlen = ci_ring_buf_write(echo_data->body, rbuf, *rlen);
          if (*rlen < 0)
 	    ret = CI_ERROR;
      }
@@ -217,8 +224,10 @@ int echo_io(char *wbuf, int *wlen, char *rbuf, int *rlen, int iseof,
      /*read some data from the echo_data->body and put them to the write buffer to be send
       to the ICAP client*/
      if (wbuf && wlen) {
-          *wlen = ci_cached_file_read(echo_data->body, wbuf, *wlen);
+          *wlen = ci_ring_buf_read(echo_data->body, wbuf, *wlen);
      }
+     if(*wlen==0 && echo_data->eof==1)
+	 *wlen = CI_EOF;
 
      return ret;
 }
