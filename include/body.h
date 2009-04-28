@@ -115,12 +115,23 @@ CI_DECLARE_FUNC(int) ci_simple_file_read(ci_simple_file_t *body,char *buf,int le
 
 
 typedef struct ci_ring_buf {
-  char *buf;
-  char *end_buf;
-  char *read_pos;
-  char *write_pos;
-  int full;
+    char *buf;
+    char *end_buf;
+    char *read_pos;
+    char *write_pos;
+    int full;
 } ci_ring_buf_t;
 
+
+CI_DECLARE_FUNC(struct ci_ring_buf *) ci_ring_buf_new(int size);
+CI_DECLARE_FUNC(void) ci_ring_buf_destroy(struct ci_ring_buf *buf);
+CI_DECLARE_FUNC(int) ci_ring_buf_write(struct ci_ring_buf *buf, char *data,int size);
+CI_DECLARE_FUNC(int) ci_ring_buf_read(struct ci_ring_buf *buf, char *data,int size);
+
+/*low level functions for ci_ring_buf*/
+CI_DECLARE_FUNC(int) ci_ring_buf_write_block(struct ci_ring_buf *buf, char **wb, int *len);
+CI_DECLARE_FUNC(int) ci_ring_buf_read_block(struct ci_ring_buf *buf, char **rb, int *len);
+CI_DECLARE_FUNC(void) ci_ring_buf_consume(struct ci_ring_buf *buf, int len);
+CI_DECLARE_FUNC(void) ci_ring_buf_produce(struct ci_ring_buf *buf, int len);
 
 #endif

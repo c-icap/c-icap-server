@@ -492,7 +492,7 @@ int ci_simple_file_read(ci_simple_file_t * body, char *buf, int len)
 #define min(x,y) ((x)>(y)?(y):(x))
 #define max(x,y) ((x)>(y)?(x):(y))
 
-struct ci_ring_buf *new_ci_ring_buf(int size)
+struct ci_ring_buf *ci_ring_buf_new(int size)
 {
   struct ci_ring_buf *buf = malloc(sizeof(struct ci_ring_buf));
   buf->buf = malloc(size);
@@ -503,9 +503,15 @@ struct ci_ring_buf *new_ci_ring_buf(int size)
   return buf;
 }
 
+void ci_ring_buf_destroy(struct ci_ring_buf *buf)
+{
+    free(buf->buf);
+    free(buf);
+}
+
 int ci_ring_buf_is_empty(struct ci_ring_buf *buf)
 {
-  return (buf->read_pos== buf->write_pos) && (buf->full==0);
+  return (buf->read_pos==buf->write_pos) && (buf->full==0);
 }
 
 int ci_ring_buf_write_block(struct ci_ring_buf *buf, char **wb, int *len)
@@ -575,16 +581,17 @@ int ci_ring_buf_write(struct ci_ring_buf *buf, char *data,int size)
   char *wb;
   int wb_len, ret, written;
   written = 0;
-
   do {
     ret = ci_ring_buf_write_block(buf, &wb, &wb_len);
-    wb_len = min(size, wb_len);
-    memcpy(wb, data, wb_len);
-    ci_ring_buf_produce(buf, wb_len);
-    size -= wb_len;
-    data += wb_len;
-    written += wb_len;
-  } while (ret && size);
+    if (wb_len) {
+	wb_len = min(size, wb_len);
+	memcpy(wb, data, wb_len);
+	ci_ring_buf_produce(buf, wb_len);
+	size -= wb_len;
+	data += wb_len;
+	written += wb_len;
+    }
+  } while ((ret!=0) && (size>0));
   return written;
 }
 
@@ -596,13 +603,14 @@ int ci_ring_buf_read(struct ci_ring_buf *buf, char *data,int size)
   data_read = 0;
   do {
     ret = ci_ring_buf_read_block(buf, &rb, &rb_len);
-    rb_len = min(size, rb_len);
-    memcpy(data, rb, rb_len);
-    ci_ring_buf_consume(buf, rb_len);
-    size -= rb_len;
-    data += rb_len;
-    data_read += rb_len;
-  } while ((ret!=0) && (size >0 ));
-
+    if (rb_len) {
+	rb_len = min(size, rb_len);
+	memcpy(data, rb, rb_len);
+	ci_ring_buf_consume(buf, rb_len);
+	size -= rb_len;
+	data += rb_len;
+	data_read += rb_len;
+    }
+  } while ((ret!=0) && (size>0 ));
   return data_read;
 }
