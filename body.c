@@ -34,6 +34,9 @@
 #define STARTLEN 8192           /*8*1024*1024 */
 #define INCSTEP  4096
 
+#define min(x,y) ((x)>(y)?(y):(x))
+#define max(x,y) ((x)>(y)?(x):(y))
+
 struct ci_membuf *ci_membuf_new()
 {
     return ci_membuf_new_sized(STARTLEN);
@@ -355,7 +358,7 @@ int ci_cached_file_read(ci_cached_file_t * body, char *buf, int len)
 /********************************************************************************/
 /*ci_simple_file function implementation                                        */
 
-ci_simple_file_t *ci_simple_file_new()
+ci_simple_file_t *ci_simple_file_new(ci_off_t maxsize)
 {
      ci_simple_file_t *body;
 
@@ -374,13 +377,16 @@ ci_simple_file_t *ci_simple_file_new()
      body->readpos = 0;
      body->flags = 0;
      body->unlocked = 0;        /*Not use look */
+     body->max_store_size = (maxsize>0?maxsize:0);
+     body->bytes_in = 0;
+     body->bytes_out = 0;
 
      return body;
 }
 
 
 
-ci_simple_file_t *ci_simple_file_named_new(char *dir, char *filename)
+ci_simple_file_t *ci_simple_file_named_new(char *dir, char *filename,ci_off_t maxsize)
 {
      ci_simple_file_t *body;
 
@@ -409,6 +415,9 @@ ci_simple_file_t *ci_simple_file_named_new(char *dir, char *filename)
      body->readpos = 0;
      body->flags = 0;
      body->unlocked = 0;
+     body->max_store_size = (maxsize>0?maxsize:0);
+     body->bytes_in = 0;
+     body->bytes_out = 0;
 
      return body;
 }
@@ -444,17 +453,48 @@ void ci_simple_file_release(ci_simple_file_t * body)
 int ci_simple_file_write(ci_simple_file_t * body, char *buf, int len, int iseof)
 {
      int ret;
-     if (iseof) {
-          body->flags |= CI_FILE_HAS_EOF;
-          ci_debug_printf(10, "Buffer Data size=%" PRINTF_OFF_T "\n ",
-                          body->endpos);
+     int wsize = 0;
+
+     if(len <= 0)
+	 return 0;
+
+     if (body->endpos < body->readpos) {
+         wsize = min(body->readpos-body->endpos-1, len);
+     }
+     else if(body->max_store_size && body->endpos >= body->max_store_size) {
+       /*If we are going to entre ring mode. If we are using locking we can not enter ring mode.*/
+         if (body->readpos!=0 && (body->flags & CI_FILE_USELOCK)==0) {
+             body->endpos = 0;
+	     if (!(body->flags & CI_FILE_RING_MODE)) {
+		 body->flags |= CI_FILE_RING_MODE;
+		 ci_debug_printf(9, "Entering Ring mode!\n");
+	     }	     
+             wsize = min(body->readpos-body->endpos-1, len);
+         } 
+         else {
+	     if ((body->flags & CI_FILE_USELOCK) != 0)
+		 ci_debug_printf(1, "File locked and no space on file for writing data, (Is this a bug?)!\n");
+             return 0;
+	 }
+     }
+     else {
+	if (body->max_store_size)
+	    wsize = min(body->max_store_size - body->endpos, len);
+	else
+	    wsize = len;
      }
 
-     lseek(body->fd, 0, SEEK_END);
-     if ((ret = write(body->fd, buf, len)) < 0) {
-          ci_debug_printf(1, "Can not write to file!!! (errno=%d)\n", errno);
+     lseek(body->fd, body->endpos, SEEK_SET);
+     if ((ret = write(body->fd, buf, wsize)) < 0) {
      }
      body->endpos += ret;
+     body->bytes_in += ret;
+
+     if (iseof && ret == len) {
+          body->flags |= CI_FILE_HAS_EOF;
+          ci_debug_printf(9, "Body data size=%" PRINTF_OFF_T "\n ",
+                          body->bytes_in);
+     }
 
      return ret;
 }
@@ -464,21 +504,44 @@ int ci_simple_file_write(ci_simple_file_t * body, char *buf, int len, int iseof)
 int ci_simple_file_read(ci_simple_file_t * body, char *buf, int len)
 {
      int remains, bytes;
+ 
+     if (len <= 0)
+         return 0;
 
-     if ((body->readpos == body->endpos) && (body->flags & CI_FILE_HAS_EOF))
-          return CI_EOF;
+     if ((body->readpos == body->endpos)) {
+	 if((body->flags & CI_FILE_HAS_EOF)) {
+	     return CI_EOF;
+	 }
+	 else {
+	     return 0;
+	 }
+     }
 
-     if ((body->flags & CI_FILE_USELOCK) && body->unlocked >= 0)
+     if(body->max_store_size && body->readpos == body->max_store_size) {
+       body->readpos = 0;
+     }
+
+     if ((body->flags & CI_FILE_USELOCK) && body->unlocked >= 0) {
           remains = body->unlocked - body->readpos;
-     else
-          remains = len;
-
+     }
+     else if(body->endpos > body->readpos) {
+          remains = body->endpos - body->readpos;
+     }
+     else {
+	 if(body->max_store_size) {
+	     remains = body->max_store_size - body->readpos;
+	 }
+	 else {
+	     return CI_EOF;
+	 }
+     }
 
      bytes = (remains > len ? len : remains);   /*Number of bytes that we are going to read from file..... */
-
      lseek(body->fd, body->readpos, SEEK_SET);
-     if ((bytes = read(body->fd, buf, bytes)) > 0)
+     if ((bytes = read(body->fd, buf, bytes)) > 0) {
           body->readpos += bytes;
+	  body->bytes_out += bytes;
+     }
      return bytes;
 
 }
@@ -487,10 +550,6 @@ int ci_simple_file_read(ci_simple_file_t * body, char *buf, int len)
 
 /*******************************************************************/
 /*ring memory buffer implementation                                */
-
-
-#define min(x,y) ((x)>(y)?(y):(x))
-#define max(x,y) ((x)>(y)?(x):(y))
 
 struct ci_ring_buf *ci_ring_buf_new(int size)
 {

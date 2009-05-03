@@ -45,8 +45,9 @@ CI_DECLARE_FUNC(int) ci_membuf_read(struct ci_membuf *body,char *buf,int len);
 /*****************************************************************/
 /* Cached file functions and structure                           */
 
-#define CI_FILE_USELOCK  0x01
-#define CI_FILE_HAS_EOF  0x02
+#define CI_FILE_USELOCK    0x01
+#define CI_FILE_HAS_EOF    0x02
+#define CI_FILE_RING_MODE  0x04
 
 typedef struct ci_cached_file{
      ci_off_t endpos;
@@ -86,15 +87,18 @@ CI_DECLARE_FUNC(void) ci_cached_file_release(ci_cached_file_t *body);
 typedef struct ci_simple_file{
      ci_off_t endpos;
      ci_off_t readpos;
-     int flags;
+     ci_off_t max_store_size;
+     ci_off_t bytes_in;
+     ci_off_t bytes_out;
+     unsigned int flags;
      ci_off_t unlocked;
      int fd;
      char filename[CI_FILENAME_LEN+1];
 } ci_simple_file_t;
 
 
-CI_DECLARE_FUNC(ci_simple_file_t) * ci_simple_file_new();
-CI_DECLARE_FUNC(ci_simple_file_t) * ci_simple_file_named_new(char *tmp,char*filename);
+CI_DECLARE_FUNC(ci_simple_file_t) * ci_simple_file_new(ci_off_t maxsize);
+CI_DECLARE_FUNC(ci_simple_file_t) * ci_simple_file_named_new(char *tmp,char*filename,ci_off_t maxsize);
 
 CI_DECLARE_FUNC(void) ci_simple_file_release(ci_simple_file_t *);
 CI_DECLARE_FUNC(void) ci_simple_file_destroy(ci_simple_file_t *body);
