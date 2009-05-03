@@ -86,6 +86,7 @@ const char *ci_options_headers[] = {
 
 const struct ci_error_code ci_error_codes[] = {
      {100, "Continue"},         /*Continue after ICAP Preview */
+     {200, "OK"},
      {204, "Unmodified"},       /*No modifications needed */
      {400, "Bad request"},      /*Bad request */
      {401, "Unauthorized"},
