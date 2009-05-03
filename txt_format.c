@@ -8,10 +8,10 @@
 struct ci_fmt_entry {
     const char *directive;
     const char *description;
-    int (*format)(void *req_data, char *buf, int len);
+    int (*format)(ci_request_t *req_data, char *buf, int len, char *param);
 };
 
-int fmt_none(void *req_data, char *buf,int len);
+int fmt_none(ci_request_t *req_data, char *buf,int len, char *param);
 
 
 struct ci_fmt_entry GlobalTable [] = {
@@ -45,7 +45,7 @@ struct ci_fmt_entry GlobalTable [] = {
     { NULL, NULL, NULL} 
 };
 
-int fmt_none(void *req, char *buf,int len)
+int fmt_none(ci_request_t *req, char *buf,int len, char *param)
 {
   *buf = '-';
    return 1;
@@ -147,14 +147,14 @@ int ci_format_text(
        if(fmte != NULL) { 
             if (width) {
                 if (left_align) {
-                    val_len=fmte->format(req_data, b, space); 
+                    val_len=fmte->format(req_data, b, space, parameter); 
                     b += val_len;
                     for (i=0; i < width-val_len; i++) b[i]=' ';
                     b += width-val_len;
                 }
                 else {
                     lb = malloc((space+1)*sizeof(char));      
-                    val_len=fmte->format(req_data, lb, space);
+                    val_len=fmte->format(req_data, lb, space, parameter);
                     for (i=0; i < width-val_len; i++) b[i]=' ';
                     b += width-val_len; 
                     for (i=0; i < val_len; i++) b[i]=lb[i];
@@ -164,7 +164,7 @@ int ci_format_text(
                 remains -= width;
             } 
              else {
-                val_len=fmte->format(req_data, b, space);
+		 val_len=fmte->format(req_data, b, space, parameter);
                 if (val_len > space) {
                     ci_debug_printf(1,"format_line BUG! Please contact authors!!!\n");
                     return 0;
