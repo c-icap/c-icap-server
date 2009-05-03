@@ -245,7 +245,7 @@ ci_request_t *ci_request_alloc(ci_connection_t * connection)
      req->response_header = ci_headers_create();
      req->xheaders = ci_headers_create();
      req->status = SEND_NOTHING;
-
+     req->return_code = -1;
 
      req->pstrblock_read = NULL;
      req->pstrblock_read_len = 0;
@@ -296,6 +296,7 @@ void ci_request_reset(ci_request_t * req)
      ci_headers_reset(req->xheaders);
      req->eof_received = 0;
      req->status = SEND_NOTHING;
+     req->return_code = -1;
 
      req->pstrblock_read = NULL;
      req->pstrblock_read_len = 0;

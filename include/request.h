@@ -106,6 +106,7 @@ typedef struct ci_request{
      unsigned int write_to_module_pending;
 
      int status;
+     int return_code;
      char *pstrblock_responce;
      int remain_send_block_bytes;
      /* statistics */

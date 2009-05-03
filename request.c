@@ -971,6 +971,7 @@ int process_request(ci_request_t * req)
      if (res != EC_100) {
           if (res >= 0)
                ec_responce(req, res);   /*Bad request or Service not found or Server error or what else...... */
+	  req->return_code = res;
           req->keepalive = 0;   // Error occured, close the connection ......
           ci_debug_printf(5, "Error parsing headers :(%d)\n",
                           req->request_header->bufused);
@@ -981,6 +982,7 @@ int process_request(ci_request_t * req)
      if (req->access_type == CI_ACCESS_PARTIAL
          && (auth_status = access_check_request(req)) == CI_ACCESS_DENY) {
           ec_responce(req, EC_401);     /*Responce with bad request */
+	  req->return_code = EC_401;
           return CI_ERROR;      /*Or something that means authentication error */
      }
 
@@ -990,12 +992,14 @@ int process_request(ci_request_t * req)
      if (auth_status == CI_ACCESS_HTTP_AUTH
          && access_authenticate_request(req) == CI_ACCESS_DENY) {
           ec_responce(req, EC_401);     /*Responce with bad request */
+	  req->return_code = EC_401;
           return CI_ERROR;      /*Or something that means authentication error */
      }
 
      if (!req->current_service_mod) {
           ci_debug_printf(1, "Service not found\n");
           ec_responce(req, EC_404);
+	  req->return_code = EC_404;
           return CI_ERROR;
      }
 
@@ -1011,6 +1015,7 @@ int process_request(ci_request_t * req)
      switch (req->type) {
      case ICAP_OPTIONS:
           options_responce(req);
+	  req->return_code = EC_200;
           ret_status = CI_OK;
           break;
      case ICAP_REQMOD:
@@ -1022,6 +1027,7 @@ int process_request(ci_request_t * req)
                     ci_debug_printf(5,
                                     "An error occured while reading preview data (propably timeout)\n");
                     ec_responce(req, EC_408);
+		    req->return_code = EC_408;
 		    ret_status = CI_ERROR;
                     /*Responce with error..... */
                     break;
@@ -1033,12 +1039,14 @@ int process_request(ci_request_t * req)
                                                   req->preview_data.used, req);
                     if (res == CI_MOD_ALLOW204) {
                          ec_responce(req, EC_204);
+			 req->return_code = EC_204;
                          break; //Need no any modification.
                     }
                     if (res == CI_ERROR) {
                          ci_debug_printf(5,
                                          "An error occured in preview handler!!");
                          ec_responce(req, EC_500);
+			 req->return_code = EC_500;
 			 ret_status = CI_ERROR;
                          break;
                     }
@@ -1052,6 +1060,7 @@ int process_request(ci_request_t * req)
                                                                        req);
                if (req->allow204 && res == CI_MOD_ALLOW204) {
                     ec_responce_with_istag(req, EC_204);
+		    req->return_code = EC_204;
                     /*And now parse body data we read and data the client going to send us,
                        but do not pass them to the service */
                     if (req->hasbody)
@@ -1060,6 +1069,7 @@ int process_request(ci_request_t * req)
                }
           }
 
+	  req->return_code = EC_200;
           if (req->hasbody && preview_status >= 0) {
                ci_debug_printf(9, "Going to get_send_data.....\n");
                ret_status = get_send_body(req, 0);
@@ -1080,6 +1090,7 @@ int process_request(ci_request_t * req)
 */
                if (req->allow204 && res == CI_MOD_ALLOW204) {
                     ec_responce_with_istag(req, EC_204);
+		    req->return_code = EC_204;
                     break;      //Need no any modification.
                }
           }
