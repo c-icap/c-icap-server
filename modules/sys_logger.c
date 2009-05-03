@@ -35,8 +35,7 @@
 
 int sys_log_open();
 void sys_log_close();
-void sys_log_access(char *server, char *clientname, char *method, char *request,
-                    char *args, char *status);
+void sys_log_access(ci_request_t *req);
 void sys_log_server(char *server, const char *format, va_list ap);
 
 char *log_ident = "c-icap: ";
@@ -153,14 +152,20 @@ void sys_log_close()
 
 
 
-void sys_log_access(char *server, char *clientname, char *method, char *request,
-                    char *args, char *status)
+void sys_log_access(ci_request_t *req)
 {
+     char serverip[CI_IPLEN], clientip[CI_IPLEN];
 
-     syslog(ACCESS_PRIORITY, "%s, %s, %s, %s%c%s, %s\n", server, clientname,
-            method,
-            request,
-            (args == NULL ? ' ' : '?'), (args == NULL ? "" : args), status);
+     if (!ci_conn_remote_ip(req->connection, clientip))
+	  strcpy(clientip, "-" );
+     if (!ci_conn_local_ip(req->connection, serverip))
+	  strcpy(serverip, "-");
+
+     syslog(ACCESS_PRIORITY, "%s, %s, %s, %s%c%s, %d\n", serverip, clientip,
+            ci_method_string(req->type),
+            req->service,
+            (req->args == NULL ? ' ' : '?'), (req->args == NULL ? "" : req->args), 
+	    ci_error_code(req->return_code));
 }
 
 

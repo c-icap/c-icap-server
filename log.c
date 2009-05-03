@@ -55,25 +55,13 @@ void log_reset()
 
 void log_access(ci_request_t * req, int status)
 {                               /*req can not be NULL */
-     char serverip[CI_IPLEN], clientip[CI_IPLEN];
      if (!req)
           return;
 
      if (access_check_logging(req) == CI_ACCESS_ALLOW)
           return;
-
-     if (!ci_conn_remote_ip(req->connection, clientip))
-	  strcpy(clientip, "-" );
-     if (!ci_conn_local_ip(req->connection, serverip))
-	  strcpy(serverip, "-");
-
      if (default_logger)
-          default_logger->log_access(serverip,
-                                     clientip,
-                                     (char *) ci_method_string(req->type),
-                                     req->service,
-                                     req->args,
-                                     (status == CI_OK ? "OK" : "ERROR"));
+	  default_logger->log_access(req);
 }
 
 
@@ -99,8 +87,7 @@ void vlog_server(ci_request_t * req, const char *format, va_list ap)
 
 int file_log_open();
 void file_log_close();
-void file_log_access(char *server, char *clientname, char *method,
-                     char *request, char *args, char *status);
+void file_log_access(ci_request_t *req);
 void file_log_server(char *server, const char *format, va_list ap);
 
 /*char *SERVER_LOG_FILE="var/log/server.log";
@@ -161,18 +148,22 @@ void log_flush(){
 }
 */
 
-
-void file_log_access(char *server, char *clientname, char *method,
-                     char *request, char *args, char *status)
+void file_log_access(ci_request_t *req)
 {
-     char buf[STR_TIME_SIZE];
+     char serverip[CI_IPLEN], clientip[CI_IPLEN];
+     char strtime[STR_TIME_SIZE];
      if (!access_log)
           return;
 
-     ci_strtime(buf);
-     fprintf(access_log, "%s, %s, %s, %s, %s%c%s, %s\n", buf, server,
-             clientname, method, request, (args == NULL ? ' ' : '?'),
-             (args == NULL ? "" : args), status);
+     if (!ci_conn_remote_ip(req->connection, clientip))
+	  strcpy(clientip, "-" );
+     if (!ci_conn_local_ip(req->connection, serverip))
+	  strcpy(serverip, "-");
+
+     ci_strtime(strtime);
+     fprintf(access_log, "%s, %s, %s, %s, %s%c%s, %d\n", strtime, serverip,
+             clientip, ci_method_string(req->type), req->service, (req->args == NULL ? ' ' : '?'),
+             (req->args == NULL ? "" : req->args), ci_error_code(req->return_code));
 }
 
 
