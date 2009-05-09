@@ -455,8 +455,11 @@ int ci_simple_file_write(ci_simple_file_t * body, char *buf, int len, int iseof)
      int ret;
      int wsize = 0;
 
-     if(len <= 0)
+     if(len <= 0) {
+	 if (iseof)
+	     body->flags |= CI_FILE_HAS_EOF;
 	 return 0;
+     }
 
      if (body->endpos < body->readpos) {
          wsize = min(body->readpos-body->endpos-1, len);
@@ -510,6 +513,7 @@ int ci_simple_file_read(ci_simple_file_t * body, char *buf, int len)
 
      if ((body->readpos == body->endpos)) {
 	 if((body->flags & CI_FILE_HAS_EOF)) {
+	     ci_debug_printf(9, "Has EOF and no data to read, send EOF\n");
 	     return CI_EOF;
 	 }
 	 else {
@@ -532,6 +536,7 @@ int ci_simple_file_read(ci_simple_file_t * body, char *buf, int len)
 	     remains = body->max_store_size - body->readpos;
 	 }
 	 else {
+	     ci_debug_printf(9, "Error? anyway send EOF\n");
 	     return CI_EOF;
 	 }
      }
