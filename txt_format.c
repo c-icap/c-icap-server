@@ -1,6 +1,7 @@
 #include "common.h"
 #include "c-icap.h"
 #include "request.h"
+#include "simple_api.h"
 #include "debug.h"
 
 #define MAX_VARIABLE_SIZE 256
@@ -12,27 +13,44 @@ struct ci_fmt_entry {
 };
 
 int fmt_none(ci_request_t *req_data, char *buf,int len, char *param);
+int fmt_remoteip(ci_request_t *req_data, char *buf,int len, char *param);
+int fmt_localip(ci_request_t *req_data, char *buf,int len, char *param);
+int fmt_icapstatus(ci_request_t *req_data, char *buf,int len, char *param);
+int fmt_icapmethod(ci_request_t *req_data, char *buf,int len, char *param);
+int fmt_service(ci_request_t *req_data, char *buf,int len, char *param);
+int fmt_request(ci_request_t *req_data, char *buf,int len, char *param);
+int fmt_localtime(ci_request_t *req_data, char *buf,int len, char *param);
+int fmt_seconds(ci_request_t *req_data, char *buf,int len, char *param);
+int fmt_httpclientip(ci_request_t *req_data, char *buf,int len, char *param);
+int fmt_httpserverip(ci_request_t *req_data, char *buf,int len, char *param);
+int fmt_http_req_head_o(ci_request_t *req_data, char *buf,int len, char *param);
+int fmt_http_res_head_o(ci_request_t *req_data, char *buf,int len, char *param);
+int fmt_icap_req_head(ci_request_t *req_data, char *buf,int len, char *param);
+int fmt_icap_res_head(ci_request_t *req_data, char *buf,int len, char *param);
 
 
 struct ci_fmt_entry GlobalTable [] = {
-    { "%a", "Remote IP-Address", fmt_none },
-    {"%la", "Local IP Address", fmt_none },
+    { "%a", "Remote IP-Address", fmt_remoteip },
+    {"%la", "Local IP Address", fmt_localip },
     {"%lp", "Local port", fmt_none},
-    {"%>a", "Http Client IP Address", fmt_none},
-    {"%<A", "Http Server IP Address", fmt_none},
-    {"%ts", "Seconds since epoch", fmt_none},
-    {"%tl", "Local time", fmt_none},
+    {"%>a", "Http Client IP Address", fmt_httpclientip},
+    {"%<A", "Http Server IP Address", fmt_httpserverip},
+    {"%ts", "Seconds since epoch", fmt_seconds},
+    {"%tl", "Local time", fmt_localtime},
     {"%tg", "GMT time", fmt_none},
     {"%tr", "Response time", fmt_none},
     {"%>hi", "Http request header", fmt_none},
-    {"%>ho", "Http request header", fmt_none},
-    {"%<hi", "Modified Http reply header", fmt_none},
-    {"%<ho", "Modified Http reply header", fmt_none},
+    {"%>ho", "Modified Http request header", fmt_http_req_head_o},
+    {"%<hi", "Http reply header", fmt_none},
+    {"%<ho", "Modified Http reply header", fmt_http_res_head_o},
     {"%Hs", "Http status", fmt_none},
     {"%Hso", "Modified Http status", fmt_none},
 
-    {"%>ih", "Icap request header", fmt_none},
-    {"%>ih", "Icap response header", fmt_none},
+    {"%iu", "Icap request url", fmt_request},
+    {"%im", "Icap method", fmt_icapmethod},
+    {"%is", "Icap status code", fmt_icapstatus},
+    {"%>ih", "Icap request header", fmt_icap_req_head},
+    {"%<ih", "Icap response header", fmt_icap_res_head},
     
     {"%I", "Bytes received", fmt_none},
     {"%O", "Bytes sent", fmt_none},
@@ -184,3 +202,194 @@ int ci_format_text(
    return len-remains;
 }
 
+
+/******************************************************************/
+
+int fmt_remoteip(ci_request_t *req, char *buf,int len, char *param)
+{
+    if (len<CI_IPLEN)
+	return 0;
+
+    if (!ci_conn_remote_ip(req->connection, buf))
+          strcpy(buf, "-" );
+
+    return strlen(buf);
+}
+
+int fmt_localip(ci_request_t *req, char *buf,int len, char *param)
+{
+    if (len<CI_IPLEN)
+        return 0;
+
+    if (!ci_conn_local_ip(req->connection, buf))
+          strcpy(buf, "-" );
+
+    return strlen(buf);
+}
+
+int fmt_icapmethod(ci_request_t *req, char *buf,int len, char *param)
+{
+   int i;
+   const char *s = ci_method_string(req->type);
+   for(i=0;i<len && *s;i++,s++)
+        buf[i] = *s;
+   return i;
+}
+
+int fmt_service(ci_request_t *req, char *buf,int len, char *param)
+{
+   int i;
+   char *s = req->service;
+   for(i=0;i<len && *s;i++,s++)
+        buf[i] = *s;
+   return i;
+}
+
+int fmt_request(ci_request_t *req, char *buf,int len, char *param)
+{
+   int i;
+   char *s = req->service;
+   for(i=0;i<len && *s;i++,s++)
+        buf[i] = *s;
+
+   if (req->args[0]!='\0' && i<len) {
+      buf[i] = '?';
+      s = req->args;
+      i++;
+      for(;i<len && *s;i++,s++)
+        buf[i] = *s;
+   }
+   return i;
+}
+
+int fmt_localtime(ci_request_t *req, char *buf,int len, char *param)
+{
+    if (len < STR_TIME_SIZE)
+      return 0;
+    ci_strtime(buf);
+    return strlen(buf);
+}
+
+int fmt_icapstatus(ci_request_t *req, char *buf,int len, char *param)
+{
+   return snprintf(buf, len, "%d", ci_error_code(req->return_code));
+}
+
+
+int fmt_seconds(ci_request_t *req, char *buf,int len, char *param)
+{
+   time_t tm;
+   time(&tm);
+   return snprintf(buf, len, "%ld", tm);
+}
+
+int fmt_httpclientip(ci_request_t *req, char *buf,int len, char *param)
+{
+    char *s;
+  int i;
+  if (!len)
+     return 0;
+
+  if ((s = ci_headers_value(req->request_header, "X-Client-IP")) != NULL) {
+     for(i=0;i<len && *s!= '\0' && *s != '\r' && *s!='\n'; i++,s++)
+        buf[i] = *s;
+     return i;
+  }
+  else {
+     *buf = '-';
+     return 1;
+  }
+
+}
+
+int fmt_httpserverip(ci_request_t *req, char *buf,int len, char *param)
+{
+  char *s;
+  int i;
+  if (!len)
+     return 0;
+
+  if ((s = ci_headers_value(req->request_header, "X-Server-IP")) != NULL) {
+     for(i=0;i<len && *s!= '\0' && *s != '\r' && *s!='\n'; i++,s++)
+        buf[i] = *s;
+     return i;
+  }
+  else {
+     *buf = '-';
+     return 1;
+  }
+}
+
+int fmt_http_req_head_o(ci_request_t *req, char *buf,int len, char *param)
+{
+  char *s;
+  int i;
+  if (!len)
+     return 0;
+
+  if(param && (s = ci_http_request_get_header(req, param))) {
+     for(i=0;i<len && *s!= '\0' && *s != '\r' && *s!='\n'; i++,s++)
+        buf[i] = *s;
+     return i;
+  }
+  else {
+     *buf = '-';
+     return 1;
+  }
+   
+}
+
+int fmt_http_res_head_o(ci_request_t *req, char *buf,int len, char *param)
+{
+  char *s;
+  int i;
+  if (!len)
+     return 0;
+
+  if(param && (s = ci_http_response_get_header(req, param))) {
+     for(i=0;i<len && *s!= '\0' && *s != '\r' && *s!='\n'; i++,s++)
+        buf[i] = *s;
+     return i;
+  }
+  else {
+     *buf = '-';
+     return 1;
+  }
+}
+
+
+int fmt_icap_req_head(ci_request_t *req, char *buf,int len, char *param)
+{
+  char *s;
+  int i;
+  if (!len)
+     return 0;
+
+  if(param && (s = ci_headers_value(req->request_header, param))) {
+     for(i=0;i<len && *s!= '\0' && *s != '\r' && *s!='\n'; i++,s++)
+        buf[i] = *s;
+     return i;
+  }
+  else {
+     *buf = '-';
+     return 1;
+  }
+}
+
+int fmt_icap_res_head(ci_request_t *req, char *buf,int len, char *param)
+{
+  char *s;
+  int i;
+  if (!len)
+     return 0;
+
+  if(param && (s = ci_headers_value(req->response_header, param))) {
+     for(i=0;i<len && *s!= '\0' && *s != '\r' && *s!='\n'; i++,s++)
+        buf[i] = *s;
+     return i;
+  }
+  else {
+     *buf = '-';
+     return 1;
+  }
+}

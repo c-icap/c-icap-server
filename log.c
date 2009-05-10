@@ -148,22 +148,15 @@ void log_flush(){
 }
 */
 
+const char *logformat = "%tl, %la %a %im %iu %is";
+
 void file_log_access(ci_request_t *req)
 {
-     char serverip[CI_IPLEN], clientip[CI_IPLEN];
-     char strtime[STR_TIME_SIZE];
-     if (!access_log)
+    char logline[1024];
+    if (!access_log)
           return;
-
-     if (!ci_conn_remote_ip(req->connection, clientip))
-	  strcpy(clientip, "-" );
-     if (!ci_conn_local_ip(req->connection, serverip))
-	  strcpy(serverip, "-");
-
-     ci_strtime(strtime);
-     fprintf(access_log, "%s, %s, %s, %s, %s%c%s, %d\n", strtime, serverip,
-             clientip, ci_method_string(req->type), req->service, (req->args == NULL ? ' ' : '?'),
-             (req->args == NULL ? "" : req->args), ci_error_code(req->return_code));
+    ci_format_text(req, logformat, logline, 1024, NULL);
+    fprintf(access_log,"%s\n", logline); 
 }
 
 
