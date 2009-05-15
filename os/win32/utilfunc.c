@@ -100,7 +100,7 @@ int ci_mktemp_file(char *dir, char *template, char *filename)
 {
      int fd;
      GetTempFileName(dir, template, 1, filename);
-     fd = open(filename, O_RDWR | O_CREAT, S_IREAD | S_IWRITE);
+     fd = open(filename, O_RDWR | O_CREAT | O_BINARY, S_IREAD | S_IWRITE);
      return fd;
 }
 
