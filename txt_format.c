@@ -20,6 +20,7 @@ int fmt_icapmethod(ci_request_t *req_data, char *buf,int len, char *param);
 int fmt_service(ci_request_t *req_data, char *buf,int len, char *param);
 int fmt_request(ci_request_t *req_data, char *buf,int len, char *param);
 int fmt_localtime(ci_request_t *req_data, char *buf,int len, char *param);
+int fmt_gmttime(ci_request_t *req_data, char *buf,int len, char *param);
 int fmt_seconds(ci_request_t *req_data, char *buf,int len, char *param);
 int fmt_httpclientip(ci_request_t *req_data, char *buf,int len, char *param);
 int fmt_httpserverip(ci_request_t *req_data, char *buf,int len, char *param);
@@ -37,7 +38,7 @@ struct ci_fmt_entry GlobalTable [] = {
     {"%<A", "Http Server IP Address", fmt_httpserverip},
     {"%ts", "Seconds since epoch", fmt_seconds},
     {"%tl", "Local time", fmt_localtime},
-    {"%tg", "GMT time", fmt_none},
+    {"%tg", "GMT time", fmt_gmttime},
     {"%tr", "Response time", fmt_none},
     {"%>hi", "Http request header", fmt_none},
     {"%>ho", "Modified Http request header", fmt_http_req_head_o},
@@ -264,10 +265,28 @@ int fmt_request(ci_request_t *req, char *buf,int len, char *param)
 
 int fmt_localtime(ci_request_t *req, char *buf,int len, char *param)
 {
-    if (len < STR_TIME_SIZE)
-      return 0;
-    ci_strtime(buf);
-    return strlen(buf);
+    struct tm tm;
+    time_t t;
+    char *tfmt = "%d/%b/%Y:%H:%M:%S %z";
+    if (param && param[0]!='\0') {
+        tfmt = param;
+    }
+    t = time(&t);
+    localtime_r(&t, &tm);
+    return strftime(buf, len, tfmt, &tm);
+}
+
+int fmt_gmttime(ci_request_t *req, char *buf,int len, char *param)
+{
+    struct tm tm;
+    time_t t;
+    char *tfmt = "%d/%b/%Y:%H:%M:%S";
+    if (param && param[0]!='\0') {
+        tfmt = param;
+    }
+    t = time(&t);
+    gmtime_r(&t, &tm);
+    return strftime(buf, len, tfmt, &tm);
 }
 
 int fmt_icapstatus(ci_request_t *req, char *buf,int len, char *param)
