@@ -25,6 +25,8 @@
 #include <io.h>
 #include <fcntl.h>
 #include "util.h"
+
+
 int strncasecmp(const char *s1, const char *s2, size_t n)
 {
      int r = 0;
@@ -34,6 +36,8 @@ int strncasecmp(const char *s1, const char *s2, size_t n)
                                                                 *s1++));
      return r;
 }
+
+
 int strcasecmp(const char *s1, const char *s2)
 {
      int r = 0;
@@ -43,12 +47,33 @@ int strcasecmp(const char *s1, const char *s2)
                   tolower(*((unsigned char *) s2)))) && (++s2, *s1++));
      return r;
 }
+
+/*
+  The following functions are safe because the localtime and gmtime are thread
+  safe in Win32
+*/
+struct tm* localtime_r(const time_t *t, struct tm *tm) {
+     if (!t || !tm) return NULL;
+     memcpy(tm, localtime(t), sizeof(struct tm));
+     return tm;
+}
+
+struct tm* gmtime_r(const time_t *t, struct tm *tm) {
+     if (!t || !tm) return NULL;
+     memcpy(tm, gmtime(t), sizeof(struct tm));
+     return tm;
+}
+
 static const char *days[] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"
 };
+
+
 static const char *months[] =
     { "", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug",
      "Sep", "Oct", "Nov", "Dec"
 };
+
+
 void ci_strtime(char *buf)
 {
      SYSTEMTIME tm;
@@ -58,7 +83,9 @@ void ci_strtime(char *buf)
               months[tm.wMonth], tm.wDay, tm.wHour, tm.wMinute, tm.wSecond,
               tm.wYear);
      buf[STR_TIME_SIZE - 1] = '\0';
-} void ci_strtime_rfc822(char *buf)
+}
+
+void ci_strtime_rfc822(char *buf)
 {
      SYSTEMTIME tm;
      GetLocalTime(&tm);         /*Here we need GMT time not localtime! */
@@ -67,7 +94,9 @@ void ci_strtime(char *buf)
               days[tm.wDayOfWeek], tm.wDay, months[tm.wMonth], tm.wYear,
               tm.wHour, tm.wMinute, tm.wSecond);
      buf[STR_TIME_SIZE - 1] = '\0';
-} int ci_mktemp_file(char *dir, char *template, char *filename)
+}
+
+int ci_mktemp_file(char *dir, char *template, char *filename)
 {
      int fd;
      GetTempFileName(dir, template, 1, filename);
