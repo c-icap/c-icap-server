@@ -98,6 +98,9 @@ char *ACCESS_LOG_FILE="var/log/access.log";
 char *SERVER_LOG_FILE = LOGDIR "/cicap-server.log";
 char *ACCESS_LOG_FILE = LOGDIR "/cicap-access.log";
 
+char *ACCESS_LOG_FORMAT = "%tl, %la %a %im %iu %is";
+
+
 logger_module_t file_logger = {
      "file_logger",
      NULL,
@@ -148,14 +151,13 @@ void log_flush(){
 }
 */
 
-const char *logformat = "%tl, %la %a %im %iu %is";
 
 void file_log_access(ci_request_t *req)
 {
     char logline[1024];
     if (!access_log)
           return;
-    ci_format_text(req, logformat, logline, 1024, NULL);
+    ci_format_text(req, ACCESS_LOG_FORMAT, logline, 1024, NULL);
     fprintf(access_log,"%s\n", logline); 
 }
 

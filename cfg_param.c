@@ -73,6 +73,7 @@ int DAEMON_MODE = 1;
 
 extern char *SERVER_LOG_FILE;
 extern char *ACCESS_LOG_FILE;
+extern char *ACCESS_LOG_FORMAT;
 /*extern char *LOGS_DIR;*/
 
 extern logger_module_t *default_logger;
@@ -131,6 +132,7 @@ static struct ci_conf_entry conf_variables[] = {
      {"Logger", &default_logger, cfg_set_logger, NULL},
      {"ServerLog", &SERVER_LOG_FILE, intl_cfg_set_str, NULL},
      {"AccessLog", &ACCESS_LOG_FILE, intl_cfg_set_str, NULL},
+     {"LogFormat", &ACCESS_LOG_FORMAT, intl_cfg_set_str, NULL},
      {"DebugLevel", NULL, cfg_set_debug_level, NULL},   /*Set library's debug level */
      {"ServicesDir", &CONF.SERVICES_DIR, intl_cfg_set_str, NULL},
      {"ModulesDir", &CONF.MODULES_DIR, intl_cfg_set_str, NULL},
