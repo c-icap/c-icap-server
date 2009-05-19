@@ -390,7 +390,7 @@ ci_simple_file_t *ci_simple_file_named_new(char *dir, char *filename,ci_off_t ma
 {
      ci_simple_file_t *body;
 
-     if (!(body = malloc(sizeof(ci_cached_file_t))))
+     if (!(body = malloc(sizeof(ci_simple_file_t))))
           return NULL;
 
      if (filename) {
