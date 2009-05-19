@@ -57,7 +57,7 @@ typedef struct ci_cached_file{
      ci_off_t unlocked;
      char *buf;
      int fd;
-     char filename[CI_FILENAME_LEN];
+     char filename[CI_FILENAME_LEN+1];
 } ci_cached_file_t;
 
 
