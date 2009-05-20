@@ -6,7 +6,7 @@
 
 typedef struct ci_type_ops {
     void *(*dup)(const char *, ci_mem_allocator_t *);
-    int (*compare)(void *key1,void *key2);
+    int (*compare)(void *ref_key,void *key);
     size_t (*size)(void *key);
     void (*free)(void *key, ci_mem_allocator_t *);
 } ci_type_ops_t;
