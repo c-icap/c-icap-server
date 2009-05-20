@@ -259,6 +259,10 @@ ci_request_t *ci_request_alloc(ci_connection_t * connection)
 
      req->bytes_in = 0;
      req->bytes_out = 0;
+     req->http_bytes_in = 0;
+     req->http_bytes_out = 0;
+     req->body_bytes_in = 0;
+     req->body_bytes_out = 0;
 
      for (i = 0; i < 5; i++)    //
           req->entities[i] = NULL;
@@ -309,6 +313,10 @@ void ci_request_reset(ci_request_t * req)
 
      req->bytes_in = 0;
      req->bytes_out = 0;
+     req->http_bytes_in = 0;
+     req->http_bytes_out = 0;
+     req->body_bytes_in = 0;
+     req->body_bytes_out = 0;
 
      for (i = 0; req->entities[i] != NULL; i++) {
           ci_request_release_entity(req, i);
@@ -450,9 +458,12 @@ int parse_chunk_data(ci_request_t * req, char **wdata)
                *wdata = req->pstrblock_read;
                remains = req->current_chunk_len - req->chunk_bytes_read;
                if (remains <= req->pstrblock_read_len) {        /*we have all the chunks data */
-                    if (remains > 2)
+		 if (remains > 2) {
                          req->write_to_module_pending = remains - 2;
-                    else        /*we are in all or part of the \r\n end of chunk data */
+			 req->http_bytes_in += req->write_to_module_pending;
+			 req->body_bytes_in += req->write_to_module_pending;
+		 } 
+		 else        /*we are in all or part of the \r\n end of chunk data */
                          req->write_to_module_pending = 0;
                     req->chunk_bytes_read += remains;
                     req->pstrblock_read += remains;
@@ -460,11 +471,17 @@ int parse_chunk_data(ci_request_t * req, char **wdata)
                }
                else {
                     tmp = remains - req->pstrblock_read_len;
-                    if (tmp < 2)
+                    if (tmp < 2) {
                          req->write_to_module_pending =
                              req->pstrblock_read_len - tmp;
-                    else
+			 req->http_bytes_in += req->write_to_module_pending;
+			 req->body_bytes_in += req->write_to_module_pending;
+                    }
+                    else {
                          req->write_to_module_pending = req->pstrblock_read_len;
+			 req->http_bytes_in += req->write_to_module_pending;
+			 req->body_bytes_in += req->write_to_module_pending;
+		    }
                     req->chunk_bytes_read += req->pstrblock_read_len;
                     req->pstrblock_read += req->pstrblock_read_len;
                     req->pstrblock_read_len -= req->pstrblock_read_len;

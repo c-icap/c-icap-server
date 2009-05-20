@@ -185,6 +185,8 @@ int read_encaps_header(ci_request_t * req, ci_headers_list_t * h, int size)
      if (strncmp(buf_end - 4, "\r\n\r\n", 4) == 0) {
           h->bufused -= 2;      /*eat the last 2 bytes of "\r\n\r\n" */
      }
+     /*Currently we are counting only successfull http headers read.*/
+     req->http_bytes_in += size;
      return EC_100;
 }
 
@@ -490,9 +492,11 @@ int send_current_block_data(ci_request_t * req)
           ci_debug_printf(5, "Error writing to server (errno:%d)", errno);
           return CI_ERROR;
      }
-     req->bytes_out += bytes;
      req->pstrblock_responce += bytes;
      req->remain_send_block_bytes -= bytes;
+     req->bytes_out += bytes;
+     if(req->status >= SEND_HEAD1 &&  req->status <= SEND_HEAD3)
+       req->http_bytes_out +=bytes;
      return req->remain_send_block_bytes;
 }
 
@@ -507,6 +511,12 @@ int format_body_chunk(ci_request_t * req)
           return CI_EOF;
      if (req->remain_send_block_bytes > 0) {
           assert(req->remain_send_block_bytes <= MAX_CHUNK_SIZE);
+
+	  /*The data are not written yet but I hope there is not any problem.
+	    It is difficult to compute data sent */
+	  req->http_bytes_out += req->remain_send_block_bytes;
+	  req->body_bytes_out += req->remain_send_block_bytes;
+
           wbuf = req->wbuf + EXTRA_CHUNK_SIZE + req->remain_send_block_bytes;
           /*Put the "\r\n" sequence at the end of chunk */
           *(wbuf++) = '\r';

@@ -112,6 +112,10 @@ typedef struct ci_request{
      /* statistics */
      uint64_t bytes_in;
      uint64_t bytes_out;
+     uint64_t http_bytes_in;
+     uint64_t http_bytes_out;
+     uint64_t body_bytes_in;
+     uint64_t body_bytes_out;
 } ci_request_t;
 
 #define lock_data(req) (req->data_locked=1)

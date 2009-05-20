@@ -28,6 +28,12 @@ int fmt_http_req_head_o(ci_request_t *req_data, char *buf,int len, char *param);
 int fmt_http_res_head_o(ci_request_t *req_data, char *buf,int len, char *param);
 int fmt_icap_req_head(ci_request_t *req_data, char *buf,int len, char *param);
 int fmt_icap_res_head(ci_request_t *req_data, char *buf,int len, char *param);
+int fmt_req_bytes_rcv(ci_request_t *req_data, char *buf,int len, char *param);
+int fmt_req_bytes_sent(ci_request_t *req_data, char *buf,int len, char *param);
+int fmt_req_http_bytes_rcv(ci_request_t *req_data, char *buf,int len, char *param);
+int fmt_req_http_bytes_sent(ci_request_t *req_data, char *buf,int len, char *param);
+int fmt_req_body_bytes_rcv(ci_request_t *req_data, char *buf,int len, char *param);
+int fmt_req_body_bytes_sent(ci_request_t *req_data, char *buf,int len, char *param);
 
 
 struct ci_fmt_entry GlobalTable [] = {
@@ -53,12 +59,13 @@ struct ci_fmt_entry GlobalTable [] = {
     {"%>ih", "Icap request header", fmt_icap_req_head},
     {"%<ih", "Icap response header", fmt_icap_res_head},
     
-    {"%I", "Bytes received", fmt_none},
-    {"%O", "Bytes sent", fmt_none},
-    {"%Ih", "Http object bytes received", fmt_none},
-    {"%Oh", "Http object bytes sent", fmt_none},
-    {"%Ib", "Http body bytes received", fmt_none},
-    {"%Ob", "Http body bytes sent", fmt_none},
+    {"%Ih", "Http bytes received", fmt_req_http_bytes_rcv},
+    {"%Oh", "Http bytes sent", fmt_req_http_bytes_sent},
+    {"%Ib", "Http body bytes received", fmt_req_body_bytes_rcv},
+    {"%Ob", "Http body bytes sent", fmt_req_body_bytes_sent},
+
+    {"%I", "Bytes received", fmt_req_bytes_rcv},
+    {"%O", "Bytes sent", fmt_req_bytes_sent},
 
     {"%un", "Username", fmt_none}, 
     { NULL, NULL, NULL} 
@@ -412,3 +419,30 @@ int fmt_icap_res_head(ci_request_t *req, char *buf,int len, char *param)
      return 1;
   }
 }
+
+
+int fmt_req_bytes_rcv(ci_request_t *req, char *buf,int len, char *param) {
+    return snprintf(buf, len, "%" PRINTF_OFF_T , req->bytes_in);
+}
+
+int fmt_req_bytes_sent(ci_request_t *req, char *buf,int len, char *param) {
+    return snprintf(buf, len, "%" PRINTF_OFF_T , req->bytes_out);
+}
+
+int fmt_req_http_bytes_rcv(ci_request_t *req, char *buf,int len, char *param) {
+    return snprintf(buf, len, "%" PRINTF_OFF_T , req->http_bytes_in);
+}
+
+int fmt_req_http_bytes_sent(ci_request_t *req, char *buf,int len, char *param) {
+    return snprintf(buf, len, "%" PRINTF_OFF_T , req->http_bytes_out);
+}
+
+int fmt_req_body_bytes_rcv(ci_request_t *req, char *buf,int len, char *param) {
+    return snprintf(buf, len, "%" PRINTF_OFF_T , req->body_bytes_in);
+}
+
+int fmt_req_body_bytes_sent(ci_request_t *req, char *buf,int len, char *param) {
+    return snprintf(buf, len, "%" PRINTF_OFF_T , req->body_bytes_out);
+}
+
+
