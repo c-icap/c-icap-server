@@ -33,6 +33,8 @@
 logger_module_t *default_logger = NULL;
 
 
+void logformat_release();
+
 int log_open()
 {
      if (default_logger)
@@ -50,6 +52,7 @@ void log_close()
 
 void log_reset()
 {
+     logformat_release();
      default_logger = NULL;
 }
 
@@ -80,26 +83,98 @@ void vlog_server(ci_request_t * req, const char *format, va_list ap)
           default_logger->log_server("", format, ap);
 }
 
+/*************************************************************/
+/* logformat */
+struct logformat {
+    char *name;
+    char *fmt;
+    struct logformat *next;
+};
 
-/****************************************************************************************/
-/*  file_logger implementation. This is the default logger                              */
-/*                                                                                      */
+struct logformat *LOGFORMATS=NULL;
+
+int logformat_add(char *name, char *format)
+{
+  struct logformat *lf, *tmp;
+  lf = malloc(sizeof(struct logformat));
+  if (!lf) {
+     ci_debug_printf(1, "Error allocation memory in add_logformat\n");
+     return 0;
+  }
+  lf->name = strdup(name);
+  lf->fmt = strdup(format);
+  lf->next = NULL;
+  if (LOGFORMATS==NULL) {
+     LOGFORMATS = lf;  
+     return 1;
+  }
+  tmp = LOGFORMATS;
+  while (tmp->next != NULL)  
+         tmp = tmp->next;
+  tmp->next = lf;
+  return 1; 
+}
+
+void logformat_release() 
+{
+   struct logformat *cur, *tmp;
+
+   if (!(tmp = LOGFORMATS))
+      return;
+
+   do {
+         cur = tmp;
+         tmp = tmp->next;
+         free(cur->name);
+         free(cur->fmt); 
+         free(cur);
+   } while(tmp);
+}
+
+char *logformat_fmt(char *name)
+{
+    struct logformat *tmp;
+    if (!(tmp = LOGFORMATS))
+      return NULL;
+
+    while (tmp) {
+       if (strcmp(tmp->name, name) == 0)
+           return tmp->fmt;
+       tmp = tmp->next;
+    }
+    return NULL;
+}
+
+
+/******************************************************************/
+/*  file_logger implementation. This is the default logger        */
+/*                                                                */
 
 int file_log_open();
 void file_log_close();
 void file_log_access(ci_request_t *req);
 void file_log_server(char *server, const char *format, va_list ap);
 
-/*char *SERVER_LOG_FILE="var/log/server.log";
-char *ACCESS_LOG_FILE="var/log/access.log";
-*/
-
 /*char *LOGS_DIR=LOGDIR;*/
 char *SERVER_LOG_FILE = LOGDIR "/cicap-server.log";
-char *ACCESS_LOG_FILE = LOGDIR "/cicap-access.log";
+/*char *ACCESS_LOG_FILE = LOGDIR "/cicap-access.log";*/
+char *ACCESS_LOG_FILE = NULL;
 
-char *ACCESS_LOG_FORMAT = "%tl, %la %a %im %iu %is";
+char *ACCESS_LOG_FORMAT = NULL;
 
+/* When we are going to support multiple access log files 
+ We are going to use  structure like the following
+*/
+/*
+struct logfile {
+    char *file;
+    FILE *access_log;
+    char *log_fmt;
+    acl_t *acls;
+    struct logfile *next;
+};
+struct logfile *ACCESS_LOG_FILES = NULL;
+*/
 
 logger_module_t file_logger = {
      "file_logger",
@@ -118,13 +193,18 @@ FILE *server_log = NULL;
 
 int file_log_open()
 {
+     if (!ACCESS_LOG_FORMAT)
+         ACCESS_LOG_FORMAT = "%tl, %la %a %im %iu %is";
+     if (ACCESS_LOG_FILE)  {
+        access_log = fopen(ACCESS_LOG_FILE, "a+");
+        if (!access_log)
+            return 0;
+        setvbuf(access_log, NULL, _IONBF, 0);
+     }
 
-     access_log = fopen(ACCESS_LOG_FILE, "a+");
      server_log = fopen(SERVER_LOG_FILE, "a+");
-
-     if (!access_log || !server_log)
+     if (!server_log)
           return 0;
-     setvbuf(access_log, NULL, _IONBF, 0);
      setvbuf(server_log, NULL, _IONBF, 0);
 
      return 1;
@@ -132,6 +212,9 @@ int file_log_open()
 
 void file_log_close()
 {
+     ACCESS_LOG_FORMAT = NULL;
+     ACCESS_LOG_FILE = NULL;
+
      if (access_log)
           fclose(access_log);
      if (server_log)
@@ -173,4 +256,17 @@ void file_log_server(char *server, const char *format, va_list ap)
      fprintf(server_log, "%s, %s, ", buf, server);
      vfprintf(server_log, format, ap);
 //     fprintf(server_log,"\n");
+}
+
+
+int file_log_addlogfile(char *file, char *format, char **acls) 
+{
+     ACCESS_LOG_FILE = strdup(file);
+     if (format) {
+         /*the folowing return format txt or NULL. It is OK*/
+         ACCESS_LOG_FORMAT = logformat_fmt(format);
+     }
+     else
+         ACCESS_LOG_FORMAT = NULL;
+     return 1;
 }

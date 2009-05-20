@@ -87,7 +87,9 @@ int cfg_load_magicfile(char *directive, char **argv, void *setdata);
 int cfg_load_service(char *directive, char **argv, void *setdata);
 int cfg_service_alias(char *directive, char **argv, void *setdata);
 int cfg_load_module(char *directive, char **argv, void *setdata);
+int cfg_set_logformat(char *directive, char **argv, void *setdata);
 int cfg_set_logger(char *directive, char **argv, void *setdata);
+int cfg_set_accesslog(char *directive, char **argv, void *setdata);
 int cfg_set_debug_level(char *directive, char **argv, void *setdata);
 int cfg_set_debug_stdout(char *directive, char **argv, void *setdata);
 int cfg_set_body_maxmem(char *directive, char **argv, void *setdata);
@@ -131,8 +133,8 @@ static struct ci_conf_entry conf_variables[] = {
      {"LoadMagicFile", NULL, cfg_load_magicfile, NULL},
      {"Logger", &default_logger, cfg_set_logger, NULL},
      {"ServerLog", &SERVER_LOG_FILE, intl_cfg_set_str, NULL},
-     {"AccessLog", &ACCESS_LOG_FILE, intl_cfg_set_str, NULL},
-     {"LogFormat", &ACCESS_LOG_FORMAT, intl_cfg_set_str, NULL},
+     {"AccessLog", NULL, cfg_set_accesslog, NULL},
+     {"LogFormat", NULL, cfg_set_logformat, NULL},
      {"DebugLevel", NULL, cfg_set_debug_level, NULL},   /*Set library's debug level */
      {"ServicesDir", &CONF.SERVICES_DIR, intl_cfg_set_str, NULL},
      {"ModulesDir", &CONF.MODULES_DIR, intl_cfg_set_str, NULL},
@@ -409,6 +411,29 @@ int cfg_load_magicfile(char *directive, char **argv, void *setdata)
 
      return 1;
 }
+
+int logformat_add(char *name, char *format);
+int cfg_set_logformat(char *directive, char **argv, void *setdata)
+{
+     if (argv == NULL || argv[0] == NULL || argv[1] == NULL) {
+          ci_debug_printf(1, "Missing arguments in directive %s\n", directive);
+          return 0;
+     }
+     ci_debug_printf(1, "Adding the logformat %s: %s\n",argv[0],argv[1]);
+     return logformat_add(argv[0], argv[1]);
+}
+
+int file_log_addlogfile(char *file, char *format, char **acls);
+int cfg_set_accesslog(char *directive, char **argv, void *setdata)
+{
+     if (argv == NULL || argv[0] == NULL ) {
+          ci_debug_printf(1, "Missing arguments in directive %s\n", directive);
+          return 0;
+     }
+     ci_debug_printf(1, "Adding the access logfile %s\n",argv[0]);
+     return file_log_addlogfile(argv[0], argv[1], NULL);
+}
+
 
 extern logger_module_t file_logger;
 int cfg_set_logger(char *directive, char **argv, void *setdata)
