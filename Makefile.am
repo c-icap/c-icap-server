@@ -19,7 +19,7 @@ UTIL_SOURCES=net_io.c os/unix/net_io.c os/unix/proc_mutex.c os/unix/shared_mem.c
 
 
 
-libicapapi_la_SOURCES=  header.c body.c base64.c simple_api.c request_common.c \
+libicapapi_la_SOURCES=  header.c body.c decode.c simple_api.c request_common.c \
                         filetype.c debug.c cfg_lib.c mem.c  service_lib.c \
                         cache.c lookup_table.c lookup_file_table.c hash.c \
 			txt_format.c \
