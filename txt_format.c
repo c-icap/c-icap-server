@@ -77,23 +77,20 @@ int fmt_none(ci_request_t *req, char *buf,int len, char *param)
    return 1;
 }
 
-
-int check_directive( const char *var, const char *directive, 
-                     int *directive_len, unsigned int *width,
+unsigned int parse_directive(const char *var, 
+                     unsigned int *width,
                      int *left_align, char *parameter)
 {
-   const char *s1, *s2;
+   const char *s1;
    int i = 0;
    char *e;
    s1 = var+1;
-   s2 = directive+1;
-   *directive_len = 0;
    parameter[0] = '\0';
 
    if (s1[0] == '-') {
        *left_align = 1;
        s1++;
-   } 
+   }
    else
        *left_align = 0;
 
@@ -103,7 +100,7 @@ int check_directive( const char *var, const char *directive,
    }
    else
       s1 = e;
-  
+
    if (*s1 == '{') {
        s1++;
        i = 0;
@@ -114,9 +111,18 @@ int check_directive( const char *var, const char *directive,
        if (*s1 != '}')
            return 0;
 
-       parameter[i] = '\0'; 
+       parameter[i] = '\0';
        s1++;
    }
+   return  s1-var;
+}
+
+int check_directive( const char *var, const char *directive, int *directive_len)
+{
+   const char *s1, *s2;
+   s1 = var;
+   s2 = directive+1;
+   *directive_len = 0;
 
    while (*s2) {
        if (!s1)
@@ -132,15 +138,21 @@ int check_directive( const char *var, const char *directive,
 struct ci_fmt_entry *check_tables(const char *var, struct ci_fmt_entry *u_table, int *directive_len, unsigned int *width, int *left_align, char *parameter)
 {
    int i;
+   unsigned int params_len;
+   params_len = parse_directive(var, width, left_align, parameter);
    for (i=0; GlobalTable[i].directive; i++) {
-       if(check_directive(var,GlobalTable[i].directive, directive_len, width, left_align, parameter))
+       if(check_directive(var+params_len,GlobalTable[i].directive, directive_len)) {
+           *directive_len += params_len;
            return &GlobalTable[i];
+       }
    }
    if (u_table) {
-     for (i=0; u_table[i].directive; i++) {
-       if(check_directive(var, u_table[i].directive, directive_len, width, left_align, parameter))
-           return &u_table[i];
-     }
+       for (i=0; u_table[i].directive; i++) {
+            if (check_directive(var+params_len, u_table[i].directive, directive_len)) {
+                *directive_len += params_len;
+                return &u_table[i];
+            }
+       }
    }
    return NULL;
 }
