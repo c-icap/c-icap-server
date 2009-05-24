@@ -88,3 +88,66 @@ char *ci_base64_decode_dup(char *encoded)
     ci_base64_decode(encoded,result,len);
     return result;
 }
+
+
+/*url decoders  */
+int url_decoder(char *input,char *output, int output_len)
+{
+    int i, k;
+    char str[3];
+    
+    i = 0;
+    k = 0;
+    while ((input[i] != '\0') && (k < output_len-1)) {
+	if (input[i] == '%'){ 
+	    str[0] = input[i+1];
+	    str[1] = input[i+2];
+	    str[2] = '\0';
+	    output[k] = strtol(str, NULL, 16);
+	    i = i + 3;
+	}
+	else if (input[i] == '+') {
+	    output[k] = ' ';
+	    i++;
+	}
+	else {
+	    output[k] = input[i];
+	    i++;
+	}
+	k++;
+	}
+    output[k] = '\0';
+
+    if (k == output_len-1)
+	return -1;
+
+    return 1;
+}
+
+int url_decoder2(char *input)
+{
+    int i, k;
+    char str[3];    
+    i = 0;
+    k = 0;
+    while (input[i] != '\0') {
+	if (input[i] == '%') {
+	    str[0] = input[i+1];
+	    str[1] = input[i+2];
+	    str[2] = '\0';
+	    input[k] = strtol(str, NULL, 16);
+	    i = i + 3;
+	}
+	else if (input[i] == '+') {
+	    input[k] = ' ';
+	    i++;
+	}
+	else {
+	    input[k] = input[i];
+	    i++;
+	}
+	k++;
+    }
+    input[k] = '\0';
+    return 1;
+}
