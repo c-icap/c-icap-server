@@ -635,6 +635,7 @@ int get_send_body(ci_request_t * req, int parse_only)
      int (*service_io) (char *rbuf, int *rlen, char *wbuf, int *wlen, int iseof,
                         ci_request_t *);
      int action = 0, rchunkisfull = 0, service_eof = 0, wbytes, rbytes;
+     int to_be_read, to_be_write, no_io;
 
      if (parse_only)
           service_io = mod_null_io;
@@ -727,10 +728,15 @@ int get_send_body(ci_request_t * req, int parse_only)
                }
                else
                     rbytes = 0;
+
+               to_be_read = rbytes;
+               to_be_write = wbytes;
+               no_io = 0;
                if ((*service_io)
                    (rchunkdata, &rbytes, wchunkdata, &wbytes, req->eof_received,
                     req) == CI_ERROR)
                     return CI_ERROR;
+               no_io = (to_be_read == rbytes && to_be_write == wbytes);
                if (wbytes) {
                     wchunkdata += wbytes;
                     req->write_to_module_pending -= wbytes;
@@ -741,7 +747,7 @@ int get_send_body(ci_request_t * req, int parse_only)
                }
                else if (rbytes == CI_EOF)
                     service_eof = 1;
-          } while (req->pstrblock_read_len != 0
+          } while (no_io == 0 && req->pstrblock_read_len != 0
                    && parse_chunk_ret != CI_NEEDS_MORE && !rchunkisfull);
 
           action = 0;
