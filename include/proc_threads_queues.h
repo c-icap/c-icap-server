@@ -25,6 +25,7 @@
 #include "ci_threads.h"
 #include "proc_mutex.h"
 #include "shared_mem.h"
+#include "stats.h"
 
 enum KILL_MODE {NO_KILL=0,GRACEFULLY,IMMEDIATELY};
 
@@ -57,12 +58,18 @@ typedef struct child_shared_data{
      int to_be_killed;
      int father_said;
      ci_pipe_t pipe;
+     struct stat_memblock *stats;
+     int stats_size;
 } child_shared_data_t;
 
 
 struct childs_queue{
      child_shared_data_t *childs;
      int size;
+     int shared_mem_size;
+     int stats_block_size;
+     void  *stats_area;
+     struct stat_memblock *stats_history;
      ci_shared_mem_id_t shmid;
      ci_proc_mutex_t queue_mtx;
 };

@@ -34,6 +34,7 @@
 #include "util.h"
 #include "simple_api.h"
 #include "cfg_param.h"
+#include "stats.h"
 
 
 extern int TIMEOUT;
@@ -44,6 +45,27 @@ extern int TIMEOUT;
 
 #define FORBITTEN_STR "ICAP/1.0 403 Forbidden\r\n\r\n"
 /*#define ISTAG         "\"5BDEEEA9-12E4-2\""*/
+
+int STAT_REQUESTS = -1;
+int STAT_FAILED_REQUESTS = -1;
+int STAT_BYTES_IN = -1;
+int STAT_BYTES_OUT = -1;
+int STAT_HTTP_BYTES_IN = -1;
+int STAT_HTTP_BYTES_OUT = -1;
+int STAT_BODY_BYTES_IN = -1;
+int STAT_BODY_BYTES_OUT = -1;
+
+void request_stats_init()
+{
+  STAT_REQUESTS = ci_stat_entry_register("REQUESTS", STAT_INT64_T);
+  STAT_FAILED_REQUESTS = ci_stat_entry_register("FAILED REQUESTS", STAT_INT64_T);
+  STAT_BYTES_IN = ci_stat_entry_register("BYTES IN", STAT_KBS_T);
+  STAT_BYTES_OUT = ci_stat_entry_register("BYTES OUT", STAT_KBS_T);
+  STAT_HTTP_BYTES_IN = ci_stat_entry_register("HTTP BYTES IN", STAT_KBS_T);
+  STAT_HTTP_BYTES_OUT = ci_stat_entry_register("HTTP BYTES OUT", STAT_KBS_T);
+  STAT_BODY_BYTES_IN = ci_stat_entry_register("BODY BYTES IN", STAT_KBS_T);
+  STAT_BODY_BYTES_OUT = ci_stat_entry_register("BODY BYTES OUT", STAT_KBS_T);
+}
 
 ci_request_t *newrequest(ci_connection_t * connection)
 {
@@ -654,7 +676,7 @@ int get_send_body(ci_request_t * req, int parse_only)
      do {
           ret = 0;
           if (action) {
-               ci_debug_printf(10, "Going to %s/%s data\n",
+               ci_debug_printf(9, "Going to %s/%s data\n",
                                (action & wait_for_read ? "Read" : "-"),
                                (action & wait_for_write ? "Write" : "-")
                    );
@@ -673,7 +695,7 @@ int get_send_body(ci_request_t * req, int parse_only)
                     if (send_current_block_data(req) == CI_ERROR)
                          return CI_ERROR;
                }
-               ci_debug_printf(10,
+               ci_debug_printf(9,
                                "OK done reading/writing going to process\n");
           }
 
@@ -979,7 +1001,7 @@ void options_responce(ci_request_t * req)
 
 }
 
-int process_request(ci_request_t * req)
+int do_request(ci_request_t * req)
 {
      int res, preview_status = 0, auth_status = CI_ACCESS_ALLOW;
      int ret_status = CI_OK; /*By default ret_status is CI_OK, on error must set to CI_ERROR*/
@@ -1129,4 +1151,30 @@ int process_request(ci_request_t * req)
 
 //     debug_print_request(req);
      return ret_status;
+}
+
+int process_request(ci_request_t * req)
+{
+    int res;
+    res = do_request(req);
+   
+    if (!STATS)
+        return res;
+
+    if (res<0 && req->request_header->bufused == 0) /*Did not read anything*/
+	return res;
+	
+    STATS_LOCK();
+    if (STAT_REQUESTS >= 0) STATS_INT64_INC(STAT_REQUESTS,1);
+    if (res <0 && STAT_FAILED_REQUESTS >= 0)
+        STATS_INT64_INC(STAT_FAILED_REQUESTS,1);
+    if (STAT_BYTES_IN >= 0) STATS_KBS_INC(STAT_BYTES_IN, req->bytes_in);
+    if (STAT_BYTES_OUT >= 0) STATS_KBS_INC(STAT_BYTES_OUT, req->bytes_out);
+    if (STAT_HTTP_BYTES_IN >= 0) STATS_KBS_INC(STAT_HTTP_BYTES_IN, req->http_bytes_in);
+    if (STAT_HTTP_BYTES_OUT >= 0) STATS_KBS_INC(STAT_HTTP_BYTES_OUT, req->http_bytes_out);
+    if (STAT_BODY_BYTES_IN >= 0) STATS_KBS_INC(STAT_BODY_BYTES_IN, req->body_bytes_in);
+    if (STAT_BODY_BYTES_OUT >= 0) STATS_KBS_INC(STAT_BODY_BYTES_OUT, req->body_bytes_out);
+    STATS_UNLOCK();
+
+    return res;
 }

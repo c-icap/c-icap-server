@@ -94,6 +94,7 @@ int main(int argc, char **argv)
                           CONF.magics_file);
      }
      init_conf_tables();
+     request_stats_init();
      init_modules();
      config(argc, argv);
      compute_my_hostname();

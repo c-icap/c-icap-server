@@ -728,7 +728,8 @@ void child_main(int sockfd, int pipefd)
      ci_thread_mutex_init(&threads_list_mtx);
      ci_thread_mutex_init(&counters_mtx);
      ci_thread_cond_init(&free_server_cond);
-
+     
+     ci_stat_attach_mem(child_data->stats, child_data->stats_size, NULL);
 
      threads_list =
          (server_decl_t **) malloc((START_SERVERS + 1) *
@@ -850,6 +851,12 @@ void reconfigure_command(char *name, int type, char **argv)
           server_reconfigure();
 }
 
+void dump_statistics_command(char *name, int type, char **argv)
+{
+     if (type == MONITOR_PROC_CMD)
+          dump_queue_statistics(childs_queue);
+}
+
 void test_command(char *name, int type, char **argv)
 {
      int i = 0;
@@ -878,6 +885,7 @@ void init_commands()
 {
      register_command("stop", MONITOR_PROC_CMD, stop_command);
      register_command("reconfigure", MONITOR_PROC_CMD, reconfigure_command);
+     register_command("dump_statistics", MONITOR_PROC_CMD, dump_statistics_command);
      register_command("test", MONITOR_PROC_CMD | CHILDS_PROC_CMD, test_command);
 }
 
