@@ -95,13 +95,13 @@ static struct ci_options_entry options[] = {
      {"-f", "filename", &input_file, ci_cfg_set_str,
       "Send this file to the icap server.\nDefault is to send an options request"},
      {"-o", "filename", &output_file, ci_cfg_set_str,
-      "Save output to this file.\nDefault is to send to the stdout"},
-/*     {"-req",NULL,&RESPMOD,ci_cfg_disable,"Send a request modification instead of responce modification"},*/
+      "Save output to this file.\nDefault is to send to stdout"},
+/*     {"-req",NULL,&RESPMOD,ci_cfg_disable,"Send a request modification instead of response modification"},*/
      {"-d", "level", &CI_DEBUG_LEVEL, ci_cfg_set_int,
       "debug level info to stdout"},
      {"-noreshdr", NULL, &send_headers, ci_cfg_disable,
       "Do not send reshdr headers"},
-     {"-v", NULL, &verbose, ci_cfg_enable, "Print responce headers"},
+     {"-v", NULL, &verbose, ci_cfg_enable, "Print response headers"},
      {NULL, NULL, NULL, NULL}
 };
 
@@ -166,7 +166,7 @@ int main(int argc, char **argv)
      }
      else {
           if ((fd_in = open(input_file, O_RDONLY)) < 0) {
-               ci_debug_printf(1, "Error openning file %s\n", input_file);
+               ci_debug_printf(1, "Error opening file %s\n", input_file);
                exit(-1);
           }
 
@@ -210,7 +210,7 @@ int main(int argc, char **argv)
 
           if (ret == 204) {
                ci_debug_printf(1,
-                               "No modification needed (Allow 204 responce)\n");
+                               "No modification needed (Allow 204 response)\n");
                if (output_file)
                     unlink(output_file);
           }

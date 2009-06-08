@@ -273,7 +273,7 @@ int ci_headers_addheaders(ci_headers_list_t * h, ci_headers_list_t * headers)
           len = h->size + HEADERSTARTSIZE;
           newspace = realloc(h->headers, len * sizeof(char *));
           if (!newspace) {
-               ci_debug_printf(1, "Server Error:Error allocation memory \n");
+               ci_debug_printf(1, "Server Error: Error allocating memory \n");
                return 0;
           }
           h->headers = newspace;
@@ -284,7 +284,7 @@ int ci_headers_addheaders(ci_headers_list_t * h, ci_headers_list_t * headers)
           len = h->bufsize + HEADSBUFSIZE;
           newbuf = realloc(h->buf, len * sizeof(char));
           if (!newbuf) {
-               ci_debug_printf(1, "Server Error:Error allocation memory \n");
+               ci_debug_printf(1, "Server Error: Error allocating memory \n");
                return 0;
           }
           h->buf = newbuf;
@@ -457,7 +457,7 @@ int ci_headers_unpack(ci_headers_list_t * h)
                     newspace = realloc(h->headers, len * sizeof(char *));
                     if (!newspace) {
                          ci_debug_printf(1,
-                                         "Server Error:Error allocation memory \n");
+                                         "Server Error: Error allocating memory \n");
                          return EC_500;
                     }
                     h->headers = newspace;

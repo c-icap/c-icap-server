@@ -271,7 +271,7 @@ int ci_cached_file_write(ci_cached_file_t * body, char *buf, int len, int iseof)
      if (body->fd > 0) {        /*A file was open so write the data at the end of file....... */
           lseek(body->fd, 0, SEEK_END);
           if (write(body->fd, buf, len) < 0) {
-               ci_debug_printf(1, "Can not write to file!!! (errno=%d)\n",
+               ci_debug_printf(1, "Cannot write to file!!! (errno=%d)\n",
                                errno);
           }
           body->endpos += len;
@@ -285,7 +285,7 @@ int ci_cached_file_write(ci_cached_file_t * body, char *buf, int len, int iseof)
           if ((body->fd =
                ci_mktemp_file(CI_TMPDIR, tmp_template, body->filename)) < 0) {
                ci_debug_printf(1,
-                               "I can not create the temporary file name:%s!!!!!!\n",
+                               "I cannot create the temporary file: %s!!!!!!\n",
                                body->filename);
                return -1;
           }
@@ -348,7 +348,7 @@ int ci_cached_file_read(ci_cached_file_t * body, char *buf, int len)
      }
      else {                     /*?????????????????????????????? */
           bytes = 0;
-          ci_debug_printf(10, "Readed 0, %" PRINTF_OFF_T " %" PRINTF_OFF_T "\n",
+          ci_debug_printf(10, "Read 0, %" PRINTF_OFF_T " %" PRINTF_OFF_T "\n",
                           body->readpos, body->endpos);
      }
      return bytes;

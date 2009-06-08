@@ -77,7 +77,7 @@ void *load_module(char *module_file)
      module = ci_module_sym(module_handle, "module");
      if (!module) {
           ci_debug_printf(1,
-                          "Not found symbol \"module\" in library unload it\n");
+                          "Symbol \"module\" not found in library; unload it\n");
           ci_module_unload(module_handle, module_file);
           return NULL;
      }
@@ -398,7 +398,7 @@ service_handler_module_t *find_servicehandler_by_ext(char *extension)
           }
      }
 
-     ci_debug_printf(1, "Not handler for extension :%s. Using default ...\n",
+     ci_debug_printf(1, "No handler for extension %s. Using default ...\n",
                      extension);
      return default_service_handler;
 }
@@ -463,7 +463,7 @@ int check_to_add_method_id(struct auth_hash *hash, int method_id)
           new_mem = realloc(hash->hash, hash->hash_size + STEP);
           if (!new_mem) {
                ci_debug_printf(1,
-                               "Error allocating memory for authenticators hash!!!!!!\n");
+                               "Error allocating memory for authenticator hash!!!!!!\n");
                return 0;
           }
           memset(hash->hash + hash->hash_size, (int) NULL, STEP);       /*Reset the newly allocated memory */
@@ -506,7 +506,7 @@ int methods_authenticators(struct auth_hash *hash, char *method_name,
           }
           if (strcasecmp(auth_mod->method, method_name) != 0) {
                ci_debug_printf(1,
-                               "Authenticator %s does not provides authentication method %s!!!!\n",
+                               "Authenticator %s does not provide authentication method %s!!!!\n",
                                auth_mod->name, method_name);
                continue;
           }

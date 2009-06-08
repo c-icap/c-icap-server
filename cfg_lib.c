@@ -210,7 +210,7 @@ int ci_cfg_size_long(char *directive, char **argv, void *setdata)
           return 0;
 
      if (argv == NULL || argv[0] == NULL) {
-          ci_debug_printf(1, "Missing arguments in directive:%s\n", directive);
+          ci_debug_printf(1, "Missing arguments in directive: %s\n", directive);
           return 0;
      }
 

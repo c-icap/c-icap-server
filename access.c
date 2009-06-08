@@ -352,7 +352,7 @@ int default_acl_post_init(struct ci_server_conf *server_conf)
 #ifdef USE_IPV6
      if (server_conf->PROTOCOL_FAMILY == AF_INET6) {
           ci_debug_printf(5,
-                          "We are listening to a ipv6 address. Going to change all acl address to ipv6 address!\n");
+                          "We are listening on an ipv6 address. Going to change all acl addresses to ipv6 addresses!\n");
           acl_list_ipv4_to_ipv6();
           match_connection = match_ipv6_connection;
      }
@@ -862,7 +862,7 @@ int cfg_acl_add(char *directive, char **argv, void *setdata)
                else {
                     if (family != check_protocol_family(argv[i])) {
                          ci_debug_printf(1,
-                                         "Mixing ipv4/ipv6 address in the same acl spec does not allowed."
+                                         "Mixing ipv4/ipv6 addresses in the same acl spec is not allowed."
                                          " Disabling %s acl spec \n", name);
                          return 0;
                     }
@@ -894,7 +894,7 @@ int cfg_acl_add(char *directive, char **argv, void *setdata)
                else {
                     if (family != check_protocol_family(argv[i])) {
                          ci_debug_printf(1,
-                                         "Mixing ipv4/ipv6 address in the same acl spec does not allowed."
+                                         "Mixing ipv4/ipv6 addresses in the same acl spec is not allowed."
                                          " Disabling %s acl spec \n", name);
                          return 0;
                     }

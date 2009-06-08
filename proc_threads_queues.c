@@ -152,7 +152,7 @@ int create_childs_queue(struct childs_queue *q, int size)
 
 
      if ((ret = ci_proc_mutex_init(&(q->queue_mtx))) == 0) {
-          log_server(NULL, "can't create childs queue semaphore!");
+          log_server(NULL, "can't create children queue semaphore!");
           return 0;
      }
      return 1;

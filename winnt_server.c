@@ -77,7 +77,7 @@ static void exit_normaly()
 {
      int i = 0;
      server_decl_t *srv;
-     ci_debug_printf(1, "Suppose that all childs are allready exited...\n");
+     ci_debug_printf(1, "Suppose that all children have already exited...\n");
      while ((srv = threads_list[i]) != NULL) {
           if (srv->current_req) {
                close_connection(srv->current_req->connection);
@@ -140,7 +140,7 @@ int thread_main(server_decl_t * srv)
      //    srv->srv_pthread=pthread_self();
      for (;;) {
           if (child_data->to_be_killed) {
-               ci_debug_printf(1, "Thread Exiting.....\n");
+               ci_debug_printf(1, "Thread exiting.....\n");
                return 1;        //Exiting thread.....
           }
 
@@ -207,7 +207,7 @@ int thread_main(server_decl_t * srv)
                                                fd) > 0) {
                     ci_request_reset(srv->current_req);
                     ci_debug_printf(1,
-                                    "Server %d going to serve new request from client(keep-alive) \n",
+                                    "Server %d going to serve new request from client (keep-alive) \n",
                                     srv->srv_id);
                }
                else
@@ -294,7 +294,7 @@ int worker_main(ci_socket sockfd)
                                     "ERROR!!!!!!NO AVAILABLE SERVERS!!!!!!!!!\n");
 //                  child_data->to_be_killed=GRACEFULLY;
                     ci_debug_printf(1,
-                                    "Jobs in Queue:%d,Free servers:%d, Used Servers :%d, Requests %d\n",
+                                    "Jobs in Queue: %d, Free servers: %d, Used Servers: %d, Requests: %d\n",
                                     jobs_in_queue, child_data->freeservers,
                                     child_data->usedservers,
                                     child_data->requests);
@@ -365,7 +365,7 @@ void child_main(ci_socket sockfd)
 //Listen for events from main server better..............
 
      while (ReadFile(hStdin, &op, 1, &dwRead, NULL)) {
-          printf("Operation Readed:%c\n", op);
+          printf("Operation Read: %c\n", op);
           if (op == 'q')
                goto end_child_main;
      }

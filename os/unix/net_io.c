@@ -71,7 +71,7 @@ int icap_init_server_ipv6(char *address, int port, int *protocol_family, int sec
           return CI_SOCKET_ERROR;
      }
      if (listen(fd, 512)) {
-          ci_debug_printf(1, "Error listen at ipv6 address.....\n");
+          ci_debug_printf(1, "Error listening to ipv6 address.....\n");
           close(fd);
           return CI_SOCKET_ERROR;
      }
@@ -93,7 +93,7 @@ int icap_init_server(char *address, int port, int *protocol_family, int secs_to_
                                 secs_to_linger)) != CI_SOCKET_ERROR)
           return fd;
      ci_debug_printf(1,
-                     "WARNING! Error bind to an ipv6 address. Trying ipv4...\n");
+                     "WARNING! Error binding to an ipv6 address. Trying ipv4...\n");
 #endif
 
      fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -116,11 +116,11 @@ int icap_init_server(char *address, int port, int *protocol_family, int secs_to_
          }
 
      if (bind(fd, (struct sockaddr *) &addr, sizeof(addr))) {
-          ci_debug_printf(1, "Error bind  \n");;
+          ci_debug_printf(1, "Error binding  \n");;
           return CI_SOCKET_ERROR;
      }
      if (listen(fd, 512)) {
-          ci_debug_printf(1, "Error listen .....\n");
+          ci_debug_printf(1, "Error listening .....\n");
           return CI_SOCKET_ERROR;
      }
      *protocol_family = AF_INET;

@@ -508,7 +508,7 @@ int net_data_read(ci_request_t * req)
      bytes = BUFSIZE - req->pstrblock_read_len;
      if (bytes <= 0) {
           ci_debug_printf(5,
-                          "Not enough space to read data! is this a bug (%d %d)?????\n",
+                          "Not enough space to read data! Is this a bug (%d %d)?????\n",
                           req->pstrblock_read_len, BUFSIZE);
           return CI_ERROR;
      }
@@ -835,7 +835,7 @@ ci_connection_t *ci_client_connect_to(char *servername, int port, int proto)
           return NULL;
      connection->fd = socket(proto, SOCK_STREAM, 0);
      if (connection->fd == -1) {
-          ci_debug_printf(1, "Error oppening socket ....\n");
+          ci_debug_printf(1, "Error opening socket ....\n");
           free(connection);
           return NULL;
      }
@@ -912,7 +912,7 @@ int client_parse_incoming_data(ci_request_t * req, void *data_dest,
           if (ret != CI_OK)
                return ret;
           sscanf(req->response_header->buf, "ICAP/%d.%d %d", &v1, &v2, &status);
-          ci_debug_printf(3, "Responce was with status:%d \n", status);
+          ci_debug_printf(3, "Response was with status:%d \n", status);
           ci_headers_unpack(req->response_header);
 
           if (ci_allow204(req) && status == 204) {
@@ -961,7 +961,7 @@ int client_parse_incoming_data(ci_request_t * req, void *data_dest,
 
 
           ci_headers_unpack(resp_heads);
-          ci_debug_printf(5, "OK reading headers boing to read body\n");
+          ci_debug_printf(5, "OK reading headers, going to read body\n");
 
           /*reseting body chunks related variables */
           req->current_chunk_len = 0;
@@ -976,7 +976,7 @@ int client_parse_incoming_data(ci_request_t * req, void *data_dest,
           do {
                if ((ret = parse_chunk_data(req, &buf)) == CI_ERROR) {
                     ci_debug_printf(1,
-                                    "Error parsing chunks, current chunk len: %d readed:%d, readlen:%d, str:%s\n",
+                                    "Error parsing chunks, current chunk len: %d, read: %d, readlen: %d, str: %s\n",
                                     req->current_chunk_len,
                                     req->chunk_bytes_read,
                                     req->pstrblock_read_len,
@@ -1156,7 +1156,7 @@ int ci_client_icapfilter(ci_request_t * req,
           } while (client_parse_icap_header(req, req->response_header) == CI_NEEDS_MORE);
 
           sscanf(req->response_header->buf, "ICAP/%d.%d %d", &v1, &v2, &preview_status);
-          ci_debug_printf(3, "Preview responce was with status:%d \n",
+          ci_debug_printf(3, "Preview response was with status: %d \n",
                           preview_status);
           if (req->eof_received && preview_status == 200) {
                ci_headers_unpack(req->response_header);

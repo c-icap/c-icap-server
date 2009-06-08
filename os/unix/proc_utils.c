@@ -34,7 +34,7 @@ int store_pid(char *pidfile)
      pid = getpid();
 
      if ((fd = open(pidfile, O_CREAT | O_TRUNC | O_WRONLY, 0644)) < 0) {
-          ci_debug_printf(1, "Can not open the pid file:%s\n", pidfile);
+          ci_debug_printf(1, "Cannot open the pid file: %s\n", pidfile);
           return 0;
      }
      snprintf(strPid, 29, "%d", pid);

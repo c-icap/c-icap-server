@@ -97,7 +97,7 @@ int ci_proc_mutex_unlock(ci_proc_mutex_t * mutex)
 int ci_proc_mutex_init(ci_proc_mutex_t * mutex)
 {
      if (sem_init(mutex, 1, 1) < 0) {
-          ci_debug_printf(1, "An error ocured (errno:%d, ENOSYS:%d)\n", errno,
+          ci_debug_printf(1, "An error occurred (errno: %d, ENOSYS: %d)\n", errno,
                           ENOSYS);
           return 0;
      }

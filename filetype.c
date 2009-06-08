@@ -336,7 +336,7 @@ int ci_magics_db_file_add(struct ci_magics_db *db, char *filename)
           ci_debug_printf(1, "Error reading magic file (%d)\n", ret);
           return 0;
      }
-     ci_debug_printf(3, "In database magics:%d, types:%d, groups:%d\n",
+     ci_debug_printf(3, "In database: magic: %d, types: %d, groups: %d\n",
                      db->magics_num, db->types_num, db->groups_num);
      return 1;
 

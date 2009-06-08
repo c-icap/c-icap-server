@@ -90,7 +90,7 @@ int echo_init_service(ci_service_xdata_t * srv_xdata,
 /* This function will be called when the service shutdown */
 void echo_close_service() 
 {
-    ci_debug_printf(5,"The service shutdown!\n");
+    ci_debug_printf(5,"Service shutdown!\n");
     /*Nothing to do*/
 }
 

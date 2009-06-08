@@ -84,7 +84,7 @@ static void sigint_handler(int sig)
 
      if (sig == SIGTERM) {
           printf("SIGTERM signal received for main server.\n");
-          printf("Going to term childs....\n");
+          printf("Going to term children....\n");
 
      }
      else if (sig == SIGINT) {
@@ -201,7 +201,7 @@ int readheaderresponce(int fd)
 //        printf("(BYTES=%d)\n%s",len,lbuf);
 //        printf("%s",lbuf);
           printf
-              ("Readed bytes:%d, startbody at:%d, remain bytes:%d, blocks:%d\n",
+              ("Read bytes: %d, start of body at: %d, remaining bytes: %d, blocks: %d\n",
                bytes, startbody, remainbytes, blocks);
           if (blocks == 2)
                return bytes;
@@ -282,7 +282,7 @@ int threadjobreqmod(struct buffer *buf)
      while (1) {
           fd = socket(AF_INET, SOCK_STREAM, 0);
           if (fd == -1) {
-               printf("Error oppening socket ....\n");
+               printf("Error opening socket ....\n");
                return -1;
           }
 
@@ -293,7 +293,7 @@ int threadjobreqmod(struct buffer *buf)
 
           for (;;) {
                if (icap_write(fd, buf->buf, buf->size) < 0) {
-                    printf("Connection closed try again...\n");
+                    printf("Connection closed, try again...\n");
                     break;
                }
                readheaderresponce(fd);
@@ -431,9 +431,9 @@ int do_file(int fd, char *filename, int *keepalive)
      fclose(f);
 
 
-     //        printf("Done(%d bytes). Reading responce.....\n",totalbytesout);
+     //        printf("Done (%d bytes). Reading response.....\n",totalbytesout);
      if ((totalbytesin = readallresponce(fd, keepalive)) < 0) {
-          printf("Read all responce error;\n");
+          printf("Read all response error;\n");
           return -1;
      }
      // printf("Done(%d bytes).\n",totalbytes);
@@ -466,7 +466,7 @@ int threadjobsendfiles()
      while (1) {
           fd = socket(AF_INET, SOCK_STREAM, 0);
           if (fd == -1) {
-               printf("Error oppening socket ....\n");
+               printf("Error opening socket ....\n");
                return -1;
           }
 
@@ -500,7 +500,7 @@ int threadjobsendfiles()
                     break;
 
                if (_THE_END) {
-                    printf("The end. thread dieing\n");
+                    printf("The end: thread dying\n");
                     close(fd);
                     return 0;
                }
@@ -529,7 +529,7 @@ int main(int argc, char **argv)
 
      if (argc < 4) {
           printf
-              ("Usage:\n%s servername service theadsnum max_requests file1 file2 .....\n",
+              ("Usage:\n%s servername service threadsnum max_requests file1 file2 .....\n",
                argv[0]);
           exit(1);
      }

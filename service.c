@@ -241,7 +241,7 @@ ci_service_module_t *register_service(char *service_file)
 
      if (service_list == NULL || service_extra_data_list == NULL) {
           ci_debug_printf(1,
-                          "Fatal error:Can not allocate memory! Exiting imediatelly!\n");
+                          "Fatal error: Cannot allocate memory! Exiting immediately!\n");
           exit(-1);
      }
 
@@ -355,7 +355,7 @@ service_alias_t *add_service_alias(char *service_alias, char *service_name,
 
      if (service_aliases == NULL) {
           ci_debug_printf(1,
-                          "add_service_alias:Error allocation memory. Exiting...\n");
+                          "add_service_alias: Error allocating memory. Exiting...\n");
           exit(-1);
      }
 
