@@ -257,6 +257,7 @@ void ci_cached_file_release(ci_cached_file_t * body)
 int ci_cached_file_write(ci_cached_file_t * body, char *buf, int len, int iseof)
 {
      int remains;
+     int ret;
 
      if (iseof) {
           body->flags |= CI_FILE_HAS_EOF;
@@ -270,7 +271,7 @@ int ci_cached_file_write(ci_cached_file_t * body, char *buf, int len, int iseof)
 
      if (body->fd > 0) {        /*A file was open so write the data at the end of file....... */
           lseek(body->fd, 0, SEEK_END);
-          if (write(body->fd, buf, len) < 0) {
+          if ((ret = write(body->fd, buf, len)) < 0) {
                ci_debug_printf(1, "Cannot write to file!!! (errno=%d)\n",
                                errno);
           }
@@ -289,10 +290,15 @@ int ci_cached_file_write(ci_cached_file_t * body, char *buf, int len, int iseof)
                                body->filename);
                return -1;
           }
-          write(body->fd, body->buf, body->endpos);
-          write(body->fd, buf, len);
-          body->endpos += len;
-          return len;
+          ret = write(body->fd, body->buf, body->endpos);
+	  if( ret>=0 && write(body->fd, buf, len) >=0 ) {
+	      body->endpos += len;
+	      return len;
+	  }
+	  else {
+	      ci_debug_printf( 1, "Cannot write to cachefile: %s\n", strerror( errno ) );
+	      return CI_ERROR;
+	  }
      }                          /*  if remains<len */
 
      if (len > 0) {
@@ -489,9 +495,12 @@ int ci_simple_file_write(ci_simple_file_t * body, char *buf, int len, int iseof)
 
      lseek(body->fd, body->endpos, SEEK_SET);
      if ((ret = write(body->fd, buf, wsize)) < 0) {
+	 ci_debug_printf( 1, "Cannot write to file: %s\n", strerror( errno ) );
      }
-     body->endpos += ret;
-     body->bytes_in += ret;
+     else {
+	 body->endpos += ret;
+	 body->bytes_in += ret;
+     }
 
      if (iseof && ret == len) {
           body->flags |= CI_FILE_HAS_EOF;
