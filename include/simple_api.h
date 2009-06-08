@@ -276,7 +276,7 @@ CI_DECLARE_FUNC(int)                 ci_http_response_create(ci_request_t *req, 
  \param req is a pointer to the current ICAP request object.
  \return The content length on success zero otherwise
  */
-CI_DECLARE_FUNC(ci_off_t)            ci_http_content_lenght(ci_request_t *req);
+CI_DECLARE_FUNC(ci_off_t)            ci_http_content_length(ci_request_t *req);
 
 /**
  \ingroup HTTP
@@ -312,7 +312,7 @@ CI_DECLARE_FUNC(char *)              ci_icap_add_xheader(ci_request_t *req,char 
 #define ci_respmod_reset_headers     ci_http_response_reset_headers
 #define ci_reqmod_reset_headers      ci_http_request_reset_headers
 #define ci_request_create_respmod    ci_http_response_create
-#define ci_content_lenght            ci_http_content_lenght
+#define ci_content_lenght            ci_http_content_length
 #define ci_request_add_xheader       ci_icap_add_xheader
 #endif
 

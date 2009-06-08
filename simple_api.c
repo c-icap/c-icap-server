@@ -172,7 +172,7 @@ char *ci_http_request_get_header(ci_request_t * req, char *head_name)
 }
 
 
-ci_off_t ci_http_content_lenght(ci_request_t * req)
+ci_off_t ci_http_content_length(ci_request_t * req)
 {
      ci_headers_list_t *heads;
      char *val;
