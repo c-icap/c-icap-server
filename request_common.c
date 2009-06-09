@@ -567,6 +567,13 @@ void ci_client_request_reuse(ci_request_t * req)
      req->write_to_module_pending = 0;
      req->data_locked = 1;
 
+     req->bytes_in = 0;
+     req->bytes_out = 0;
+     req->http_bytes_in = 0;
+     req->http_bytes_out = 0;
+     req->body_bytes_in = 0;
+     req->body_bytes_out = 0;
+
      for (i = 0; req->entities[i] != NULL; i++) {
           ci_request_release_entity(req, i);
      }
