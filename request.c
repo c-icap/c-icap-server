@@ -657,7 +657,7 @@ int get_send_body(ci_request_t * req, int parse_only)
      int (*service_io) (char *rbuf, int *rlen, char *wbuf, int *wlen, int iseof,
                         ci_request_t *);
      int action = 0, rchunkisfull = 0, service_eof = 0, wbytes, rbytes;
-     int to_be_read, to_be_write, no_io;
+     int no_io;
 
      if (parse_only)
           service_io = mod_null_io;
@@ -751,14 +751,12 @@ int get_send_body(ci_request_t * req, int parse_only)
                else
                     rbytes = 0;
 
-               to_be_read = rbytes;
-               to_be_write = wbytes;
                no_io = 0;
                if ((*service_io)
                    (rchunkdata, &rbytes, wchunkdata, &wbytes, req->eof_received,
                     req) == CI_ERROR)
                     return CI_ERROR;
-               no_io = (to_be_read == rbytes && to_be_write == wbytes);
+               no_io = (rbytes==0 && wbytes==0);
                if (wbytes) {
                     wchunkdata += wbytes;
                     req->write_to_module_pending -= wbytes;
