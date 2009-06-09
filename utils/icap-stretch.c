@@ -215,7 +215,7 @@ int do_file(ci_request_t *req, char *input_file, int *keepalive)
           return 0;
      }
      fd_out = 0;
-     
+
      headers = ci_headers_create();     
      build_headers(fd_in, headers);
 
@@ -256,6 +256,7 @@ int threadjobsendfiles()
 	    exit(-1);
 	  }
 	  req = ci_client_request(conn, servername, service);
+	  req->preview = 512;
 
           for (;;) {
 
