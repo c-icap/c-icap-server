@@ -26,6 +26,6 @@ mk_bdb_LDFLAGS = -rdynamic -rpath @libdir@ @THREADS_LDFLAGS@
 
 icap_stretch_SOURCES = icap-stretch.c
 icap_stretch_CFLAGS= -I../include/
-icap_stretch_LDADD = @THREADS_LDADD@ @DL_ADD_FLAG@
+icap_stretch_LDADD = @THREADS_LDADD@ ../libicapapi.la @DL_ADD_FLAG@
 icap_stretch_LDFLAGS= @THREADS_LDFLAGS@
 
