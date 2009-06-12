@@ -256,6 +256,7 @@ int threadjobsendfiles()
 	    exit(-1);
 	  }
 	  req = ci_client_request(conn, servername, service);
+          req->type = ICAP_RESPMOD;
 	  req->preview = 512;
 
           for (;;) {
@@ -270,8 +271,10 @@ int threadjobsendfiles()
                ci_thread_mutex_unlock(&filemtx);
 
                keepalive = 0;
-               if (do_file(req, FILES[indx], &keepalive) <= 0)
+               if (do_file(req, FILES[indx], &keepalive) <= 0) {
+                    printf("Request failed...\n");
                     break;
+               }
 
                ci_thread_mutex_lock(&statsmtx);
                requests_stats++;
@@ -299,6 +302,7 @@ int threadjobsendfiles()
 
 	       ci_client_request_reuse(req);
           }
+	  ci_hard_close(conn->fd);
 	  ci_request_destroy(req);
           usleep(1000000);
      }
