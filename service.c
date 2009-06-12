@@ -217,9 +217,11 @@ void init_extra_data(ci_service_xdata_t * srv_xdata)
 /*Must called only in initialization procedure.
   It is not thread-safe!
 */
-ci_service_module_t *register_service(char *service_file)
+
+
+
+ci_service_module_t *add_service(ci_service_module_t *service)
 {
-     ci_service_module_t *service = NULL;
      struct ci_service_xdata *xdata=NULL;
      struct ci_conf_entry *cfg_table;
 
@@ -245,12 +247,6 @@ ci_service_module_t *register_service(char *service_file)
           exit(-1);
      }
 
-     service = create_service(service_file);
-     if (!service) {
-          ci_debug_printf(1, "Error finding symbol \"service\" in  module %s\n",
-                          service_file);
-          return NULL;
-     }
 
      xdata = &service_extra_data_list[services_num];
      init_extra_data(xdata);
@@ -267,6 +263,19 @@ ci_service_module_t *register_service(char *service_file)
                               MAIN_TABLE);
 
      return service;
+}
+
+ci_service_module_t *register_service(char *service_file)
+{
+     ci_service_module_t *service;
+     service = create_service(service_file);
+     if (!service) {
+          ci_debug_printf(1, "Error finding symbol \"service\" in  module %s\n",
+                          service_file);
+          return NULL;
+     }
+
+  return add_service(service);
 }
 
 
@@ -289,6 +298,17 @@ ci_service_xdata_t *service_data(ci_service_module_t * srv)
                return &(service_extra_data_list[i]);
      }
      return NULL;
+}
+
+extern ci_service_module_t info_service;
+int init_services()
+{
+    int ret =0;
+
+    if (add_service(&info_service) != NULL)
+        ret = 1;
+
+    return ret;
 }
 
 int post_init_services()

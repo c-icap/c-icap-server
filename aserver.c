@@ -96,6 +96,7 @@ int main(int argc, char **argv)
      init_conf_tables();
      request_stats_init();
      init_modules();
+     init_services();
      config(argc, argv);
      compute_my_hostname();
      ci_debug_printf(1, "My hostname is:%s\n", MY_HOSTNAME);

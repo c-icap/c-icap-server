@@ -789,6 +789,7 @@ void system_reconfigure()
      reset_conf_tables();
      ci_debug_printf(1, "All resources released. Going to reload!\n");
      init_modules();
+     init_services();
 
      /*
         - Freeing all memory and resources used by configuration parameters (is it possible???)

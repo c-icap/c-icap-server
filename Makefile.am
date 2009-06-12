@@ -27,7 +27,7 @@ libicapapi_la_SOURCES=  header.c body.c decode.c simple_api.c request_common.c \
 c_icap_SOURCES = aserver.c request.c cfg_param.c \
                    proc_threads_queues.c http_auth.c \
                    access.c log.c service.c module.c \
-		   commands.c mpmt_server.c dlib.c 
+		   commands.c mpmt_server.c dlib.c info.c
 
 
 # libicapapi ......
