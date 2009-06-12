@@ -20,6 +20,7 @@
 0:\355\253\356\333:RPM:Linux RPM file:ARCHIVE
 #Other type of Archives
 0:ITSF:MSCHM:MS Windows Html Help:ARCHIVE
+0:!<arch>\012debian:debian:Debian package:ARCHIVE
 
 # Graphics
 0:GIF8:GIF:GIF image data:GRAPHICS
