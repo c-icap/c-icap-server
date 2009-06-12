@@ -106,6 +106,28 @@ int ci_http_response_create(ci_request_t * req, int has_reshdr, int has_body)
 }
 
 
+int ci_http_request_create(ci_request_t * req, int has_body)
+{
+     int i = 0;
+     ci_encaps_entity_t **e_list;
+     e_list = req->entities;
+
+     for (i = 0; i < 4; i++) {
+          if (req->entities[i]) {
+               ci_request_release_entity(req, i);
+          }
+     }
+     i = 0;
+     req->entities[i++] = ci_request_alloc_entity(req, ICAP_REQ_HDR, 0);
+     if (has_body)
+          req->entities[i] = ci_request_alloc_entity(req, ICAP_REQ_BODY, 0);
+     else
+          req->entities[i] = ci_request_alloc_entity(req, ICAP_NULL_BODY, 0);
+
+     return 1;
+}
+
+
 char *ci_http_response_add_header(ci_request_t * req, char *header)
 {
      ci_headers_list_t *heads;

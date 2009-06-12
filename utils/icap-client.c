@@ -63,6 +63,67 @@ void print_headers(ci_request_t * req)
      }
 }
 
+void build_respmod_headers(int fd, ci_headers_list_t *headers)
+{
+     struct stat filestat;
+     int filesize;
+     char lbuf[512];
+//     struct tm ltime;
+     time_t ltimet;
+     
+     fstat(fd, &filestat);
+     filesize = filestat.st_size;
+
+     strcpy(lbuf, "Date: ");
+     time(&ltimet);
+     ctime_r(&ltimet, lbuf + strlen(lbuf));
+     lbuf[strlen(lbuf) - 1] = '\0';
+     ci_headers_add(headers, lbuf);
+
+     strcpy(lbuf, "Last-Modified: ");
+     ctime_r(&ltimet, lbuf + strlen(lbuf));
+     lbuf[strlen(lbuf) - 1] = '\0';
+     ci_headers_add(headers, lbuf);
+
+     sprintf(lbuf, "Content-Length: %d", filesize);
+     ci_headers_add(headers, lbuf);
+
+}
+
+
+void build_reqmod_headers(char *url, int fd, ci_headers_list_t *headers)
+{
+     struct stat filestat;
+     int filesize;
+     char lbuf[1024];
+     time_t ltimet;
+     
+     snprintf(lbuf,1024, "GET %s HTTP/1.0", url);
+     lbuf[1023] = '\0';
+     ci_headers_add(headers, lbuf);
+
+     strcpy(lbuf, "Date: ");
+     time(&ltimet);
+     ctime_r(&ltimet, lbuf + strlen(lbuf));
+     lbuf[strlen(lbuf) - 1] = '\0';
+
+     if (fd > 0) {
+          fstat(fd, &filestat);
+	  filesize = filestat.st_size;
+	  strcpy(lbuf, "Last-Modified: ");
+	  ctime_r(&ltimet, lbuf + strlen(lbuf));
+	  lbuf[strlen(lbuf) - 1] = '\0';
+	  ci_headers_add(headers, lbuf);
+
+	  sprintf(lbuf, "Content-Length: %d", filesize);
+	  ci_headers_add(headers, lbuf);
+     }
+
+     ci_headers_add(headers, lbuf);
+     ci_headers_add(headers, "User-Agent: C-ICAP-Client/x.xx");
+     
+}
+
 
 int fileread(void *fd, char *buf, int len)
 {
@@ -83,7 +144,7 @@ int port = 1344;
 char *service = "echo";
 char *input_file = NULL;
 char *output_file = NULL;
-int RESPMOD = 1;
+char *request_url = NULL;
 int send_headers = 1;
 int verbose = 0;
 
@@ -96,7 +157,7 @@ static struct ci_options_entry options[] = {
       "Send this file to the icap server.\nDefault is to send an options request"},
      {"-o", "filename", &output_file, ci_cfg_set_str,
       "Save output to this file.\nDefault is to send to stdout"},
-/*     {"-req",NULL,&RESPMOD,ci_cfg_disable,"Send a request modification instead of response modification"},*/
+     {"-req","url",&request_url,ci_cfg_set_str,"Send a request modification instead of response modification"},
      {"-d", "level", &CI_DEBUG_LEVEL, ci_cfg_set_int,
       "debug level info to stdout"},
      {"-noreshdr", NULL, &send_headers, ci_cfg_disable,
@@ -120,7 +181,7 @@ void vlog_errors(ci_request_t * req, const char *format, va_list ap)
 
 int main(int argc, char **argv)
 {
-     int fd_in, fd_out;
+     int fd_in = 0, fd_out = 0;
      int ret;
      char ip[CI_IPLEN];
      ci_connection_t *conn;
@@ -155,7 +216,7 @@ int main(int argc, char **argv)
      ci_debug_printf(1, "ICAP server:%s, ip:%s, port:%d\n\n", icap_server, ip,
                      port);
 
-     if (!input_file) {
+     if (!input_file && !request_url) {
           ci_debug_printf(1, "OPTIONS:\n");
           ci_debug_printf(1,
                           "\tAllow 204: %s\n\tPreview: %d\n\tKeep alive: %s\n",
@@ -165,7 +226,7 @@ int main(int argc, char **argv)
           print_headers(req);
      }
      else {
-          if ((fd_in = open(input_file, O_RDONLY)) < 0) {
+          if (input_file && (fd_in = open(input_file, O_RDONLY)) < 0) {
                ci_debug_printf(1, "Error opening file %s\n", input_file);
                exit(-1);
           }
@@ -190,10 +251,18 @@ int main(int argc, char **argv)
 
           ci_debug_printf(10, "OK allocating request going to send request\n");
 
-          if (send_headers) {
+	  req->type = ICAP_RESPMOD;
+
+	  if (request_url) {
+	       headers = ci_headers_create();
+	       build_reqmod_headers(request_url, fd_in, headers);
+	       req->type = ICAP_REQMOD;
+	  }
+          else if (send_headers) {
                headers = ci_headers_create();
-               ci_headers_add(headers, "Filetype: Unknown");
-               ci_headers_add(headers, "User: chtsanti");
+	       build_respmod_headers(fd_in, headers);
+	       //               ci_headers_add(headers, "Filetype: Unknown");
+	       //               ci_headers_add(headers, "User: chtsanti");
           }
           else
                headers = NULL;
@@ -201,7 +270,7 @@ int main(int argc, char **argv)
           ret = ci_client_icapfilter(req,
                                      CONN_TIMEOUT,
                                      headers,
-                                     &fd_in,
+                                     (fd_in > 0 ? (&fd_in): NULL),
                                      (int (*)(void *, char *, int)) fileread,
                                      &fd_out,
                                      (int (*)(void *, char *, int)) filewrite);

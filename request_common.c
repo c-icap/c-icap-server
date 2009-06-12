@@ -974,9 +974,16 @@ int client_parse_incoming_data(ci_request_t * req, void *data_dest,
           req->current_chunk_len = 0;
           req->chunk_bytes_read = 0;
           req->write_to_module_pending = 0;
-          req->status = GET_BODY;
-          if (req->pstrblock_read_len == 0)
-               return CI_NEEDS_MORE;
+
+	  if (req->entities[1]->type == ICAP_NULL_BODY) {
+	       req->status = GET_EOF;
+	       return CI_OK;
+	  }
+	  else {
+	       req->status = GET_BODY;
+	       if (req->pstrblock_read_len == 0)
+	            return CI_NEEDS_MORE;
+	  }
      }
 
      if (req->status == GET_BODY) {
@@ -1038,6 +1045,9 @@ int client_send_get_data(ci_request_t * req,
  	       return CI_OK;
      }
 
+     if (!data_source)
+       req->eof_received = 1;
+
      if (!req->eof_received) {
           io_action = wait_for_readwrite;
      }
@@ -1051,7 +1061,7 @@ int client_send_get_data(ci_request_t * req,
                return CI_ERROR;
           if (io_ret & wait_for_write) {
                if (req->remain_send_block_bytes == 0) {
-                    if (client_prepere_body_chunk(req, data_source, source_read)
+                    if (data_source && client_prepere_body_chunk(req, data_source, source_read)
                         <= 0) {
                          req->eof_received = 1;
                          req->pstrblock_responce = (char *) eof_str;
@@ -1109,10 +1119,13 @@ int ci_client_icapfilter(ci_request_t * req,
 
      if (CI_OK !=
          client_create_request(req, req->req_server, req->service,
-                               ICAP_RESPMOD)) {
+                               req->type)) {
           ci_debug_printf(1, "Error making respmod request ....\n");
           return CI_ERROR;
      }
+
+     if (!data_source)
+       req->preview = -1;
 
      if (req->preview > 0) {    /*The preview data will be send with headers.... */
           ci_buf_mem_alloc(&(req->preview_data), req->preview); /*Alloc mem for preview data */
@@ -1133,7 +1146,13 @@ int ci_client_icapfilter(ci_request_t * req,
           req->eof_received = 1;
 
      /*Add the user supplied headers */
-     if (headers) {
+     if (req->type == ICAP_REQMOD && headers) {
+          ci_http_request_create(req, (data_source!= NULL));
+          for (i = 0; i < headers->used; i++) {
+               ci_http_request_add_header(req, headers->headers[i]);
+          }
+     }
+     else if (headers) {
           ci_http_response_create(req, 1, 1);
           for (i = 0; i < headers->used; i++) {
                ci_http_response_add_header(req, headers->headers[i]);
