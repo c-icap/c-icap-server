@@ -34,6 +34,7 @@ int fmt_req_http_bytes_rcv(ci_request_t *req_data, char *buf,int len, char *para
 int fmt_req_http_bytes_sent(ci_request_t *req_data, char *buf,int len, char *param);
 int fmt_req_body_bytes_rcv(ci_request_t *req_data, char *buf,int len, char *param);
 int fmt_req_body_bytes_sent(ci_request_t *req_data, char *buf,int len, char *param);
+int fmt_req_preview_hex(ci_request_t *req_data, char *buf,int len, char *param);
 
 
 struct ci_fmt_entry GlobalTable [] = {
@@ -67,6 +68,7 @@ struct ci_fmt_entry GlobalTable [] = {
     {"%I", "Bytes received", fmt_req_bytes_rcv},
     {"%O", "Bytes sent", fmt_req_bytes_sent},
 
+    {"%bph", "Body data preview", fmt_req_preview_hex},
     {"%un", "Username", fmt_none}, 
     { NULL, NULL, NULL} 
 };
@@ -457,4 +459,25 @@ int fmt_req_body_bytes_sent(ci_request_t *req, char *buf,int len, char *param) {
     return snprintf(buf, len, "%" PRINTF_OFF_T , req->body_bytes_out);
 }
 
+int fmt_req_preview_hex(ci_request_t *req, char *buf,int len, char *param)
+{
+    int  i, num, n; 
+    if (req->preview_data.used <= 0) {
+        *buf = '-';
+        return 1;
+    }
 
+    if (param) {
+        num = strtol(param, NULL, 10);
+    }
+    else
+       num = 5;
+    n = 0;
+    for (i=0; i<num && i < req->preview_data.used; i++) {
+         if (req->preview_data.buf[i] >= ' ' && req->preview_data.buf[i] <= '~')
+            buf[n++] = req->preview_data.buf[i]; 
+         else
+	     n += snprintf(buf+n, len-n, "\\x%X",0xFF & (buf[i]));
+    }
+    return n;
+}
