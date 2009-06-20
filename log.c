@@ -98,11 +98,18 @@ int logformat_add(char *name, char *format)
   struct logformat *lf, *tmp;
   lf = malloc(sizeof(struct logformat));
   if (!lf) {
-     ci_debug_printf(1, "Error allocation memory in add_logformat\n");
+     ci_debug_printf(1, "Error allocating memory in add_logformat\n");
      return 0;
   }
   lf->name = strdup(name);
   lf->fmt = strdup(format);
+
+  if (!lf->name || !lf->fmt) {
+      ci_debug_printf(1, "Error strduping in add_logformat\n");
+      free(lf);
+      return 0;
+  }
+
   lf->next = NULL;
   if (LOGFORMATS==NULL) {
      LOGFORMATS = lf;  
