@@ -428,20 +428,38 @@ void ec_responce(ci_request_t * req, int ec)
      req->bytes_out += len;
 }
 
-void ec_responce_with_istag(ci_request_t * req, int ec)
+int ec_responce_with_istag(ci_request_t * req, int ec)
 {
      char buf[256];
      ci_service_xdata_t *srv_xdata;
      int len;
      srv_xdata = service_data(req->current_service_mod);
+     ci_headers_reset(req->response_header);
+     snprintf(buf, 256, "ICAP/1.0 %d %s",
+              ci_error_code(ec), ci_error_code_string(ec));
+     ci_headers_add(req->response_header, buf);
+     ci_headers_add(req->response_header, "Server: C-ICAP/" VERSION);
+     if (req->keepalive)
+          ci_headers_add(req->response_header, "Connection: keep-alive");
+     else
+          ci_headers_add(req->response_header, "Connection: close");
+
      ci_service_data_read_lock(srv_xdata);
-     snprintf(buf, 256, "ICAP/1.0 %d %s\r\n%s\r\n\r\n",
-              ci_error_code(ec), ci_error_code_string(ec), srv_xdata->ISTag);
+     ci_headers_add(req->response_header, srv_xdata->ISTag);
      ci_service_data_read_unlock(srv_xdata);
-     buf[255] = '\0';
-     len = strlen(buf);
-     ci_write(req->connection->fd, buf, len, TIMEOUT);
+     if (!ci_headers_is_empty(req->xheaders)) {
+	  ci_headers_addheaders(req->response_header, req->xheaders);
+     }
+     ci_response_pack(req);
+
+     len = ci_write(req->connection->fd, 
+		    req->response_header->buf, req->response_header->bufused, 
+		    TIMEOUT);
+     if (len < 0)
+	 return -1;
+
      req->bytes_out += len;
+     return len;
 }
 
 extern char MY_HOSTNAME[];
@@ -1074,7 +1092,8 @@ int do_request(ci_request_t * req)
                         mod_check_preview_handler(req->preview_data.buf,
                                                   req->preview_data.used, req);
                     if (res == CI_MOD_ALLOW204) {
-                         ec_responce(req, EC_204);
+			 if (ec_responce_with_istag(req, EC_204) < 0)
+			     ret_status = CI_ERROR;
 			 req->return_code = EC_204;
                          break; //Need no any modification.
                     }
@@ -1095,7 +1114,10 @@ int do_request(ci_request_t * req)
                    req->current_service_mod->mod_check_preview_handler(NULL, 0,
                                                                        req);
                if (req->allow204 && res == CI_MOD_ALLOW204) {
-                    ec_responce_with_istag(req, EC_204);
+		   if (ec_responce_with_istag(req, EC_204) < 0) {
+		       ret_status = CI_ERROR;
+		       break;
+		   }
 		    req->return_code = EC_204;
                     /*And now parse body data we read and data the client going to send us,
                        but do not pass them to the service */
@@ -1125,7 +1147,8 @@ int do_request(ci_request_t * req)
 		    }
 */
                if (req->allow204 && res == CI_MOD_ALLOW204) {
-                    ec_responce_with_istag(req, EC_204);
+		    if (ec_responce_with_istag(req, EC_204))
+		        ret_status = CI_ERROR;
 		    req->return_code = EC_204;
                     break;      //Need no any modification.
                }
