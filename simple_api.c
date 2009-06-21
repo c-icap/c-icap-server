@@ -220,3 +220,31 @@ char *ci_icap_add_xheader(ci_request_t * req, char *header)
 {
      return ci_headers_add(req->xheaders, header);
 }
+
+int ci_http_request_url(ci_request_t * req, char *buf, int buf_size)
+{
+   ci_headers_list_t *heads;
+   char *str;
+   int i; 
+   /*The request must have the form:
+        GET url HTTP/X.X 
+   */
+    if (!(heads = ci_http_request_headers(req)))
+          return 0;
+
+    str = heads->headers[0];
+
+    if ((str = strchr(str, ' ')) == NULL) { /*Ignore method i*/
+          return 0;
+     }
+     while (*str == ' ') /*ignore spaces*/
+          str++;
+
+     /*copy the url...*/
+     for (i=0; i < buf_size-1 && (str[i] !=' ' && str[i]!='\0' && str[i]!='\n'); 
+             i++) {
+          buf[i] = str[i]; 
+     }
+     buf[i] = '\0';
+     return i;
+}

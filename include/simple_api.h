@@ -300,6 +300,18 @@ CI_DECLARE_FUNC(ci_off_t)            ci_http_content_length(ci_request_t *req);
 CI_DECLARE_FUNC(char *)              ci_http_request(ci_request_t *req);
 
 /**
+ \ingroup HTTP
+ \brief Returns the URL (e.g "http://www.chtsanti.net") from http request
+ *
+ * It can be used with both request and response modification ICAP requests.
+ \param req is a pointer to the current ICAP request object.
+ \param buf a buffer to store the url
+ \param buf_size the "buf" buffer size
+ \return The bytes written to the "buf" buffer
+ */
+CI_DECLARE_FUNC(int) ci_http_request_url(ci_request_t * req, char *buf, int buf_size);
+
+/**
  \ingroup REQUEST
  \brief Add an icap X-header to the icap response headers 
  *
