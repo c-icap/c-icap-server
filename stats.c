@@ -22,10 +22,11 @@
 #include "stats.h"
 #include <assert.h>
 
-struct stat_entry_list STAT_INT64 = {NULL,0,0};
-struct stat_entry_list STAT_KBS = {NULL,0,0};
+struct stat_entry_list STAT_INT64 = {NULL, 0, 0};
+struct stat_entry_list STAT_KBS = {NULL, 0, 0};
+struct stat_groups_list STAT_GROUPS = {NULL, 0, 0};;
 
-struct stat_area *STATS= NULL;
+struct stat_area *STATS = NULL;
 
 #define STEP 128
 
@@ -36,7 +37,7 @@ int ci_stat_memblock_size(void)
 
 int stat_entry_by_name(struct stat_entry_list *list, const char *label);
 
-int stat_entry_add(struct stat_entry_list *list,const char *label, int type)
+int stat_entry_add(struct stat_entry_list *list,const char *label, int type, int gid)
 {
    struct stat_entry *l;
    int indx;
@@ -63,6 +64,7 @@ int stat_entry_add(struct stat_entry_list *list,const char *label, int type)
    } 
    list->entries[list->entries_num].label = strdup(label);
    list->entries[list->entries_num].type = type;
+   list->entries[list->entries_num].gid = gid;
    indx = list->entries_num;
    list->entries_num++;
    return indx; 
@@ -93,13 +95,46 @@ int stat_entry_by_name(struct stat_entry_list *list, const char *label)
     return -1;
 }
 
-int ci_stat_entry_register(char *label, int type) 
+int stat_group_add(char *group)
 {
+   char **group_list;
+   int gid =0;
+    
+   for (gid = 0; gid < STAT_GROUPS.entries_num; gid++) {
+       if (strcmp(STAT_GROUPS.groups[gid], group) == 0) 
+           return gid;
+   }
+
+   if (STAT_GROUPS.size == 0) {
+       STAT_GROUPS.groups = malloc(STEP * sizeof(char *));
+       STAT_GROUPS.size = STEP;
+   }
+   else if (STAT_GROUPS.size == STAT_GROUPS.entries_num) {
+       group_list = realloc(STAT_GROUPS.groups, (STAT_GROUPS.size+STEP)*sizeof(char *)); 
+       if (!group_list) 
+           return -1;
+       STAT_GROUPS.groups = group_list;
+       STAT_GROUPS.size += STEP;
+   }
+   STAT_GROUPS.groups[STAT_GROUPS.entries_num] = strdup(group);
+   gid = STAT_GROUPS.entries_num;
+   STAT_GROUPS.entries_num++;
+   return gid;
+}
+
+int ci_stat_entry_register(char *label, int type, char *group) 
+{
+   int gid;
+
+   gid = stat_group_add(group);
+   if (gid < 0)
+       return -1;
+
    if (type == STAT_INT64_T) {
-       return stat_entry_add(&STAT_INT64,label,type);
+       return stat_entry_add(&STAT_INT64, label, type, gid);
    } 
    else if(type == STAT_KBS_T) {
-       return stat_entry_add(&STAT_KBS,label,type); 
+       return stat_entry_add(&STAT_KBS, label, type, gid); 
    }
    return -1;
 }

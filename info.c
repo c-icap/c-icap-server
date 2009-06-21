@@ -38,8 +38,6 @@ void info_release_request_data(void *data);
 int info_io(char *wbuf, int *wlen, char *rbuf, int *rlen, int iseof,
             ci_request_t * req);
 
-
-
 CI_DECLARE_MOD_DATA ci_service_module_t info_service = {
      "info",                         /* mod_name, The module name */
      "C-icap run-time information",            /* mod_short_descr,  Module short description */
@@ -59,11 +57,15 @@ CI_DECLARE_MOD_DATA ci_service_module_t info_service = {
 
 struct info_req_data {
      ci_membuf_t *body;
+     int txt_mode;
      int childs;
+     int *child_pids;
      int free_servers;
      int used_servers;
      struct stat_memblock *collect_stats;
 };
+
+extern struct childs_queue *childs_queue;
 
 int build_statistics(struct info_req_data *info_data);
 
@@ -87,8 +89,14 @@ void *info_init_request_data(ci_request_t * req)
 
      info_data->body = ci_membuf_new(4096);
      info_data->childs = 0;
+     info_data->child_pids = malloc(childs_queue->size * sizeof(int));
      info_data->free_servers = 0;
      info_data->used_servers = 0;
+     info_data->txt_mode = 0;
+     if (req->args) {
+          if (strstr(req->args, "view=text"))
+              info_data->txt_mode = 1;
+     }
      
      info_data->collect_stats = malloc(ci_stat_memblock_size());
      info_data->collect_stats->sig = 0xFAFA;
@@ -121,8 +129,7 @@ int info_check_preview_handler(char *preview_data, int preview_data_len,
          return CI_MOD_ALLOW204;
      
      ci_req_unlock_data(req);
-
-
+    
      ci_http_response_create(req, 1, 1); /*Build the responce headers */
 
      ci_http_response_add_header(req, "HTTP/1.0 200 OK");
@@ -131,7 +138,6 @@ int info_check_preview_handler(char *preview_data, int preview_data_len,
      ci_http_response_add_header(req, "Content-Language: en");
      ci_http_response_add_header(req, "Connection: close");
      if (info_data->body) {
-       //         ci_membuf_write(info_data->body, "Hi bre papara", 14, 1);
          build_statistics (info_data);
      }
      
@@ -175,6 +181,8 @@ void fill_queue_statistics(struct childs_queue *q, struct info_req_data *info_da
      /*Merge childs data*/
      for (i = 0; i < q->size; i++) {
           if (q->childs[i].pid != 0 && q->childs[i].to_be_killed == 0) {
+               if (info_data->child_pids)
+                   info_data->child_pids[info_data->childs] = q->childs[i].pid;
                info_data->childs++;
                info_data->free_servers += q->childs[i].freeservers;
                info_data->used_servers += q->childs[i].usedservers;
@@ -203,55 +211,103 @@ void fill_queue_statistics(struct childs_queue *q, struct info_req_data *info_da
      ci_stat_memblock_merge(info_data->collect_stats, &copy_stats);     
 }
 
-extern struct childs_queue *childs_queue;
-char *gen_template= "Running Servers Statistics\n===========================\n"\
-                    "Childs: %d\nFree Servers:%d\nUsed Servers:%d\n\n\n";
-char *statsHeader = "General Statistics\n==================\n";
-char *statline_tmpl_int = "%s : %lld\n";
-char *statline_tmpl_kbs = "%s : %lld Kbs %d bytes\n";
+struct stats_tmpl {
+   char *gen_template;
+   char *statsHeader;
+   char *statsEnd;
+   char *childsHeader;
+   char *childs_tmpl;
+   char *childsEnd;
+   char *statline_tmpl_int;
+   char *statline_tmpl_kbs;
+};
 
+struct stats_tmpl txt_tmpl = {
+  "Running Servers Statistics\n===========================\n"\
+    "Childs number: %d\nFree Servers:%d\nUsed Servers:%d\n\n\n",
+  "%s Statistics\n==================\n",
+  "",
+  "Child pids:",
+  " %d",
+  "\n",
+  "%s : %lld\n",
+  "%s : %lld Kbs %d bytes\n"
+};
+
+struct stats_tmpl html_tmpl = {
+  "<H1>Running Servers Statistics</H1>\n"\
+    "<TABLE>"\
+    "<TR><TH>Childs number:</TH><TD> %d<TD>"\
+    "<TR><TH>Free Servers:</TH><TD> %d<TD>"\
+    "<TR><TH>Used Servers:</TH><TD> %d<TD>"\
+    "</TABLE>\n",
+  "<H1>%s Statistics</H1>\n<TABLE>",
+  "</TABLE>",
+  "<TABLE> <TR><TH>Child pids:</TH>",
+  "<TD> %d</TD>",
+  "</TR></TABLE>\n",
+  "<TR><TH>%s:</TH><TD>  %lld</TD>\n",
+  "<TR><TH>%s:</TH><TD>  %lld Kbs %d bytes</TD>\n"
+};
+
+#define LOCAL_BUF_SIZE 1024
 int build_statistics(struct info_req_data *info_data)
 {    
-     char buf[1024];
-     int sz, k;
+     char buf[LOCAL_BUF_SIZE];
+     int sz, gid, k;
+     char *stat_group;
+     struct stats_tmpl *tmpl;
+
+     if (info_data->txt_mode)
+          tmpl = &txt_tmpl;
+     else
+          tmpl = &html_tmpl;
 
      if (!info_data->body)
        return 0;
 	    
      fill_queue_statistics(childs_queue, info_data);
 
-
-     sz = snprintf(buf, 1024,gen_template,
+     sz = snprintf(buf, LOCAL_BUF_SIZE,tmpl->gen_template,
 		   info_data->childs,
 		   info_data->free_servers,
 		   info_data->used_servers);
     
      ci_membuf_write(info_data->body,buf, sz, 0);
 
-     ci_membuf_write(info_data->body,statsHeader, strlen(statsHeader), 0);
-     for (k=0; k < info_data->collect_stats->counters64_size && k < STAT_INT64.entries_num; k++) {
-          sz = snprintf(buf,1024, statline_tmpl_int,
-			STAT_INT64.entries[k].label, 
-			info_data->collect_stats->counters64[k]);
-	  ci_membuf_write(info_data->body,buf, sz, 0);
-     }
+     /*print childs pids ...*/
+     ci_membuf_write(info_data->body, tmpl->childsHeader, strlen(tmpl->childsHeader), 0);
+     for (k =0; k < info_data->childs; k++) {
+          sz = snprintf(buf, LOCAL_BUF_SIZE, tmpl->childs_tmpl, info_data->child_pids[k]);
+          ci_membuf_write(info_data->body,buf, sz, 0);
+     } 
+     ci_membuf_write(info_data->body, tmpl->childsEnd, strlen(tmpl->childsEnd), 0);
 
-     for (k=0; k < info_data->collect_stats->counterskbs_size && k < STAT_KBS.entries_num; k++) {
-          sz = snprintf(buf,1024, statline_tmpl_kbs,
-			STAT_KBS.entries[k].label, 
-			info_data->collect_stats->counterskbs[k]);
-	  ci_membuf_write(info_data->body,buf, sz, 0);
-     }
+     for (gid = 0; gid < STAT_GROUPS.entries_num; gid++) {
+          stat_group = STAT_GROUPS.groups[gid];
 
-     ci_membuf_write(info_data->body, buf, 0, 1);
+          sz = snprintf(buf, LOCAL_BUF_SIZE, tmpl->statsHeader, stat_group);
+          ci_membuf_write(info_data->body, buf, sz, 0);
+	  for (k=0; k < info_data->collect_stats->counters64_size && k < STAT_INT64.entries_num; k++) {
+	      if (gid == STAT_INT64.entries[k].gid) {
+		  sz = snprintf(buf, LOCAL_BUF_SIZE, tmpl->statline_tmpl_int,
+				STAT_INT64.entries[k].label, 
+				info_data->collect_stats->counters64[k]);
+		  ci_membuf_write(info_data->body,buf, sz, 0);
+	      }
+	  }
+	  
+	  for (k=0; k < info_data->collect_stats->counterskbs_size && k < STAT_KBS.entries_num; k++) {
+	       if (gid == STAT_KBS.entries[k].gid) {
+		   sz = snprintf(buf, LOCAL_BUF_SIZE, tmpl->statline_tmpl_kbs,
+				 STAT_KBS.entries[k].label, 
+				 info_data->collect_stats->counterskbs[k]);
+		   ci_membuf_write(info_data->body,buf, sz, 0);
+	       }
+	  }
+	  ci_membuf_write(info_data->body,tmpl->statsEnd, strlen(tmpl->statsEnd), 1);
+     }
      
      return 1;
 }
 
-
-/*
-  for (k=0; k < copy_stats.counters64_size && k < STAT_INT64.entries_num; k++)
-  ci_debug_printf(1,"\t%s:%lld\n",STAT_INT64.entries[k].label, copy_stats.counters64[k]);
-  for (k=0; k < copy_stats.counterskbs_size && k < STAT_KBS.entries_num; k++)
-  ci_debug_printf(1,"\t%s:%lld kbytes and %d bytes\n",STAT_KBS.entries[k].label, copy_stats.counterskbs[k].kb, copy_stats.counterskbs[k].bytes);
-*/

@@ -29,6 +29,7 @@
 #endif
 #include "dlib.h"
 #include "cfg_param.h"
+#include "stats.h"
 #include <errno.h>
 
 
@@ -199,8 +200,10 @@ ci_service_module_t *create_service(char *service_file)
 
 }
 
-void init_extra_data(ci_service_xdata_t * srv_xdata)
+void init_extra_data(ci_service_xdata_t * srv_xdata, char *service)
 {
+     char buf[1024];
+     char stat_group[1024];
      ci_thread_rwlock_init(&srv_xdata->lock);
      strcpy(srv_xdata->ISTag, "ISTag: ");
      strcat(srv_xdata->ISTag, ISTAG "-XXXXXXXXX");
@@ -212,6 +215,40 @@ void init_extra_data(ci_service_xdata_t * srv_xdata)
      srv_xdata->allow_204 = 0;
      srv_xdata->max_connections = 0;
      srv_xdata->xopts = 0;
+
+     snprintf(stat_group, 1023, "Service %s", service);
+     stat_group[1023] = '\0';
+
+     buf[1023] = '\0';
+     snprintf(buf, 1023, "Service %s REQMODS", service);
+     srv_xdata->stat_reqmods = ci_stat_entry_register(buf, STAT_INT64_T, stat_group);
+
+     snprintf(buf, 1023, "Service %s RESPMODS", service);
+     srv_xdata->stat_respmods = ci_stat_entry_register(buf, STAT_INT64_T, stat_group);
+
+     snprintf(buf, 1023, "Service %s OPTIONS", service);
+     srv_xdata->stat_options = ci_stat_entry_register(buf, STAT_INT64_T, stat_group);
+
+     snprintf(buf, 1023, "Service %s ALLOW 204", service);
+     srv_xdata->stat_allow204 = ci_stat_entry_register(buf, STAT_INT64_T, stat_group);
+
+     snprintf(buf, 1023, "Service %s BYTES IN", service);
+     srv_xdata->stat_bytes_in = ci_stat_entry_register(buf, STAT_KBS_T, stat_group);
+
+     snprintf(buf, 1023, "Service %s BYTES OUT", service);
+     srv_xdata->stat_bytes_out = ci_stat_entry_register(buf, STAT_KBS_T, stat_group);
+
+     snprintf(buf, 1023, "Service %s HTTP BYTES IN", service);
+     srv_xdata->stat_http_bytes_in = ci_stat_entry_register(buf, STAT_KBS_T, stat_group);
+     
+     snprintf(buf, 1023, "Service %s HTTP BYTES OUT", service);
+     srv_xdata->stat_http_bytes_out = ci_stat_entry_register(buf, STAT_KBS_T, stat_group);
+     
+     snprintf(buf, 1023, "Service %s BODY BYTES IN", service);
+     srv_xdata->stat_body_bytes_in = ci_stat_entry_register(buf, STAT_KBS_T, stat_group);
+
+     snprintf(buf, 1023, "Service %s BODY BYTES OUT", service);
+     srv_xdata->stat_body_bytes_out = ci_stat_entry_register(buf, STAT_KBS_T, stat_group);
 }
 
 /*Must called only in initialization procedure.
@@ -249,7 +286,7 @@ ci_service_module_t *add_service(ci_service_module_t *service)
 
 
      xdata = &service_extra_data_list[services_num];
-     init_extra_data(xdata);
+     init_extra_data(xdata, service->mod_name);
      if (service->mod_init_service)
           service->mod_init_service(xdata, &CONF);
 

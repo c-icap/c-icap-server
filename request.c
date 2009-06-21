@@ -54,17 +54,25 @@ int STAT_HTTP_BYTES_IN = -1;
 int STAT_HTTP_BYTES_OUT = -1;
 int STAT_BODY_BYTES_IN = -1;
 int STAT_BODY_BYTES_OUT = -1;
+int STAT_REQMODS = -1;
+int STAT_RESPMODS = -1;
+int STAT_OPTIONS = -1;
+int STAT_ALLOW204 = -1;
 
 void request_stats_init()
 {
-  STAT_REQUESTS = ci_stat_entry_register("REQUESTS", STAT_INT64_T);
-  STAT_FAILED_REQUESTS = ci_stat_entry_register("FAILED REQUESTS", STAT_INT64_T);
-  STAT_BYTES_IN = ci_stat_entry_register("BYTES IN", STAT_KBS_T);
-  STAT_BYTES_OUT = ci_stat_entry_register("BYTES OUT", STAT_KBS_T);
-  STAT_HTTP_BYTES_IN = ci_stat_entry_register("HTTP BYTES IN", STAT_KBS_T);
-  STAT_HTTP_BYTES_OUT = ci_stat_entry_register("HTTP BYTES OUT", STAT_KBS_T);
-  STAT_BODY_BYTES_IN = ci_stat_entry_register("BODY BYTES IN", STAT_KBS_T);
-  STAT_BODY_BYTES_OUT = ci_stat_entry_register("BODY BYTES OUT", STAT_KBS_T);
+  STAT_REQUESTS = ci_stat_entry_register("REQUESTS", STAT_INT64_T, "General");
+  STAT_REQMODS = ci_stat_entry_register("REQMODS", STAT_INT64_T, "General");
+  STAT_RESPMODS = ci_stat_entry_register("RESPMODS", STAT_INT64_T, "General");
+  STAT_OPTIONS = ci_stat_entry_register("OPTIONS", STAT_INT64_T, "General");
+  STAT_FAILED_REQUESTS = ci_stat_entry_register("FAILED REQUESTS", STAT_INT64_T, "General");
+  STAT_ALLOW204 = ci_stat_entry_register("ALLOW 204", STAT_INT64_T, "General");
+  STAT_BYTES_IN = ci_stat_entry_register("BYTES IN", STAT_KBS_T, "General");
+  STAT_BYTES_OUT = ci_stat_entry_register("BYTES OUT", STAT_KBS_T, "General");
+  STAT_HTTP_BYTES_IN = ci_stat_entry_register("HTTP BYTES IN", STAT_KBS_T, "General");
+  STAT_HTTP_BYTES_OUT = ci_stat_entry_register("HTTP BYTES OUT", STAT_KBS_T, "General");
+  STAT_BODY_BYTES_IN = ci_stat_entry_register("BODY BYTES IN", STAT_KBS_T, "General");
+  STAT_BODY_BYTES_OUT = ci_stat_entry_register("BODY BYTES OUT", STAT_KBS_T, "General");
 }
 
 ci_request_t *newrequest(ci_connection_t * connection)
@@ -1177,6 +1185,7 @@ int do_request(ci_request_t * req)
 int process_request(ci_request_t * req)
 {
     int res;
+    ci_service_xdata_t *srv_xdata;
     res = do_request(req);
    
     if (!STATS)
@@ -1184,17 +1193,55 @@ int process_request(ci_request_t * req)
 
     if (res<0 && req->request_header->bufused == 0) /*Did not read anything*/
 	return res;
+
+    srv_xdata = service_data(req->current_service_mod);
 	
     STATS_LOCK();
     if (STAT_REQUESTS >= 0) STATS_INT64_INC(STAT_REQUESTS,1);
+
+    if (req->type == ICAP_REQMOD) {
+      STATS_INT64_INC(STAT_REQMODS, 1);
+      STATS_INT64_INC(srv_xdata->stat_reqmods, 1);
+    }
+    else if (req->type == ICAP_RESPMOD) {
+      STATS_INT64_INC(STAT_RESPMODS, 1);
+      STATS_INT64_INC(srv_xdata->stat_respmods, 1);
+    }
+    else if (req->type == ICAP_OPTIONS) {
+      STATS_INT64_INC(STAT_OPTIONS, 1);
+      STATS_INT64_INC(srv_xdata->stat_options, 1);
+    }
+
     if (res <0 && STAT_FAILED_REQUESTS >= 0)
         STATS_INT64_INC(STAT_FAILED_REQUESTS,1);
+
+    if (req->return_code == EC_204) {
+      STATS_INT64_INC(STAT_ALLOW204, 1);
+      STATS_INT64_INC(srv_xdata->stat_allow204, 1);
+    }
+
+
     if (STAT_BYTES_IN >= 0) STATS_KBS_INC(STAT_BYTES_IN, req->bytes_in);
     if (STAT_BYTES_OUT >= 0) STATS_KBS_INC(STAT_BYTES_OUT, req->bytes_out);
     if (STAT_HTTP_BYTES_IN >= 0) STATS_KBS_INC(STAT_HTTP_BYTES_IN, req->http_bytes_in);
     if (STAT_HTTP_BYTES_OUT >= 0) STATS_KBS_INC(STAT_HTTP_BYTES_OUT, req->http_bytes_out);
     if (STAT_BODY_BYTES_IN >= 0) STATS_KBS_INC(STAT_BODY_BYTES_IN, req->body_bytes_in);
     if (STAT_BODY_BYTES_OUT >= 0) STATS_KBS_INC(STAT_BODY_BYTES_OUT, req->body_bytes_out);
+
+
+    if (srv_xdata->stat_bytes_in >= 0) 
+      STATS_KBS_INC(srv_xdata->stat_bytes_in, req->bytes_in);
+    if (srv_xdata->stat_bytes_out >= 0) 
+      STATS_KBS_INC(srv_xdata->stat_bytes_out, req->bytes_out);
+    if (srv_xdata->stat_http_bytes_in >= 0) 
+      STATS_KBS_INC(srv_xdata->stat_http_bytes_in, req->http_bytes_in);
+    if (srv_xdata->stat_http_bytes_out >= 0) 
+      STATS_KBS_INC(srv_xdata->stat_http_bytes_out, req->http_bytes_out);
+    if (srv_xdata->stat_body_bytes_in >= 0) 
+      STATS_KBS_INC(srv_xdata->stat_body_bytes_in, req->body_bytes_in);
+    if (srv_xdata->stat_body_bytes_out >= 0) 
+      STATS_KBS_INC(srv_xdata->stat_body_bytes_out, req->body_bytes_out);
+
     STATS_UNLOCK();
 
     return res;

@@ -75,6 +75,17 @@ typedef struct ci_service_xdata {
      int preview_size;
      int max_connections;
      int allow_204;
+     /*statistics IDS*/
+     int stat_bytes_in;
+     int stat_bytes_out;
+     int stat_http_bytes_in;
+     int stat_http_bytes_out;
+     int stat_body_bytes_in;
+     int stat_body_bytes_out;
+     int stat_reqmods;
+     int stat_respmods;
+     int stat_options;
+     int stat_allow204;
 } ci_service_xdata_t;
 
 /**
