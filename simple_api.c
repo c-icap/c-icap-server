@@ -241,7 +241,7 @@ int ci_http_request_url(ci_request_t * req, char *buf, int buf_size)
           str++;
 
      /*copy the url...*/
-     for (i=0; i < buf_size-1 && (str[i] !=' ' && str[i]!='\0' && str[i]!='\n'); 
+     for (i=0; i < buf_size-1 && (str[i] !=' ' && str[i] != '\0' && str[i] != '\n' && str[i] != '\r' && str[i] != '?'); 
              i++) {
           buf[i] = str[i]; 
      }
