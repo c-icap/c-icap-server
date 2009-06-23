@@ -24,6 +24,7 @@ int fmt_gmttime(ci_request_t *req_data, char *buf,int len, char *param);
 int fmt_seconds(ci_request_t *req_data, char *buf,int len, char *param);
 int fmt_httpclientip(ci_request_t *req_data, char *buf,int len, char *param);
 int fmt_httpserverip(ci_request_t *req_data, char *buf,int len, char *param);
+int fmt_http_req_url_o(ci_request_t *req_data, char *buf,int len, char *param);
 int fmt_http_req_head_o(ci_request_t *req_data, char *buf,int len, char *param);
 int fmt_http_res_head_o(ci_request_t *req_data, char *buf,int len, char *param);
 int fmt_icap_req_head(ci_request_t *req_data, char *buf,int len, char *param);
@@ -47,12 +48,14 @@ struct ci_fmt_entry GlobalTable [] = {
     {"%tl", "Local time", fmt_localtime},
     {"%tg", "GMT time", fmt_gmttime},
     {"%tr", "Response time", fmt_none},
+    {"%hu", "Http request url", fmt_none},
     {"%>hi", "Http request header", fmt_none},
     {"%>ho", "Modified Http request header", fmt_http_req_head_o},
+    {"%huo", "Modified Http request url", fmt_http_req_url_o},
     {"%<hi", "Http reply header", fmt_none},
     {"%<ho", "Modified Http reply header", fmt_http_res_head_o},
-    {"%Hs", "Http status", fmt_none},
-    {"%Hso", "Modified Http status", fmt_none},
+    {"%Hs", "Http reply status", fmt_none},
+    {"%Hso", "Modified Http reply status", fmt_none},
 
     {"%iu", "Icap request url", fmt_request},
     {"%im", "Icap method", fmt_icapmethod},
@@ -358,6 +361,11 @@ int fmt_httpserverip(ci_request_t *req, char *buf,int len, char *param)
      *buf = '-';
      return 1;
   }
+}
+
+int fmt_http_req_url_o(ci_request_t *req, char *buf,int len, char *param)
+{
+     return ci_http_request_url(req, buf, len);
 }
 
 int fmt_http_req_head_o(ci_request_t *req, char *buf,int len, char *param)
