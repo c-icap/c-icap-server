@@ -139,6 +139,30 @@ int filewrite(void *fd, char *buf, int len)
      return ret;
 }
 
+int add_xheader(char *directive, char **argv, void *setdata)
+{
+    ci_headers_list_t **xh = (ci_headers_list_t **)setdata;
+    char *h;
+
+    if (argv == NULL || argv[0] == NULL) {
+	ci_debug_printf(1, "Missing arguments in directive:%s\n", directive);
+	return 0;
+    }
+    h = argv[0];
+
+    if (!strchr(h, ':')) {
+	printf("The header :%s should have the form \"header: value\" \n", h);
+	return 0;
+    }
+
+    if (*xh == NULL)
+	*xh = ci_headers_create();
+
+    ci_headers_add(*xh, h);
+    return 1;
+}
+
+
 char *icap_server = "localhost";
 int port = 1344;
 char *service = "echo";
@@ -147,6 +171,8 @@ char *output_file = NULL;
 char *request_url = NULL;
 int send_headers = 1;
 int verbose = 0;
+ci_headers_list_t *xheaders = NULL;
+ci_headers_list_t *http_xheaders = NULL;
 
 static struct ci_options_entry options[] = {
      {"-i", "icap_servername", &icap_server, ci_cfg_set_str,
@@ -162,7 +188,9 @@ static struct ci_options_entry options[] = {
       "debug level info to stdout"},
      {"-noreshdr", NULL, &send_headers, ci_cfg_disable,
       "Do not send reshdr headers"},
-     {"-v", NULL, &verbose, ci_cfg_enable, "Print response headers"},
+     {"-x", "xheader", &xheaders, add_xheader, "Include xheader in icap request headers"},
+     {"-hx", "xheader", &http_xheaders, add_xheader, "Include xheader in http headers"},
+     {"-v", NULL, &verbose, ci_cfg_enable, "Print response headers"},     
      {NULL, NULL, NULL, NULL}
 };
 
@@ -210,6 +238,9 @@ int main(int argc, char **argv)
 
      req = ci_client_request(conn, icap_server, service);
 
+     if (xheaders)
+	 ci_icap_append_xheaders(req, xheaders);
+
      ci_client_get_server_options(req, CONN_TIMEOUT);
      ci_debug_printf(10, "OK done with options!\n");
      ci_conn_remote_ip(conn, ip);
@@ -253,6 +284,9 @@ int main(int argc, char **argv)
 
 	  req->type = ICAP_RESPMOD;
 
+	  if (xheaders)
+	      ci_icap_append_xheaders(req, xheaders);
+
 	  if (request_url) {
 	       headers = ci_headers_create();
 	       build_reqmod_headers(request_url, fd_in, headers);
@@ -266,6 +300,9 @@ int main(int argc, char **argv)
           }
           else
                headers = NULL;
+
+	  if(headers && http_xheaders)
+	      ci_headers_addheaders(headers, http_xheaders);
 
           ret = ci_client_icapfilter(req,
                                      CONN_TIMEOUT,
