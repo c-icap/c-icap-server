@@ -555,6 +555,7 @@ void ci_client_request_reuse(ci_request_t * req)
      req->responce_hasbody = 0;
      ci_headers_reset(req->request_header);
      ci_headers_reset(req->response_header);
+     ci_headers_reset(req->xheaders);
      req->eof_received = 0;
      req->status = 0;
 
@@ -602,6 +603,11 @@ int client_create_request(ci_request_t * req, char *servername, char *service,
      ci_headers_add(req->request_header, "User-Agent: C-ICAP-Client-Library/0.01");
      if (ci_allow204(req))
           ci_headers_add(req->request_header, "Allow: 204");
+
+     if (!ci_headers_is_empty(req->xheaders)) {
+	  ci_headers_addheaders(req->request_header, req->xheaders);
+     }
+
      return CI_OK;
 }
 
