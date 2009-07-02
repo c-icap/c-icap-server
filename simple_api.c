@@ -221,6 +221,11 @@ char *ci_icap_add_xheader(ci_request_t * req, char *header)
      return ci_headers_add(req->xheaders, header);
 }
 
+int ci_icap_append_xheaders(ci_request_t *req,ci_headers_list_t *headers)
+{
+    return ci_headers_addheaders(req->xheaders, headers);
+}
+
 int ci_http_request_url(ci_request_t * req, char *buf, int buf_size)
 {
    ci_headers_list_t *heads;

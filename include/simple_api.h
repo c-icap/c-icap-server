@@ -322,6 +322,17 @@ CI_DECLARE_FUNC(int) ci_http_request_url(ci_request_t * req, char *buf, int buf_
  */
 CI_DECLARE_FUNC(char *)              ci_icap_add_xheader(ci_request_t *req,char *header);
 
+/**
+ \ingroup REQUEST
+ \brief Append the icap X-headers to the icap response headers 
+ *
+ * It can be used with both request and response modification ICAP requests. 
+ \param req is a pointer to the current ICAP request object.
+ \param header is the headers to add
+ \return pointer to the header in success or NULL otherwise
+ */
+CI_DECLARE_FUNC(int)              ci_icap_append_xheaders(ci_request_t *req,ci_headers_list_t *headers);
+
 
 #ifdef __CI_COMPAT
 #define ci_respmod_headers           ci_http_response_headers
