@@ -20,8 +20,10 @@
 
 #ifndef __CFG_PARAM_H
 #define __CFG_PARAM_H
-#include "filetype.h"
 #include "body.h"
+
+struct ci_magics_db;
+
 
 /**
  \defgroup CONFIG c-icap server configuration API

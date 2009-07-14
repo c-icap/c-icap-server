@@ -89,7 +89,7 @@ int main(int argc, char **argv)
      mem_init();
      init_internal_lookup_tables();
 
-     if (!(CONF.MAGIC_DB = ci_magics_db_build(CONF.magics_file))) {
+     if (!(CONF.MAGIC_DB = ci_magic_db_load(CONF.magics_file))) {
           ci_debug_printf(1, "Can not load magic file %s!!!\n",
                           CONF.magics_file);
      }

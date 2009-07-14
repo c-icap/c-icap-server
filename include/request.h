@@ -109,6 +109,9 @@ typedef struct ci_request{
      int return_code;
      char *pstrblock_responce;
      int remain_send_block_bytes;
+    
+     /*Caching values for various subsystems*/
+     int preview_data_type;
      /* statistics */
      uint64_t bytes_in;
      uint64_t bytes_out;

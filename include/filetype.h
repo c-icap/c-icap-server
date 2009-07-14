@@ -21,6 +21,14 @@
 #define __FILETYPE_H
 
 #include "c-icap.h"
+#include "request.h"
+
+/**
+ \defgroup Api for data/file type recogintion 
+ \ingroup API
+ * Macros, functions and structures used for data type recognition
+ */
+
 
 #define MAGIC_SIZE 50
 #define NAME_SIZE 15
@@ -65,17 +73,46 @@ enum {CI_ASCII_DATA,CI_ISO8859_DATA,CI_XASCII_DATA,CI_UTF_DATA,CI_HTML_DATA,CI_B
 enum {CI_TEXT_DATA,CI_OCTET_DATA};
 enum {CI_ENCODE_NONE=0,CI_ENCODE_GZIP,CI_ENCODE_DEFLATE,CI_ENCODE_UNKNOWN};
 
-
+/*low level functions should not used by users*/
 CI_DECLARE_FUNC(struct ci_magics_db) *ci_magics_db_build(char *filename);
 CI_DECLARE_FUNC(int) ci_magics_db_file_add(struct ci_magics_db *db,char *filename);
 CI_DECLARE_FUNC(int) ci_get_data_type_id(struct ci_magics_db *db,char *name);
 CI_DECLARE_FUNC(int) ci_get_data_group_id(struct ci_magics_db *db,char *group);
 
 CI_DECLARE_FUNC(int) ci_filetype(struct ci_magics_db *db,char *buf, int buflen);
-/* compiler does not allow me to define this function here :-(
-   because of ci_request_t .......
 CI_DECLARE_FUNC(int) ci_extend_filetype(struct ci_magics_db *db,
 					ci_request_t *req,
 					char *buf,int len,int *iscompressed);
-*/
+
+/*And the c-icap Library functions*/
+
+/**
+ * Read the magics db from a file and create a ci_magics_db object
+ *
+ * The user normaly does not need to call this function inside c-icap server. 
+ * It is not a thread safe function, should called only during icap library 
+ * initialization before threads started.
+ \param filename is the name of the file contains the db
+ \return a pointer to a ci_magics_db object
+ */
+CI_DECLARE_FUNC(struct ci_magics_db) *ci_magic_db_load(char *filename);
+
+/**
+ * Recognizes the type of (preview) data of an c-icap request object
+ *
+ * If the data are encoded this function try to uncompress them 
+ * to examine its data type
+ *
+ \param req the c-icap request (ci_request_t) data
+ \param isencoded set to CI_ENCODE_GZIP, CI_ENCODE_DEFLATE or 
+ * CI_ENCODE_UNKNOWN if the data are encoded with an unknown method
+ \return the data type or -1 if the data type recognition fails for a reason 
+ * (eg no preview data, of library not initialized)
+ */
+CI_DECLARE_FUNC(int) ci_magic_req_data_type(ci_request_t *req, int *isencoded);
+
+CI_DECLARE_FUNC(int) ci_magic_data_type(char *buf, int buflen);
+CI_DECLARE_FUNC(int) ci_magic_data_type_ext(ci_headers_list_t *headers, char *buf,int len,int *iscompressed);
+
+
 #endif

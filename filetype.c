@@ -33,7 +33,7 @@
 #include "mem.h"
 #include "filetype.h"
 
-
+static struct ci_magics_db *_MAGIC_DB = NULL;
 
 struct ci_data_type predefined_types[] = {
      {"ASCII", "ASCII text file", {CI_TEXT_DATA, -1}},
@@ -614,7 +614,7 @@ int ci_uncompress(int compress_method, char *buf, int len, char *unzipped_buf,
 }
 #endif
 
-int ci_extend_filetype(struct ci_magics_db *db, ci_request_t * req, char *buf,
+int extend_object_type(struct ci_magics_db *db, ci_headers_list_t *headers, char *buf,
                        int len, int *iscompressed)
 {
      int file_type;
@@ -630,8 +630,8 @@ int ci_extend_filetype(struct ci_magics_db *db, ci_request_t * req, char *buf,
      if (len <= 0)
           return CI_BIN_DATA;
 
-     if (ci_req_type(req) == ICAP_RESPMOD) {
-          content_encoding = ci_http_response_get_header(req, "Content-Encoding");
+     if (headers) {
+          content_encoding = ci_headers_value(headers, "Content-Encoding");
           if (content_encoding) {
                ci_debug_printf(8, "Content-Encoding :%s\n", content_encoding);
 #ifdef HAVE_ZLIB
@@ -679,7 +679,8 @@ int ci_extend_filetype(struct ci_magics_db *db, ci_request_t * req, char *buf,
                      ci_data_type_descr(db, file_type));
      /*The following until we have an internal html recognizer ..... */
      if (ci_belongs_to_group(db, file_type, CI_TEXT_DATA)
-         && (content_type = ci_http_response_get_header(req, "Content-Type")) != NULL) {
+	 && headers
+         && (content_type = ci_headers_value(headers, "Content-Type")) != NULL) {
           if (strstr(content_type, "text/html")
               || strstr(content_type, "text/css")
               || strstr(content_type, "text/javascript"))
@@ -704,4 +705,63 @@ int ci_extend_filetype(struct ci_magics_db *db, ci_request_t * req, char *buf,
           ci_buffer_free(unzipped_buf);
 #endif
      return file_type;
+}
+
+int ci_extend_filetype(struct ci_magics_db *db, ci_request_t * req, char *buf,
+                       int len, int *iscompressed)
+{
+  ci_headers_list_t *heads;
+  if (ci_req_type(req) == ICAP_RESPMOD)
+       heads = ci_http_response_headers(req);
+  else
+       heads = NULL;
+
+  return extend_object_type(db, heads, buf, len, iscompressed);
+}
+
+
+struct ci_magics_db *ci_magic_db_load(char *filename)
+{
+    if (!_MAGIC_DB)
+	return (_MAGIC_DB = ci_magics_db_build(filename));
+    
+    if (ci_magics_db_file_add(_MAGIC_DB, filename))
+	return _MAGIC_DB;
+    else
+	return NULL;
+}
+
+
+int ci_magic_req_data_type(ci_request_t *req, int *isencoded)
+{
+    if (!_MAGIC_DB)
+	return -1;
+    
+    if (!req->preview_data.used)
+	return -1;
+    
+    if (req->preview_data_type <0 ) /*if there is not a cached value compute it*/
+	req->preview_data_type = 
+	    ci_extend_filetype(_MAGIC_DB, req, 
+			       req->preview_data.buf, req->preview_data.used, 
+			       isencoded);
+
+    return req->preview_data_type;
+}
+
+int ci_magic_data_type(char *buf, int len)
+{
+    if (!_MAGIC_DB)
+	return -1;
+
+    return ci_filetype(_MAGIC_DB, buf, len);
+  
+}
+
+int ci_magic_data_type_ext(ci_headers_list_t *headers, char *buf,int len,int *iscompressed)
+{
+    if (!_MAGIC_DB)
+	return -1;
+  
+    return extend_object_type(_MAGIC_DB, headers, buf, len, iscompressed);
 }

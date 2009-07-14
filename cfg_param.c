@@ -398,16 +398,20 @@ int cfg_load_module(char *directive, char **argv, void *setdata)
 int cfg_load_magicfile(char *directive, char **argv, void *setdata)
 {
      char *db_file;
+     struct ci_magics_db *ndb;
      if (argv == NULL || argv[0] == NULL) {
           return 0;
      }
 
      db_file = argv[0];
      ci_debug_printf(1, "Going to load magic file %s\n", db_file);
-     if (!ci_magics_db_file_add(CONF.MAGIC_DB, db_file)) {
+     ndb = ci_magic_db_load(db_file);
+     if (!ndb) {
           ci_debug_printf(1, "Can not load magic file %s!!!\n", db_file);
           return 0;
      }
+     if (!CONF.MAGIC_DB)
+	 CONF.MAGIC_DB = ndb;
 
      return 1;
 }
