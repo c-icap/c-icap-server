@@ -225,7 +225,7 @@ struct stats_tmpl {
 struct stats_tmpl txt_tmpl = {
   "Running Servers Statistics\n===========================\n"\
     "Childs number: %d\nFree Servers:%d\nUsed Servers:%d\n\n\n",
-  "%s Statistics\n==================\n",
+  "\n%s Statistics\n==================\n",
   "",
   "Child pids:",
   " %d",
