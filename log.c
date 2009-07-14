@@ -136,6 +136,7 @@ void logformat_release()
          free(cur->fmt); 
          free(cur);
    } while(tmp);
+   LOGFORMATS = NULL;
 }
 
 char *logformat_fmt(char *name)
