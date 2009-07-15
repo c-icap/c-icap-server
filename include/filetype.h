@@ -78,6 +78,7 @@ CI_DECLARE_FUNC(struct ci_magics_db) *ci_magics_db_build(char *filename);
 CI_DECLARE_FUNC(int) ci_magics_db_file_add(struct ci_magics_db *db,char *filename);
 CI_DECLARE_FUNC(int) ci_get_data_type_id(struct ci_magics_db *db,char *name);
 CI_DECLARE_FUNC(int) ci_get_data_group_id(struct ci_magics_db *db,char *group);
+CI_DECLARE_FUNC(int) ci_belongs_to_group(struct ci_magics_db *db, int type, int group);
 
 CI_DECLARE_FUNC(int) ci_filetype(struct ci_magics_db *db,char *buf, int buflen);
 CI_DECLARE_FUNC(int) ci_extend_filetype(struct ci_magics_db *db,
@@ -114,5 +115,68 @@ CI_DECLARE_FUNC(int) ci_magic_req_data_type(ci_request_t *req, int *isencoded);
 CI_DECLARE_FUNC(int) ci_magic_data_type(char *buf, int buflen);
 CI_DECLARE_FUNC(int) ci_magic_data_type_ext(ci_headers_list_t *headers, char *buf,int len,int *iscompressed);
 
+/**
+ * Finds the type id from type name
+ *
+ \param name is the name of the magic type
+ \return the type id
+ */
+CI_DECLARE_FUNC(int) ci_magic_type_id(char *name);
+
+/**
+ * Finds the group id from group name
+ *
+ \param name is the name of the group
+ \return the group id
+ */
+CI_DECLARE_FUNC(int) ci_magic_group_id(char *group);
+
+/**
+ * Checks if a magic type belongs to a magic types group
+ *
+ \param type is the type id to check
+ \param group is the group id
+ \return non zero if the type belongs to group, zero otherwise
+ */
+CI_DECLARE_FUNC(int) ci_magic_group_check(int type, int group);
+
+
+/**
+ * The number of types stored in internal magic db
+ *
+ \return the number of stored magic types
+ */
+CI_DECLARE_FUNC(int) ci_magic_types_count();
+
+/**
+ * The number of groups stored in internal magic db
+ *
+ \return the number of stored magic groups
+ */
+CI_DECLARE_FUNC(int) ci_magic_groups_count();
+
+/**
+ * Retrieve the name of a magic type
+ *
+ \param type the type id
+ \return the name of the type or NULL if the type does not exists
+ */
+CI_DECLARE_FUNC(char *) ci_magic_type_name(int type);
+
+/**
+ * Retrieve the short description  of a magic type
+ *
+ \param type the type id
+ \return the short description if the type or NULL if the type does not exists
+ */
+CI_DECLARE_FUNC(char *) ci_magic_type_descr(int type);
+
+/**
+ * Retrieve the name of a magic types group
+ *
+ \param type the group id
+ \return the name of the group or NULL if the group does not exists
+ */
+CI_DECLARE_FUNC(char *) ci_magic_group_name(int group);
 
 #endif

@@ -765,3 +765,67 @@ int ci_magic_data_type_ext(ci_headers_list_t *headers, char *buf,int len,int *is
   
     return extend_object_type(_MAGIC_DB, headers, buf, len, iscompressed);
 }
+
+
+int ci_magic_type_id(char *name)
+{
+    if (!_MAGIC_DB)
+	return -1;
+
+    return ci_get_data_type_id(_MAGIC_DB, name);
+}
+
+int ci_magic_group_id(char *group)
+{
+    if (!_MAGIC_DB)
+	return -1;
+	
+    return ci_get_data_group_id(_MAGIC_DB, group);
+}
+
+int ci_magic_group_check(int type, int group)
+{
+    if (!_MAGIC_DB)
+	return 0;
+
+    return ci_belongs_to_group(_MAGIC_DB, type, group);
+}
+
+
+int ci_magic_types_count()
+{
+    return ci_magic_types_num(_MAGIC_DB);
+}
+
+
+int ci_magic_groups_count()
+{
+    return  ci_magic_groups_num(_MAGIC_DB);
+}
+
+char * ci_magic_type_name(int type)
+{
+    if (!_MAGIC_DB ||
+	type <= 0 || type >= ci_magic_types_num(_MAGIC_DB))
+	return NULL;
+
+    return ci_data_type_name(_MAGIC_DB, type);
+}
+
+char * ci_magic_type_descr(int type)
+{
+    if (!_MAGIC_DB ||
+	type <= 0 || type >= ci_magic_types_num(_MAGIC_DB))
+	return NULL;
+    
+    return ci_data_type_descr(_MAGIC_DB, type);
+}
+
+char * ci_magic_group_name(int group)
+{
+    if (!_MAGIC_DB ||
+	group <= 0 || group >= ci_magic_groups_num(_MAGIC_DB))
+	return NULL;
+    
+    return ci_data_group_name(_MAGIC_DB, group);
+}
