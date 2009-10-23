@@ -271,8 +271,9 @@ int parse_request(ci_request_t * req, char *buf)
                          }      /*end of parsing args */
                          if (!ci_method_support
                              (req->current_service_mod->mod_type, req->type)
-                             || req->type != ICAP_OPTIONS)
+                             && req->type != ICAP_OPTIONS) {
                               return EC_405;    /* Method not allowed for service. */
+			 }
                     }
                     else {
                          return EC_400;
@@ -1037,8 +1038,8 @@ int do_request(ci_request_t * req)
                ec_responce(req, res);   /*Bad request or Service not found or Server error or what else...... */
           req->return_code = res;
           req->keepalive = 0;   // Error occured, close the connection ......
-          ci_debug_printf(5, "Error parsing headers :(%d)\n",
-                          req->request_header->bufused);
+          ci_debug_printf(5, "Error %d while parsing headers :(%d)\n",
+			  res ,req->request_header->bufused);
           return CI_ERROR;
      }
 
