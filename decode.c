@@ -47,7 +47,7 @@ int ci_base64_decode(char *encoded, char *decoded, int len)
     int i;
     unsigned char *str,*result;
     
-    if (!str || !decoded || !len)
+    if (!encoded || !decoded || !len)
 	return 0;
 
     str = (unsigned char *)encoded;
