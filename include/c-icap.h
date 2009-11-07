@@ -84,7 +84,7 @@
   In Solaris and Linux to have lfs support, if you are using 
   only lseek and open function, you are using off_t type for offsets
   and compile the program with -D_FILE_OFFSET_BITS=64. This flag
-  forces the compiler to typedefs the off_t type as an 64bit unsigned  integer,
+  forces the compiler to typedefs the off_t type as an 64bit integer,
   uses open64, lseek64, mkstemp64 and fopen64 functions. 
   
   Instead for fseek and ftell the functions fseeko and ftello must be used.
@@ -93,14 +93,19 @@
 
   The open's manual page says that the flag O_LARGEFILE must be used. Looks that 
   it does not actually needed for linux and solaris (version 10) (but must be checked again......)
+
+  The off_t type in my linux system is a signed integer, but I am not
+  sure if it is true for all operating systems
   
 */
 typedef off_t ci_off_t;
 #if CI_SIZEOF_OFF_T > 4 
-#   define PRINTF_OFF_T "llu" 
+#   define PRINTF_OFF_T "lld" 
+#   define CAST_OFF_T long long int
 #   define ci_strto_off_t strtoull
 #else
-#   define PRINTF_OFF_T "lu" 
+#   define PRINTF_OFF_T "ld" 
+#   define CAST_OFF_T  long int
 #   define ci_strto_off_t strtoul
 #endif
 

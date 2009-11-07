@@ -286,7 +286,7 @@ void print_conf_variables(struct ci_conf_entry *table)
           }
           else if (table[i].action == intl_cfg_size_off) {
                ci_debug_printf(9, "%" PRINTF_OFF_T "\n",
-                               *(ci_off_t *) table[i].data);
+                               (CAST_OFF_T) *(ci_off_t *) table[i].data);
           }
           else if (table[i].action == intl_cfg_size_long) {
                ci_debug_printf(9, "%ld\n", *(long *) table[i].data);

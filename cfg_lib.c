@@ -196,7 +196,7 @@ int ci_cfg_size_off(char *directive, char **argv, void *setdata)
      if (val > 0)
           *((ci_off_t *) setdata) = val;
      ci_debug_printf(1, "Setting parameter :%s=%" PRINTF_OFF_T "\n", directive,
-                     val);
+                     (CAST_OFF_T) val);
      return val;
 }
 

@@ -144,7 +144,7 @@ int echo_check_preview_handler(char *preview_data, int preview_data_len,
       and display a debug message (used here only for debuging purposes)*/
      content_len = ci_http_content_length(req);
      ci_debug_printf(9, "We expect to read :%" PRINTF_OFF_T " body data\n",
-                     content_len);
+                     (CAST_OFF_T) content_len);
 
      /*If there are not body data in HTTP encapsulated object but only headers
        respond with Allow204 (no modification required) and terminate here the

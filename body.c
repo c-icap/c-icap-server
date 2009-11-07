@@ -263,7 +263,7 @@ int ci_cached_file_write(ci_cached_file_t * body, char *buf, int len, int iseof)
           body->flags |= CI_FILE_HAS_EOF;
           ci_debug_printf(10, "Buffer size=%d, Data size=%" PRINTF_OFF_T "\n ",
                           ((ci_cached_file_t *) body)->bufsize,
-                          ((ci_cached_file_t *) body)->endpos);
+                          (CAST_OFF_T) ((ci_cached_file_t *) body)->endpos);
      }
 
      if(len == 0)  /*If no data to write just return 0;*/
@@ -355,7 +355,7 @@ int ci_cached_file_read(ci_cached_file_t * body, char *buf, int len)
      else {                     /*?????????????????????????????? */
           bytes = 0;
           ci_debug_printf(10, "Read 0, %" PRINTF_OFF_T " %" PRINTF_OFF_T "\n",
-                          body->readpos, body->endpos);
+                          (CAST_OFF_T) body->readpos, (CAST_OFF_T) body->endpos);
      }
      return bytes;
 }
@@ -505,7 +505,7 @@ int ci_simple_file_write(ci_simple_file_t * body, char *buf, int len, int iseof)
      if (iseof && ret == len) {
           body->flags |= CI_FILE_HAS_EOF;
           ci_debug_printf(9, "Body data size=%" PRINTF_OFF_T "\n ",
-                          body->bytes_in);
+                          (CAST_OFF_T) body->bytes_in);
      }
 
      return ret;
