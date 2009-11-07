@@ -56,7 +56,6 @@ struct ci_cache *ci_cache_build( unsigned int cache_size,
     int i;
     unsigned int new_hash_size, cache_items;
     ci_mem_allocator_t *allocator;
-    struct ci_cache_entry *e;
     
     if (cache_size <= 0)
 	return NULL;
@@ -172,7 +171,9 @@ int ci_cache_update(struct ci_cache *cache, void *key, void *val) {
     /*if the oldest entry does not expired do not store tke key/value pair*/
     if((current_time - e->time)< cache->ttl) {
 	ci_debug_printf(6, "ci_cache_update: not available slot (%d-%d %d).\n",
-			current_time,  e->time, cache->ttl
+			(unsigned int) current_time,
+			(unsigned int) e->time, 
+			(unsigned int) cache->ttl
 	    );
 	common_mutex_unlock(&cache->mtx);
 	return 0;
