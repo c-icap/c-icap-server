@@ -49,7 +49,6 @@ int threadsnum = 0;
 int MAX_REQUESTS = 0;
 
 time_t START_TIME = 0;
-int keepalive = 0;
 int FILES_NUMBER;
 char **FILES;
 ci_thread_t *threads;
@@ -228,7 +227,7 @@ int do_file(ci_request_t *req, char *input_file, int *keepalive)
 				(int (*)(void *, char *, int)) filewrite);
      close(fd_in);
 
-     keepalive=req->keepalive;
+     *keepalive=req->keepalive;
 
      ci_headers_destroy(headers);
      // printf("Done(%d bytes).\n",totalbytes);
