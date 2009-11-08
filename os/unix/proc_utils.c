@@ -28,7 +28,7 @@
 
 int store_pid(char *pidfile)
 {
-     int fd;
+     int fd, bytes;
      pid_t pid;
      char strPid[30];           /*30 must be enough for storing pids on a string */
      pid = getpid();
@@ -39,7 +39,7 @@ int store_pid(char *pidfile)
      }
      snprintf(strPid, 29, "%d", pid);
      strPid[29] = '\0';
-     write(fd, strPid, strlen(strPid));
+     bytes = write(fd, strPid, strlen(strPid));
      close(fd);
      return 1;
 }

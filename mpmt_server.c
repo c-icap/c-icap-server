@@ -90,6 +90,7 @@ int c_icap_reconfigure = 0;
 void init_commands();
 int init_server(char *address, int port, int *family);
 int start_child(int fd);
+void system_shutdown();
 /***************************************************************************************/
 /*Signals managment functions                                                          */
 
@@ -410,14 +411,14 @@ int wait_for_commands(int pipe_fd, char *command_buffer, int secs)
 void handle_monitor_process_commands(char *cmd_line)
 {
      ci_command_t *command;
-     int i;
+     int i, bytes;
      if ((command = find_command(cmd_line)) != NULL) {
           if (command->type & MONITOR_PROC_CMD)
                execute_command(command, cmd_line, MONITOR_PROC_CMD);
           if (command->type & CHILDS_PROC_CMD) {
                for (i = 0; i < childs_queue->size; i++) {
-                    write(childs_queue->childs[i].pipe, cmd_line,
-                          strlen(cmd_line));
+                    bytes = write(childs_queue->childs[i].pipe, cmd_line,
+				  strlen(cmd_line));
                }
           }
           if (command->type & MONITOR_PROC_POST_CMD)

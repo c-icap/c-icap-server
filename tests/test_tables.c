@@ -11,6 +11,8 @@
 #include "debug.h"
 
 
+void init_internal_lookup_tables();
+
 char *path;
 char *key;
 

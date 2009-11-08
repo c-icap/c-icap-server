@@ -25,6 +25,7 @@
 #include "module.h"
 #include "log.h"
 #include "cfg_param.h"
+#include "filetype.h"
 
 /*
 extern char *PIDFILE;
@@ -45,6 +46,8 @@ int store_pid(char *pidfile);
 int is_icap_running(char *pidfile);
 int set_running_permissions(char *user, char *group);
 void init_internal_lookup_tables();
+void request_stats_init();
+int mem_init();
 
 void compute_my_hostname()
 {

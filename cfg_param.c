@@ -28,6 +28,7 @@
 #include "module.h"
 #include "filetype.h"
 #include "cfg_param.h"
+#include "commands.h"
 
 #define LINESIZE 8192
 #define MAX_DIRECTIVE_SIZE 80

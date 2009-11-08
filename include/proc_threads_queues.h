@@ -102,5 +102,6 @@ int find_a_child_nrequests(struct childs_queue *q,int max_requests);
 int find_an_idle_child(struct childs_queue *q);
 int childs_queue_stats(struct childs_queue *q, int *childs,
 		       int *freeservers, int *used, int *maxrequests);
+void dump_queue_statistics(struct childs_queue *q);
 
 #endif

@@ -7,6 +7,7 @@
 #include "lookup_table.h"
 #include "cache.h"
 #include "debug.h"
+#include "cfg_param.h"
 
 void log_errors(void *unused, const char *format, ...)
 {                                                     

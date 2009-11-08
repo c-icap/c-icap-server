@@ -31,8 +31,9 @@
 const char *ci_sockaddr_t_to_host(ci_sockaddr_t * addr, char *hname,
                                   int maxhostlen)
 {
-     getnameinfo(&(addr->sockaddr), CI_SOCKADDR_SIZE, hname, maxhostlen - 1,
-                 NULL, 0, 0);
+     getnameinfo((const struct sockaddr *)&(addr->sockaddr), 
+		 CI_SOCKADDR_SIZE, hname, maxhostlen - 1,
+		 NULL, 0, 0);
      return (const char *) hname;
 }
 

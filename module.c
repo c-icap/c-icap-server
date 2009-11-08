@@ -424,7 +424,7 @@ int init_auth_hash(struct auth_hash *hash)
           return 0;
      }
      hash->hash_size = STEP;
-     memset(hash->hash, (int) NULL, hash->hash_size);
+     memset(hash->hash, 0, hash->hash_size);
      return 1;
 }
 
@@ -466,7 +466,7 @@ int check_to_add_method_id(struct auth_hash *hash, int method_id)
                                "Error allocating memory for authenticator hash!!!!!!\n");
                return 0;
           }
-          memset(hash->hash + hash->hash_size, (int) NULL, STEP);       /*Reset the newly allocated memory */
+          memset(hash->hash + hash->hash_size, 0, STEP);       /*Reset the newly allocated memory */
           hash->hash = new_mem;
           hash->hash_size += STEP;
      }
@@ -491,7 +491,7 @@ int methods_authenticators(struct auth_hash *hash, char *method_name,
           ci_debug_printf(1, "Error allocating memory!!!!!!\n");
           return 0;
      }
-     memset(new_mem, (int) NULL, auths_num + 1);
+     memset(new_mem, 0, auths_num + 1);
      if (hash->hash[method_id] != NULL)
           free(hash->hash[method_id]);
      hash->hash[method_id] = new_mem;
