@@ -258,6 +258,7 @@ service_alias_t *add_service_alias(char *service_alias,char *service_name,char *
 ci_service_module_t *find_service(char *service_name);
 service_alias_t *find_service_alias(char *service_name);
 ci_service_xdata_t *service_data(ci_service_module_t *srv);
+int init_services();
 int post_init_services();
 int release_services();
 
