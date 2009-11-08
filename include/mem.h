@@ -38,6 +38,9 @@ CI_DECLARE_FUNC(ci_mem_allocator_t *) ci_create_pack_allocator(char *memblock, i
 CI_DECLARE_FUNC(int) ci_pack_allocator_data_size(ci_mem_allocator_t *allocator);
 
 
+CI_DECLARE_FUNC(int) ci_buffers_init();
+CI_DECLARE_FUNC(void) ci_buffers_destroy();
+
 CI_DECLARE_FUNC(void *)  ci_buffer_alloc(int block_size);
 CI_DECLARE_FUNC(void)    ci_buffer_free(void *data);
 
