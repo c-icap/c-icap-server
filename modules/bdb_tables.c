@@ -118,7 +118,7 @@ void  bdb_table_close(struct ci_lookup_table *table)
     struct bdb_data *dbdata;
     if(table->data) {
 
-	struct bdb_data *dbdata = table->data;
+	dbdata = table->data;
 	dbdata->db->close(dbdata->db,0);
 	dbdata->env_db->close(dbdata->env_db,0);
 	free(table->data);
