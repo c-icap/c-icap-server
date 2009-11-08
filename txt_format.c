@@ -3,14 +3,9 @@
 #include "request.h"
 #include "simple_api.h"
 #include "debug.h"
+#include "txt_format.h"
 
 #define MAX_VARIABLE_SIZE 256
-
-struct ci_fmt_entry {
-    const char *directive;
-    const char *description;
-    int (*format)(ci_request_t *req_data, char *buf, int len, char *param);
-};
 
 int fmt_none(ci_request_t *req_data, char *buf,int len, char *param);
 int fmt_remoteip(ci_request_t *req_data, char *buf,int len, char *param);

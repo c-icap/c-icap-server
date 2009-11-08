@@ -28,6 +28,7 @@
 #include "module.h"
 #include "cfg_param.h"
 #include "debug.h"
+#include "txt_format.h"
 #include <errno.h>
 
 logger_module_t *default_logger = NULL;
