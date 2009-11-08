@@ -361,6 +361,7 @@ AC_SUBST(DEFINE_OFF_T)
 AC_CHECK_SIZEOF(off_t)
 DEFINE_SIZE_OFF_T=$ac_cv_sizeof_off_t
 AC_SUBST(DEFINE_SIZE_OFF_T)
+AC_CHECK_SIZEOF(void *)
 
 # if I am not wrong for every 32bit and 64bit machine, 'short' is always 16bit, 'int' is 32bit
 # and long is 32bit or 64bit respectively.

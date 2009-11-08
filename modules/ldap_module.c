@@ -484,7 +484,11 @@ void *read_val(void *val, int val_size, ci_mem_allocator_t *allocator)
     // reindex index of data. Currently it contains the relative position of values
     // inside the data.
     while(*indx){
-	*indx = (int)*indx+(int)data;
+#if SIZEOF_VOID_P == 8
+	*indx = (char *) ((uint64_t)*indx+(uint64_t)data);
+#else
+	*indx = (char *) ((uint32_t)*indx+(uint32_t)data);
+#endif
 	indx++;
     }
     return (void *)data;
