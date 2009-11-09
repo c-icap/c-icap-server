@@ -176,9 +176,6 @@ void file_log_server(char *server, const char *format, va_list ap);
 /*char *LOGS_DIR=LOGDIR;*/
 char *SERVER_LOG_FILE = LOGDIR "/cicap-server.log";
 /*char *ACCESS_LOG_FILE = LOGDIR "/cicap-access.log";*/
-//char *ACCESS_LOG_FILE = NULL;
-
-//char *ACCESS_LOG_FORMAT = NULL;
 
 struct logfile {
     char *file;
@@ -201,7 +198,6 @@ logger_module_t file_logger = {
 };
 
 
-//FILE *access_log = NULL;
 FILE *server_log = NULL;
 
 const char *DEFAULT_LOG_FORMAT = "%tl, %la %a %im %iu %is";
@@ -210,16 +206,6 @@ int file_log_open()
 {
      int error=0;
      struct logfile *lf;
-  /*
-     if (!ACCESS_LOG_FORMAT)
-         ACCESS_LOG_FORMAT = "%tl, %la %a %im %iu %is";
-     if (ACCESS_LOG_FILE)  {
-        access_log = fopen(ACCESS_LOG_FILE, "a+");
-        if (!access_log)
-            return 0;
-        setvbuf(access_log, NULL, _IONBF, 0);
-     }
-  */
      for (lf = ACCESS_LOG_FILES; lf != NULL; lf = lf->next) {
           if (!lf->file) {
 	       ci_debug_printf (1, "This is a bug! lf->file==NULL\n");
@@ -269,17 +255,6 @@ void file_log_close()
           fclose(server_log);
      server_log = NULL;
 }
-
-
-/*
-void log_flush(){
-     if(access_log)
-	  fflush(access_log);
-     
-     if(server_log)
-	  fflush(server_log);
-}
-*/
 
 
 void file_log_access(ci_request_t *req)
