@@ -27,6 +27,7 @@
 #include "module.h"
 #include "cfg_param.h"
 #include "debug.h"
+#include "txt_format.h"
 
 
 /************************************************************************/
@@ -42,10 +43,19 @@ char *log_ident = "c-icap: ";
 static int FACILITY = LOG_DAEMON;
 static int ACCESS_PRIORITY = LOG_INFO;
 static int SERVER_PRIORITY = LOG_CRIT;
+char *syslog_logformat = NULL;
 
 int cfg_set_facility(char *directive, char **argv, void *setdata);
 int cfg_set_priority(char *directive, char **argv, void *setdata);
 /*int cfg_set_prefix(char *directive,char **argv,void *setdata);*/
+int cfg_syslog_logformat(char *directive, char **argv, void *setdata);
+
+
+/*
+   functions declared in log.c. This file is not included in c-icap library
+   but defined in primary c-icap binary.
+*/
+extern char *logformat_fmt(char *name);
 
 /*Configuration Table .....*/
 static struct ci_conf_entry conf_variables[] = {
@@ -53,6 +63,7 @@ static struct ci_conf_entry conf_variables[] = {
      {"acces_priority", &ACCESS_PRIORITY, cfg_set_priority, NULL},
      {"server_priority", &SERVER_PRIORITY, cfg_set_priority, NULL},
      {"Prefix", &log_ident, ci_cfg_set_str, NULL},
+     {"LogFormat", NULL, cfg_syslog_logformat},
      {NULL, NULL, NULL, NULL}
 };
 
@@ -138,6 +149,16 @@ int cfg_set_priority(char *directive, char **argv, void *setdata)
      return 1;
 }
 
+int cfg_syslog_logformat(char *directive, char **argv, void *setdata)
+{
+     if (argv == NULL || argv[0] == NULL) {
+          ci_debug_printf(1, "Missing arguments in directive\n");
+          return 0;
+     }
+     /* the folowing return format txt or NULL. It is OK */
+     syslog_logformat = logformat_fmt(argv[0]);
+     return 1;
+}
 
 int sys_log_open()
 {
@@ -154,18 +175,13 @@ void sys_log_close()
 
 void sys_log_access(ci_request_t *req)
 {
-     char serverip[CI_IPLEN], clientip[CI_IPLEN];
+     char logline[1024];
+     if (!syslog_logformat)
+         return;
 
-     if (!ci_conn_remote_ip(req->connection, clientip))
-	  strcpy(clientip, "-" );
-     if (!ci_conn_local_ip(req->connection, serverip))
-	  strcpy(serverip, "-");
+     ci_format_text(req, syslog_logformat, logline, 1024, NULL);
 
-     syslog(ACCESS_PRIORITY, "%s, %s, %s, %s%c%s, %d\n", serverip, clientip,
-            ci_method_string(req->type),
-            req->service,
-            (req->args == NULL ? ' ' : '?'), (req->args == NULL ? "" : req->args), 
-	    ci_error_code(req->return_code));
+     syslog(ACCESS_PRIORITY, "%s\n", logline);
 }
 
 
