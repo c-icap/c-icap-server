@@ -85,14 +85,23 @@ void vlog_server(ci_request_t * req, const char *format, va_list ap)
 }
 
 /*************************************************************/
-/* logformat */
+/*  logformat            */
+/*   
+     Maybe logformat manipulation functions should moved to the c-icap library, 
+     because some platforms (eg. MS-WINDOWS) can not use functions and objects 
+     defined in main executable. At this time ony the sys_logger.c module uses these
+     functions which make sense on unix platforms (where there is not a such problem).
+     Moreover the sys_logger can be compiled inside c-icap main executable to avoid
+     such problems.
+*/
+
 struct logformat {
     char *name;
     char *fmt;
     struct logformat *next;
 };
 
-struct logformat *LOGFORMATS=NULL;
+struct logformat *LOGFORMATS = NULL;
 
 int logformat_add(char *name, char *format)
 {
@@ -167,23 +176,19 @@ void file_log_server(char *server, const char *format, va_list ap);
 /*char *LOGS_DIR=LOGDIR;*/
 char *SERVER_LOG_FILE = LOGDIR "/cicap-server.log";
 /*char *ACCESS_LOG_FILE = LOGDIR "/cicap-access.log";*/
-char *ACCESS_LOG_FILE = NULL;
+//char *ACCESS_LOG_FILE = NULL;
 
-char *ACCESS_LOG_FORMAT = NULL;
+//char *ACCESS_LOG_FORMAT = NULL;
 
-/* When we are going to support multiple access log files 
- We are going to use  structure like the following
-*/
-/*
 struct logfile {
     char *file;
     FILE *access_log;
-    char *log_fmt;
-    acl_t *acls;
+    const char *log_fmt;
+    /*acl_t *acls;*/
     struct logfile *next;
 };
 struct logfile *ACCESS_LOG_FILES = NULL;
-*/
+
 
 logger_module_t file_logger = {
      "file_logger",
@@ -196,12 +201,16 @@ logger_module_t file_logger = {
 };
 
 
-FILE *access_log = NULL;
+//FILE *access_log = NULL;
 FILE *server_log = NULL;
 
+const char *DEFAULT_LOG_FORMAT = "%tl, %la %a %im %iu %is";
 
 int file_log_open()
 {
+     int error=0;
+     struct logfile *lf;
+  /*
      if (!ACCESS_LOG_FORMAT)
          ACCESS_LOG_FORMAT = "%tl, %la %a %im %iu %is";
      if (ACCESS_LOG_FILE)  {
@@ -210,25 +219,54 @@ int file_log_open()
             return 0;
         setvbuf(access_log, NULL, _IONBF, 0);
      }
+  */
+     for (lf = ACCESS_LOG_FILES; lf != NULL; lf = lf->next) {
+          if (!lf->file) {
+	       ci_debug_printf (1, "This is a bug! lf->file==NULL\n");
+	       continue;
+	  }
+	  if (lf->log_fmt == NULL)
+	      lf->log_fmt = (char *)DEFAULT_LOG_FORMAT;
+
+	  lf->access_log = fopen(lf->file, "a+");
+	  if (!lf->access_log) {
+	      error = 1;
+	      ci_debug_printf (1, "WARNING! Can not open log file: %s\n", lf->file);
+	  }
+	  else {
+	      setvbuf(lf->access_log, NULL, _IONBF, 0);
+	  }
+     }
 
      server_log = fopen(SERVER_LOG_FILE, "a+");
      if (!server_log)
           return 0;
      setvbuf(server_log, NULL, _IONBF, 0);
 
-     return 1;
+     if (error)
+         return 0;
+     else
+         return 1;
 }
 
 void file_log_close()
 {
-     ACCESS_LOG_FORMAT = NULL;
-     ACCESS_LOG_FILE = NULL;
+     struct logfile *lf, *tmp;
 
-     if (access_log)
-          fclose(access_log);
+     lf = ACCESS_LOG_FILES;
+     while(lf != NULL) {
+          if (lf->access_log)
+	      fclose(lf->access_log);
+	  free(lf->file);
+
+	  ACCESS_LOG_FILES = lf;
+	  tmp = lf;
+	  lf = lf->next;
+	  free(tmp);
+     }
+
      if (server_log)
           fclose(server_log);
-     access_log = NULL;
      server_log = NULL;
 }
 
@@ -246,11 +284,15 @@ void log_flush(){
 
 void file_log_access(ci_request_t *req)
 {
+    struct logfile *lf;
     char logline[1024];
-    if (!access_log)
-          return;
-    ci_format_text(req, ACCESS_LOG_FORMAT, logline, 1024, NULL);
-    fprintf(access_log,"%s\n", logline); 
+
+    for (lf = ACCESS_LOG_FILES; lf != NULL; lf = lf->next) {
+         if (lf->access_log) {
+             ci_format_text(req, lf->log_fmt, logline, 1024, NULL);
+	     fprintf(lf->access_log,"%s\n", logline); 
+	 }
+    }
 }
 
 
@@ -270,12 +312,42 @@ void file_log_server(char *server, const char *format, va_list ap)
 
 int file_log_addlogfile(char *file, char *format, char **acls) 
 {
-     ACCESS_LOG_FILE = strdup(file);
+     char *access_log_file, *access_log_format;
+     struct logfile *lf, *newlf;
+
+     access_log_file = strdup(file);
+     if (!access_log_file)
+       return 0;
+
      if (format) {
          /*the folowing return format txt or NULL. It is OK*/
-         ACCESS_LOG_FORMAT = logformat_fmt(format);
+         access_log_format = logformat_fmt(format);
      }
      else
-         ACCESS_LOG_FORMAT = NULL;
+         access_log_format = NULL;
+
+     newlf = malloc(sizeof(struct logfile));
+     newlf->file = access_log_file;
+     newlf->log_fmt = (access_log_format != NULL? access_log_format : DEFAULT_LOG_FORMAT);
+     newlf->access_log = NULL;
+     newlf->next = NULL;
+     
+     if (!ACCESS_LOG_FILES){
+         ACCESS_LOG_FILES = newlf;
+     } 
+     else {
+	 for (lf = ACCESS_LOG_FILES; lf->next != NULL; lf = lf->next) {
+              if (strcmp(lf->file, newlf->file)==0) {
+                  ci_debug_printf(1, "Access log file %s already defined!\n",
+                                  newlf->file);
+                  free(newlf->file);
+                  free(newlf);
+                  return 0;
+              }
+         }
+
+	 lf->next = newlf;
+     }
+
      return 1;
 }
