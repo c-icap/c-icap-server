@@ -1158,8 +1158,10 @@ int do_request(ci_request_t * req)
 		    }
 */
                if (req->allow204 && res == CI_MOD_ALLOW204) {
-		    if (ec_responce_with_istag(req, EC_204))
+		    if (ec_responce_with_istag(req, EC_204) < 0) {
+		        ci_debug_printf(5, "An error ocured while sending allow 204 response\n");
 		        ret_status = CI_ERROR;
+		    }
 		    req->return_code = EC_204;
                     break;      //Need no any modification.
                }
