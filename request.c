@@ -461,7 +461,7 @@ int ec_responce_with_istag(ci_request_t * req, int ec)
      if (!ci_headers_is_empty(req->xheaders)) {
 	  ci_headers_addheaders(req->response_header, req->xheaders);
      }
-     ci_response_pack(req);
+     ci_headers_pack(req->response_header);
 
      len = ci_write(req->connection->fd, 
 		    req->response_header->buf, req->response_header->bufused, 
