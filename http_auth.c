@@ -255,7 +255,7 @@ authenticator_module_t basic_simple_db = {
      NULL,                      /* int (*init_authenticator)(); */
      basic_simple_db_post_init,      /* int (*post_init_authenticator)(); */
      basic_simple_db_close,          /* void (*close_authenticator)(); */
-     (int (*)(void *)) basic_simple_db_athenticate,  /* int (*authenticate)(void *data); */
+     (int (*)(void *, char *)) basic_simple_db_athenticate,  /* int (*authenticate)(void *data); */
      basic_simple_db_conf_variables  /* struct ci_conf_entry *conf_table; */
 };
 

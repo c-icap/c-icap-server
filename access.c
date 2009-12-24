@@ -82,7 +82,6 @@ int check_request(ci_request_t * req)
 
 int access_check_request(ci_request_t * req)
 {
-     char *user;
      int  res;
 
      if (!used_access_controllers)
