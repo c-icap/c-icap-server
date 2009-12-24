@@ -80,7 +80,7 @@ DECLARE_ARRAY_FUNCTIONS(struct ci_magics_db, groups, struct ci_data_group, 15)
 DECLARE_ARRAY_FUNCTIONS(struct ci_magics_db, magics, struct ci_magic, 50)
 
 
-int types_add(struct ci_magics_db *db, char *name, char *descr, int *groups)
+int types_add(struct ci_magics_db *db, const char *name, const char *descr, int *groups)
 {
      struct ci_data_type *newdata;
      int indx, i;
@@ -98,7 +98,7 @@ int types_add(struct ci_magics_db *db, char *name, char *descr, int *groups)
      return indx;
 }
 
-int groups_add(struct ci_magics_db *db, char *name, char *descr)
+int groups_add(struct ci_magics_db *db, const char *name, const char *descr)
 {
      struct ci_data_group *newdata;
      int indx;
@@ -127,7 +127,7 @@ int magics_add(struct ci_magics_db *db, int offset, unsigned char *magic,
      return indx;
 }
 
-int ci_get_data_type_id(struct ci_magics_db *db, char *name)
+int ci_get_data_type_id(struct ci_magics_db *db, const char *name)
 {
      int i = 0;
      for (i = 0; i < db->types_num; i++) {
@@ -137,7 +137,7 @@ int ci_get_data_type_id(struct ci_magics_db *db, char *name)
      return -1;
 }
 
-int ci_get_data_group_id(struct ci_magics_db *db, char *group)
+int ci_get_data_group_id(struct ci_magics_db *db, const char *group)
 {
      int i = 0;
      for (i = 0; i < db->groups_num; i++) {
@@ -295,7 +295,7 @@ void ci_magics_db_release(struct ci_magics_db *db)
      free(db);
 }
 
-int ci_magics_db_file_add(struct ci_magics_db *db, char *filename)
+int ci_magics_db_file_add(struct ci_magics_db *db, const char *filename)
 {
      int type;
      int ret, group, i;
@@ -343,7 +343,7 @@ int ci_magics_db_file_add(struct ci_magics_db *db, char *filename)
 
 }
 
-struct ci_magics_db *ci_magics_db_build(char *filename)
+struct ci_magics_db *ci_magics_db_build(const char *filename)
 {
      struct ci_magics_db *db;
 
@@ -353,7 +353,7 @@ struct ci_magics_db *ci_magics_db_build(char *filename)
      return db;
 }
 
-int check_magics(struct ci_magics_db *db, char *buf, int buflen)
+int check_magics(struct ci_magics_db *db, const char *buf, int buflen)
 {
      int i;
      for (i = 0; i < db->magics_num; i++) {
@@ -527,7 +527,7 @@ int check_unicode(unsigned char *buf, int buflen)
      return CI_UTF_DATA;
 }
 
-int ci_filetype(struct ci_magics_db *db, char *buf, int buflen)
+int ci_filetype(struct ci_magics_db *db, const char *buf, int buflen)
 {
      int ret;
 
@@ -575,7 +575,7 @@ void free_a_buffer(void *op, void *ptr)
     ci_buffer_free(ptr);
 }
 
-int ci_uncompress(int compress_method, char *buf, int len, char *unzipped_buf,
+int ci_uncompress(int compress_method, const char *buf, int len, char *unzipped_buf,
                   int *unzipped_buf_len)
 {
      int ret;
@@ -614,7 +614,7 @@ int ci_uncompress(int compress_method, char *buf, int len, char *unzipped_buf,
 }
 #endif
 
-int extend_object_type(struct ci_magics_db *db, ci_headers_list_t *headers, char *buf,
+int extend_object_type(struct ci_magics_db *db, ci_headers_list_t *headers, const char *buf,
                        int len, int *iscompressed)
 {
      int file_type;
@@ -622,7 +622,7 @@ int extend_object_type(struct ci_magics_db *db, ci_headers_list_t *headers, char
      int unzipped_buf_len = 0;
      char *unzipped_buf = NULL;
 #endif
-     char *checkbuf = buf;
+     const char *checkbuf = buf;
      char *content_type = NULL, *content_encoding = NULL;
 
      *iscompressed = CI_ENCODE_NONE;
@@ -707,7 +707,7 @@ int extend_object_type(struct ci_magics_db *db, ci_headers_list_t *headers, char
      return file_type;
 }
 
-int ci_extend_filetype(struct ci_magics_db *db, ci_request_t * req, char *buf,
+int ci_extend_filetype(struct ci_magics_db *db, ci_request_t * req, const char *buf,
                        int len, int *iscompressed)
 {
   ci_headers_list_t *heads;
@@ -720,7 +720,7 @@ int ci_extend_filetype(struct ci_magics_db *db, ci_request_t * req, char *buf,
 }
 
 
-struct ci_magics_db *ci_magic_db_load(char *filename)
+struct ci_magics_db *ci_magic_db_load(const char *filename)
 {
     if (!_MAGIC_DB)
 	return (_MAGIC_DB = ci_magics_db_build(filename));
@@ -749,7 +749,7 @@ int ci_magic_req_data_type(ci_request_t *req, int *isencoded)
     return req->preview_data_type;
 }
 
-int ci_magic_data_type(char *buf, int len)
+int ci_magic_data_type(const char *buf, int len)
 {
     if (!_MAGIC_DB)
 	return -1;
@@ -758,7 +758,7 @@ int ci_magic_data_type(char *buf, int len)
   
 }
 
-int ci_magic_data_type_ext(ci_headers_list_t *headers, char *buf,int len,int *iscompressed)
+int ci_magic_data_type_ext(ci_headers_list_t *headers, const char *buf, int len, int *iscompressed)
 {
     if (!_MAGIC_DB)
 	return -1;
@@ -767,7 +767,7 @@ int ci_magic_data_type_ext(ci_headers_list_t *headers, char *buf,int len,int *is
 }
 
 
-int ci_magic_type_id(char *name)
+int ci_magic_type_id(const char *name)
 {
     if (!_MAGIC_DB)
 	return -1;
@@ -775,7 +775,7 @@ int ci_magic_type_id(char *name)
     return ci_get_data_type_id(_MAGIC_DB, name);
 }
 
-int ci_magic_group_id(char *group)
+int ci_magic_group_id(const char *group)
 {
     if (!_MAGIC_DB)
 	return -1;

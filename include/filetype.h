@@ -74,16 +74,16 @@ enum {CI_TEXT_DATA,CI_OCTET_DATA};
 enum {CI_ENCODE_NONE=0,CI_ENCODE_GZIP,CI_ENCODE_DEFLATE,CI_ENCODE_UNKNOWN};
 
 /*low level functions should not used by users*/
-CI_DECLARE_FUNC(struct ci_magics_db) *ci_magics_db_build(char *filename);
-CI_DECLARE_FUNC(int) ci_magics_db_file_add(struct ci_magics_db *db,char *filename);
-CI_DECLARE_FUNC(int) ci_get_data_type_id(struct ci_magics_db *db,char *name);
-CI_DECLARE_FUNC(int) ci_get_data_group_id(struct ci_magics_db *db,char *group);
+CI_DECLARE_FUNC(struct ci_magics_db) *ci_magics_db_build(const char *filename);
+CI_DECLARE_FUNC(int) ci_magics_db_file_add(struct ci_magics_db *db,const char *filename);
+CI_DECLARE_FUNC(int) ci_get_data_type_id(struct ci_magics_db *db,const char *name);
+CI_DECLARE_FUNC(int) ci_get_data_group_id(struct ci_magics_db *db,const char *group);
 CI_DECLARE_FUNC(int) ci_belongs_to_group(struct ci_magics_db *db, int type, int group);
 
-CI_DECLARE_FUNC(int) ci_filetype(struct ci_magics_db *db,char *buf, int buflen);
+CI_DECLARE_FUNC(int) ci_filetype(struct ci_magics_db *db,const char *buf, int buflen);
 CI_DECLARE_FUNC(int) ci_extend_filetype(struct ci_magics_db *db,
 					ci_request_t *req,
-					char *buf,int len,int *iscompressed);
+					const char *buf,int len,int *iscompressed);
 
 /*And the c-icap Library functions*/
 
@@ -96,7 +96,7 @@ CI_DECLARE_FUNC(int) ci_extend_filetype(struct ci_magics_db *db,
  \param filename is the name of the file contains the db
  \return a pointer to a ci_magics_db object
  */
-CI_DECLARE_FUNC(struct ci_magics_db) *ci_magic_db_load(char *filename);
+CI_DECLARE_FUNC(struct ci_magics_db) *ci_magic_db_load(const char *filename);
 
 /**
  * Recognizes the type of (preview) data of an c-icap request object
@@ -112,8 +112,8 @@ CI_DECLARE_FUNC(struct ci_magics_db) *ci_magic_db_load(char *filename);
  */
 CI_DECLARE_FUNC(int) ci_magic_req_data_type(ci_request_t *req, int *isencoded);
 
-CI_DECLARE_FUNC(int) ci_magic_data_type(char *buf, int buflen);
-CI_DECLARE_FUNC(int) ci_magic_data_type_ext(ci_headers_list_t *headers, char *buf,int len,int *iscompressed);
+CI_DECLARE_FUNC(int) ci_magic_data_type(const char *buf, int buflen);
+CI_DECLARE_FUNC(int) ci_magic_data_type_ext(ci_headers_list_t *headers, const char *buf,int len,int *iscompressed);
 
 /**
  * Finds the type id from type name
@@ -121,7 +121,7 @@ CI_DECLARE_FUNC(int) ci_magic_data_type_ext(ci_headers_list_t *headers, char *bu
  \param name is the name of the magic type
  \return the type id
  */
-CI_DECLARE_FUNC(int) ci_magic_type_id(char *name);
+CI_DECLARE_FUNC(int) ci_magic_type_id(const char *name);
 
 /**
  * Finds the group id from group name
@@ -129,7 +129,7 @@ CI_DECLARE_FUNC(int) ci_magic_type_id(char *name);
  \param name is the name of the group
  \return the group id
  */
-CI_DECLARE_FUNC(int) ci_magic_group_id(char *group);
+CI_DECLARE_FUNC(int) ci_magic_group_id(const char *group);
 
 /**
  * Checks if a magic type belongs to a magic types group
