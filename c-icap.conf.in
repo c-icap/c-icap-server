@@ -49,44 +49,47 @@ Logger file_logger
 #Module access_controller  my_acl.so
 
 ## This parameter needed to specify the order of used acl controllers
-## If not specified access control will be disabled
 #AclControllers default_acl
 
-## An example of acl lists for default_acl controller.
-## acl and icap_access  are aliases for default_acl.acl and default_acl.icap_access 
-#acl localnet_options src 192.168.1.0/255.255.255.0 type options
-#acl localnet_respmod src 192.168.1.0/255.255.255.0 type respmod
+## An example of acl lists for internal  access controller.
+#acl OPTIONS type OPTIONS
+#acl RESPMOD type RESPMOD
+#acl REQMOD  type REQMOD
+#acl ALLREQUESTS type OPTIONS RESPMOD REQMOD
+#acl XHEAD icap_header{X-Test}  /value/
+#acl ECHO service echo
+#acl CLAMAV service srv_clamav
+
 #acl localnet src 192.168.1.0/255.255.255.0
-##Use the folllowing to demand use of username ......
-##acl localnet src 192.168.1.0/255.255.255.0 user *
+#acl localnet src 192.168.2.0/255.255.255.0
+#acl localhost src 127.0.0.1/255.255.255.255
 #acl externalnet src 0.0.0.0/0.0.0.0
-#acl barbarian src 192.168.1.5
+#acl AUTH auth *
+
 
 ##An example to specify access to server
 #icap_access deny barbarian
-#icap_access allow localnet_options
-#icap_access allow localnet_respmod
-#icap_access allow localnet
-## http_auth mean that the icap server must try to authenticate the request
-## using the http headers ....
-#icap_access  http_auth localnet
+#icap_access deny XHEAD
+#icap_access allow localnet OPTIONS
+#icap_access allow localnet ALLREQUESTS
+
+##Require authentication for all users
+#icap_access allow AUTH localhost
 #icap_access deny externalnet
 
-#Also you can specify which hosts to log or not.
-# Comment out the folowing two lines to log only the external net
-#icap_access nolog localnet
-#icap_access log externalnet
 
+##Currently only the basic authentication method is implemented.
+##
+##Use the following line to enable basic authentication and use the basic_simple_db
+##which is the internal users/password database for basic authentication method.
+#AuthMethod basic basic_simple_db
 
+##Specify the basic method realm
+#basic.Realm "C-icap realm"
 
-##An example for authentication methods ....
-## To load an extarnal authentication method module named my_authmethod.so  use:
-#Module auth_method my_authmethod.so
+##Specify the lookup table where the users are stored:
+#basic_simple_db.UsersDB /usr/local/c-icap/etc/c-icap-users.txt
 
-##The following parameter needed to specify the order of authenticators for
-##specific authentication method. file_basic is a buildin authenticator
-##for buildin basic authentication method (Not implemented yet......) ......
-#AuthMethod basic file_basic 
 
 
 ServicesDir @prefix@/lib/c_icap

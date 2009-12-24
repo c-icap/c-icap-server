@@ -112,6 +112,8 @@ typedef struct ci_request{
     
      /*Caching values for various subsystems*/
      int preview_data_type;
+     int auth_required;
+
      /* statistics */
      uint64_t bytes_in;
      uint64_t bytes_out;

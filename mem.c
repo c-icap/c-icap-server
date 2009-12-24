@@ -29,12 +29,20 @@
 int ci_buffers_init();
 
 /*General Functions */
+ci_mem_allocator_t *default_allocator;
 
 int mem_init()
 {
     int ret;
     ret = ci_buffers_init();
-    return ret;
+    if(!ret)
+	return 0;
+
+    default_allocator = ci_create_os_allocator();
+    if (!default_allocator)
+	return 0;
+
+    return 1;
 }
 
 void mem_reset()

@@ -28,6 +28,8 @@
 #include "cfg_param.h"
 #include "debug.h"
 #include "txt_format.h"
+#include "access.h"
+#include "acl.h"
 
 
 /************************************************************************/
@@ -44,11 +46,14 @@ static int FACILITY = LOG_DAEMON;
 static int ACCESS_PRIORITY = LOG_INFO;
 static int SERVER_PRIORITY = LOG_CRIT;
 char *syslog_logformat = NULL;
+static ci_access_entry_t *syslog_access_list = NULL;
+
 
 int cfg_set_facility(char *directive, char **argv, void *setdata);
 int cfg_set_priority(char *directive, char **argv, void *setdata);
 /*int cfg_set_prefix(char *directive,char **argv,void *setdata);*/
 int cfg_syslog_logformat(char *directive, char **argv, void *setdata);
+int cfg_syslog_access(char *directive, char **argv, void *setdata);
 
 
 /*
@@ -64,6 +69,7 @@ static struct ci_conf_entry conf_variables[] = {
      {"server_priority", &SERVER_PRIORITY, cfg_set_priority, NULL},
      {"Prefix", &log_ident, ci_cfg_set_str, NULL},
      {"LogFormat", NULL, cfg_syslog_logformat},
+     {"access", NULL, cfg_syslog_access},
      {NULL, NULL, NULL, NULL}
 };
 
@@ -196,4 +202,39 @@ void sys_log_server(char *server, const char *format, va_list ap)
      vsnprintf(buf, 511, (const char *) prefix, ap);
      buf[511] = '\0';
      syslog(SERVER_PRIORITY, "%s", buf);
+}
+
+
+int cfg_syslog_access(char *directive, char **argv, void *setdata)
+{
+     int argc, error;
+     char *acl_spec_name;
+
+     if (argv[0] == NULL) {
+          ci_debug_printf(1, "Parse error in directive %s \n", directive);
+          return 0;
+     }
+
+     if (ci_access_entry_new(&syslog_access_list, CI_ACCESS_ALLOW) == NULL) {
+	 ci_debug_printf(1, "Error creating access list for syslog logger!\n");
+	 return 0;
+     }
+
+     ci_debug_printf(1,"Creating new access entry for syslog module with specs:\n");
+     error = 0;
+     for(argc=0; argv[argc] != NULL; argc++){	  
+	  acl_spec_name = argv[argc];
+	  /*TODO: check return type.....*/
+	  if (!ci_access_entry_add_acl_by_name(syslog_access_list, acl_spec_name)) {
+	      ci_debug_printf(1,"Error adding acl spec: %s. Probably does not exist!\n", acl_spec_name);
+	      error = 1;
+	  }
+	  else
+	      ci_debug_printf(1,"\tAdding acl spec: %s\n", acl_spec_name);
+     }
+     
+     if (error)
+	 return 0;
+     
+     return 1;
 }

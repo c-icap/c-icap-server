@@ -347,8 +347,9 @@ AC_SUBST(SYSV_IPC)
 
 AC_CHECK_HEADERS(regex.h,
 AC_DEFINE(HAVE_REGEX,1,[Define HAVE_REGEX if regex.h exists (posix regular expressions - maybe more tests needed)])
+USE_REGEX=1
 )
-
+AC_SUBST(USE_REGEX)
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST

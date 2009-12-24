@@ -3,14 +3,7 @@
 
 #include "c-icap.h"
 #include "mem.h"
-
-typedef struct ci_type_ops {
-    void *(*dup)(const char *, ci_mem_allocator_t *);
-    int (*compare)(void *ref_key,void *key);
-    size_t (*size)(void *key);
-    void (*free)(void *key, ci_mem_allocator_t *);
-} ci_type_ops_t;
-
+#include "types_ops.h"
 
 struct ci_lookup_table;
 struct ci_lookup_table_type {
@@ -42,9 +35,4 @@ CI_DECLARE_FUNC(const struct ci_lookup_table_type *) ci_lookup_table_type_search
 CI_DECLARE_FUNC(struct ci_lookup_table *) ci_lookup_table_create(const char *table);
 CI_DECLARE_FUNC(void) ci_lookup_table_destroy(struct ci_lookup_table *lt);
 
-CI_DECLARE_DATA extern ci_type_ops_t ci_str_ops;
-/*Todo:
-extern ci_table_type_ops_t ci_int32_ops;
-extern ci_table_type_ops_t ci_ip_ops;
-*/
 #endif

@@ -555,7 +555,7 @@ extern logger_module_t file_logger;
 extern logger_module_t *default_logger;
 extern access_control_module_t default_acl;
 extern http_auth_method_t basic_auth;
-extern authenticator_module_t file_basic;
+extern authenticator_module_t basic_simple_db;
 
 
 int init_modules()
@@ -575,9 +575,11 @@ int init_modules()
      init_module(&default_acl, ACCESS_CONTROLLER);
      add_to_modules_list(&access_controllers, &default_acl);
 
+     init_module(&basic_auth, AUTH_METHOD);
      add_to_modules_list(&auth_methods, &basic_auth);
 
-     add_to_modules_list(&authenticators, &file_basic);
+     init_module(&basic_simple_db, AUTHENTICATOR);
+     add_to_modules_list(&authenticators, &basic_simple_db);
 
      return 1;
 }

@@ -28,6 +28,10 @@
 #define USE_PTHREADS_RWLOCK
 #endif
 
+#if @USE_REGEX@
+#define USE_REGEX
+#endif
+
 #if @USE_COMPAT@
 #define __CI_COMPAT
 #endif

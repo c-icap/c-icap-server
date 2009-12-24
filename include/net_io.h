@@ -60,9 +60,32 @@ typedef struct ci_sockaddr{
 #define CI_MAXHOSTNAMELEN 256
 
 #ifdef USE_IPV6
+
+typedef union ci_inaddr {
+     struct in_addr ipv4_addr;
+     struct in6_addr ipv6_addr;
+} ci_in_addr_t;
+
+#define ci_inaddr_zero(addr) (memset(&(addr),0,sizeof(ci_in_addr_t)))
+#define ci_inaddr_copy(dest,src) (memcpy(&(dest),&(src),sizeof(ci_in_addr_t)))
+#define ci_ipv4_inaddr_hostnetmask(addr)((addr).ipv4_addr.s_addr=htonl(0xFFFFFFFF))
+#define ci_in6_addr_u32(addr) ((uint32_t *)&((addr).ipv6_addr))
+#define ci_ipv6_inaddr_hostnetmask(addr)(ci_in6_addr_u32(addr)[0]=htonl(0xFFFFFFFF),\
+					 ci_in6_addr_u32(addr)[1]=htonl(0xFFFFFFFF), \
+					 ci_in6_addr_u32(addr)[2]=htonl(0xFFFFFFFF), \
+					 ci_in6_addr_u32(addr)[3]=htonl(0xFFFFFFFF))
+
 #define CI_IPLEN      46
 #define CI_SOCKADDR_SIZE sizeof(struct sockaddr_storage)
-#else
+
+#else /*IPV4 only*/
+
+typedef struct in_addr ci_in_addr_t;
+#define ci_inaddr_zero(addr) ((addr).s_addr=0)
+#define ci_inaddr_copy(dest,src) ((dest)=(src))
+#define ci_ipv4_naddr_hostnetmask(addr)((addr).s_addr=htonl(0xFFFFFFFF))
+
+
 #define CI_IPLEN      16
 #define CI_SOCKADDR_SIZE sizeof(struct sockaddr_in)
 #endif
@@ -70,6 +93,13 @@ typedef struct ci_sockaddr{
 #define wait_for_read       0x1
 #define wait_for_write      0x2
 #define wait_for_readwrite  0x3 
+
+
+typedef struct ci_ip {
+    ci_in_addr_t address;
+    ci_in_addr_t netmask;
+    int family;
+} ci_ip_t;
 
 typedef struct ci_connection{
      ci_socket fd;
@@ -80,6 +110,8 @@ typedef struct ci_connection{
 
 
 CI_DECLARE_FUNC(void) ci_fill_sockaddr(ci_sockaddr_t *addr);
+CI_DECLARE_FUNC(void) ci_fill_ip_t(ci_ip_t *ip, ci_sockaddr_t *addr);
+
 CI_DECLARE_FUNC(void) ci_copy_sockaddr(ci_sockaddr_t *dest, ci_sockaddr_t *src);
 CI_DECLARE_FUNC(int) ci_inet_aton(int af,const char *cp, void *inp);
 CI_DECLARE_FUNC(const char *) ci_inet_ntoa(int af,const void *src, char *dst,int cnt);

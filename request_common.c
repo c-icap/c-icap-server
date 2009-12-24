@@ -258,6 +258,7 @@ ci_request_t *ci_request_alloc(ci_connection_t * connection)
      req->data_locked = 1;
 
      req->preview_data_type = -1;
+     req->auth_required = 0;
 
      req->bytes_in = 0;
      req->bytes_out = 0;
@@ -314,6 +315,7 @@ void ci_request_reset(ci_request_t * req)
      req->data_locked = 1;
 
      req->preview_data_type = -1;
+     req->auth_required = 0;
 
      req->bytes_in = 0;
      req->bytes_out = 0;

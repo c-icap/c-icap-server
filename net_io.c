@@ -70,8 +70,22 @@ void ci_copy_sockaddr(ci_sockaddr_t * dest, ci_sockaddr_t * src)
      memcpy(dest, src, sizeof(ci_sockaddr_t));
      dest->ci_sin_addr = &(dest->sockaddr.sin_addr);
 }
-
 #endif
+
+void ci_fill_ip_t(ci_ip_t *ip_dest, ci_sockaddr_t *src)
+{
+    ip_dest->family = src->ci_sin_family;
+    memcpy(&ip_dest->address,src->ci_sin_addr,sizeof(ci_in_addr_t));
+    
+#ifdef USE_IPV6
+    if(ip_dest->family == AF_INET6)
+	ci_ipv6_inaddr_hostnetmask(ip_dest->netmask);
+    else
+	ci_ipv4_inaddr_hostnetmask(ip_dest->netmask);
+#else
+    ci_ipv4_inaddr_hostnetmask(ip_dest->netmask);
+#endif
+}
 
 #ifdef USE_IPV6
 

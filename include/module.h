@@ -72,17 +72,8 @@ typedef struct  access_control_module{
      int (*init_access_controller)(struct ci_server_conf *server_conf);
      int (*post_init_access_controller)(struct ci_server_conf *server_conf);
      void (*release_access_controller)();
-     int (*client_access)(ci_sockaddr_t *client_address, ci_sockaddr_t *server_address);
-     int (*request_access)(char *dec_user,char *service,int req_type, 
-			                                ci_sockaddr_t *client_address, 
-			                                ci_sockaddr_t *server_address);
-     int (*http_request_access)(char *dec_user,char *service,int req_type, 
-				                        ci_sockaddr_t *client_address, 
-			                                ci_sockaddr_t *server_address);
-     int (*log_access)(char *dec_user,char *service,int req_type, 
-				ci_sockaddr_t *client_address, 
-				ci_sockaddr_t *server_address);
-
+     int (*client_access)(ci_request_t *req);
+     int (*request_access)(ci_request_t *req);
      struct ci_conf_entry *conf_table;
 } access_control_module_t;
 
@@ -92,8 +83,10 @@ typedef struct http_auth_method{
      int (*init_auth_method)(struct ci_server_conf *server_conf);
      int (*post_init_auth_method)(struct ci_server_conf *server_conf);
      void (*close_auth_method)();
-     void *(*create_auth_data)(char *auth_line,char **username);
+     void *(*create_auth_data)(char *authorization_header,char **username);
      void (*release_auth_data)(void *data);
+     char *(*authentication_header)();
+     void (*release_authentication_header)();
      struct ci_conf_entry *conf_table;
 } http_auth_method_t;
 
@@ -104,7 +97,7 @@ typedef struct authenticator_module{
      int (*init_authenticator)(struct ci_server_conf *server_conf);
      int (*post_init_authenticator)(struct ci_server_conf *server_conf);
      void (*close_authenticator)();
-     int (*authenticate)(void *data);
+    int (*authenticate)(void *data, char *usedb);
      struct ci_conf_entry *conf_table;
 } authenticator_module_t;
 

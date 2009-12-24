@@ -2,9 +2,6 @@
 #include "lookup_table.h"
 #include "hash.h"
 #include "debug.h"
-#ifdef HAVE_REGEX_H
-#include <regex.h>
-#endif
 
 /******************************************************/
 /* file lookup table implementation                   */
@@ -332,121 +329,6 @@ struct ci_lookup_table_type regex_table_type={
     regex_table_release_result,
     "regex"
 };
-
-
-/*regular expresion operator definition  */
-#ifdef HAVE_REGEX
-/*We only need the preg field which holds the compiled regular expression 
-  but keep the uncompiled string too just for debuging reasons */
-struct ci_regex {
-    char *str;
-    int flags;
-    regex_t preg;
-};
-
-/*Parse the a regular expression in the form: /regexpression/flags
-  where flags nothing or 'i'. Examples:
-        /^\{[a-z| ]*\}/i
-	/^some test.*t/
-*/
-void *regex_dup(const char *str, ci_mem_allocator_t *allocator)
-{
-    struct ci_regex *reg;
-    char *newstr,*s;
-    int slen;
-    unsigned flags;
-
-    s=(char *)str;
-
-    if(!*s=='/') {
-	ci_debug_printf(1, "Parse error, regex should has the form '/expresion/flags'");
-	return NULL;
-    }
-    s++;
-    slen=strlen(s);
-    newstr = allocator->alloc(allocator,slen+1);    
-    if(!newstr) {
-	ci_debug_printf(1,"Error allocating memory for regex_dup!\n");
-	return NULL;
-    }
-    strcpy(newstr, s);
-    s=newstr+slen; /*Points to the end of string*/
-    while(*s!='/' && s!=newstr) s--;
-
-    if(s==newstr) {
-	ci_debug_printf(1,"Parse error, regex should has the form '/expression/flags' (regex=%s)!\n",newstr);
-	allocator->free(allocator, newstr);
-	return NULL;
-    }
-    /*Else found the last '/' char:*/
-    *s='\0';
-    /*parse flags:*/
-    flags=0;
-    s++;
-    while(*s!='\0') {
-	if(*s=='i')
-	    flags = flags | REG_ICASE;
-	else { /*other flags*/
-	}
-    }
-    flags |= REG_EXTENDED; /*or beter the 'e' option?*/
-    flags |= REG_NOSUB; /*we do not need it*/
-    
-    reg = allocator->alloc(allocator,sizeof(struct ci_regex));
-    if(!reg) {
-	ci_debug_printf(1,"Error allocating memory for regex_dup (1)!\n");
-	allocator->free(allocator, newstr);
-	return NULL;
-    }
-
-    if (regcomp(&(reg->preg), newstr, flags) != 0) {
-	ci_debug_printf(1, "Error compiling regular expression :%s (%s)\n", str, newstr);
-	allocator->free(allocator, reg);
-	allocator->free(allocator, newstr);
-	return NULL;
-    }
-
-    reg->str = newstr;
-    reg->flags = flags;
-
-    return reg;
-}
-
-/*
-The following method is a litle bit dangerous because the key1 and key2 had different types
-  but OK it is a temporary ci_type_ops object
-*/
-
-int regex_cmp(void *key1,void *key2)
-{
-    regmatch_t pmatch[1];
-    struct ci_regex *reg=(struct ci_regex *)key1;
-    return regexec(&reg->preg, (char *)key2, 1, pmatch, 0);
-}
-
-size_t regex_len(void *key)
-{
-    return strlen(((const struct ci_regex *)key)->str);
-}
-
-void regex_free(void *key, ci_mem_allocator_t *allocator)
-{
-    struct ci_regex *reg=(struct ci_regex *)key;
-    regfree(&(reg->preg));
-    allocator->free(allocator, reg->str);
-    allocator->free(allocator, reg);
-}
-
-
-ci_type_ops_t  ci_regex_ops = {
-    regex_dup,
-    regex_cmp,
-    regex_len,
-    regex_free
-};
-#endif
-
-
 
 
 void *regex_table_open(struct ci_lookup_table *table)

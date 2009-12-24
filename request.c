@@ -82,15 +82,17 @@ ci_request_t *newrequest(ci_connection_t * connection)
      int len;
      ci_connection_t *conn;
 
-     if ((access = access_check_client(connection)) == CI_ACCESS_DENY) {        /*Check for client access */
-          len = strlen(FORBITTEN_STR);
-          ci_write(connection->fd, FORBITTEN_STR, len, TIMEOUT);
-          return NULL;          /*Or something that means authentication error */
-     }
-
      conn = (ci_connection_t *) malloc(sizeof(ci_connection_t));
      ci_copy_connection(conn, connection);
      req = ci_request_alloc(conn);
+
+     if ((access = access_check_client(req)) == CI_ACCESS_DENY) { /*Check for client access */
+          len = strlen(FORBITTEN_STR);
+          ci_write(connection->fd, FORBITTEN_STR, len, TIMEOUT);
+	  ci_request_destroy(req);
+          return NULL;          /*Or something that means authentication error */
+     }
+
 
      req->access_type = access;
      return req;
@@ -101,14 +103,16 @@ int recycle_request(ci_request_t * req, ci_connection_t * connection)
 {
      int access;
      int len;
-     if ((access = access_check_client(connection)) == CI_ACCESS_DENY) {        /*Check for client access */
+
+     ci_request_reset(req);
+     ci_copy_connection(req->connection, connection);
+
+     if ((access = access_check_client(req)) == CI_ACCESS_DENY) { /*Check for client access */
           len = strlen(FORBITTEN_STR);
           ci_write(connection->fd, FORBITTEN_STR, len, TIMEOUT);
           return 0;             /*Or something that means authentication error */
      }
      req->access_type = access;
-     ci_request_reset(req);
-     ci_copy_connection(req->connection, connection);
      return 1;
 }
 
@@ -1044,22 +1048,20 @@ int do_request(ci_request_t * req)
      }
 
      auth_status = req->access_type;
-     if (req->access_type == CI_ACCESS_PARTIAL
-         && (auth_status = access_check_request(req)) == CI_ACCESS_DENY) {
-          ec_responce(req, EC_401);     /*Responce with bad request */
-	  req->return_code = EC_401;
+     if ((auth_status = access_check_request(req)) == CI_ACCESS_DENY) {
+	 if (req->auth_required) {
+	      ec_responce_with_istag(req, EC_407);     /*Responce with bad request */
+	      req->return_code = EC_407;
+	 }
+	 else {
+	      ec_responce(req, EC_401);
+	      req->return_code = EC_401;
+	 }
           return CI_ERROR;      /*Or something that means authentication error */
      }
 
      if (res == EC_100)
           res = parse_encaps_headers(req);
-
-     if (auth_status == CI_ACCESS_HTTP_AUTH
-         && access_authenticate_request(req) == CI_ACCESS_DENY) {
-          ec_responce(req, EC_401);     /*Responce with bad request */
-	  req->return_code = EC_401;
-          return CI_ERROR;      /*Or something that means authentication error */
-     }
 
      if (!req->current_service_mod) {
           ci_debug_printf(1, "Service not found\n");

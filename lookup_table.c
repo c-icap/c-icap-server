@@ -12,40 +12,6 @@
 const struct ci_lookup_table_type *lookup_tables_types[128]; 
 int lookup_tables_types_num = 0;
 
-/****************************************************************/
-/* operators for table elements                                 */
-
-/*string operators */
-void *stringdup(const char *str, ci_mem_allocator_t *allocator)
-{
-    char *new_s = allocator->alloc(allocator,strlen(str)+1);
-    if(new_s)
-      strcpy(new_s, str);
-    return new_s;
-}
-
-int stringcmp(void *key1,void *key2)
-{
-    return strcmp((char *)key1,(char *)key2);
-}
-
-size_t stringlen(void *key)
-{
-    return strlen((const char *)key)+1;
-}
-
-void stringfree(void *key, ci_mem_allocator_t *allocator)
-{
-    allocator->free(allocator, key);
-}
-
-ci_type_ops_t  ci_str_ops = {
-    stringdup,
-    stringcmp,
-    stringlen,
-    stringfree
-};
-
 /*********************************************************************/
 /*Lookuptable library functions                                      */
 

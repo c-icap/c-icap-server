@@ -45,9 +45,9 @@ struct http_basic_auth_data{
 
 
 int access_reset();
-int http_authorize(ci_request_t *req);
-int http_authenticate(ci_request_t *req);
-int access_check_client(ci_connection_t *connection);
+int http_authorize(ci_request_t *req, char *method);
+int http_authenticate(ci_request_t *req, char *method);
+int access_check_client(ci_request_t *req);
 int access_check_request(ci_request_t *req);
 int access_authenticate_request(ci_request_t *req);
 int access_check_logging(ci_request_t *req);

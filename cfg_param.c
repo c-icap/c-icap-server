@@ -29,6 +29,7 @@
 #include "filetype.h"
 #include "cfg_param.h"
 #include "commands.h"
+#include "acl.h"
 
 #define LINESIZE 8192
 #define MAX_DIRECTIVE_SIZE 80
@@ -80,6 +81,11 @@ extern char *ACCESS_LOG_FORMAT;
 extern logger_module_t *default_logger;
 extern access_control_module_t **used_access_controllers;
 
+extern char *REMOTE_PROXY_USER_HEADER;
+extern int ALLOW_REMOTE_PROXY_USERS;
+extern int REMOTE_PROXY_USER_HEADER_ENCODED;
+
+
 /*Functions declaration */
 int parse_file(char *conf_file);
 
@@ -101,7 +107,7 @@ int cfg_include_config_file(char *directive, char **argv, void *setdata);
 
 /*The following 2 functions defined in access.c file*/
 int cfg_acl_add(char *directive, char **argv, void *setdata);
-int cfg_acl_access(char *directive, char **argv, void *setdata);
+int cfg_default_acl_access(char *directive, char **argv, void *setdata);
 /****/
 
 struct sub_table {
@@ -146,9 +152,13 @@ static struct ci_conf_entry conf_variables[] = {
      {"MaxMemObject", NULL, cfg_set_body_maxmem, NULL}, /*Set library's body max mem */
      {"AclControllers", NULL, cfg_set_acl_controllers, NULL},
      {"acl", NULL, cfg_acl_add, NULL},
-     {"icap_access", NULL, cfg_acl_access, NULL},
+     {"icap_access", NULL, cfg_default_acl_access, NULL},
+     {"client_access", NULL, cfg_default_acl_access, NULL},
      {"AuthMethod", NULL, cfg_set_auth_method, NULL},
      {"Include", NULL, cfg_include_config_file, NULL},
+     {"RemoteProxyUserHeader", &REMOTE_PROXY_USER_HEADER, intl_cfg_set_str, NULL},
+     {"RemoteProxyUserHeaderEncoded", &REMOTE_PROXY_USER_HEADER_ENCODED, intl_cfg_onoff, NULL},
+     {"RemoteProxyUsers", &ALLOW_REMOTE_PROXY_USERS, intl_cfg_onoff, NULL},
      {NULL, NULL, NULL, NULL}
 };
 
@@ -208,7 +218,7 @@ int register_conf_table(char *name, struct ci_conf_entry *table, int type)
 	     /*tables list is full, reallocating space ...... */
 	     if (NULL ==
 		 (new =
-		  realloc(extra_conf_tables, conf_tables_list_size + STEPSIZE)))
+		  realloc(extra_conf_tables, sizeof(struct sub_table)*(conf_tables_list_size + STEPSIZE))))
 		 return 0;
 	     extra_conf_tables = new;
 	     conf_tables_list_size += STEPSIZE;
@@ -431,12 +441,16 @@ int cfg_set_logformat(char *directive, char **argv, void *setdata)
 int file_log_addlogfile(char *file, char *format, char **acls);
 int cfg_set_accesslog(char *directive, char **argv, void *setdata)
 {
+     char **acls = NULL;
      if (argv == NULL || argv[0] == NULL ) {
           ci_debug_printf(1, "Missing arguments in directive %s\n", directive);
           return 0;
      }
+     if (argv[1] != NULL && argv[2] !=NULL) {
+         acls = argv+2;
+     }
      ci_debug_printf(1, "Adding the access logfile %s\n",argv[0]);
-     return file_log_addlogfile(argv[0], argv[1], NULL);
+     return file_log_addlogfile(argv[0], argv[1], acls);
 }
 
 
@@ -792,6 +806,7 @@ void system_reconfigure()
      ci_debug_printf(1, "Going to reconfigure system!\n");
      system_shutdown();
      reset_conf_tables();
+     ci_acl_reset();
      ci_debug_printf(1, "All resources released. Going to reload!\n");
      init_modules();
      init_services();

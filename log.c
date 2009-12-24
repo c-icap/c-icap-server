@@ -29,6 +29,7 @@
 #include "cfg_param.h"
 #include "debug.h"
 #include "txt_format.h"
+#include "acl.h"
 #include <errno.h>
 
 logger_module_t *default_logger = NULL;
@@ -62,8 +63,6 @@ void log_access(ci_request_t * req, int status)
      if (!req)
           return;
 
-     if (access_check_logging(req) == CI_ACCESS_ALLOW)
-          return;
      if (default_logger)
 	  default_logger->log_access(req);
 }
@@ -181,7 +180,7 @@ struct logfile {
     char *file;
     FILE *access_log;
     const char *log_fmt;
-    /*acl_t *acls;*/
+    ci_access_entry_t *access_list;
     struct logfile *next;
 };
 struct logfile *ACCESS_LOG_FILES = NULL;
@@ -264,6 +263,11 @@ void file_log_access(ci_request_t *req)
 
     for (lf = ACCESS_LOG_FILES; lf != NULL; lf = lf->next) {
          if (lf->access_log) {
+	     if (lf->access_list && !(ci_access_entry_match_request(lf->access_list, req) == CI_ACCESS_ALLOW)) {
+		 ci_debug_printf(6, "access log file %s does not match, skiping\n", lf->file);
+		 continue;
+	     }
+	     ci_debug_printf(6, "Log request to access log file %s\n", lf->file);
              ci_format_text(req, lf->log_fmt, logline, 1024, NULL);
 	     fprintf(lf->access_log,"%s\n", logline); 
 	 }
@@ -288,7 +292,9 @@ void file_log_server(char *server, const char *format, va_list ap)
 int file_log_addlogfile(char *file, char *format, char **acls) 
 {
      char *access_log_file, *access_log_format;
+     char * acl_name;
      struct logfile *lf, *newlf;
+     int i;
 
      access_log_file = strdup(file);
      if (!access_log_file)
@@ -305,8 +311,30 @@ int file_log_addlogfile(char *file, char *format, char **acls)
      newlf->file = access_log_file;
      newlf->log_fmt = (access_log_format != NULL? access_log_format : DEFAULT_LOG_FORMAT);
      newlf->access_log = NULL;
+     newlf->access_list = NULL;
      newlf->next = NULL;
      
+     if (acls != NULL && acls[0] != NULL) {
+          if (ci_access_entry_new(&(newlf->access_list), CI_ACCESS_ALLOW) == NULL) {
+	       ci_debug_printf(1, "Error creating access list for access log file %s!\n",
+			       newlf->file);
+	       free(newlf->file);
+	       free(newlf);
+	       return 0;
+	  }
+	  for (i=0; acls[i] != NULL; i++) {
+	       acl_name = acls[i];
+	       if (!ci_access_entry_add_acl_by_name(newlf->access_list, acl_name)) {
+		    ci_debug_printf(1, "Error addind acl %s to access list for access log file %s!\n",
+				    acl_name, newlf->file);
+		    ci_access_entry_release(newlf->access_list);
+		    free(newlf->file);
+		    free(newlf);
+		    return 0;
+	       }
+	  }
+     }
+
      if (!ACCESS_LOG_FILES){
          ACCESS_LOG_FILES = newlf;
      } 
@@ -315,6 +343,8 @@ int file_log_addlogfile(char *file, char *format, char **acls)
               if (strcmp(lf->file, newlf->file)==0) {
                   ci_debug_printf(1, "Access log file %s already defined!\n",
                                   newlf->file);
+		  if (newlf->access_list)
+		      ci_access_entry_release(newlf->access_list);
                   free(newlf->file);
                   free(newlf);
                   return 0;

@@ -94,6 +94,7 @@ const struct ci_error_code ci_error_codes[] = {
      {404, "Service not found"},        /*ICAP Service not found */
      {405, "Not allowed"},      /*Method not allowed for service (e.g., RESPMOD requested for
                                    service that supports only REQMOD). */
+     {407, "Authentication Required"},
      {408, "Request timeout"},  /*Request timeout.  ICAP server gave up waiting for a request
                                    from an ICAP client */
      {500, "Server error"},     /*Server error.  Error on the ICAP server, such as "out of disk
