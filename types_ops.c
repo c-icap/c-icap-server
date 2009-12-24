@@ -87,7 +87,7 @@ ci_type_ops_t ci_str_ext_ops = {
 
 void *int32_dup(const char *str, ci_mem_allocator_t *allocator)
 {
-    int i;
+    long i;
     i = strtol(str, NULL, 10);
     return (void *)i;
 }
