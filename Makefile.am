@@ -50,7 +50,8 @@ c_icap_LDFLAGS = -rdynamic -rpath @libdir@ @THREADS_LDFLAGS@
 INCS = access.h body.h cfg_param.h c-icap-conf.h c-icap.h ci_threads.h \
 	commands.h debug.h dlib.h filetype.h header.h log.h mem.h module.h \
 	net_io.h proc_mutex.h proc_threads_queues.h request.h service.h \
-	shared_mem.h simple_api.h util.h lookup_table.h hash.h stats.h acl.h
+	shared_mem.h simple_api.h util.h lookup_table.h hash.h stats.h acl.h \
+        txt_format.h types_ops.h
 
 ALL_INCS=$(INCS:%.h=include/%.h)
 
