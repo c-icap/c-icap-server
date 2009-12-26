@@ -142,6 +142,12 @@ void init_http_auth()
     ci_acl_type_add(&acl_auth);
 }
 
+
+void reset_http_auth()
+{
+    ci_acl_type_add(&acl_auth);
+}
+
 /**********************************************************************************/
 /* basic auth method implementation                                               */
 

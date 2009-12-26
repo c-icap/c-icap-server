@@ -807,6 +807,7 @@ void system_reconfigure()
      system_shutdown();
      reset_conf_tables();
      ci_acl_reset();
+     reset_http_auth();
      ci_debug_printf(1, "All resources released. Going to reload!\n");
      init_modules();
      init_services();
