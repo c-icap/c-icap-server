@@ -243,10 +243,12 @@ void file_log_close()
           if (lf->access_log)
 	      fclose(lf->access_log);
 	  free(lf->file);
+	  if (lf->access_list)
+	      ci_access_entry_release(lf->access_list);
 
-	  ACCESS_LOG_FILES = lf;
 	  tmp = lf;
 	  lf = lf->next;
+	  ACCESS_LOG_FILES = lf;
 	  free(tmp);
      }
 
