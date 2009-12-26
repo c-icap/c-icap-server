@@ -175,6 +175,9 @@ int sys_log_open()
 void sys_log_close()
 {
      closelog();
+     if (syslog_access_list)
+	 ci_access_entry_release(syslog_access_list);
+     syslog_access_list = NULL;
 }
 
 
@@ -184,6 +187,11 @@ void sys_log_access(ci_request_t *req)
      char logline[1024];
      if (!syslog_logformat)
          return;
+     
+     if (syslog_access_list && !(ci_access_entry_match_request(syslog_access_list, req) == CI_ACCESS_ALLOW)) {
+	 ci_debug_printf(6, "Access list for syslog access does not match\n");
+	 return;
+     }
 
      ci_format_text(req, syslog_logformat, logline, 1024, NULL);
 
