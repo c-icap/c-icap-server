@@ -83,7 +83,7 @@ typedef union ci_inaddr {
 typedef struct in_addr ci_in_addr_t;
 #define ci_inaddr_zero(addr) ((addr).s_addr=0)
 #define ci_inaddr_copy(dest,src) ((dest)=(src))
-#define ci_ipv4_naddr_hostnetmask(addr)((addr).s_addr=htonl(0xFFFFFFFF))
+#define ci_ipv4_inaddr_hostnetmask(addr)((addr).s_addr=htonl(0xFFFFFFFF))
 
 
 #define CI_IPLEN      16
