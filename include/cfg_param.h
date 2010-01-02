@@ -36,7 +36,7 @@ struct ci_magics_db;
  * services and modules inititalization functions 
  \ingroup CONFIG
  *
- * Do not use directly this struct but better use the documended macros
+ * Do not use directly this struct but better use the documended macros and functions
  */
 struct ci_server_conf{
      char *ADDRESS;
@@ -141,6 +141,7 @@ CI_DECLARE_FUNC(void *) ci_cfg_alloc_mem(int size);
 
 /**
  * Sets a string configuration parameter. The setdata are a pointer to a string pointer
+ \ingroup CONFIG
  */
 CI_DECLARE_FUNC(int) ci_cfg_set_str(char *directive,char **argv,void *setdata);
 
@@ -176,6 +177,11 @@ CI_DECLARE_FUNC(int) ci_cfg_enable(char *directive,char **argv,void *setdata);
  \ingroup CONFIG
  */
 CI_DECLARE_FUNC(int) ci_cfg_size_off(char *directive,char **argv,void *setdata);
+
+/**
+ * Sets a configuration parameter of type long.
+ \ingroup CONFIG
+ */
 CI_DECLARE_FUNC(int) ci_cfg_size_long(char *directive,char **argv,void *setdata);
 
 CI_DECLARE_FUNC(void) ci_args_usage(char *progname,struct ci_options_entry *options);

@@ -138,6 +138,7 @@ struct  ci_service_module{
      * This function called exactly when the service loaded by c-icap. Can be used to initialize 
      * the service.
      \param srv_xdata Pointer to the ci_service_xdata_t object of this service
+     \param server_conf Pointer to the struct holds the main c-icap server configuration
      \return CI_OK on success, CI_ERROR on any error.
      */
      int (*mod_init_service)(ci_service_xdata_t *srv_xdata,struct ci_server_conf *server_conf);
@@ -151,6 +152,7 @@ struct  ci_service_module{
      * and it is known other system parameters like the services and modules which are loaded,
      * network ports and addresses c-icap is listening etc.
      \param srv_xdata Pointer to the ci_service_xadata_t object of this service
+     \param server_conf Pointer to the struct holds the main c-icap server configuration
      \return CI_OK on success, CI_ERROR on errors.
      */
      int (*mod_post_init_service)(ci_service_xdata_t *srv_xdata,struct ci_server_conf *server_conf);
@@ -178,8 +180,7 @@ struct  ci_service_module{
      \brief Pointer to the function which releases the service data.
      *
      * This function called after the user request served to release the service data
-     \param srv_data pointer to the service data returned by the ci_service_module::mod_init_request_data
-     * call
+     \param srv_data pointer to the service data returned by the ci_service_module::mod_init_request_data call
      */
      void (*mod_release_request_data)(void *srv_data);
 
@@ -208,7 +209,7 @@ struct  ci_service_module{
      * client does not support allow204 responses. To examine if client supports 204 responses the 
      * developer should use the ci_req_allow204 macro
      */
-     int (*mod_end_of_data_handler)(struct ci_request*);
+     int (*mod_end_of_data_handler)(struct ci_request *req);
 
     /**
      \brief Pointer to the function called to read/send body data from/to icap client.

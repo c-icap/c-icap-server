@@ -328,7 +328,7 @@ CI_DECLARE_FUNC(char *)              ci_icap_add_xheader(ci_request_t *req,char 
  *
  * It can be used with both request and response modification ICAP requests. 
  \param req is a pointer to the current ICAP request object.
- \param header is the headers to add
+ \param headers is a pointer to the headers object to add
  \return pointer to the header in success or NULL otherwise
  */
 CI_DECLARE_FUNC(int)              ci_icap_append_xheaders(ci_request_t *req,ci_headers_list_t *headers);

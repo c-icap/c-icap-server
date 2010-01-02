@@ -24,7 +24,7 @@
 #include "request.h"
 
 /**
- \defgroup Api for data/file type recogintion 
+ \defgroup DATATYPE  Data type recogintion api
  \ingroup API
  * Macros, functions and structures used for data type recognition
  */
@@ -88,7 +88,8 @@ CI_DECLARE_FUNC(int) ci_extend_filetype(struct ci_magics_db *db,
 /*And the c-icap Library functions*/
 
 /**
- * Read the magics db from a file and create a ci_magics_db object
+ * Read the magics db from a file and create a ci_magics_db object.
+ * \ingroup DATATYPE
  *
  * The user normaly does not need to call this function inside c-icap server. 
  * It is not a thread safe function, should called only during icap library 
@@ -99,10 +100,12 @@ CI_DECLARE_FUNC(int) ci_extend_filetype(struct ci_magics_db *db,
 CI_DECLARE_FUNC(struct ci_magics_db) *ci_magic_db_load(const char *filename);
 
 /**
- * Recognizes the type of (preview) data of an c-icap request object
+ * Return the type of data of an c-icap request object.
+ * \ingroup DATATYPE
  *
- * If the data are encoded this function try to uncompress them 
- * to examine its data type
+ * This function checks the preview data of the request.
+ * If the data are encoded this function try to uncompress them before
+ * data type recognition
  *
  \param req the c-icap request (ci_request_t) data
  \param isencoded set to CI_ENCODE_GZIP, CI_ENCODE_DEFLATE or 
@@ -116,7 +119,8 @@ CI_DECLARE_FUNC(int) ci_magic_data_type(const char *buf, int buflen);
 CI_DECLARE_FUNC(int) ci_magic_data_type_ext(ci_headers_list_t *headers, const char *buf,int len,int *iscompressed);
 
 /**
- * Finds the type id from type name
+ * Finds the type id from type name.
+ * \ingroup DATATYPE
  *
  \param name is the name of the magic type
  \return the type id
@@ -124,15 +128,17 @@ CI_DECLARE_FUNC(int) ci_magic_data_type_ext(ci_headers_list_t *headers, const ch
 CI_DECLARE_FUNC(int) ci_magic_type_id(const char *name);
 
 /**
- * Finds the group id from group name
+ * Finds the group id from group name.
+ * \ingroup DATATYPE
  *
- \param name is the name of the group
+ \param group is the name of the group
  \return the group id
  */
 CI_DECLARE_FUNC(int) ci_magic_group_id(const char *group);
 
 /**
- * Checks if a magic type belongs to a magic types group
+ * Checks if a magic type belongs to a magic types group.
+ * \ingroup DATATYPE
  *
  \param type is the type id to check
  \param group is the group id
@@ -142,21 +148,24 @@ CI_DECLARE_FUNC(int) ci_magic_group_check(int type, int group);
 
 
 /**
- * The number of types stored in internal magic db
+ * The number of types stored in internal magic db.
+ * \ingroup DATATYPE
  *
  \return the number of stored magic types
  */
 CI_DECLARE_FUNC(int) ci_magic_types_count();
 
 /**
- * The number of groups stored in internal magic db
+ * The number of groups stored in internal magic db.
+ * \ingroup DATATYPE
  *
  \return the number of stored magic groups
  */
 CI_DECLARE_FUNC(int) ci_magic_groups_count();
 
 /**
- * Retrieve the name of a magic type
+ * Retrieve the name of a magic type.
+ * \ingroup DATATYPE
  *
  \param type the type id
  \return the name of the type or NULL if the type does not exists
@@ -164,7 +173,8 @@ CI_DECLARE_FUNC(int) ci_magic_groups_count();
 CI_DECLARE_FUNC(char *) ci_magic_type_name(int type);
 
 /**
- * Retrieve the short description  of a magic type
+ * Retrieve the short description  of a magic type.
+ * \ingroup DATATYPE
  *
  \param type the type id
  \return the short description if the type or NULL if the type does not exists
@@ -172,9 +182,10 @@ CI_DECLARE_FUNC(char *) ci_magic_type_name(int type);
 CI_DECLARE_FUNC(char *) ci_magic_type_descr(int type);
 
 /**
- * Retrieve the name of a magic types group
+ * Retrieve the name of a magic types group.
+ * \ingroup DATATYPE
  *
- \param type the group id
+ \param group the group id
  \return the name of the group or NULL if the group does not exists
  */
 CI_DECLARE_FUNC(char *) ci_magic_group_name(int group);
