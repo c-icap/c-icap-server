@@ -47,9 +47,13 @@ const struct ci_lookup_table_type *ci_lookup_table_type_search(const char *type)
     return NULL;
 }
 
-struct ci_lookup_table *ci_lookup_table_create(const char *table) 
+
+struct ci_lookup_table *ci_lookup_table_create_ext(const char *table,
+						   ci_type_ops_t *key_ops,
+						   ci_type_ops_t *val_ops, 
+						   ci_mem_allocator_t *allocator)
 {
-     char *ttype,*path,*args,*s;
+    char *ttype,*path,*args,*s;
     const struct ci_lookup_table_type *lt_type;
     struct ci_lookup_table *lt;
     char *stable = strdup(table);
@@ -104,20 +108,26 @@ struct ci_lookup_table *ci_lookup_table_create(const char *table)
 
 
     lt->cols = -1;
-    lt->key_ops = &ci_str_ops;
-    lt->val_ops = &ci_str_ops;
+    lt->key_ops = key_ops;
+    lt->val_ops = val_ops;
     lt->type = lt_type->type;
     lt->open = lt_type->open;
     lt->close = lt_type->close;
     lt->search = lt_type->search;
     lt->release_result = lt_type->release_result;
-    lt->allocator = ci_create_os_allocator();
-    if(!lt->allocator) {
-      ci_lookup_table_destroy(lt);
-      return NULL;
-    }
+    lt->allocator = allocator;
 
-    return lt;
+    return lt;    
+}
+
+struct ci_lookup_table *ci_lookup_table_create(const char *table) 
+{
+    ci_mem_allocator_t *allocator;
+    allocator = ci_create_os_allocator();
+    if(!allocator)
+	return NULL;
+
+    return ci_lookup_table_create_ext(table, &ci_str_ops, &ci_str_ops, allocator);
 }
 
 void ci_lookup_table_destroy(struct ci_lookup_table *lt)
