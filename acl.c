@@ -498,7 +498,7 @@ int ci_access_entry_match_request(ci_access_entry_t *access_entry, ci_request_t 
     while(access_entry) {
 	ci_debug_printf(9,"Check request with an access entry\n");
 	spec_list = access_entry->spec_list;
-	if (spec_list->spec && request_match_specslist(req, spec_list))
+	if (spec_list && spec_list->spec && request_match_specslist(req, spec_list))
 	    return access_entry->type;
 
 	access_entry=access_entry->next;
