@@ -32,7 +32,44 @@ int fmt_req_body_bytes_rcv(ci_request_t *req_data, char *buf,int len, char *para
 int fmt_req_body_bytes_sent(ci_request_t *req_data, char *buf,int len, char *param);
 int fmt_req_preview_hex(ci_request_t *req_data, char *buf,int len, char *param);
 
-
+/**
+   \brief Internal formating directives table.
+   \ingroup FORMATING
+   *
+   * This table define the following directives:\n
+   * \em "%a":  Remote IP-Address \n
+   * \em "%la": Local IP Address \n
+   * \em "%lp": Local port \n
+   * \em "%>a": Http Client IP Address \n
+   * \em "%<A": Http Server IP Address \n
+   * \em "%ts": Seconds since epoch \n
+   * \em "%tl": Local time \n
+   * \em "%tg": GMT time \n
+   * \em "%>ho": Modified Http request header \n
+   * \em "%huo": Modified Http request url \n
+   * \em "%<ho": Modified Http reply header \n
+   * \em "%iu": Icap request url \n
+   * \em "%im": Icap method \n
+   * \em "%is": Icap status code \n
+   * \em "%>ih": Icap request header \n
+   * \em "%<ih": Icap response header \n
+   * \em "%Ih": Http bytes received \n
+   * \em "%Oh": Http bytes sent \n
+   * \em "%Ib": Http body bytes received \n
+   * \em "%Ob": Http body bytes sent \n
+   * \em "%I": Bytes received \n
+   * \em "%O": Bytes sent \n
+   * \em "%bph": Body data preview \n
+   *
+   * Not yet implemented:\n
+   * \em "%tr": Response time \n
+   * \em "%hu": Http request url \n
+   * \em "%>hi": Http request header \n
+   * \em "%<hi": Http reply header \n
+   * \em "%Hs": Http reply status \n
+   * \em "%Hso": Modified Http reply status \n
+   * \em "%un": Username \n
+ */
 struct ci_fmt_entry GlobalTable [] = {
     { "%a", "Remote IP-Address", fmt_remoteip },
     {"%la", "Local IP Address", fmt_localip },

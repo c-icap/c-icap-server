@@ -55,7 +55,7 @@ struct ci_server_conf{
 };
 
 /**
- * This struct holds a configuration parameter of c-icap server
+ * This struct holds a configuration parameter of c-icap server.
  \ingroup CONFIG
  * An array of ci_conf_entry structs can be used to define the configuration directives
  * of a service or module which can be set in c-icap configuration file.
@@ -80,7 +80,7 @@ struct ci_conf_entry{
      */
      void *data;
     /**
-     * Pointer to the function which will be used to set configuration data
+     * Pointer to the function which will be used to set configuration data.
      \param name is the configuration directive.It passed as argument by the c-icap server
      \param argv is a NULL termined string array which holds the list of arguments of configuration parameter
      \param setdata is o pointer to set data which passed as argument by c-icap server
