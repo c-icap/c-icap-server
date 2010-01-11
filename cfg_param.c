@@ -514,7 +514,7 @@ int cfg_set_acl_controllers(char *directive, char **argv, void *setdata)
 
      for (argc = 0; argv[argc] != NULL; argc++);        /*Find the number of acl controllers */
      used_access_controllers =
-         ci_cfg_alloc_mem(argc * sizeof(access_control_module_t *) + 1);
+         ci_cfg_alloc_mem((argc+1) * sizeof(access_control_module_t *));
      k = 0;
      ret = 1;
      for (i = 0; i < argc; i++) {
