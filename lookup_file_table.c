@@ -284,8 +284,10 @@ void *hash_table_open(struct ci_lookup_table *table)
 void  hash_table_close(struct ci_lookup_table *table)
 {
     struct text_table *text_table = (struct text_table *)table->data;
-    /*destroy the hash table */
-    ci_hash_destroy(text_table->hash_table);
+    if (text_table && text_table->hash_table) {
+        /*destroy the hash table */
+	ci_hash_destroy(text_table->hash_table);
+    }
     /*... and then call the file_table_close:*/
     file_table_close(table);
 }
