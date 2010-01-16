@@ -156,7 +156,7 @@ static char *basic_authentication = NULL;
 
 /*Configuration Table .....*/
 static struct ci_conf_entry basic_conf_params[] = {
-     {"BasicRealm", &basic_realm, ci_cfg_set_str, NULL},
+     {"Realm", &basic_realm, ci_cfg_set_str, NULL},
      {NULL, NULL, NULL, NULL}
 };
 

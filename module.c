@@ -391,7 +391,7 @@ service_handler_module_t *find_servicehandler_by_ext(char *extension)
           } while (s && !found);
 
           if (found) {
-               ci_debug_printf(1,
+               ci_debug_printf(3,
                                "Found handler %s for service with extension:%s\n",
                                sh->name, extension);
                return sh;
@@ -498,7 +498,7 @@ int methods_authenticators(struct auth_hash *hash, char *method_name,
 
      k = 0;
      for (i = 0; i < auths_num; i++) {
-          ci_debug_printf(1, "Authenticator %s......\n", argv[i]);
+          ci_debug_printf(3, "Authenticator %s......\n", argv[i]);
           if ((auth_mod = find_authenticator(argv[i])) == NULL) {
                ci_debug_printf(1, "Authenticator %s does not exist!!!!!\n",
                                argv[i]);

@@ -6,7 +6,6 @@
 PidFile /var/run/c-icap.pid
 CommandsSocket /var/run/c-icap/c-icap.ctl
 Timeout 300
-KeepAlive On
 MaxKeepAliveRequests 100
 ## set KeepAliveTimeout to -1 for no timeout
 KeepAliveTimeout 600  
@@ -23,8 +22,9 @@ User wwwrun
 Group nobody
 
 
-#ServerAdmin you@your.address # Not implemented yet
-#ServerName localhost:1344 # Not implemented yet
+ServerAdmin you@your.address
+ServerName YourServerName
+
 
 TmpDir /var/tmp
 MaxMemObject 131072

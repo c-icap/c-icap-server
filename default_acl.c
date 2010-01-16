@@ -139,7 +139,7 @@ int cfg_default_acl_access(char *directive, char **argv, void *setdata)
 	 return 0;
      }
 
-     ci_debug_printf(1,"Creating new access entry as %s with specs:\n", argv[0]);
+     ci_debug_printf(2,"Creating new access entry as %s with specs:\n", argv[0]);
      for(argc=1; argv[argc] != NULL; argc++){	  
 	  acl_spec_name = argv[argc];
 
@@ -154,7 +154,7 @@ int cfg_default_acl_access(char *directive, char **argv, void *setdata)
 	  else {
 	       /*TODO: check return type.....*/
 	       ci_access_entry_add_acl_by_name(access_entry, acl_spec_name);
-	       ci_debug_printf(1,"\tAdding acl spec: %s\n", acl_spec_name);
+	       ci_debug_printf(2,"\tAdding acl spec: %s\n", acl_spec_name);
 	  }
      }
      if(error)

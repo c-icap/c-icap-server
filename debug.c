@@ -23,7 +23,7 @@
 #include "debug.h"
 
 
-int CI_DEBUG_LEVEL = 3;
+int CI_DEBUG_LEVEL = 1;
 int CI_DEBUG_STDOUT = 0;
 
 

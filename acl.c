@@ -587,7 +587,7 @@ int cfg_acl_add(char *directive, char **argv, void *setdata)
 	  }
      }
      else {
-	 ci_debug_printf(1, "New ACL with name:%s and  ACL Type: %s{%s}\n", argv[0], argv[1],param?param:"NULL");
+	 ci_debug_printf(2, "New ACL with name:%s and  ACL Type: %s{%s}\n", argv[0], argv[1],param?param:"NULL");
 	  spec = ci_acl_spec_new(acl_name, acl_type, param, &types_list, &specs_list);
      }
 
@@ -597,7 +597,7 @@ int cfg_acl_add(char *directive, char **argv, void *setdata)
 	  return 0;
      }
      for (argc = 2; argv[argc] != NULL; argc++){
-	  ci_debug_printf(1, "Adding to acl %s the data %s\n", acl_name, argv[argc]);
+	  ci_debug_printf(2, "Adding to acl %s the data %s\n", acl_name, argv[argc]);
 	  ci_acl_spec_new_data(spec, argv[argc]);
      }	  
      return 1;

@@ -190,7 +190,7 @@ void  file_table_close(struct ci_lookup_table *table)
     struct text_table *text_table = (struct text_table *)table->data;
 
     if(!text_table) {
-	ci_debug_printf(1,"file lookup table is not open?\n");
+	ci_debug_printf(1,"Closing a non open file lookup table?(%s)\n", table->path);
 	return;
     }
     e=text_table->entries;
@@ -218,7 +218,7 @@ void *file_table_search(struct ci_lookup_table *table, void *key, void ***vals)
   struct text_table *text_table=(struct text_table *)table->data;
 
   if(!text_table) {
-      ci_debug_printf(1,"file lookup table is not open?\n");
+      ci_debug_printf(1,"Search a non open lookup table?(%s)\n", table->path);
       return NULL;
   }
 
@@ -298,7 +298,7 @@ void *hash_table_search(struct ci_lookup_table *table, void *key, void ***vals)
     struct text_table *text_table = (struct text_table *)table->data;
 
     if(!text_table) {
-	ci_debug_printf(1,"file lookup table is not open?\n");
+	ci_debug_printf(1, "Search a non open hash lookup table?(%s)\n", table->path);
 	return NULL;
     }
 

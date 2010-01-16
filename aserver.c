@@ -106,7 +106,7 @@ int main(int argc, char **argv)
      init_services();
      config(argc, argv);
      compute_my_hostname();
-     ci_debug_printf(1, "My hostname is:%s\n", MY_HOSTNAME);
+     ci_debug_printf(2, "My hostname is:%s\n", MY_HOSTNAME);
 
 #if ! defined(_WIN32)
      if (is_icap_running(CONF.PIDFILE)) {

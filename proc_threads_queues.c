@@ -139,7 +139,7 @@ int create_childs_queue(struct childs_queue *q, int size)
      }       
      q->stats_history = q->stats_area + q->size * q->stats_block_size;
      q->stats_history->sig = MEMBLOCK_SIG;
-     ci_debug_printf(1, "Create shared mem, qsize=%d stat_block_size=%d childshared data:%d\n",
+     ci_debug_printf(2, "Create shared mem, qsize=%d stat_block_size=%d childshared data:%d\n",
 		     q->size,  q->stats_block_size, (int)sizeof(child_shared_data_t) * q->size);
 
      stat_memblock_fix(q->stats_history);

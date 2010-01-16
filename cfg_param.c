@@ -37,7 +37,6 @@
 int ARGC;
 char **ARGV;
 
-
 struct ci_server_conf CONF = {
      NULL, /* LISTEN ADDRESS */ 1344, /*PORT*/ AF_INET,    /*SOCK_FAMILY */
 #ifdef _WIN32
@@ -57,6 +56,8 @@ struct ci_server_conf CONF = {
      NULL,                      /*MAGIC_DB */
      SERVDIR,                   /*SERVICES_DIR */
      MODSDIR,                   /*MODULES_DIR */
+     NULL,                      /*SERVER_ADMIN*/
+     NULL                       /*SERVER_NAME*/
 };
 
 
@@ -135,8 +136,8 @@ static struct ci_conf_entry conf_variables[] = {
      {"Port", &CONF.PORT, intl_cfg_set_int, NULL},
      {"User", &CONF.RUN_USER, intl_cfg_set_str, NULL},
      {"Group", &CONF.RUN_GROUP, intl_cfg_set_str, NULL},
-     {"ServerAdmin", NULL, NULL, NULL},
-     {"ServerName", NULL, NULL, NULL},
+     {"ServerAdmin", &CONF.SERVER_ADMIN, intl_cfg_set_str, NULL},
+     {"ServerName", &CONF.SERVER_NAME, intl_cfg_set_str, NULL},
      {"LoadMagicFile", NULL, cfg_load_magicfile, NULL},
      {"Logger", &default_logger, cfg_set_logger, NULL},
      {"ServerLog", &SERVER_LOG_FILE, intl_cfg_set_str, NULL},
@@ -260,7 +261,7 @@ struct ci_conf_entry *search_variables(char *table, char *varname)
      if (table == NULL)
           return search_conf_table(conf_variables, varname);
 
-     ci_debug_printf(1, "Going to search variable %s in table %s\n", varname,
+     ci_debug_printf(3, "Going to search variable %s in table %s\n", varname,
                      table);
 
      if (!extra_conf_tables)    /*Not really needed........ */
@@ -364,7 +365,7 @@ int cfg_load_service(char *directive, char **argv, void *setdata)
           ci_debug_printf(1, "Missing arguments in LoadService directive\n");
           return 0;
      }
-     ci_debug_printf(1, "Loading service :%s path %s\n", argv[0], argv[1]);
+     ci_debug_printf(2, "Loading service :%s path %s\n", argv[0], argv[1]);
 
      if (!(service = register_service(argv[1]))) {
           ci_debug_printf(1, "Error loading service\n");
@@ -386,7 +387,7 @@ int cfg_service_alias(char *directive, char **argv, void *setdata)
           service_args++;
      }
 
-     ci_debug_printf(1, "Alias:%s of service %s\n", argv[0], argv[1]);
+     ci_debug_printf(2, "Alias:%s of service %s\n", argv[0], argv[1]);
      add_service_alias(argv[0], argv[1], service_args);
      return 1;
 }
@@ -397,7 +398,7 @@ int cfg_load_module(char *directive, char **argv, void *setdata)
           ci_debug_printf(1, "Missing arguments in LoadModule directive\n");
           return 0;
      }
-     ci_debug_printf(1, "Loading service :%s path %s\n", argv[0], argv[1]);
+     ci_debug_printf(2, "Loading service :%s path %s\n", argv[0], argv[1]);
 
      if (!register_module(argv[1], argv[0])) {
           ci_debug_printf(1, "Error loading service\n");
@@ -415,7 +416,7 @@ int cfg_load_magicfile(char *directive, char **argv, void *setdata)
      }
 
      db_file = argv[0];
-     ci_debug_printf(1, "Going to load magic file %s\n", db_file);
+     ci_debug_printf(2, "Going to load magic file %s\n", db_file);
      ndb = ci_magic_db_load(db_file);
      if (!ndb) {
           ci_debug_printf(1, "Can not load magic file %s!!!\n", db_file);
@@ -434,7 +435,7 @@ int cfg_set_logformat(char *directive, char **argv, void *setdata)
           ci_debug_printf(1, "Missing arguments in directive %s\n", directive);
           return 0;
      }
-     ci_debug_printf(1, "Adding the logformat %s: %s\n",argv[0],argv[1]);
+     ci_debug_printf(2, "Adding the logformat %s: %s\n",argv[0],argv[1]);
      return logformat_add(argv[0], argv[1]);
 }
 
@@ -449,7 +450,7 @@ int cfg_set_accesslog(char *directive, char **argv, void *setdata)
      if (argv[1] != NULL && argv[2] !=NULL) {
          acls = argv+2;
      }
-     ci_debug_printf(1, "Adding the access logfile %s\n",argv[0]);
+     ci_debug_printf(2, "Adding the access logfile %s\n",argv[0]);
      return file_log_addlogfile(argv[0], argv[1], acls);
 }
 
@@ -466,7 +467,7 @@ int cfg_set_logger(char *directive, char **argv, void *setdata)
      if (!(logger = find_logger(argv[0])))
           return 0;
      default_logger = logger;
-     ci_debug_printf(1, "Setting parameter :%s=%s\n", directive, argv[0]);
+     ci_debug_printf(2, "Setting parameter :%s=%s\n", directive, argv[0]);
      return 1;
 }
 
@@ -495,7 +496,7 @@ int cfg_set_tmp_dir(char *directive, char **argv, void *setdata)
 #endif
      /*Check if tmpdir exists. If no try to build it , report an error and uses the default... */
      CI_TMPDIR = CONF.TMPDIR;   /*Sets the library's temporary dir to .... */
-     ci_debug_printf(1, "Setting parameter :%s=%s\n", directive, argv[0]);
+     ci_debug_printf(2, "Setting parameter :%s=%s\n", directive, argv[0]);
      return 1;
 }
 
@@ -562,7 +563,7 @@ int cfg_include_config_file(char *directive, char **argv, void *setdata)
           cfg_file = path;
      }
 
-     ci_debug_printf(1, "\n*** Going to open config file %s ***\n", cfg_file);
+     ci_debug_printf(2, "\n*** Going to open config file %s ***\n", cfg_file);
      return parse_file(cfg_file);
 }
 
@@ -571,8 +572,14 @@ int cfg_include_config_file(char *directive, char **argv, void *setdata)
 
 int fread_line(FILE * f_conf, char *line)
 {
-     if (!fgets(line, LINESIZE, f_conf))
-          return 0;
+     if (!fgets(line, LINESIZE, f_conf)) {
+	  if (feof(f_conf)) {
+	       line[0] = '\0';
+	       return -1;
+	  }
+	  else
+	       return 0;
+     }
      if (strlen(line) >= LINESIZE - 2 && line[LINESIZE - 2] != '\n') {  //Size of line > LINESIZE
           while (!feof(f_conf)) {
                if (fgetc(f_conf) == '\n')
@@ -661,25 +668,31 @@ void free_args(char **argv)
      free(argv);
 }
 
-int process_line(char *line)
+int process_line(char *orig_line)
 {
      char *str, *args, **argv = NULL;
+     int ret = 1;
      struct ci_conf_entry *entry;
+     char line[LINESIZE];
+
+     strncpy(line, orig_line, LINESIZE);
+     line[LINESIZE-1] = '\0';
 
      str = line;
      while (*str != '\0' && isspace(*str))      /*Eat the spaces in the begging */
           str++;
      if (*str == '\0' || *str == '#')   /*Empty line or comment */
-          return 0;
+          return 1;
 
      entry = find_action(str, &args);
 //   ci_debug_printf(10,"Line %s (Args:%s)\n",entry->name,args);
 
      if (entry && entry->action) {
           argv = split_args(args);
-          (*(entry->action)) (entry->name, argv, entry->data);
+          if ((*(entry->action)) (entry->name, argv, entry->data) == 0)
+	      ret = 0;
           free_args(argv);
-          return 1;
+          return ret;
      }
       /*OK*/
          /*Else parse error.......
@@ -693,6 +706,7 @@ int parse_file(char *conf_file)
 {
      FILE *f_conf;
      char line[LINESIZE];
+     int line_count, ret_value;
 
      if (PARSE_LEVEL >= 3) {
           ci_debug_printf(1, "Parse level >3. I will not parse file:%s\n",
@@ -705,15 +719,22 @@ int parse_file(char *conf_file)
           ci_debug_printf(1, "Can not open configuration file %s\n", conf_file);
           return 0;
      }
+     line_count = 0;
+     ret_value = 1;
      PARSE_LEVEL++;
      while (!feof(f_conf)) {
-          fread_line(f_conf, line);
-          process_line(line);
+	  line_count++;
+          if (!fread_line(f_conf, line) || !process_line(line)) {
+	      ci_debug_printf(1, "Fatal error while parsing config file: \"%s\" line: %d\n", 
+			      conf_file, line_count);
+	      ci_debug_printf(1, "The line is: %s\n", line);
+	      ret_value = 0;
+	  }
      }
 
      fclose(f_conf);
      PARSE_LEVEL--;
-     return 1;
+     return ret_value;
 }
 
 
@@ -789,7 +810,7 @@ void system_shutdown()
     /*
       - reset commands table
     */
-    
+
     reset_commands();
     /*
       - close/release services and modules
@@ -799,7 +820,7 @@ void system_shutdown()
     ci_dlib_closeall();
 }
 
-void system_reconfigure()
+int system_reconfigure()
 {
      int old_port;
 
@@ -817,7 +838,8 @@ void system_reconfigure()
         - reopen and read config file. Now the monitor process has now the new config parameters.
       */
      old_port = CONF.PORT;
-     reconfig();
+     if (!reconfig())
+	 return 0;
 
      /*
         - reinit listen socket if needed
@@ -833,6 +855,7 @@ void system_reconfigure()
       */
      post_init_modules();
      post_init_services();
+     return 1;
 }
 
 /**************************************************************************/

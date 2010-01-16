@@ -292,18 +292,19 @@ static void check_for_exited_childs()
           ci_debug_printf(1, "Fatal error waiting for a child to exit .....\n");
 }
 
-void system_reconfigure();
-static void server_reconfigure()
+int system_reconfigure();
+static int server_reconfigure()
 {
      int i;
      if (old_childs_queue) {
           ci_debug_printf(1,
                           "A reconfigure pending. Ignoring reconfigure request.....\n");
-          return;
+          return 1;
      }
 
      /*shutdown all modules and services and reopen config file */
-     system_reconfigure();
+     if (!system_reconfigure())
+	  return 0;
 
      /*initialize commands table for server */
      init_commands();
@@ -327,7 +328,7 @@ static void server_reconfigure()
      if (!create_childs_queue(childs_queue, 2 * MAX_CHILDS)) {
           ci_debug_printf(1,
                           "Cannot init shared memory. Fatal error, exiting!\n");
-          exit(0);              /*It is not enough. We must wait all childs to exit ..... */
+          return 0;              /*It is not enough. We must wait all childs to exit ..... */
      }
      /*
         Start new childs to handle new requests.
@@ -342,6 +343,7 @@ static void server_reconfigure()
      /*
         When all childs exits release the old shared mem block....
       */
+     return 1;
 }
 
 /*************************************************************************************/
@@ -849,7 +851,8 @@ void stop_command(char *name, int type, char **argv)
 void reconfigure_command(char *name, int type, char **argv)
 {
      if (type == MONITOR_PROC_CMD)
-          server_reconfigure();
+	  c_icap_reconfigure = 1;
+	 //server_reconfigure();
 }
 
 void dump_statistics_command(char *name, int type, char **argv)
@@ -1004,13 +1007,18 @@ int start_server()
                check_for_exited_childs();
                if (c_icap_reconfigure) {
                     c_icap_reconfigure = 0;
-                    server_reconfigure();
+                    if (!server_reconfigure()) {
+			ci_debug_printf(1, "Error while reconfiguring, exiting!\n");
+			 break;
+		    }
                }
           }
           /*Main process exit point */
           ci_debug_printf(1,
                           "Possibly a term signal received. Monitor process going to term all children\n");
           kill_all_childs();
+	  system_shutdown();
+	  ci_debug_printf(1, "Exiting....\n");
           exit(0);
      }
 #else

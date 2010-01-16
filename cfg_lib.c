@@ -102,7 +102,7 @@ int ci_cfg_set_int(char *directive, char **argv, void *setdata)
 
      *((int *) setdata) = val;
 
-     ci_debug_printf(1, "Setting parameter :%s=%d\n", directive, val);
+     ci_debug_printf(2, "Setting parameter :%s=%d\n", directive, val);
      return 1;
 }
 
@@ -121,7 +121,7 @@ int ci_cfg_set_str(char *directive, char **argv, void *setdata)
 
      strcpy(*((char **) setdata), argv[0]);
 /*     *((char **) setdata) = (char *) strdup(argv[0]); */
-     ci_debug_printf(1, "Setting parameter :%s=%s\n", directive, argv[0]);
+     ci_debug_printf(2, "Setting parameter :%s=%s\n", directive, argv[0]);
      return 1;
 }
 
@@ -142,7 +142,7 @@ int ci_cfg_onoff(char *directive, char **argv, void *setdata)
      else
           return 0;
 
-     ci_debug_printf(1, "Setting parameter :%s=%d\n", directive,
+     ci_debug_printf(2, "Setting parameter :%s=%d\n", directive,
                      *((int *) setdata));
      return 1;
 }
@@ -154,7 +154,7 @@ int ci_cfg_disable(char *directive, char **argv, void *setdata)
           return 0;
 
      *((int *) setdata) = 0;
-     ci_debug_printf(1, "Disabling parameter %s\n", directive);
+     ci_debug_printf(2, "Disabling parameter %s\n", directive);
      return 1;
 
 }
@@ -165,7 +165,7 @@ int ci_cfg_enable(char *directive, char **argv, void *setdata)
           return 0;
 
      *((int *) setdata) = 1;
-     ci_debug_printf(1, "Enabling parameter %s\n", directive);
+     ci_debug_printf(2, "Enabling parameter %s\n", directive);
      return 1;
 }
 
@@ -195,7 +195,7 @@ int ci_cfg_size_off(char *directive, char **argv, void *setdata)
 
      if (val > 0)
           *((ci_off_t *) setdata) = val;
-     ci_debug_printf(1, "Setting parameter :%s=%" PRINTF_OFF_T "\n", directive,
+     ci_debug_printf(2, "Setting parameter :%s=%" PRINTF_OFF_T "\n", directive,
                      (CAST_OFF_T) val);
      return val;
 }
@@ -227,6 +227,6 @@ int ci_cfg_size_long(char *directive, char **argv, void *setdata)
 
      if (val > 0)
           *((long int *) setdata) = val;
-     ci_debug_printf(1, "Setting parameter :%s=%ld\n", directive, val);
+     ci_debug_printf(2, "Setting parameter :%s=%ld\n", directive, val);
      return val;
 }

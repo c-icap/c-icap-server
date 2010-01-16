@@ -74,7 +74,7 @@ int cfg_srv_transfer_preview(char *directive, char **argv, void *setdata)
 	ci_debug_printf(1, "Missing arguments in directive %s \n", directive);
 	return 0;
     }
-    ci_debug_printf(1, "Setting parameter :%s=%s\n", directive, argv[0]);
+    ci_debug_printf(2, "Setting parameter :%s=%s\n", directive, argv[0]);
     ci_service_set_transfer_preview(srv_xdata,argv[0]);
     return 1;
 }
@@ -118,7 +118,7 @@ int cfg_srv_preview_size(char *directive, char **argv, void *setdata)
 	ci_debug_printf(1, "Invalid argument in directive %s \n", directive);
 	return 0;
     }
-    ci_debug_printf(1, "Setting parameter :%s=%d\n", directive, preview);
+    ci_debug_printf(2, "Setting parameter :%s=%d\n", directive, preview);
     ci_service_set_preview(srv_xdata, preview);
     return 1;
 }
@@ -138,7 +138,7 @@ int cfg_srv_max_connections(char *directive, char **argv, void *setdata)
 	ci_debug_printf(1, "Invalid argument in directive %s \n", directive);
 	return 0;
     }
-    ci_debug_printf(1, "Setting parameter :%s=%d\n", directive, max_connections);
+    ci_debug_printf(2, "Setting parameter :%s=%d\n", directive, max_connections);
     ci_service_set_max_connections(srv_xdata, max_connections);
     return 1;
 }
