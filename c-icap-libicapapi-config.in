@@ -1,0 +1,46 @@
+#!/bin/sh
+
+prefix=@prefix@
+
+PKGLIBDIR=@PKGLIBDIR@/
+LIBDIR=@LIBDIR@/
+CONFIGDIR=@SYSCONFDIR@/
+DATADIR=@PKGDATADIR@/
+#LOGDIR=
+SOCKDIR=@SOCKDIR@
+
+INCDIR=@PKGINCLUDEDIR@
+
+VERSION=@PACKAGE_VERSION@
+
+CFLAGS="@CFLAGS@"
+LIBS="-L"$LIBDIR" -licapapi"
+LDFLAGS=""
+
+
+usage()
+{
+   cat <<EOTXT
+Usage: c-icap-libicapapi-config [OPTIONS]
+
+Where OPTION one of the following:
+   --cflags		print preprocessor and compiler flags
+   --libs		print linker flags
+   --version		print the c-icap library  version
+EOTXT
+}
+
+
+case $1 in
+    '--cflags')
+        echo $CFLAGS" -I"$INCDIR;
+        ;;
+    '--libs')
+       echo $LIBS;
+       ;;
+    '--version')
+       echo $VERSION;
+       ;;
+    *)
+        usage
+esac;
