@@ -1,0 +1,33 @@
+.TH c-icap-libicapapi-config 8 "@PACKAGE_STRING@"
+.SH NAME
+c-icap-libicapapi-config - script to get information about c-icap library
+.SH SYNOPSIS
+.B c-icap-libicapapi-config
+[
+.B --cflags
+]
+[
+.B --libs
+]
+[
+.B --version
+]
+.SH DESCRIPTION
+.B c-icap-libicapapi-config
+is a script to get  compile options must used to use c-icap library.
+
+.SH OPTIONS
+.IP  --cflags
+print preprocessor and compiler flags should used to compile a c-icap service or module
+.IP  --libs
+print linker flags should used to link with c-icap library
+.IP  --version
+print the c-icap server version
+
+.SH SEE ALSO
+.BR c-icap "(8)"
+.BR c-icap-client "(8)"
+.BR c-icap-stretch "(8)"
+.BR c-icap-config "(8)"
+.SH AUTHOR
+Tsantilas Christos

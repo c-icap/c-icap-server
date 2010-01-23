@@ -507,5 +507,9 @@ AM_CONDITIONAL(USEPERL,[test a"$perlcore" != a])
 AM_CONDITIONAL(USEBDB,   [test a"$libdb" != ano])
 AM_CONDITIONAL(USELDAP, [test a"$libldap" != ano])
 
-AC_OUTPUT([include/c-icap-conf.h Makefile c-icap.conf utils/Makefile services/Makefile services/echo/Makefile modules/Makefile tests/Makefile c-icap-config], [chmod 755 c-icap-config])
+AC_OUTPUT([
+include/c-icap-conf.h Makefile c-icap.conf utils/Makefile services/Makefile 
+services/echo/Makefile modules/Makefile tests/Makefile 
+docs/Makefile docs/man/Makefile
+])
 

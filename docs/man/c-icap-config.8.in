@@ -1,0 +1,48 @@
+.TH c-icap-config 8 "@PACKAGE_STRING@"
+.SH NAME
+c-icap-config - script to get information about c-icap server
+.SH SYNOPSIS
+.B c-icap-config
+[
+.B --cflags
+]
+[
+.B --libs
+]
+[
+.B --datarootdir
+]
+[
+.B --configdir
+]
+[
+.B --version
+]
+[
+.B --config
+]
+.SH DESCRIPTION
+.B c-icap-config
+is a script to get information about c-icap server and compile options must used to build c-icap server modules and services.
+
+.SH OPTIONS
+.IP  --cflags
+print preprocessor and compiler flags should used to compile a c-icap service or module
+.IP  --libs
+print linker flags should used to build a c-icap service or module
+.IP  --datarootdir
+print the c-icap data directory
+.IP  --configdir
+print the c-icap configuration directory
+.IP  --version
+print the c-icap server version
+.IP  --config
+print the c-icap server compile configuration
+
+.SH SEE ALSO
+.BR c-icap "(8)"
+.BR c-icap-client "(8)"
+.BR c-icap-stretch "(8)"
+.BR c-icap-libicapapi-config "(8)"
+.SH AUTHOR
+Tsantilas Christos

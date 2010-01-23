@@ -1,34 +1,40 @@
 #!/bin/sh
 
 prefix=@prefix@
-exec_prefix=@exec_prefix@
 
-includedir=@includedir@
-datadir=@datadir@
-libdir=@libdir@
-sysconfdir=@sysconfdir@
-localstatedir=@localstatedir@
+PKGLIBDIR=@PKGLIBDIR@/
+LIBDIR=@LIBDIR@/
+CONFIGDIR=@SYSCONFDIR@/
+DATADIR=@PKGDATADIR@/
+#LOGDIR=
+SOCKDIR=@SOCKDIR@
 
-pkgdatadir=$datadir/@PACKAGE@
-pkglibdir=$libdir/@PACKAGE@
-pkgincludedir=$includedir/@PACKAGE@
+INCDIR=@PKGINCLUDEDIR@
 
-
-
-PKGLIBDIR=$pkglibdir/
-MODULESDIR=$pkglibdir/
-SERVICESDIR=$pkglibdir/
-CONFIGDIR=$sysconfdir/
-LOGDIR=$localstatedir/log/
-SOCKDIR=/var/run/c-icap
-
-INCDIR=@includedir@/@PACKAGE@
-LIBDIR=@libdir@
-
-VERSION=@VERSION@
+VERSION=@PACKAGE_VERSION@
+CICAPCFLAGS="@CFLAGS@"
+CICAPLDFLAGS=
+CICAPLIBS=
 CFLAGS="@CFLAGS@ -DCI_BUILD_MODULE"
 LIBS=@MODULES_LIBADD@
 LDFLAGS=""
+
+
+usage() 
+{
+   cat <<EOTXT
+Usage: c-icap-config [OPTIONS]
+
+Where OPTION one of the following:
+   --cflags		print preprocessor and compiler flags
+   --libs		print linker flags
+   --datarootdir	print the c-icap data directory
+   --configdir		print the c-icap configuration directory
+   --version		print the c-icap server version
+   --config		print the c-icap server compile configuration
+EOTXT
+}
+
 
 case $1 in
     '--cflags')
@@ -37,14 +43,25 @@ case $1 in
     '--libs')
        echo $LIBS;
        ;;
+    '--datarootdir')
+       echo $DATADIR;
+       ;;
+    '--configdir')
+       echo $CONFIGDIR;
+       ;;
     '--version')
        echo $VERSION;
        ;;
     '--config')
+        echo "c-icap configuration";
 	echo "c-icap version: "$VERSION;
-        echo "cflags: "$CFLAGS;
-        echo "libs: "$LIBS;
+	echo "c-icap configuration directory: "$CONFIGDIR;
+	echo "c-icap plugins directory: "$PKGLIBDIR;
+	echo "c-icap shared data directory: "$DATADIR;
+	echo ;
+        echo "c-icap cflags for modules: "$CFLAGS;
+        echo "c-icap libs for modules: "$LIBS;
        ;;
     *)
-       echo
+        usage
 esac;

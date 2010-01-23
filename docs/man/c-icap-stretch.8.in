@@ -1,0 +1,33 @@
+.TH c-icap-stretch 8 "@PACKAGE_STRING@"
+.SH NAME
+c-icap-stretch - A simple utility for stretching ICAP servers
+.SH SYNOPSIS
+.B c-icap-stretch  "hostname" "service" "threadsnum" "maxrequests" "file1" "file2" "..."
+
+.SH DESCRIPTION
+.B c-icap-stretch
+is a simple utility for loading ICAP servers.
+
+.SH OPTIONS
+.IP "hostname" 
+The hostname of the icap server
+.IP "service"
+The ICAP service to test
+.IP "threadsnum"
+The number of concurrent  threads to start
+.IP "maxrequests"
+The maximum requests to send
+.IP "file1 file2 ..."
+The files to use as body data to the ICAP requests.
+
+
+
+.SH SEE ALSO
+.BR c-icap "(8)"
+.BR c-icap-client "(8)"
+.BR c-icap-config "(8)"
+.BR c-icap-libicapapi-config "(8)"
+.SH BUGS
+It can used only for ICAP response modification services.
+.SH AUTHOR
+Tsantilas Christos
