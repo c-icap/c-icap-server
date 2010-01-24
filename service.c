@@ -399,6 +399,12 @@ service_alias_t *add_service_alias(char *service_alias, char *service_name,
 
      int len = 0;
      int alias_indx = 0;
+
+     if (!strcmp(service_alias, service_name)) {
+         ci_debug_printf(1, "Warning, alias is the same as service_name, not adding");
+         return NULL;
+     }
+
      if (service_aliases == NULL) {
           service_aliases = malloc(STEP * sizeof(service_alias_t));
           service_aliases_size = STEP;
