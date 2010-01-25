@@ -333,7 +333,7 @@ int main(int argc, char **argv)
     CI_DEBUG_LEVEL = 1;
     ci_cfg_lib_init();
     
-    if (!ci_args_apply(argc, argv, options) || !txtfile) {
+    if (!ci_args_apply(argc, argv, options) || (!txtfile && !DUMP_MODE)) {
 	ci_args_usage(argv[0], options);
 	exit(-1);
     }
