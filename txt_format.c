@@ -8,6 +8,7 @@
 #define MAX_VARIABLE_SIZE 256
 
 int fmt_none(ci_request_t *req_data, char *buf,int len, char *param);
+int fmt_percent(ci_request_t *req_data, char *buf,int len, char *param);
 int fmt_remoteip(ci_request_t *req_data, char *buf,int len, char *param);
 int fmt_localip(ci_request_t *req_data, char *buf,int len, char *param);
 int fmt_icapstatus(ci_request_t *req_data, char *buf,int len, char *param);
@@ -104,13 +105,20 @@ struct ci_fmt_entry GlobalTable [] = {
     {"%O", "Bytes sent", fmt_req_bytes_sent},
 
     {"%bph", "Body data preview", fmt_req_preview_hex},
-    {"%un", "Username", fmt_none}, 
+    {"%un", "Username", fmt_none},
+    {"%%", "% sign", fmt_percent},
     { NULL, NULL, NULL} 
 };
 
 int fmt_none(ci_request_t *req, char *buf,int len, char *param)
 {
   *buf = '-';
+   return 1;
+}
+
+int fmt_percent(ci_request_t *req, char *buf,int len, char *param)
+{
+  *buf = '%';
    return 1;
 }
 
