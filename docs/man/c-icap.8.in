@@ -18,7 +18,6 @@ c-icap - ICAP filtering server
 .SH DESCRIPTION
 .B c-icap
 is an implementation of an ICAP server. It can be used with HTTP proxies that support the ICAP protocol. Most of the comercial HTTP proxies must support ICAP pcotocol.
-
 .SH OPTIONS
 .IP "-f config-file" 
 Specify the configuration file
@@ -28,23 +27,19 @@ Do not run as daemon
 Specify the debug level
 .IP "-D"
 Print debug info to stdout
-
 .SH FILES
 .I @SYSCONFDIR@/c-icap.conf
 .RS
 The main configuration file
 .RE
-
 .I @SYSCONFDIR@/c-icap.magic
 .RS
  In this file defined the types of files and the groups of file types.
 .RE
-
 .I /var/run/c-icap.pid
 .RS
 By default c-icap writes its pid in this file. This file can changed using the PidFile configuration parameter in the c-icap.conf file
 .RE
-
 .I /var/run/c-icap.ctl
 .RS
 The commands socket. This file used to send commands to the icap server from command line. Currently the following commands are implemented:
@@ -63,12 +58,12 @@ Examples:
 .IP "To reconfigure c-icap:"
       echo -n "reconfigure" > /var/run/c-icap.ctl
 .RE
-
 .SH SEE ALSO
 .BR c-icap-client "(8)"
 .BR c-icap-stretch "(8)"
 .BR c-icap-config "(8)"
 .BR c-icap-libicapapi-config "(8)"
+.BR c-icap-mkbdb "(8)"
 .SH BUGS
 Many...
 .SH AUTHOR

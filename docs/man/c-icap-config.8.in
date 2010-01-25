@@ -44,5 +44,6 @@ print the c-icap server compile configuration
 .BR c-icap-client "(8)"
 .BR c-icap-stretch "(8)"
 .BR c-icap-libicapapi-config "(8)"
+.BR c-icap-mkbdb "(8)"
 .SH AUTHOR
 Tsantilas Christos

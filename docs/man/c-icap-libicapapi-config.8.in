@@ -15,7 +15,6 @@ c-icap-libicapapi-config - script to get information about c-icap library
 .SH DESCRIPTION
 .B c-icap-libicapapi-config
 is a script to get  compile options must used to use c-icap library.
-
 .SH OPTIONS
 .IP  --cflags
 print preprocessor and compiler flags should used to compile a c-icap service or module
@@ -23,11 +22,11 @@ print preprocessor and compiler flags should used to compile a c-icap service or
 print linker flags should used to link with c-icap library
 .IP  --version
 print the c-icap server version
-
 .SH SEE ALSO
 .BR c-icap "(8)"
 .BR c-icap-client "(8)"
 .BR c-icap-stretch "(8)"
 .BR c-icap-config "(8)"
+.BR c-icap-mkbdb "(8)"
 .SH AUTHOR
 Tsantilas Christos

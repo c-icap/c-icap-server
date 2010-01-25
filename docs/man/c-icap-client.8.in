@@ -2,7 +2,7 @@
 .SH NAME
 c-icap-client - simple ICAP client
 .SH SYNOPSIS
-.B c-icap
+.B c-icap-client
 [
 .B \-i "icap_servername"
 ]
@@ -38,8 +38,7 @@ c-icap-client - simple ICAP client
 ]
 .SH DESCRIPTION
 .B c-icap-client
- is a simple ICAP client. It can be used to test your icap server configuration.
-
+is a simple ICAP client. It can be used to test your icap server configuration.
 .SH OPTIONS
 .IP "-i icap_servername"
 The hostname of the icap server. The default is localhost
@@ -63,12 +62,12 @@ Include the icap-header in icap request headers
 Include the http-header in http headers
 .IP "-v"
 Print response headers
-
 .SH SEE ALSO
 .BR c-icap "(8)"
 .BR c-icap-stretch "(8)"
 .BR c-icap-config "(8)"
 .BR c-icap-libicapapi-config "(8)"
+.BR c-icap-mkbdb "(8)"
 .SH BUGS
 Many...
 .SH AUTHOR
