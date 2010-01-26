@@ -347,7 +347,7 @@ int ci_headers_remove(ci_headers_list_t * h, char *header)
                if (i == h->used - 1) {
                     phead = h->headers[i];
                     *phead = '\r';
-                    *(++phead) = '\n';
+                    *(phead + 1) = '\n';
                     h->bufused = (phead - h->buf);
                     (h->used)--;
                     return 1;
@@ -356,7 +356,7 @@ int ci_headers_remove(ci_headers_list_t * h, char *header)
                     header_len = h->headers[i + 1] - h->headers[i];
                     rest_len =
                         h->bufused - (h->headers[i] - h->buf) - header_len;
-                    ci_debug_printf(1, "remove_header : remain len %d\n",
+                    ci_debug_printf(5, "remove_header : remain len %d\n",
                                     rest_len);
                     memmove(phead, h->headers[i + 1], rest_len);
                     /*reconstruct index..... */
