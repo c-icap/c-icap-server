@@ -60,17 +60,17 @@ pkginclude_HEADERS = $(ALL_INCS)
 #sysconf_DATA = c-icap.conf c-icap.magic
 
 
-do_subst=sed -e 's,[@]SYSCONFDIR[@],$(CONFIGDIR),g' \
-             -e 's,[@]PACKAGE_VERSION[@],$(PACKAGE_VERSION),g' \
-             -e 's,[@]PACKAGE[@],$(PACKAGE),g' \
-             -e 's,[@]prefix[@],$(prefix),g' \
-             -e 's,[@]LIBDIR[@],$(libdir),g' \
-             -e 's,[@]PKGINCLUDEDIR[@],$(pkgincludedir),g' \
-             -e 's,[@]PKGLIBDIR[@],$(pkglibdir),g' \
-             -e 's,[@]PKGDATADIR[@],$(pkgdatadir),g' \
-             -e 's,[@]CFLAGS[@],$(CFLAGS),g' \
-             -e 's,[@]MODULES_LIBADD[@],$(MODULES_LIBADD),g' \
-             -e 's,[@]SOCKDIR[@],$(SOCKDIR),g'
+do_subst=sed -e 's%[@]SYSCONFDIR[@]%$(CONFIGDIR)%g' \
+             -e 's%[@]PACKAGE_VERSION[@]%$(PACKAGE_VERSION)%g' \
+             -e 's%[@]PACKAGE[@]%$(PACKAGE)%g' \
+             -e 's%[@]prefix[@]%$(prefix)%g' \
+             -e 's%[@]LIBDIR[@]%$(libdir)%g' \
+             -e 's%[@]PKGINCLUDEDIR[@]%$(pkgincludedir)%g' \
+             -e 's%[@]PKGLIBDIR[@]%$(pkglibdir)%g' \
+             -e 's%[@]PKGDATADIR[@]%$(pkgdatadir)%g' \
+             -e 's%[@]CFLAGS[@]%$(CFLAGS)%g' \
+             -e 's%[@]MODULES_LIBADD[@]%$(MODULES_LIBADD)%g' \
+             -e 's%[@]SOCKDIR[@]%$(SOCKDIR)%g'
 
 CLEANFILES = c-icap-config c-icap-libicapapi-config
 

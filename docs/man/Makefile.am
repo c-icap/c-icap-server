@@ -6,8 +6,8 @@ SERVICESDIR=$(pkglibdir)/
 LOGDIR=$(localstatedir)/log/
 SOCKDIR=/var/run/c-icap
 
-do_subst=sed -e 's,[@]SYSCONFDIR[@],$(CONFIGDIR),g' \
-	     -e 's,[@]PACKAGE_STRING[@],$(PACKAGE_STRING),g'
+do_subst=sed -e 's%[@]SYSCONFDIR[@]%$(CONFIGDIR)%g' \
+	     -e 's%[@]PACKAGE_STRING[@]%$(PACKAGE_STRING)%g'
 
 
 manpages = c-icap.8 c-icap-client.8 c-icap-config.8 c-icap-libicapapi-config.8 \
