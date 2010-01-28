@@ -105,6 +105,174 @@ int http_authenticate(ci_request_t * req, char *use_method)
      return res;
 }
 
+/******************************************************/
+/* Group handling                                     */
+enum {INDEX_BY_GROUP, INDEX_BY_USER};
+struct group_source{
+  char *name;
+  int type;
+  struct ci_lookup_table *db;
+  struct group_source *next;
+};
+
+struct group_source *GROUPS_SOURCE = NULL;
+
+int group_source_add(const char *table_name, int type){
+  struct group_source *gsrc_indx, *gsrc;
+  if (type<0 || type >INDEX_BY_USER) {
+     ci_debug_printf(1, "Non valid group lookup DB type for DB %s! (BUG?)", table_name);
+     return 0;
+  }
+  gsrc = malloc(sizeof(struct group_source));
+  if (!gsrc) {
+    ci_debug_printf(1, "Error allocating memory/add_group_source!");
+    return 0;
+  }
+  gsrc->name = strdup(table_name);
+  if (!gsrc->name) {
+    ci_debug_printf(1, "Error strduping/add_group_source!");
+    free(gsrc);
+    return 0;
+  }
+  gsrc->type = type;
+  gsrc->next = NULL;
+
+  if (GROUPS_SOURCE==NULL)
+    GROUPS_SOURCE = gsrc;
+  else {
+    gsrc_indx = GROUPS_SOURCE;
+    while(gsrc_indx->next!=NULL) 
+      gsrc_indx = gsrc_indx->next;
+
+    gsrc_indx->next = gsrc;
+  }
+  return 1;
+}
+
+int group_source_add_by_group(const char *table_name)
+{
+  return group_source_add(table_name, INDEX_BY_GROUP);
+}
+
+int group_source_add_by_user(const char *table_name)
+{
+  return group_source_add(table_name, INDEX_BY_USER);
+}
+
+void group_source_release()
+{
+  struct group_source *gsrc;
+  while (GROUPS_SOURCE != NULL) {
+    gsrc = GROUPS_SOURCE;
+    GROUPS_SOURCE= GROUPS_SOURCE->next;
+    free(gsrc->name);
+    if (gsrc->db) {
+        ci_lookup_table_destroy(gsrc->db);
+    }
+    free(gsrc);
+  }
+}
+
+
+
+int check_user_group(const char *user, const char *group)
+{
+  struct group_source *gsrc;
+  char **users, **groups;
+  void *ret;
+  int i;
+  gsrc = GROUPS_SOURCE;
+  while (gsrc!=NULL) {
+    if (!gsrc->db) {
+      ci_debug_printf(1,"The lookup-table in group source %s is not open!", gsrc->name);
+      return 0;
+    }
+    if (gsrc->type == INDEX_BY_USER) {
+      ret = gsrc->db->search(gsrc->db, (char *)user, (void ***)&groups);
+      if (ret) {
+	for (i=0; groups[i]!=NULL; i++) {
+	  if (strcmp(group, groups[i]) == 0) {
+	    	gsrc->db->release_result(gsrc->db, (void **)groups);
+		return 1;
+	  }
+	}
+	gsrc->db->release_result(gsrc->db, (void **)groups);
+	return 0;  /*user found but does not attached to group */
+      }
+    }
+    else {
+      ret = gsrc->db->search(gsrc->db, (char *)group, (void ***)&users);
+      if (ret) {
+	for (i=0; users[i]!=NULL; i++) {
+	  if (strcmp(user, users[i]) == 0) {
+	    gsrc->db->release_result(gsrc->db, (void **)users);
+	    return 1;
+	  }
+	}	  
+	gsrc->db->release_result(gsrc->db, (void **)users);
+	return 0; /*group found but user does not belong to this group*/
+      }
+    }
+  }
+  return 0;
+}
+
+/******************************************************/
+/* The group acl implementation                       */
+
+/*defined in types_ops*/
+void *stringdup(const char *str, ci_mem_allocator_t *allocator);
+void stringfree(void *key, ci_mem_allocator_t *allocator);
+size_t stringlen(void *key);
+
+int group_cmp(void *key1,void *key2)
+{
+  char *group, *user;
+  if (!key2)                                   
+    return -1;
+
+  group = (char *)key1;
+  user = (char *)key2;
+  return check_user_group(user, group);
+}
+int group_equal(void *key1,void *key2)
+{
+  char *group, *user;
+  if (!key2)                                   
+    return 0;
+
+  group = (char *)key1;
+  user = (char *)key2;
+  return check_user_group(user, group);
+}
+
+ci_type_ops_t  ci_group_ops = {
+    stringdup,
+    stringfree,
+    group_cmp,
+    stringlen,
+    group_equal,
+};
+
+void *get_user(ci_request_t *req, char *param)
+{
+  return req->user;
+}
+
+void free_user(ci_request_t *req, void *data)
+{
+  
+}
+
+
+ci_acl_type_t acl_group={
+     "group",
+     get_user,
+     free_user,
+     &ci_group_ops
+};
+
+
 
 /******************************************************/
 /* The auth acl implementation                        */
@@ -140,12 +308,15 @@ void free_auth(ci_request_t *req, void *data)
 void init_http_auth()
 { 
     ci_acl_type_add(&acl_auth);
+    ci_acl_type_add(&acl_group);
 }
 
 
 void reset_http_auth()
 {
+    group_source_release();
     ci_acl_type_add(&acl_auth);
+    ci_acl_type_add(&acl_group);
 }
 
 /**********************************************************************************/

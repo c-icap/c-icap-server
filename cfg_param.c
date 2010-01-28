@@ -112,6 +112,8 @@ int cfg_set_tmp_dir(char *directive, char **argv, void *setdata);
 int cfg_set_acl_controllers(char *directive, char **argv, void *setdata);
 int cfg_set_auth_method(char *directive, char **argv, void *setdata);
 int cfg_include_config_file(char *directive, char **argv, void *setdata);
+int cfg_group_source_by_group(char *directive, char **argv, void *setdata);
+int cfg_group_source_by_user(char *directive, char **argv, void *setdata);
 
 /*The following 2 functions defined in access.c file*/
 int cfg_acl_add(char *directive, char **argv, void *setdata);
@@ -172,6 +174,8 @@ static struct ci_conf_entry conf_variables[] = {
      {"TemplateReloadTime", &TEMPLATE_RELOAD_TIME, intl_cfg_set_int, NULL},
      {"TemplateCacheSize", &TEMPLATE_CACHE_SIZE, intl_cfg_set_int, NULL},
      {"TemplateMemBufSize", &TEMPLATE_MEMBUF_SIZE, intl_cfg_set_int, NULL},
+     {"GroupSourceByGroup", NULL, cfg_group_source_by_group, NULL},
+     {"GroupSourceByUser", NULL, cfg_group_source_by_user, NULL},
      {NULL, NULL, NULL, NULL}
 };
 
@@ -560,7 +564,6 @@ int cfg_set_auth_method(char *directive, char **argv, void *setdata)
      return set_method_authenticators(method, argv + 1);
 }
 
-
 int cfg_include_config_file(char *directive, char **argv, void *setdata)
 {
      char path[CI_MAX_PATH], *cfg_file;
@@ -577,6 +580,29 @@ int cfg_include_config_file(char *directive, char **argv, void *setdata)
 
      ci_debug_printf(2, "\n*** Going to open config file %s ***\n", cfg_file);
      return parse_file(cfg_file);
+}
+
+int group_source_add_by_group(const char *table_name);
+int group_source_add_by_user(const char *table_name);
+
+int cfg_group_source_by_group(char *directive, char **argv, void *setdata)
+{
+  char *group_table = NULL;
+  if (argv == NULL || argv[0] == NULL) {
+    return 0;
+  }
+  group_table = argv[0];
+  return group_source_add_by_group((const char *)group_table);
+}
+
+int cfg_group_source_by_user(char *directive, char **argv, void *setdata)
+{
+  char *group_table = NULL;
+  if (argv == NULL || argv[0] == NULL) {
+    return 0;
+  }
+  group_table = argv[0];
+  return group_source_add_by_user((const char *)group_table);
 }
 
 /**************************************************************************/
