@@ -27,6 +27,7 @@
 #include "cfg_param.h"
 #include "filetype.h"
 #include "acl.h"
+#include "txtTemplate.h"
 
 /*
 extern char *PIDFILE;
@@ -128,6 +129,8 @@ int main(int argc, char **argv)
           return -1;
      post_init_modules();
      post_init_services();
+     ci_txt_template_init();
      start_server();
+     ci_txt_template_close();
      return 0;
 }

@@ -44,6 +44,13 @@ sys_logger.Facility local1
 #Logger sys_logger
 Logger file_logger
 
+##Specify txtTemplate parameters
+TemplateDir /usr/share/c_icap/templates/
+TemplateDefaultLanguage en
+TemplateReloadTime 360
+TemplateCacheSize 20
+TemplateMemBufSize 8192
+
 ## AclControlers example. The default_acl is the buildin acl controller
 ## To load an extrernal access controller named my_acl.so use:
 #Module access_controller  my_acl.so

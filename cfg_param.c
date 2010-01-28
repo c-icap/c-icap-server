@@ -74,6 +74,13 @@ int MAX_REQUESTS_BEFORE_REALLOCATE_MEM = 100;
 int MAX_REQUESTS_PER_CHILD = 0;
 int DAEMON_MODE = 1;
 
+/* txtTemplate stuff */
+extern char *TEMPLATE_DIR;
+extern char *TEMPLATE_DEF_LANG;
+extern int TEMPLATE_RELOAD_TIME; // Default time is one hour, this variable is in seconds
+extern int TEMPLATE_CACHE_SIZE; // How many templates can be cached
+extern int TEMPLATE_MEMBUF_SIZE; // Max memory for txtTemplate to expand template into txt
+
 extern char *SERVER_LOG_FILE;
 extern char *ACCESS_LOG_FILE;
 extern char *ACCESS_LOG_FORMAT;
@@ -160,6 +167,11 @@ static struct ci_conf_entry conf_variables[] = {
      {"RemoteProxyUserHeader", &REMOTE_PROXY_USER_HEADER, intl_cfg_set_str, NULL},
      {"RemoteProxyUserHeaderEncoded", &REMOTE_PROXY_USER_HEADER_ENCODED, intl_cfg_onoff, NULL},
      {"RemoteProxyUsers", &ALLOW_REMOTE_PROXY_USERS, intl_cfg_onoff, NULL},
+     {"TemplateDir", &TEMPLATE_DIR, intl_cfg_set_str, NULL},
+     {"TemplateDefaultLanguage", &TEMPLATE_DEF_LANG, intl_cfg_set_str, NULL},
+     {"TemplateReloadTime", &TEMPLATE_RELOAD_TIME, intl_cfg_set_int, NULL},
+     {"TemplateCacheSize", &TEMPLATE_CACHE_SIZE, intl_cfg_set_int, NULL},
+     {"TemplateMemBufSize", &TEMPLATE_MEMBUF_SIZE, intl_cfg_set_int, NULL},
      {NULL, NULL, NULL, NULL}
 };
 
