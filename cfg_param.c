@@ -856,6 +856,11 @@ void system_shutdown()
     release_services();
     release_modules();
     ci_dlib_closeall();
+
+    /*
+        Release other subsystems
+     */
+    ci_txt_template_close();
 }
 
 int system_reconfigure()
@@ -867,6 +872,7 @@ int system_reconfigure()
      reset_conf_tables();
      ci_acl_reset();
      reset_http_auth();
+     ci_txt_template_reset();
      ci_debug_printf(1, "All resources released. Going to reload!\n");
      init_modules();
      init_services();

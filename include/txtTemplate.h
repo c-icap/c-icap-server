@@ -18,24 +18,21 @@
 
 // Additionally, you may use this file under LGPL 2 or (at your option) later
 
+#ifndef __TXTTEMPLATE_H
+#define __TXTTEMPLATE_H
+
 #include <time.h>
+#include "request.h"
 #include "txt_format.h"
+#include "body.h"
 
-typedef struct {
-	char *TEMPLATE_NAME;
-	char *SERVICE_NAME;
-	char *LANGUAGE;
-	ci_membuf_t *data;
-	time_t last_used;
-	time_t loaded;
-	time_t modified;
-	int locked;
-} txtTemplate_t;
 
-#ifndef TXTTEMPLATE
-extern ci_membuf_t *
-ci_txt_template_build_content(const ci_request_t *req, const char *SERVICE_NAME, const char *TEMPLATE_NAME, struct ci_fmt_entry *user_table);
-extern void ci_txt_template_reload(void);
-extern int ci_txt_template_init(void);
-extern void ci_txt_template_close(void);
-#endif
+CI_DECLARE_FUNC (ci_membuf_t *)
+ci_txt_template_build_content(const ci_request_t *req,
+			      const char *SERVICE_NAME, 
+			      const char *TEMPLATE_NAME, struct ci_fmt_entry *user_table);
+CI_DECLARE_FUNC (void) ci_txt_template_reset(void);
+CI_DECLARE_FUNC (int)  ci_txt_template_init(void);
+CI_DECLARE_FUNC (void) ci_txt_template_close(void);
+
+#endif /*__TXTTEMPLATE_H*/

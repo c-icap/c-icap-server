@@ -96,6 +96,7 @@ int main(int argc, char **argv)
      init_internal_lookup_tables();
      ci_acl_init();
      init_http_auth();
+     ci_txt_template_init();
 
      if (!(CONF.MAGIC_DB = ci_magic_db_load(CONF.magics_file))) {
           ci_debug_printf(1, "Can not load magic file %s!!!\n",
@@ -129,8 +130,6 @@ int main(int argc, char **argv)
           return -1;
      post_init_modules();
      post_init_services();
-     ci_txt_template_init();
      start_server();
-     ci_txt_template_close();
      return 0;
 }
