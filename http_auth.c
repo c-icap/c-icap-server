@@ -125,17 +125,34 @@ int group_source_add(const char *table_name, int type){
   }
   gsrc = malloc(sizeof(struct group_source));
   if (!gsrc) {
-    ci_debug_printf(1, "Error allocating memory/add_group_source!");
+    ci_debug_printf(1, "Error allocating memory/add_group_source!\n");
     return 0;
   }
   gsrc->name = strdup(table_name);
   if (!gsrc->name) {
-    ci_debug_printf(1, "Error strduping/add_group_source!");
+    ci_debug_printf(1, "Error strduping/add_group_source!\n");
     free(gsrc);
     return 0;
   }
   gsrc->type = type;
+  gsrc->db = NULL;
   gsrc->next = NULL;
+
+  gsrc->db = ci_lookup_table_create(gsrc->name);
+  if (!gsrc->db) {
+    ci_debug_printf(1, "Error creating lookup table:%s!\n", gsrc->name);
+    free(gsrc->name);
+    free(gsrc);
+    return 0;
+  }
+  if (!gsrc->db->open(gsrc->db)) {
+    ci_debug_printf(1, "Error opening lookup table:%s!\n", gsrc->name);
+    ci_lookup_table_destroy(gsrc->db);
+    free(gsrc->name);
+    free(gsrc);
+    return 0;
+  }
+
 
   if (GROUPS_SOURCE==NULL)
     GROUPS_SOURCE = gsrc;
@@ -213,6 +230,7 @@ int check_user_group(const char *user, const char *group)
 	return 0; /*group found but user does not belong to this group*/
       }
     }
+    gsrc = gsrc->next;
   }
   return 0;
 }
@@ -254,11 +272,7 @@ ci_type_ops_t  ci_group_ops = {
     group_equal,
 };
 
-void *get_user(ci_request_t *req, char *param)
-{
-  return req->user;
-}
-
+void *get_auth(ci_request_t *req, char *param);
 void free_user(ci_request_t *req, void *data)
 {
   
@@ -267,7 +281,7 @@ void free_user(ci_request_t *req, void *data)
 
 ci_acl_type_t acl_group={
      "group",
-     get_user,
+     get_auth,
      free_user,
      &ci_group_ops
 };
@@ -310,7 +324,6 @@ void init_http_auth()
     ci_acl_type_add(&acl_auth);
     ci_acl_type_add(&acl_group);
 }
-
 
 void reset_http_auth()
 {
