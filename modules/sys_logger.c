@@ -45,7 +45,7 @@ char *log_ident = "c-icap: ";
 static int FACILITY = LOG_DAEMON;
 static int ACCESS_PRIORITY = LOG_INFO;
 static int SERVER_PRIORITY = LOG_CRIT;
-char *syslog_logformat = NULL;
+char *syslog_logformat = "%la %a %im %iu %is";
 static ci_access_entry_t *syslog_access_list = NULL;
 
 
@@ -65,7 +65,7 @@ extern char *logformat_fmt(char *name);
 /*Configuration Table .....*/
 static struct ci_conf_entry conf_variables[] = {
      {"Facility", NULL, cfg_set_facility, NULL},
-     {"acces_priority", &ACCESS_PRIORITY, cfg_set_priority, NULL},
+     {"access_priority", &ACCESS_PRIORITY, cfg_set_priority, NULL},
      {"server_priority", &SERVER_PRIORITY, cfg_set_priority, NULL},
      {"Prefix", &log_ident, ci_cfg_set_str, NULL},
      {"LogFormat", NULL, cfg_syslog_logformat},
