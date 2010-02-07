@@ -1,6 +1,14 @@
+# In this file defined the types of files and the groups of file types. 
+# The predefined data types, which are not included in this file, 
+# are ASCII, ISO-8859, EXT-ASCII, UTF (not implemented yet), HTML 
+# which are belongs to TEXT predefined group and BINARY which 
+# belongs to DATA predefined group.
+#
+# The line format of magic file is:
+#
+# offset:Magic:Type:Short Description:Group1[:Group2[:Group3]...]
+#
 # CURRENT GROUPS are :TEXT DATA EXECUTABLE ARCHIVE GRAPHICS STREAM DOCUMENT
-#
-#
 
 0:MZ:MSEXE:DOS/W32 executable/library/driver:EXECUTABLE
 0:LZ:DOSEXE:MS-DOS executable:EXECUTABLE
