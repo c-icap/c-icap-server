@@ -14,6 +14,7 @@ int fmt_localip(ci_request_t *req_data, char *buf,int len, char *param);
 int fmt_icapstatus(ci_request_t *req_data, char *buf,int len, char *param);
 int fmt_icapmethod(ci_request_t *req_data, char *buf,int len, char *param);
 int fmt_service(ci_request_t *req_data, char *buf,int len, char *param);
+int fmt_username(ci_request_t *req_data, char *buf,int len, char *param);
 int fmt_request(ci_request_t *req_data, char *buf,int len, char *param);
 int fmt_localtime(ci_request_t *req_data, char *buf,int len, char *param);
 int fmt_gmttime(ci_request_t *req_data, char *buf,int len, char *param);
@@ -61,6 +62,7 @@ int fmt_req_preview_hex(ci_request_t *req_data, char *buf,int len, char *param);
    * \em "%I": Bytes received \n
    * \em "%O": Bytes sent \n
    * \em "%bph": Body data preview \n
+   * \em "%un": Username \n
    *
    * Not yet implemented:\n
    * \em "%tr": Response time \n
@@ -69,7 +71,6 @@ int fmt_req_preview_hex(ci_request_t *req_data, char *buf,int len, char *param);
    * \em "%<hi": Http reply header \n
    * \em "%Hs": Http reply status \n
    * \em "%Hso": Modified Http reply status \n
-   * \em "%un": Username \n
  */
 struct ci_fmt_entry GlobalTable [] = {
     { "%a", "Remote IP-Address", fmt_remoteip },
@@ -105,7 +106,7 @@ struct ci_fmt_entry GlobalTable [] = {
     {"%O", "Bytes sent", fmt_req_bytes_sent},
 
     {"%bph", "Body data preview", fmt_req_preview_hex},
-    {"%un", "Username", fmt_none},
+    {"%un", "Username", fmt_username},
     {"%%", "% sign", fmt_percent},
     { NULL, NULL, NULL} 
 };
@@ -305,6 +306,15 @@ int fmt_service(ci_request_t *req, char *buf,int len, char *param)
 {
    int i;
    char *s = req->service;
+   for(i=0;i<len && *s;i++,s++)
+        buf[i] = *s;
+   return i;
+}
+
+int fmt_username(ci_request_t *req, char *buf,int len, char *param)
+{
+   int i;
+   char *s = req->user;
    for(i=0;i<len && *s;i++,s++)
         buf[i] = *s;
    return i;
