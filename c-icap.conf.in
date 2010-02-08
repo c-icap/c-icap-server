@@ -213,6 +213,17 @@ TemplateDefaultLanguage en
 #TemplateCacheSize 20
 #TemplateMemBufSize 8192
 
+# TAG: LoadMagicFile
+# Format: LoadMagicFile path
+# Description:
+#	Load a c-icap magic file. A magic file contains various 
+# 	data type definitions. Look inside default c-icap.magic file
+# 	for more informations.
+# 	It can be used more than once to use multiple magic files.
+# Default:
+#	LoadMagicFile @prefix@/etc/c-icap.magic
+LoadMagicFile @prefix@/etc/c-icap.magic
+
 # TAG: RemoteProxyUsers
 # Format: RemoteProxyUsers onoff
 # Description:
@@ -352,23 +363,25 @@ RemoteProxyUserHeaderEncoded on
 #	acl all src 0.0.0.0/0.0.0.0
 
 # TAG: icap_access
-# Format: icap_access allow|deny acl1 [acl2] [...]
+# Format: icap_access allow|deny [!]acl1 ...
 # Description:
-#
+#	Allowing or denying ICAP access based on defined access lists
 # Default:
 #	None set
 # Example:
 #	icap_access deny XHEAD
 #	#Allow OPTIONS method for all:
 #	icap_access allow localnet OPTIONS
-#	#Require authentication for all users:
+#	#Require authentication for all users from local network:
 #	icap_access allow AUTH localnet
 #	icap_access deny all
 
 # TAG: client_access
 # Format: client_access allow|deny acl1 [acl2] [...]
 # Description:
-#
+#	Allowing or denying connections on c-icap based on
+#	defined access lists. Only the acl types src, srvip and port
+# 	can be used.
 # Default:
 #	None set
 # Example:
@@ -435,7 +448,7 @@ RemoteProxyUserHeaderEncoded on
 ServerLog @prefix@/var/log/server.log
 
 # TAG: AccessLog
-# Format: AccessLog LogFile [LogFormat] [acl1] [acl2] [...]
+# Format: AccessLog LogFile [LogFormat] [[!]acl1] [[!]acl2] [...]
 # Description:
 #	LogFile is a file where to log access information.
 #	LogFormat is the log format to use. If ommited c-icap uses:
@@ -527,36 +540,38 @@ AccessLog @prefix@/var/log/access.log
 # TAG: sys_logger.Prefix
 # Format: sys_logger.Prefix string
 # Description:
-#
+#	 string is be presented in every syslog message.
 # Default:
 #	sys_logger.Prefix "C-ICAP:"
 
 # TAG: sys_logger.Facility
 # Format: sys_logger.Facility daemon|user|local1|local2|local3|local4|local5|local6|local7
 # Description:
-#
+#	specifies the facility type of syslog. 
 # Default:
 #	sys_logger.Facility daemon
 
 # TAG: sys_logger.access_priority
 # Format: sys_logger.access_priority alert|crit|debug|emerg|err|info|notice|warning
 # Description:
-#
+#	determines  the  importance  of the access log message
 # Default:
 #	sys_logger.access_priority info
 
 # TAG: sys_logger.server_priority
 # Format: sys_logger.server_priority alert|crit|debug|emerg|err|info|notice|warning
 # Description:
-#
+#	determines  the  importance  of the server log message
 # Default:
-#
+#	sys_logger.server_priority crit
 sys_logger.server_priority crit
 
 # TAG: sys_logger.LogFormat
 # Format: sys_logger.LogFormat LOGFORMAT
 # Description:
-#	"%la %a %im %iu %is"
+#	The log format to use. If no log format defined then 
+# 	the following will be used:
+# 	    "%la %a %im %iu %is"
 # Default:
 #	None set 
 # Example:
@@ -564,9 +579,10 @@ sys_logger.server_priority crit
 #	sys_logger.LogFormat BasicFormat
 
 # TAG: sys_logger.access
-# Format: sys_logger.access acl1 [acl2] [...]
+# Format: sys_logger.access [!]acl1 ...
 # Description:
-#
+#	Allow selecting ICAP requests to be logged using acls.
+# 	By default all requests will be logged.
 # Default:
 #	None set
 # Example:
@@ -577,9 +593,10 @@ sys_logger.server_priority crit
 
 # Module: bdb_tables
 # Description:
-#	Add support for bdb lookup tables. The format for 
+#	Add support for Berkeley DB based lookup tables. The format for 
 # 	bdb path of the lookup table is:
-# 	bdb:/path/to/bdb
+# 		bdb:/path/to/bdb
+#	Use the c-icap-mkbdb utility to build Berkeley DB c-icap lookup tables
 # Example:
 #	Module common bdb_tables.so
 
@@ -588,10 +605,11 @@ sys_logger.server_priority crit
 # Module: dnsbl_tables
 # Description:
 #	Add support for dns lookup tables. Can be used to access
-#	dns block lists. The dnsbl lookup table path is:
-# 	dnsbl:domainname
+#	dns block lists. The dnsbl lookup table path definition is:
+# 	    dnsbl:domainname
 # 	For example the lookup table  for accessing the black.uribl.com
-#	dns black list is: dnsbl:black.uribl.com
+#	dns black list is: 
+# 	    dnsbl:black.uribl.com
 # Example:
 #	Module common dnsbl_tables.so
 
@@ -599,7 +617,11 @@ sys_logger.server_priority crit
 
 # Module: ldap_module
 # Description:
-#	ldap://ldapserver?base?attr1,attr2?filter
+#	Add LDAP support to c-icap. The user can use LDAP based lookup tables
+# 	using the following lookup table path:
+#	      ldap://username:password@ldapserver?base?attr1,attr2?filter
+#
+#	WARNING: is not enough tested it may contain bugs!
 # Example:
 #	Module common ldap_module.so
 
