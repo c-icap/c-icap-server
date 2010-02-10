@@ -144,7 +144,9 @@ struct ldap_connections_pool *ldap_pool_create(char *server, int port, char *use
     struct ldap_connections_pool *pool;
     ci_thread_mutex_lock(&ldap_connections_pool_mtx);
     
-    pool = search_ldap_pools(server, port, user, password);
+    pool = search_ldap_pools(server, port, 
+			     (user != NULL? user : ""), 
+			     (password != NULL? password : ""));
     if(pool) {
 	ci_thread_mutex_unlock(&ldap_connections_pool_mtx);
 	return pool;
@@ -367,6 +369,8 @@ struct ldap_table_data {
     char *base;
     char *server;
     int port;
+    char *user;
+    char *password;
     char **attrs;
     char *filter;
     ci_cache_t *cache;
@@ -378,7 +382,7 @@ int parse_ldap_str(struct ldap_table_data *fields)
     char *s, *e;
     int array_size, i;
 
-    /*we are expecting a path in the form //ldapserver?base?attr1,attr2?filter*/
+    /*we are expecting a path in the form //[username:password@]ldapserver?base?attr1,attr2?filter*/
 
     if(!fields->str)
 	return 0;
@@ -402,8 +406,20 @@ int parse_ldap_str(struct ldap_table_data *fields)
     }
     if (i != 2) 
 	return 0;
+
+    /*Extract username/password if exists*/
+    if ((e=strrchr(s, '@')) != NULL) {
+        fields->user = s;
+	*e = '\0';
+	s = e + 1;
+	if ((e=strchr(fields->user, ':')) != NULL) {
+	  *e = '\0';
+	  fields->password = e + 1;
+	}
+    }
+
     fields->server = s;	 /*The s points to the "server" field now*/
-    while(*s != '?' && *s != '\0') s++;
+    while(*s != '?' && *s != '/'  && *s != '\0') s++;
     if (*s == '\0') 
 	return 0;
     *s = '\0';
@@ -517,6 +533,8 @@ void *ldap_table_open(struct ci_lookup_table *table)
     ldapdata->base = NULL;
     ldapdata->server = NULL;
     ldapdata->port = 389;
+    ldapdata->user = NULL;
+    ldapdata->password = NULL;
     ldapdata->attrs = NULL;
     ldapdata->filter = NULL;
 
@@ -526,7 +544,8 @@ void *ldap_table_open(struct ci_lookup_table *table)
 	ci_debug_printf(1, "ldap_table_open: parse path string error!\n");
 	return NULL;
     }
-    ldapdata->pool = ldap_pool_create(ldapdata->server, ldapdata->port, NULL, NULL);
+    ldapdata->pool = ldap_pool_create(ldapdata->server, ldapdata->port, 
+				      ldapdata->user, ldapdata->password);
     ldapdata->cache = ci_cache_build(65536, 512, 1024, 60, 
 				     &ci_str_ops,
 				     store_val,
