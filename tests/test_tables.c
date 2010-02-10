@@ -81,10 +81,14 @@ int main(int argc,char *argv[]) {
 
     table = ci_lookup_table_create(path);
     if(!table) {
-	printf("Error opening table\n");
+	printf("Error creating table\n");
 	return -1;
     }
-    table->open(table);
+
+    if (!table->open(table)) {
+         printf("Error opening table\n");
+         return -1;
+    }
 
     e = table->search(table,key,&vals);
     if(e) {
