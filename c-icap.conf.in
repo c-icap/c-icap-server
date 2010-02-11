@@ -619,7 +619,12 @@ sys_logger.server_priority crit
 # Description:
 #	Add LDAP support to c-icap. The user can use LDAP based lookup tables
 # 	using the following lookup table path:
-#	      ldap://username:password@ldapserver?base?attr1,attr2?filter
+#	      ldap://[username:password@]ldapserver?base?attr1,attr2?filter
+# 	The filter can contain the "%s" formating code which will be replaced by
+# 	the search key
+# 	Examples of supported ldap urls:
+#	     ldap://ldap.chtsanti.net?o=chtsanti?cn,uid?uid=%s
+# 	     ldap://cn=Directory Manager:Apassword@ldap.chtsanti.net?o=chtsanti?mermberUid?(&(objectClass=posixGroup)(cn=%s))
 #
 #	WARNING: is not enough tested it may contain bugs!
 # Example:
