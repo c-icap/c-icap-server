@@ -132,17 +132,18 @@ int dump_db()
 
      do {
 	 printf("%s :", (char *)db_key.data );
-	 store = db_data.data;
-	 store_index = store;
-
-	 for(i=0; store_index[i]!=0; i++) {
-	     store_index[i]+=(long int)store;
-	 }
-	 for(i=0; store_index[i]!=0; i++) {
-	     printf("%s |", (char *)store_index[i]);
-	 }
-	 printf("\n");
-	 ret = dbc->c_get(dbc, &db_key, &db_data, DB_NEXT);
+         if (db_data.data) {
+	     store = db_data.data;
+	     store_index = store;
+	     for(i=0; store_index[i]!=0; i++) {
+	          store_index[i]+=(long int)store;
+	     }
+	     for(i=0; store_index[i]!=0; i++) {
+	         printf("%s |", (char *)store_index[i]);
+	     }
+          }
+	  printf("\n");
+       ret = dbc->c_get(dbc, &db_key, &db_data, DB_NEXT);
      } while (ret==0);
 
      dbc->c_close(dbc);
