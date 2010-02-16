@@ -55,6 +55,8 @@ ci_thread_t *threads;
 ci_thread_mutex_t filemtx;
 int file_indx = 0;
 int requests_stats = 0;
+int failed_requests_stats = 0;
+int soft_failed_requests_stats = 0;
 int in_bytes_stats = 0;
 int out_bytes_stats = 0;
 int req_errors_rw = 0;
@@ -71,10 +73,13 @@ void print_stats()
      time_t rtime;
      time(&rtime);
      printf("Statistics:\n\t Files used :%d\n\t Number of threads :%d\n\t"
-            " Requests served :%d\n\t Incoming bytes :%d\n\t Outgoing bytes :%d\n"
+            " Requests served :%d\n\t Requests failed :%d\n\t Requests soft failed :%d\n\t"
+	    " Incoming bytes :%d\n\t Outgoing bytes :%d\n"
             " \t Write Errors :%d\n",
             FILES_NUMBER,
-            threadsnum, requests_stats, in_bytes_stats, out_bytes_stats,
+            threadsnum, requests_stats, 
+	    failed_requests_stats, soft_failed_requests_stats, 
+	    in_bytes_stats, out_bytes_stats,
             req_errors_rw);
      rtime = rtime - START_TIME;
      printf("Running for %u seconds\n", (unsigned int) rtime);
@@ -227,6 +232,18 @@ int do_file(ci_request_t *req, char *input_file, int *keepalive)
 				(int (*)(void *, char *, int)) filewrite);
      close(fd_in);
 
+     if (ret <=0 && req->bytes_out == 0 ){
+          ci_debug_printf(2, "Is the ICAP connection  closed?\n");
+	  *keepalive = 0;
+	  return 0;
+     }
+     
+     if (ret<= 0) {
+          ci_debug_printf(1, "Error sending requests \n");
+	  *keepalive = 0;
+	  return 0;
+     }
+
      *keepalive=req->keepalive;
 
      ci_headers_destroy(headers);
@@ -245,7 +262,7 @@ int threadjobsendfiles()
      ci_request_t *req;
      ci_connection_t *conn;
      int port = 1344;
-     int indx, keepalive;
+     int indx, keepalive, ret;
      int arand;
 
      while (1) {
@@ -270,7 +287,13 @@ int threadjobsendfiles()
                ci_thread_mutex_unlock(&filemtx);
 
                keepalive = 0;
-               if (do_file(req, FILES[indx], &keepalive) <= 0) {
+               if ((ret = do_file(req, FILES[indx], &keepalive)) <= 0) {
+		    ci_thread_mutex_lock(&statsmtx);
+		    if (ret == 0) 
+		         soft_failed_requests_stats++;
+		    else 
+		         failed_requests_stats++;
+		    ci_thread_mutex_unlock(&statsmtx);
                     printf("Request failed...\n");
                     break;
                }
