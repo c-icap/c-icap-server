@@ -2,6 +2,7 @@
 #include "c-icap.h"
 #include "module.h"
 #include "lookup_table.h"
+#include "commands.h"
 #include "debug.h"
 #include <db.h>
 
@@ -51,15 +52,23 @@ struct bdb_data {
     DB *db;
 };
 
-void *bdb_table_open(struct ci_lookup_table *table)
+
+int bdb_table_do_real_open(struct ci_lookup_table *table)
 {
     int ret;
     char *s,home[CI_MAX_PATH];
-//    struct ci_mem_allocator *allocator = table->allocator;
-    struct bdb_data *dbdata = malloc(sizeof(struct bdb_data));
-    if(!dbdata)
-	return NULL;
-    
+
+    struct bdb_data *dbdata = table->data;
+
+    if (!dbdata) {
+         ci_debug_printf(1, "Db table %s is not initialized?\n", table->path);
+         return 0; 
+    }
+    if (dbdata->db || dbdata->env_db) {
+         ci_debug_printf(1, "Db table %s already open?\n", table->path);
+         return 0; 
+    }
+
     strncpy(home,table->path,CI_MAX_PATH);
     home[CI_MAX_PATH-1] = '\0';
     s=strrchr(home,'/');
@@ -70,7 +79,7 @@ void *bdb_table_open(struct ci_lookup_table *table)
     
     /* * Create an environment and initialize it for additional error * reporting. */ 
     if ((ret = db_env_create(&dbdata->env_db, 0)) != 0) { 
-	return (NULL); 
+	return 0; 
     } 
     ci_debug_printf(5, "bdb_table_open: Environment created OK.\n");
     
@@ -84,14 +93,14 @@ void *bdb_table_open(struct ci_lookup_table *table)
 				     0)) != 0){ 
 	ci_debug_printf(1, "bdb_table_open: Environment open failed: %s\n", db_strerror(ret));
 	dbdata->env_db->close(dbdata->env_db, 0); 
-	return NULL; 
+	return 0; 
     }
     ci_debug_printf(5, "bdb_table_open: DB environment setup OK.\n");
 
     
     if ((ret = db_create(&dbdata->db, dbdata->env_db, 0)) != 0) {
 	ci_debug_printf(1, "db_create: %s\n", db_strerror(ret));
-	return NULL;
+	return 0;
     }
 
 
@@ -104,11 +113,34 @@ void *bdb_table_open(struct ci_lookup_table *table)
 #endif
 	    ci_debug_printf(1, "open db %s: %s\n", table->path, db_strerror(ret));
 	    dbdata->db->close(dbdata->db, 0);
-	    return NULL;
-	}
-    
+	    return 0;
+    }
 
+    return 1;
+}
+
+
+void command_real_open_table(char *name, int type, void *data)
+{
+     struct ci_lookup_table *table = data;
+     bdb_table_do_real_open(table);
+}
+
+void *bdb_table_open(struct ci_lookup_table *table)
+{
+//    struct ci_mem_allocator *allocator = table->allocator;
+    struct bdb_data *dbdata = malloc(sizeof(struct bdb_data));
+    if(!dbdata)
+	return NULL;
+    dbdata->env_db = NULL;
+    dbdata->db = NULL;
     table->data = dbdata;
+    
+    /*We can not fork a Berkeley DB table, so we have to 
+      open bdb tables for every child, on childs start-up procedure*/
+    register_command_extend("openBDBtable", CHILD_START_CMD, table,
+			    command_real_open_table);
+
     return table->data;
 }
 
@@ -116,16 +148,16 @@ void  bdb_table_close(struct ci_lookup_table *table)
 {
     //  struct ci_mem_allocator *allocator = table->allocator;
     struct bdb_data *dbdata;
-    if(table->data) {
+    dbdata = table->data;
+    if(dbdata && dbdata->db && dbdata->env_db) {
 
-	dbdata = table->data;
 	dbdata->db->close(dbdata->db,0);
 	dbdata->env_db->close(dbdata->env_db,0);
 	free(table->data);
 	table->data = NULL;
     }
     else {
-	ci_debug_printf(1,"table %s is not open?\n", table->path);
+	ci_debug_printf(3,"table %s is not open?\n", table->path);
     }
 }
 
@@ -143,6 +175,11 @@ void *bdb_table_search(struct ci_lookup_table *table, void *key, void ***vals)
     struct bdb_data *dbdata = (struct bdb_data *)table->data;
 
     if(!dbdata) {
+	ci_debug_printf(1,"table %s is not initialized?\n", table->path);
+	return NULL;
+    }
+
+    if(!dbdata->db) {
 	ci_debug_printf(1,"table %s is not open?\n", table->path);
 	return NULL;
     }

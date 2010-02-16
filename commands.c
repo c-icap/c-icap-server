@@ -35,9 +35,7 @@ static int commands_list_num = 0;
 
 #define STEP 64
 
-void register_command(char *name, int type,
-                      void (*command_action) (char *name, int type,
-                                              char **argv))
+void check_commands_list()
 {
      if (commands_list == NULL) {
           commands_list_size = STEP;
@@ -53,9 +51,37 @@ void register_command(char *name, int type,
                           "Error allocating memory for commands list. Exiting......!\n");
           exit(-1);
      }
+}
+
+void register_command(char *name, int type,
+                      void (*command_action) (char *name, int type,
+                                              char **argv))
+{
+     if (! (type & ALL_PROC_CMD)) {
+          ci_debug_printf(1, "Can not register command %s ! Wrong type\n", name );
+          return;
+     }
+     check_commands_list();
      commands_list[commands_list_num].name = strdup(name);
      commands_list[commands_list_num].type = type;
+     commands_list[commands_list_num].data = NULL;
      commands_list[commands_list_num++].command_action = command_action;
+}
+
+void register_command_extend(char *name, int type, void *data,
+			     void (*command_action) (char *name, int type,
+						     void *data))
+{
+     if (type != CHILD_START_CMD) {
+          ci_debug_printf(1, "Can not register extend command %s ! wrong type\n", name );
+          return;
+     }
+     check_commands_list();
+     commands_list[commands_list_num].name = strdup(name);
+     commands_list[commands_list_num].type = CHILD_START_CMD;
+     commands_list[commands_list_num].data = data;
+     commands_list[commands_list_num++].command_action_extend = command_action;
+     ci_debug_printf(5, "Extend command %s registered\n", name);
 }
 
 void reset_commands()
@@ -105,4 +131,25 @@ int execute_command(ci_command_t * command, char *cmdline, int exec_type)
      command->command_action(args[0], exec_type, args + 1);
      free_args(args);
      return 1;
+}
+
+
+int execure_start_child_commands ()
+{
+    int i;
+    ci_command_t *command;
+    ci_debug_printf(5, "Going to execute start child commands\n");
+    for (i = 0; i < commands_list_num; i++) {
+         command = &commands_list[i];
+         ci_debug_printf(7, "Check command:%s, type: %d \n", 
+                          command->name, command->type);
+      if (commands_list[i].type  == CHILD_START_CMD) {
+	  ci_debug_printf(5, "Execute command:%s \n",
+			  command->name);
+	  command->command_action_extend (command->name, command->type, command->data);
+          commands_list[i].type = NULL_CMD;
+          command->data = NULL;
+      }
+    }
+    return 1;
 }

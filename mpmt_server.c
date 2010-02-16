@@ -739,6 +739,8 @@ void child_main(int sockfd, int pipefd)
                                    sizeof(server_decl_t *));
      con_queue = init_queue(START_SERVERS);
 
+     execure_start_child_commands ();
+
      for (i = 0; i < START_SERVERS; i++) {
           if ((threads_list[i] = newthread(con_queue)) == NULL) {
                exit(-1);        // FATAL error.....
