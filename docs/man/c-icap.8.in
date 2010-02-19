@@ -38,11 +38,14 @@ The main configuration file
 .RE
 .I /var/run/c-icap.pid
 .RS
-By default c-icap writes its pid in this file. This file can changed using the PidFile configuration parameter in the c-icap.conf file
+By default c-icap writes its pid in this file. The path of this file can changed using the PidFile configuration parameter in the c-icap.conf file
 .RE
 .I /var/run/c-icap.ctl
 .RS
-The commands socket. This file used to send commands to the icap server from command line. Currently the following commands are implemented:
+The commands socket. This file used to send commands to the icap server from command line. For informations about implemented commands look below in the "Implemented commands" sub-section
+.SH NOTES
+.SS Implemented commands
+Currently the following commands are implemented:
 .IP "stop"
 .RS
 The c-icap will shutdown
@@ -52,11 +55,58 @@ The c-icap will shutdown
 The service will reread the config file without the need to stop and restart 
 the c-icap server. The services will be reinitialized
 .RE
-Services and modules can add their own commands.
 .PP
-Examples:
+Services and modules can define their own commands.
+.PP
+\fBExamples:\fR
 .IP "To reconfigure c-icap:"
       echo -n "reconfigure" > /var/run/c-icap.ctl
+.RE
+.SS Lookup tables
+Lookup tables are simple read-only databases. 
+A lookup table can defined in c-icap.conf file using the form:
+.RE
+	type:path
+.RE
+where the \fBtype\fR is the type of lookup table and \fBpath\fR is the extra information required to use the table (e.g. file path). Currently the following lookup table types defined internally by c-icap:
+.IP file 
+Simple text file databases. The database records are stored in text files in the form:
+.RS
+ key[: value1, value2 ...]
+.RE
+.RS
+.IP "example path definition:"
+.RS 
+file:/path/to/the/file.txt
+.RE
+.RE
+.IP hash
+Similar to file lookup tables but c-icap uses fast hashes for searching.
+.RS
+.IP "example path definition:"
+.RS 
+hash:/path/to/the/file.txt
+.RE
+.RE
+.IP regex
+Similar to the file lookup tables but the keys are regular expressions in the form /regex/flags where flags are 'i' to ignore case or nothing.
+.RS
+.IP "example regex lookup table data:"
+	/^[a-m].*/i: group1
+.br
+	/^[n-z].*/i: group2
+.RE
+.IP "example path definition:"
+.RS 
+regex:/path/to/the/file.txt
+.RE
+.RE
+.SS Runtime information
+Someone can retrieve runtime information using the \fBinfo\fR service. The information includes bytes received and transmited, active services, information about service usage and many other. The information provided in HTML and text format.
+.PP
+\fBExample:\fR
+.IP "Retrieve runtime information from command line:"
+	c-icap-client -i localhost -s "info?view=text" -req "a_url"
 .RE
 .SH SEE ALSO
 .BR c-icap-client "(8)"

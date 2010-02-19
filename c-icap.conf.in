@@ -284,7 +284,7 @@ RemoteProxyUserHeaderEncoded on
 # Description:
 #	Specify the lookup table where the usernames/passwords pairs 
 #	are stored. The paswords must be unencrypted
-#	For more information about c-icap lookup tables read c-icap.conf
+#	For more information about c-icap lookup tables read c-icap server
 #	manual page
 # Default:
 #	No value
@@ -296,7 +296,7 @@ RemoteProxyUserHeaderEncoded on
 # Description:
 #	Defines a lookup table where the groups of users are stored indexed
 #	by group. It can be used more than once.
-#       For more information about c-icap lookup tables read c-icap.conf
+#       For more information about c-icap lookup tables read c-icap server
 #       manual page
 # Default:
 #	No set
@@ -308,7 +308,7 @@ RemoteProxyUserHeaderEncoded on
 # Description:
 #	Defines a lookup table where the groups of users are stored indexed 
 #	by user. It can be used more than once.
-#       For more information about c-icap lookup tables read c-icap.conf
+#       For more information about c-icap lookup tables read c-icap server
 #       manual page
 # Default:
 #       No set
