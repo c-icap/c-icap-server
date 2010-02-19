@@ -174,6 +174,7 @@ void *regex_dup(const char *str, ci_mem_allocator_t *allocator)
 	    flags = flags | REG_ICASE;
 	else { /*other flags*/
 	}
+        s++;
     }
     flags |= REG_EXTENDED; /*or beter the 'e' option?*/
     flags |= REG_NOSUB; /*we do not need it*/
