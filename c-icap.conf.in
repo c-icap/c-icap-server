@@ -519,13 +519,19 @@ AccessLog @prefix@/var/log/access.log
 # 	TransferComplete: The list of file extensions that should be sent
 #			  in their entirety, without preview, to the icap server
 # Example:
-#	srv_echo.PreviewSize 512
-#	srv_echo.TransferIgnore gif, jpeg
+#	echo.PreviewSize 512
+#	echo.TransferIgnore gif, jpeg
 
 
 ######################################################
 # External modules comming with core c-icap server
 #
+# Module: echo
+# Description:
+#	Simple test service
+# Example:
+#	Service echo srv_echo.so
+Service echo srv_echo.so
 
 # Module: sys_logger
 # Description:
@@ -564,7 +570,6 @@ AccessLog @prefix@/var/log/access.log
 #	determines  the  importance  of the server log message
 # Default:
 #	sys_logger.server_priority crit
-sys_logger.server_priority crit
 
 # TAG: sys_logger.LogFormat
 # Format: sys_logger.LogFormat LOGFORMAT
