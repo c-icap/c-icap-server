@@ -26,10 +26,12 @@ usage()
 Usage: c-icap-config [OPTIONS]
 
 Where OPTION one of the following:
+   --prefix             print c-icap instalation base directory
    --cflags		print preprocessor and compiler flags
    --libs		print linker flags
    --datarootdir	print the c-icap data directory
    --configdir		print the c-icap configuration directory
+   --modulesdir		print the c-icap modules/plugins directory
    --version		print the c-icap server version
    --config		print the c-icap server compile configuration
 EOTXT
@@ -37,6 +39,9 @@ EOTXT
 
 
 case $1 in
+    '--prefix')
+        echo $prefix;
+        ;;
     '--cflags')
         echo $CFLAGS" -I"$INCDIR;
         ;;
@@ -49,14 +54,18 @@ case $1 in
     '--configdir')
        echo $CONFIGDIR;
        ;;
+    '--modulesdir')
+       echo $PKGLIBDIR;
+       ;;
     '--version')
        echo $VERSION;
        ;;
     '--config')
         echo "c-icap configuration";
 	echo "c-icap version: "$VERSION;
+        echo "c-icap installation prefix: "$prefix
 	echo "c-icap configuration directory: "$CONFIGDIR;
-	echo "c-icap plugins directory: "$PKGLIBDIR;
+	echo "c-icap modules/plugins directory: "$PKGLIBDIR;
 	echo "c-icap shared data directory: "$DATADIR;
 	echo ;
         echo "c-icap cflags for modules: "$CFLAGS;
