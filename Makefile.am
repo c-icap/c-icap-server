@@ -14,7 +14,9 @@ SUBDIRS =  . utils modules services tests docs
 
 
 lib_LTLIBRARIES=libicapapi.la
-bin_PROGRAMS = c-icap c-icap-config c-icap-libicapapi-config
+bin_PROGRAMS = c-icap
+
+bin_SCRIPTS = c-icap-config c-icap-libicapapi-config
 
 UTIL_SOURCES=net_io.c os/unix/net_io.c os/unix/proc_mutex.c os/unix/shared_mem.c os/unix/threads.c os/unix/utilfunc.c os/unix/proc_utils.c os/unix/dlib.c
 
@@ -98,7 +100,7 @@ install-data-local:
 	chgrp nobody $(DESTDIR)$(SOCKDIR)
 	chmod 775 $(DESTDIR)$(SOCKDIR)
 
-EXTRA_DIST = RECONF INSTALL.txt config-w32.h makefile.w32 c-icap.conf \
+EXTRA_DIST = RECONF config-w32.h makefile.w32 c-icap.conf \
              c_icap_dll.mak c-icap.conf.in c-icap.magic  c_icap.mak c_icap.def \
              contrib/get_file.pl contrib/convert_old_magic.pl \
              winnt_server.c  os/win32/dll_entry.c os/win32/makefile.w32 \
