@@ -8,6 +8,4 @@ AM_CFLAGS= -I../include/
 AM_LDFLAGS = -rdynamic -rpath @libdir@ @THREADS_LDFLAGS@
 LIBS=@THREADS_LDADD@ ../libicapapi.la @DL_ADD_FLAG@
 
-
-bin_PROGRAMS = test_cache test_tables test_headers
-
+noinst_PROGRAMS = test_cache test_tables test_headers
