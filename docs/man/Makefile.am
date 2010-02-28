@@ -25,4 +25,5 @@ $(manpages): %.8: %.8.in
 man_MANS = $(manpages)
 
 EXTRA_DIST = c-icap.8.in c-icap-client.8.in c-icap-config.8.in \
-             c-icap-libicapapi-config.8.in c-icap-stretch.8.in
+             c-icap-libicapapi-config.8.in c-icap-stretch.8.in \
+             c-icap-mkbdb.8.in
