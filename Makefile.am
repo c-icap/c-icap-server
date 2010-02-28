@@ -54,7 +54,7 @@ INCS = access.h body.h cfg_param.h c-icap-conf.h c-icap.h ci_threads.h \
 	commands.h debug.h dlib.h filetype.h header.h log.h mem.h module.h \
 	net_io.h proc_mutex.h proc_threads_queues.h request.h service.h \
 	shared_mem.h simple_api.h util.h lookup_table.h hash.h stats.h acl.h \
-        txt_format.h types_ops.h txtTemplate.h
+        cache.h txt_format.h types_ops.h txtTemplate.h
 
 ALL_INCS=$(INCS:%.h=include/%.h)
 
@@ -105,5 +105,7 @@ EXTRA_DIST = RECONF config-w32.h makefile.w32 c-icap.conf \
              contrib/get_file.pl contrib/convert_old_magic.pl \
              winnt_server.c  os/win32/dll_entry.c os/win32/makefile.w32 \
              os/win32/net_io.c os/win32/proc_mutex.c \
-             os/win32/shared_mem.c os/win32/threads.c os/win32/utilfunc.c
+             os/win32/shared_mem.c os/win32/threads.c os/win32/utilfunc.c \
+             common.h \
+             c-icap-config.in c-icap-libicapapi-config.in 
 
