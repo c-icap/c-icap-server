@@ -45,6 +45,7 @@ int config(int, char **);
 int init_server(char *address, int port, int *family);
 int start_server();
 int store_pid(char *pidfile);
+int clear_pid(char *pidfile);
 int is_icap_running(char *pidfile);
 int set_running_permissions(char *user, char *group);
 void init_internal_lookup_tables();
@@ -131,5 +132,6 @@ int main(int argc, char **argv)
      post_init_modules();
      post_init_services();
      start_server();
+     clear_pid(CONF.PIDFILE);
      return 0;
 }

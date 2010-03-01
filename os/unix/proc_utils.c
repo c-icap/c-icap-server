@@ -44,6 +44,15 @@ int store_pid(char *pidfile)
      return 1;
 }
 
+int clear_pid(char *pidfile)
+{
+     if ( 0 != remove(pidfile)) {
+	 ci_debug_printf(1, "Cannot delete the pid file: %s Error:%d\n", pidfile, errno);
+	 return 0;
+     }
+     return 1;
+}
+
 int is_icap_running(char *pidfile)
 {
      int fd, bytes, ret;
