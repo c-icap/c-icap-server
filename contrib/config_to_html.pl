@@ -136,6 +136,8 @@ sub readLongTag {
       $putLN = "\n";
     }
   }
+  $descr =~ s/</&#60;/g;
+  $descr =~ s/>/&#62;/g;
   return $descr;
 }
 
