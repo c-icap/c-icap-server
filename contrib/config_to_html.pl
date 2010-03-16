@@ -18,6 +18,7 @@ my @TAGS;
 my $CurrentTag = "";
 
 $CORE = "c-icap's core";
+my $HAS_CORE = 0;
 
 my @MODS;
 $MODS[0]->{"Name"} = $CORE;
@@ -38,6 +39,10 @@ do {
     $TAGS[$INDX]->{'Name'} = $CurrentTag;
     $TAGS[$INDX]->{'Module'} = $CurrentModule;
     $TAGS[$INDX]->{'Section'} = $CORE;
+
+    if ($CurrentModule eq $CORE) {
+	$HAS_CORE = 1;
+    }
   }
   elsif ($CurrentTag ne "" &&  $line =~ /#\s*Format:\s(.*)/ ) {
     my $f = $1;
@@ -91,21 +96,25 @@ close(IN);
 print "<H2>Modules/Subsystems</H2>";
 print "<ul>";
 foreach (@MODS) {
-  print_mod_index_html("", $_->{"Name"});
+  if (!($HAS_CORE == 0 && $_->{"Name"} eq $CORE)) {
+    print_mod_index_html("", $_->{"Name"});
+  }
 }
 print "</ul>";
 
 print "<H2>Configuration parameters</H2>\n\n";
 foreach (@MODS) {
   my $modname = $_->{'Name'};
-  print_mod_html($_);
-  print "<ul>";
-  foreach (@TAGS) {
-    if ($modname eq $_->{'Module'}) {
-      print_tag_index_html("", $_->{'Name'});
+  if (!($HAS_CORE == 0 && $_->{"Name"} eq $CORE)) {
+    print_mod_html($_);
+    print "<ul>";
+    foreach (@TAGS) {
+      if ($modname eq $_->{'Module'}) {
+	print_tag_index_html("", $_->{'Name'});
+      }
     }
+    print "</ul>\n\n";
   }
-  print "</ul>\n\n";
 }
 print "<hr>\n\n";
 print "<H2>Configuration parameters description</H2>\n\n";
