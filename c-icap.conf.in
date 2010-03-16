@@ -217,9 +217,9 @@ TemplateDefaultLanguage en
 # Format: LoadMagicFile path
 # Description:
 #	Load a c-icap magic file. A magic file contains various 
-# 	data type definitions. Look inside default c-icap.magic file
-# 	for more informations.
-# 	It can be used more than once to use multiple magic files.
+#	data type definitions. Look inside default c-icap.magic file
+#	for more informations.
+#	It can be used more than once to use multiple magic files.
 # Default:
 #	LoadMagicFile @prefix@/etc/c-icap.magic
 LoadMagicFile @prefix@/etc/c-icap.magic
@@ -296,8 +296,8 @@ RemoteProxyUserHeaderEncoded on
 # Description:
 #	Defines a lookup table where the groups of users are stored indexed
 #	by group. It can be used more than once.
-#       For more information about c-icap lookup tables read c-icap server
-#       manual page
+#	For more information about c-icap lookup tables read c-icap server
+#	manual page
 # Default:
 #	No set
 # Example:
@@ -308,12 +308,12 @@ RemoteProxyUserHeaderEncoded on
 # Description:
 #	Defines a lookup table where the groups of users are stored indexed 
 #	by user. It can be used more than once.
-#       For more information about c-icap lookup tables read c-icap server
-#       manual page
+#	For more information about c-icap lookup tables read c-icap server
+#	manual page
 # Default:
-#       No set
+#	No set
 # Example:
-#       GroupSourceByUser hash:/usr/local/c-icap/etc/c-icap-user-groups.txt
+#	GroupSourceByUser hash:/usr/local/c-icap/etc/c-icap-user-groups.txt
 
 # TAG: acl
 # Format: acl name type[{param}] value1 [value2] [...]
@@ -381,7 +381,7 @@ RemoteProxyUserHeaderEncoded on
 # Description:
 #	Allowing or denying connections on c-icap based on
 #	defined access lists. Only the acl types src, srvip and port
-# 	can be used.
+#	can be used.
 # Default:
 #	None set
 # Example:
@@ -391,47 +391,46 @@ RemoteProxyUserHeaderEncoded on
 # Format: LogFormat Name Format
 # Description:
 #	Name is a name for this log format.
-# 	Format is a string with embedded % format codes. % format codes 
-# 	has the following form:
-# 	    % [-] [width] [{argument}] formatcode
-# 	    if - is specified then the output is left aligned
-# 	    if width specified then the field is exactly width size
+#	Format is a string with embedded % format codes. % format codes 
+#	has the following form:
+#	    % [-] [width] [{argument}] formatcode
+#	    if - is specified then the output is left aligned
+#	    if width specified then the field is exactly width size
 #	    some formatcodes support arguments given as {argument}
-#
+#	
 #	Format codes:
 #	       %a:  Remote IP-Address
-# 	       %la: Local IP Address
+#	       %la: Local IP Address
 #	       %lp: Local port
 #	       %>a: Http Client IP Address. Only supported if the proxy 
 #	       	    client supports the "X-Client-IP" header
 #	       %<A: Http Server IP Address. Only supported if the proxy
 #	       	    client supports the "X-Server-IP" header
 #	       %ts: Seconds since epoch
-# 	       %tl: Local time. Supports optional strftime format argument
-# 	       %tg: GMT time. Supports optional strftime format argument
-# 	       %>ho: Modified Http request header. Supports header name
+#	       %tl: Local time. Supports optional strftime format argument
+#	       %tg: GMT time. Supports optional strftime format argument
+#	       %>ho: Modified Http request header. Supports header name
 #	       	     as argument
-# 	       %huo: Modified Http request url
-# 	       %<ho: Modified Http reply header. Supports header name
+#	       %huo: Modified Http request url
+#	       %<ho: Modified Http reply header. Supports header name
 #	       	     as argument
-# 	       %iu: Icap request url
-# 	       %im: Icap method
-# 	       %is: Icap status code
-# 	       %>ih: Icap request header. Supports header name
+#	       %iu: Icap request url
+#	       %im: Icap method
+#	       %is: Icap status code
+#	       %>ih: Icap request header. Supports header name
 #	       	     as argument
-# 	       %<ih: Icap response header. Supports header name
+#	       %<ih: Icap response header. Supports header name
 #	       	     as argument
-# 	       %Ih: Http bytes received
-# 	       %Oh: Http bytes sent
-# 	       %Ib: Http body bytes received
-# 	       %Ob: Http body bytes sent
-# 	       %I: Bytes received
-# 	       %O: Bytes sent
-# 	       %bph: The first 5 bytes of the body preview data. Non 
+#	       %Ih: Http bytes received
+#	       %Oh: Http bytes sent
+#	       %Ib: Http body bytes received
+#	       %Ob: Http body bytes sent
+#	       %I: Bytes received
+#	       %O: Bytes sent
+#	       %bph: The first 5 bytes of the body preview data. Non 
 #	       	     printable characters printed in hex form.
 #	       	     Supports the number of bytes to output as argument.
 #	       %un: Username
-#
 # Default:
 #	None set
 # Example:
@@ -441,8 +440,8 @@ RemoteProxyUserHeaderEncoded on
 # Format: ServerLog LogFile
 # Description:
 #	the file used by the build-in logger file_logger to 
-# 	store debugging information, errors and other
-# 	information about the c-icap server.
+#	store debugging information, errors and other
+#	information about the c-icap server.
 # Default:
 #	ServerLog @prefix@/var/log/server.log
 ServerLog @prefix@/var/log/server.log
@@ -453,7 +452,7 @@ ServerLog @prefix@/var/log/server.log
 #	LogFile is a file where to log access information.
 #	LogFormat is the log format to use. If ommited c-icap uses:
 #	 	"%tl, %la %a %im %iu %is"
-# 	Also acls can be used to select certain requests to be logged.
+#	Also acls can be used to select certain requests to be logged.
 #	This directive can be used more than once to specify more than
 #	one access log files
 # Default:
@@ -476,13 +475,13 @@ AccessLog @prefix@/var/log/access.log
 # Format: Module Type ModuleFile
 # Description:
 #	Load an external module/plugin to c-icap.
-# 	ModuleFile is the filename of the module. If no full path given then c-icap
-# 	searche in path defined by the ModulesDir configuration parameter.
-# 	Type is the type of the external module and can be one of the following:
+#	ModuleFile is the filename of the module. If no full path given then c-icap
+#	searche in path defined by the ModulesDir configuration parameter.
+#	Type is the type of the external module and can be one of the following:
 #	- "logger" for modules implement a logger
-# 	- "common" for general purpose modules
+#	- "common" for general purpose modules
 # Default:
-#
+#	
 # Example:
 #	Module logger sys_logger.so
 
@@ -492,7 +491,7 @@ AccessLog @prefix@/var/log/access.log
 #	It loads the service ServiceFile. The argument aName used 
 #	as alias name for the service
 # Default:
-#
+#	
 # Example:
 #	Service echo_service srv_echo.so
 
@@ -501,7 +500,7 @@ AccessLog @prefix@/var/log/access.log
 # Description:
 #	Used to define an alias name for a service.
 # Default:
-#
+#	
 # Example:
 #	ServiceAlias avscan srv_clamav?allow204=on&sizelimit=off&mode=simple
 
@@ -510,13 +509,13 @@ AccessLog @prefix@/var/log/access.log
 # TAG: General configuration parameters for all services
 # Description:
 #	PreviewSize: The preview data size to advertise to the icap client
-# 	MaxConnections: The client should not use more than MaxConnections
+#	MaxConnections: The client should not use more than MaxConnections
 #			for this service.
-# 	TransferPreview: The list of file extensions, seperated by commas,
+#	TransferPreview: The list of file extensions, seperated by commas,
 #			 for which the client should send preview data.
-# 	TransferIgnore: The list of file extensions that should not be sent
+#	TransferIgnore: The list of file extensions that should not be sent
 #			to the icap server
-# 	TransferComplete: The list of file extensions that should be sent
+#	TransferComplete: The list of file extensions that should be sent
 #			  in their entirety, without preview, to the icap server
 # Example:
 #	echo.PreviewSize 512
@@ -536,7 +535,7 @@ Service echo srv_echo.so
 # Module: sys_logger
 # Description:
 #	Add support for logging access and server events to syslog server
-# 	Use "Module" configuration parameter to load this module and "Logger"
+#	Use "Module" configuration parameter to load this module and "Logger"
 #	to make it default logger for the c-icap.
 # Example:
 #	Module logger sys_logger.so
@@ -575,8 +574,8 @@ Service echo srv_echo.so
 # Format: sys_logger.LogFormat LOGFORMAT
 # Description:
 #	The log format to use. If no log format defined then 
-# 	the following will be used:
-# 	    "%la %a %im %iu %is"
+#	the following will be used:
+#	    "%la %a %im %iu %is"
 # Default:
 #	None set 
 # Example:
@@ -587,7 +586,7 @@ Service echo srv_echo.so
 # Format: sys_logger.access [!]acl1 ...
 # Description:
 #	Allow selecting ICAP requests to be logged using acls.
-# 	By default all requests will be logged.
+#	By default all requests will be logged.
 # Default:
 #	None set
 # Example:
@@ -595,12 +594,11 @@ Service echo srv_echo.so
 
 # End module: sys_logger
 
-
 # Module: bdb_tables
 # Description:
 #	Add support for Berkeley DB based lookup tables. The format for 
-# 	bdb path of the lookup table is:
-# 		bdb:/path/to/bdb
+#	bdb path of the lookup table is:
+#		bdb:/path/to/bdb
 #	Use the c-icap-mkbdb utility to build Berkeley DB c-icap lookup tables
 # Example:
 #	Module common bdb_tables.so
@@ -611,10 +609,10 @@ Service echo srv_echo.so
 # Description:
 #	Add support for dns lookup tables. Can be used to access
 #	dns block lists. The dnsbl lookup table path definition is:
-# 	    dnsbl:domainname
-# 	For example the lookup table  for accessing the black.uribl.com
+#	    dnsbl:domainname
+#	For example the lookup table  for accessing the black.uribl.com
 #	dns black list is: 
-# 	    dnsbl:black.uribl.com
+#	    dnsbl:black.uribl.com
 # Example:
 #	Module common dnsbl_tables.so
 
@@ -623,14 +621,14 @@ Service echo srv_echo.so
 # Module: ldap_module
 # Description:
 #	Add LDAP support to c-icap. The user can use LDAP based lookup tables
-# 	using the following lookup table path:
+#	using the following lookup table path:
 #	      ldap://[username:password@]ldapserver?base?attr1,attr2?filter
-# 	The filter can contain the "%s" formating code which will be replaced by
-# 	the search key
-# 	Examples of supported ldap urls:
+#	The filter can contain the "%s" formating code which will be replaced by
+#	the search key
+#	Examples of supported ldap urls:
 #	     ldap://ldap.chtsanti.net?o=chtsanti?cn,uid?uid=%s
-# 	     ldap://cn=Directory Manager:Apassword@ldap.chtsanti.net?o=chtsanti?mermberUid?(&(objectClass=posixGroup)(cn=%s))
-#
+#	     ldap://cn=Directory Manager:Apassword@ldap.chtsanti.net?o=chtsanti?mermberUid?(&(objectClass=posixGroup)(cn=%s))
+#	
 #	WARNING: is not enough tested it may contain bugs!
 # Example:
 #	Module common ldap_module.so
