@@ -1021,7 +1021,7 @@ int start_server()
           kill_all_childs();
 	  system_shutdown();
 	  ci_debug_printf(1, "Exiting....\n");
-          exit(0);
+          return 1;
      }
 #else
      child_data = (child_shared_data_t *) malloc(sizeof(child_shared_data_t));
