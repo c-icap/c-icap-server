@@ -462,6 +462,7 @@ int ci_headers_unpack(ci_headers_list_t * h)
                          return EC_500;
                     }
                     h->headers = newspace;
+                    h->size = len;
                }
                str++;
                if (*str == '\n')
