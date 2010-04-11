@@ -114,6 +114,9 @@ typedef struct ci_request{
      int preview_data_type;
      int auth_required;
 
+     /*log string*/
+     char *log_str;
+
      /* statistics */
      uint64_t bytes_in;
      uint64_t bytes_out;
@@ -157,6 +160,8 @@ CI_DECLARE_FUNC(void)         ci_request_pack(ci_request_t *req);
 CI_DECLARE_FUNC(void)         ci_response_pack(ci_request_t *req);
 CI_DECLARE_FUNC(ci_encaps_entity_t *) ci_request_alloc_entity(ci_request_t *req,int type,int val);
 CI_DECLARE_FUNC(int)          ci_request_release_entity(ci_request_t *req,int pos);
+CI_DECLARE_FUNC(char *)       ci_request_set_log_str(ci_request_t *req, char *logstr);
+
 CI_DECLARE_FUNC(int)          ci_read_icap_header(ci_request_t *req,ci_headers_list_t *h,int timeout);
 
 /*ICAP client api*/

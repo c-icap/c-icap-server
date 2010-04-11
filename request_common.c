@@ -27,6 +27,20 @@
 #include "request.h"
 #include "simple_api.h"
 
+void * _os_malloc(int size)
+{
+     return malloc(size);
+}
+
+void _os_free(void *ptr)
+{
+     free(ptr);
+}
+
+void *(*__intl_malloc)(int) = _os_malloc;
+void (*__intl_free)(void *)  = _os_free;
+
+
 /* struct buf functions*/
 void ci_buf_init(struct ci_buf *buf)
 {
@@ -42,7 +56,7 @@ void ci_buf_reset(struct ci_buf *buf)
 
 int ci_buf_mem_alloc(struct ci_buf *buf, int size)
 {
-     if (!(buf->buf = malloc(size * sizeof(char))))
+     if (!(buf->buf = __intl_malloc(size * sizeof(char))))
           return 0;
      buf->size = size;
      buf->used = 0;
@@ -51,7 +65,7 @@ int ci_buf_mem_alloc(struct ci_buf *buf, int size)
 
 void ci_buf_mem_free(struct ci_buf *buf)
 {
-     free(buf->buf);
+     __intl_free(buf->buf);
      buf->buf = NULL;
      buf->size = 0;
      buf->used = 0;
@@ -72,7 +86,7 @@ int ci_buf_reset_size(struct ci_buf *buf, int req_size)
      if (buf->size > req_size)
           return req_size;
      if (buf->buf)
-          free(buf->buf);
+          __intl_free(buf->buf);
      return ci_buf_mem_alloc(buf, req_size);
 }
 
@@ -219,7 +233,7 @@ ci_request_t *ci_request_alloc(ci_connection_t * connection)
 {
      ci_request_t *req;
      int i;
-     req = (ci_request_t *) malloc(sizeof(ci_request_t));
+     req = (ci_request_t *) __intl_malloc(sizeof(ci_request_t));
     
      req->connection = connection;
      req->packed = 0;
@@ -259,6 +273,9 @@ ci_request_t *ci_request_alloc(ci_connection_t * connection)
 
      req->preview_data_type = -1;
      req->auth_required = 0;
+
+     
+     req->log_str = NULL;
 
      req->bytes_in = 0;
      req->bytes_out = 0;
@@ -317,6 +334,10 @@ void ci_request_reset(ci_request_t * req)
      req->preview_data_type = -1;
      req->auth_required = 0;
 
+     if (req->log_str)
+         __intl_free(req->log_str);
+     req->log_str = NULL;
+
      req->bytes_in = 0;
      req->bytes_out = 0;
      req->http_bytes_in = 0;
@@ -334,7 +355,7 @@ void ci_request_destroy(ci_request_t * req)
 {
      int i;
      if (req->connection)
-          free(req->connection);
+          __intl_free(req->connection);
 
      ci_buf_mem_free(&(req->preview_data));
      ci_headers_destroy(req->request_header);
@@ -348,9 +369,24 @@ void ci_request_destroy(ci_request_t * req)
                destroy_encaps_entity(req->trash_entities[i]);
      }
 
-     free(req);
+     if (req->log_str)
+         __intl_free(req->log_str);
+     __intl_free(req);
 }
 
+char *ci_request_set_log_str(ci_request_t *req, char *logstr)
+{
+     int size;
+     if (req->log_str)
+         __intl_free(req->log_str);
+
+     size = strlen(logstr) + 1;
+     req->log_str = __intl_malloc(size*sizeof(char));
+     if (!req->log_str)
+         return NULL;
+     strcpy(req->log_str, logstr);
+     return req->log_str;
+}
 
 int process_encapsulated(ci_request_t * req, char *buf)
 {
@@ -847,7 +883,7 @@ int ci_client_get_server_options(ci_request_t * req, int timeout)
 
 ci_connection_t *ci_client_connect_to(char *servername, int port, int proto)
 {
-     ci_connection_t *connection = malloc(sizeof(ci_connection_t));
+     ci_connection_t *connection = __intl_malloc(sizeof(ci_connection_t));
      char hostname[CI_MAXHOSTNAMELEN + 1];
      unsigned int addrlen = 0;
      if (!connection)
@@ -855,13 +891,13 @@ ci_connection_t *ci_client_connect_to(char *servername, int port, int proto)
      connection->fd = socket(proto, SOCK_STREAM, 0);
      if (connection->fd == -1) {
           ci_debug_printf(1, "Error opening socket ....\n");
-          free(connection);
+          __intl_free(connection);
           return NULL;
      }
 
      if (!ci_host_to_sockaddr_t(servername, &(connection->srvaddr), proto)) {
 	  ci_debug_printf(1, "Error getting address info for host %s\n", servername);
-          free(connection);
+          __intl_free(connection);
           return NULL;
      }
      ci_sockaddr_set_port(&(connection->srvaddr), port);
@@ -873,7 +909,7 @@ ci_connection_t *ci_client_connect_to(char *servername, int port, int proto)
                                 CI_MAXHOSTNAMELEN);
           ci_debug_printf(1, "Error connecting to socket (host: %s) .....\n",
                           hostname);
-          free(connection);
+          __intl_free(connection);
           return NULL;
      }
 

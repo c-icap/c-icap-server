@@ -33,6 +33,7 @@ int fmt_req_http_bytes_sent(ci_request_t *req_data, char *buf,int len, char *par
 int fmt_req_body_bytes_rcv(ci_request_t *req_data, char *buf,int len, char *param);
 int fmt_req_body_bytes_sent(ci_request_t *req_data, char *buf,int len, char *param);
 int fmt_req_preview_hex(ci_request_t *req_data, char *buf,int len, char *param);
+int fmt_logstr(ci_request_t *req_data, char *buf,int len, char *param);
 
 /**
    \brief Internal formating directives table.
@@ -63,6 +64,7 @@ int fmt_req_preview_hex(ci_request_t *req_data, char *buf,int len, char *param);
    * \em "%O": Bytes sent \n
    * \em "%bph": Body data preview \n
    * \em "%un": Username \n
+   * \em "%Sl": Service log string\n
    *
    * Not yet implemented:\n
    * \em "%tr": Response time \n
@@ -107,6 +109,7 @@ struct ci_fmt_entry GlobalTable [] = {
 
     {"%bph", "Body data preview", fmt_req_preview_hex},
     {"%un", "Username", fmt_username},
+    {"%Sl", "Service log string", fmt_logstr},
     {"%%", "% sign", fmt_percent},
     { NULL, NULL, NULL} 
 };
@@ -538,4 +541,18 @@ int fmt_req_preview_hex(ci_request_t *req, char *buf,int len, char *param)
 	     n += snprintf(buf+n, len-n, "\\x%X",0xFF & (buf[i]));
     }
     return n;
+}
+
+int fmt_logstr(ci_request_t *req, char *buf,int len, char *param)
+{
+   int i;
+   char *s;
+
+   if (!req->log_str)
+       return 0;
+
+   s = req->log_str;
+   for(i=0;i<len && *s;i++,s++)
+        buf[i] = *s;
+   return i;
 }

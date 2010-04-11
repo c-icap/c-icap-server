@@ -431,6 +431,7 @@ RemoteProxyUserHeaderEncoded on
 #	       	     printable characters printed in hex form.
 #	       	     Supports the number of bytes to output as argument.
 #	       %un: Username
+#	       %Sl: Service log string
 # Default:
 #	None set
 # Example:
