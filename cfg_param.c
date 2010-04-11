@@ -872,7 +872,7 @@ int system_reconfigure()
      reset_conf_tables();
      ci_acl_reset();
      reset_http_auth();
-     ci_txt_template_reset();
+     ci_txt_template_init();
      ci_debug_printf(1, "All resources released. Going to reload!\n");
      init_modules();
      init_services();
