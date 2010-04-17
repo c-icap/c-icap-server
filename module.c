@@ -342,11 +342,19 @@ void *find_module(char *name, int *type)
      return NULL;
 }
 
+/*All struct modules as first field have the name.*/
+struct module_tmp_struct{
+    char *name;
+    void *other_data;
+};
+
 void *register_module(char *module_file, char *type)
 {
      void *module = NULL;
      int mod_type;
      struct modules_list *l = NULL;
+     struct module_tmp_struct *check_mod;
+     int check_mod_type;
 
      l = modules_lists_table[mod_type = module_type(type)];
      if (l == NULL)
@@ -357,6 +365,12 @@ void *register_module(char *module_file, char *type)
           ci_debug_printf(1, "Error finding symbol \"module\" in  module %s\n",
                           module_file);
           return NULL;
+     }
+
+     check_mod = (struct module_tmp_struct *)module;
+     if (find_module(check_mod->name, &check_mod_type) != NULL) {
+	 ci_debug_printf(1, "Error, the module %s is already loaded\n", check_mod->name);
+	  return NULL;
      }
 
      init_module(module, mod_type);

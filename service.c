@@ -312,7 +312,12 @@ ci_service_module_t *register_service(char *service_file)
           return NULL;
      }
 
-  return add_service(service);
+     if (find_service(service->mod_name) != NULL) {
+	 ci_debug_printf(1, "Error, the service %s  is already loaded\n", service->mod_name);
+	 return NULL;
+     }
+
+     return add_service(service);
 }
 
 
@@ -401,7 +406,7 @@ service_alias_t *add_service_alias(char *service_alias, char *service_name,
      int alias_indx = 0;
 
      if (!strcmp(service_alias, service_name)) {
-         ci_debug_printf(1, "Warning, alias is the same as service_name, not adding");
+         ci_debug_printf(1, "Warning, alias is the same as service_name, not adding\n");
          return NULL;
      }
 
