@@ -128,7 +128,7 @@ Port 1344
 # Default:
 #	No value
 # Example:
-#	Group nobody
+#	Group nogroup
 
 # TAG: ServerAdmin
 # Format: ServerAdmin admin_mail
