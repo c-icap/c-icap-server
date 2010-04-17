@@ -95,9 +95,9 @@ install-data-local:
 	if test ! -f $(DESTDIR)$(CONFIGDIR)/c-icap.magic; then $(INSTALL) c-icap.magic $(DESTDIR)$(CONFIGDIR)/c-icap.magic; fi
 	$(mkinstalldirs)  $(DESTDIR)$(LOGDIR); 
 	$(mkinstalldirs)  $(DESTDIR)$(SOCKDIR);
-	chgrp nobody $(DESTDIR)$(LOGDIR)
+	chgrp nogroup $(DESTDIR)$(LOGDIR) || echo -e "*********\nWARNING! Can not set group for the log dir $(DESTDIR)$(LOGDIR)\n*********\n"
 	chmod 775 $(DESTDIR)$(LOGDIR)
-	chgrp nobody $(DESTDIR)$(SOCKDIR)
+	chgrp nogroup $(DESTDIR)$(SOCKDIR) || echo -e "*********\nWARNING! Can not set group for the c-icap socket store dir $(DESTDIR)$(SOCKDIR)\n\n*********\n"
 	chmod 775 $(DESTDIR)$(SOCKDIR)
 
 EXTRA_DIST = RECONF config-w32.h makefile.w32 c-icap.conf \
