@@ -2,6 +2,14 @@ dnl Process this file with autoconf to produce a configure script.
 
 dnl AC_INIT(c_icap,m4_normalize(m4_include([VERSION.m4])))
 AC_INIT(c_icap,0.1.1-pre2)
+CICAPLIB_VERSION=0:1:0
+AC_SUBST(CICAPLIB_VERSION)
+dnl CICAPLIB_VERSION is the libtool current[:revision[:age]] version info
+dnl libtool directions about version info
+dnl - library source code has changed since the last update c:r:a => c:r+1:a
+dnl - interfaces have been added, removed, or changed c:r:a => c+1:0:a
+dnl - interfaces have been added c:r:a => c:r:a+1
+dnl - interfaces have been removed  c:r:a => c:r:0
 
 AC_CONFIG_SRCDIR(aserver.c)
 AM_MAINTAINER_MODE
