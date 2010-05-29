@@ -303,7 +303,7 @@ int ci_magics_db_file_add(struct ci_magics_db *db, const char *filename)
      struct ci_magic_record record;
      FILE *f;
 
-     if ((f = fopen(filename, "r+")) == NULL) {
+     if ((f = fopen(filename, "r")) == NULL) {
           ci_debug_printf(1, "Error opening magic file: %s\n", filename);
           return 0;
      }
