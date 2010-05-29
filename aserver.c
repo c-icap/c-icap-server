@@ -118,9 +118,9 @@ int main(int argc, char **argv)
      }
      if (DAEMON_MODE)
           run_as_daemon();
-     store_pid(CONF.PIDFILE);
      if (!set_running_permissions(CONF.RUN_USER, CONF.RUN_GROUP))
           exit(-1);
+     store_pid(CONF.PIDFILE);
 #endif
 
      if (!log_open()) {

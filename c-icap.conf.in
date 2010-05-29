@@ -9,8 +9,8 @@
 # Description:
 #	The file to store the pid of the main process of the c-icap server.
 # Default:
-#	PidFile /var/run/c-icap.pid
-PidFile /var/run/c-icap.pid
+#	PidFile /var/run/c-icap/c-icap.pid
+PidFile /var/run/c-icap/c-icap.pid
 
 # TAG: CommandsSocket
 # Format: CommandsSocket socket_file
