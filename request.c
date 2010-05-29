@@ -822,7 +822,7 @@ int get_send_body(ci_request_t * req, int parse_only)
                action = action | wait_for_write;
           }
 
-     } while (!req->eof_received && action);
+     } while ((!req->eof_received || (req->eof_received && req->write_to_module_pending)) && action);
 
      if (req->eof_received)
           return CI_OK;
