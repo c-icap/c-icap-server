@@ -344,9 +344,11 @@ int parse_header(ci_request_t * req)
                     req->keepalive = 0;
                /*else the default behaviour of keepalive ..... */
           }
-          else if (strncasecmp("Allow: 204", h->headers[i], 10) == 0) {
-               req->allow204 = 1;
-          }
+          else if (strncasecmp("Allow:", h->headers[i], 6) == 0) {
+               if (strstr(h->headers[i]+6, "204")) {
+                    req->allow204 = 1;
+               }
+           }
      }
 
      return request_status;
