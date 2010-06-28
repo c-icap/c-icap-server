@@ -107,5 +107,5 @@ EXTRA_DIST = RECONF config-w32.h makefile.w32 c-icap.conf \
              os/win32/net_io.c os/win32/proc_mutex.c \
              os/win32/shared_mem.c os/win32/threads.c os/win32/utilfunc.c \
              common.h \
-             c-icap-config.in c-icap-libicapapi-config.in 
+             c-icap-config.in c-icap-libicapapi-config.in c-icap.dox
 
