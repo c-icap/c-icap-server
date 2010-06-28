@@ -34,5 +34,7 @@ ci_txt_template_build_content(const ci_request_t *req,
 CI_DECLARE_FUNC (void) ci_txt_template_reset(void);
 CI_DECLARE_FUNC (int)  ci_txt_template_init(void);
 CI_DECLARE_FUNC (void) ci_txt_template_close(void);
+CI_DECLARE_FUNC (void) ci_txt_template_set_dir(const char *dir);
+CI_DECLARE_FUNC (void) ci_txt_template_set_default_lang(const char *lang);
 
 #endif /*__TXTTEMPLATE_H*/

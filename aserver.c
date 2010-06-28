@@ -98,6 +98,7 @@ int main(int argc, char **argv)
      ci_acl_init();
      init_http_auth();
      ci_txt_template_init();
+     ci_txt_template_set_dir(DATADIR"templates");
 
      if (!(CONF.MAGIC_DB = ci_magic_db_load(CONF.magics_file))) {
           ci_debug_printf(1, "Can not load magic file %s!!!\n",

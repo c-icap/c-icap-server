@@ -4,6 +4,7 @@ PKGLIBDIR=@pkglibdir@
 MODULESDIR=$(pkglibdir)/
 SERVICESDIR=$(pkglibdir)/
 #CONFIGDIR=$(sysconfdir)/
+DATADIR=$(pkgdatadir)/
 LOGDIR=$(localstatedir)/log/
 SOCKDIR=/var/run/c-icap
 
@@ -43,7 +44,8 @@ libicapapi_la_LDFLAGS= -shared -version-info @CICAPLIB_VERSION@
 #c_icap the main server 
 c_icap_DEPENDENCIES=libicapapi.la
 c_icap_CFLAGS= -Iinclude/ -DCONFDIR=\"$(CONFIGDIR)\" -DMODSDIR=\"$(MODULESDIR)\" \
-                          -DSERVDIR=\"$(SERVICESDIR)\" -DLOGDIR=\"$(LOGDIR)\"
+                          -DSERVDIR=\"$(SERVICESDIR)\" -DLOGDIR=\"$(LOGDIR)\"  \
+                          -DDATADIR=\"$(DATADIR)\"
 
 c_icap_LDADD = @THREADS_LDADD@ libicapapi.la @DL_ADD_FLAG@
 c_icap_LDFLAGS = -rdynamic -rpath @libdir@ @THREADS_LDFLAGS@

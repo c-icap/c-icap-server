@@ -51,8 +51,8 @@ typedef struct {
 } txtTemplate_t;
 
 
-char *TEMPLATE_DIR = NULL;
-char *TEMPLATE_DEF_LANG = NULL;
+const char *TEMPLATE_DIR = NULL;
+const char *TEMPLATE_DEF_LANG = "en";
 int TEMPLATE_RELOAD_TIME = 360; // Default time is one hour, this variable is in seconds
 
 txtTemplate_t *templates = NULL;
@@ -92,6 +92,16 @@ int ci_txt_template_init(void)
      txtTemplateInited = 1;
      ci_thread_mutex_init(&templates_mutex);
      return 1;
+}
+
+void ci_txt_template_set_dir(const char *dir)
+{
+    TEMPLATE_DIR = dir;
+}
+
+void ci_txt_template_set_default_lang(const char *lang)
+{
+    TEMPLATE_DEF_LANG = lang;
 }
 
 static int templateExpired(txtTemplate_t *template)
