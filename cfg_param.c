@@ -75,8 +75,8 @@ int MAX_REQUESTS_PER_CHILD = 0;
 int DAEMON_MODE = 1;
 
 /* txtTemplate stuff */
-extern char *TEMPLATE_DIR;
-extern char *TEMPLATE_DEF_LANG;
+extern const char *TEMPLATE_DIR;
+extern const char *TEMPLATE_DEF_LANG;
 extern int TEMPLATE_RELOAD_TIME; // Default time is one hour, this variable is in seconds
 extern int TEMPLATE_CACHE_SIZE; // How many templates can be cached
 extern int TEMPLATE_MEMBUF_SIZE; // Max memory for txtTemplate to expand template into txt
