@@ -48,6 +48,11 @@ char *service;
 int threadsnum = 0;
 int MAX_REQUESTS = 0;
 
+int DoReqmod = 0;
+#define MAX_URLS 32768
+char *URLS[MAX_URLS];
+int URLS_COUNT=0;
+
 time_t START_TIME = 0;
 int FILES_NUMBER;
 char **FILES;
@@ -119,49 +124,29 @@ static void sigint_handler(int sig)
      exit(0);
 }
 
-
-
-int threadjobreqmod()
+int load_urls(char *filename)
 {
-     struct sockaddr_in addr;
-     struct hostent *hent;
-     int port = 1344;
-     int fd;
+    FILE *f;
+#define URL_SIZE  1024
+    char line[URL_SIZE+1];
 
+    URLS_COUNT = 0;
+    memset(URLS, 0, sizeof(char)*MAX_URLS);
 
-     hent = gethostbyname(servername);
-     if (hent == NULL)
-          addr.sin_addr.s_addr = inet_addr(servername);
-     else
-          memcpy(&addr.sin_addr, hent->h_addr, hent->h_length);
-     addr.sin_family = AF_INET;
-     addr.sin_port = htons(port);
-
-
-     while (1) {
-          fd = socket(AF_INET, SOCK_STREAM, 0);
-          if (fd == -1) {
-               printf("Error opening socket ....\n");
-               return -1;
-          }
-
-          if (connect(fd, (struct sockaddr *) &addr, sizeof(addr))) {
-               printf("Error connecting to socket .....\n");
-               return -1;
-          }
-
-          for (;;) {
-	    /*Do a new request */
-//             sleep(4);
-               sleep(1);
-          }
-          sleep(1);
-          close(fd);
-     }
+    if ((f = fopen(filename, "r")) == NULL) {
+        printf("Error opening magic file: %s\n", filename);
+        return 0;
+    }
+    
+    while (fgets(line,URL_SIZE,f)!= NULL && URLS_COUNT != MAX_URLS) {
+        line[strlen(line)-1] = '\0';
+        URLS[URLS_COUNT] = strdup(line);
+        URLS_COUNT++;
+    }
+    
+    fclose(f);
+    return 1;
 }
-
-
-
 
 void build_headers(int fd, ci_headers_list_t *headers)
 {
@@ -207,6 +192,144 @@ int filewrite(void *fd, char *buf, int len)
      return len;
 }
 
+
+int do_req(ci_request_t *req, char *url, int *keepalive) 
+{
+     int ret;
+     char lbuf[1024];
+     char host[512];
+     char path[512];
+     char *s;
+     time_t ltimet;
+     ci_headers_list_t *headers;
+     int fd_out = 0;
+
+     headers = ci_headers_create();     
+
+     if ((s = strchr(url, '/'))!= NULL) {
+       strncpy(host, url, 512 > (s-url) ? (s-url): 512);
+       host[512 > (s-url) ? (s-url): 511] = '\0';
+       strncpy(path, s, 512);
+       path[511] = '\0';
+     }
+     else {
+       strncpy(host, url, 512);
+       host[511] = '\0';
+       strcpy(path, "/index.html");
+     }
+
+     snprintf(lbuf,1024, "GET %s HTTP/1.0", path);
+     lbuf[1023] = '\0';
+     ci_headers_add(headers, lbuf);
+     snprintf(lbuf,1024, "Host: %s", host);
+     lbuf[1023] = '\0';
+     ci_headers_add(headers, lbuf);
+
+     strcpy(lbuf, "Date: ");
+     time(&ltimet);
+     ctime_r(&ltimet, lbuf + strlen(lbuf));
+     lbuf[strlen(lbuf) - 1] = '\0';
+     ci_headers_add(headers, lbuf);
+     ci_headers_add(headers, "User-Agent: C-ICAP-Stretch/x.xx");
+     req->type = ICAP_REQMOD;
+
+     ret = ci_client_icapfilter(req,
+				CONN_TIMEOUT,
+				headers,
+				NULL,
+				(int (*)(void *, char *, int)) fileread,
+				&fd_out,
+				(int (*)(void *, char *, int)) filewrite);
+
+
+     if (ret <=0 && req->bytes_out == 0 ){
+          ci_debug_printf(2, "Is the ICAP connection  closed?\n");
+	  *keepalive = 0;
+	  return 0;
+     }
+     
+     if (ret <= 0) {
+          ci_debug_printf(1, "Error sending requests \n");
+	  *keepalive = 0;
+	  return 0;
+     }
+
+     *keepalive=req->keepalive;
+
+     ci_headers_destroy(headers);
+
+     ci_thread_mutex_lock(&statsmtx);
+     in_bytes_stats += req->bytes_in;
+     out_bytes_stats += req->bytes_out;
+     ci_thread_mutex_unlock(&statsmtx);
+
+     return 1;
+}
+
+int threadjobreqmod()
+{
+     ci_request_t *req;
+     ci_connection_t *conn;
+     int port = 1344;
+     int indx, keepalive, ret;
+     int arand=0, p;
+     while (!_THE_END) {
+         
+	  if (!(conn = ci_client_connect_to(servername, port, AF_INET))) {
+	    ci_debug_printf(1, "Failed to connect to icap server.....\n");
+	    exit(-1);
+	  }
+	  req = ci_client_request(conn, servername, service);
+          req->type = ICAP_RESPMOD;
+	  req->preview = 512;
+
+	  for(;;) {
+		      
+
+	      keepalive = 0;
+
+	      indx = (int) ((((double) arand) / (double) RAND_MAX) * (double)URLS_COUNT);
+	      if ((ret = do_req(req, URLS[indx], &keepalive)) <= 0) {
+		    ci_thread_mutex_lock(&statsmtx);
+		    if (ret == 0) 
+		         soft_failed_requests_stats++;
+		    else 
+		         failed_requests_stats++;
+                    requests_stats++;
+                    arand = rand();  /*rand is not thread safe .... */
+		    ci_thread_mutex_unlock(&statsmtx);
+                    printf("Request failed...\n");
+                    break;
+               }
+
+	      ci_thread_mutex_lock(&statsmtx);
+	      requests_stats++;
+	      arand = rand();  /*rand is not thread safe .... */
+	      ci_thread_mutex_unlock(&statsmtx);
+
+	      if (_THE_END) {
+		  printf("The end: thread dying\n");
+		  ci_request_destroy(req);
+		  return 0;
+	      }
+
+	      if (keepalive == 0)
+		break;
+	      
+	      p = (int) ((((double) arand) / (double) RAND_MAX) * 10.0);
+	      if (p == 5 || p == 7 || p == 3) {    // 30% possibility ....
+		//                  printf("OK, closing the connection......\n");
+		break;
+	      }
+	      
+	      usleep(500000);
+	      ci_client_request_reuse(req);
+	  }
+	  ci_hard_close(conn->fd);
+	  ci_request_destroy(req);
+          usleep(1000000);
+     }
+}
 
 int do_file(ci_request_t *req, char *input_file, int *keepalive)
 {
@@ -330,17 +453,21 @@ int threadjobsendfiles()
      }
 }
 
-
+void usage(char *myname){
+     printf("Usage:\n  %s servername service threadsnum max_requests file1 file2 .....\n",
+	    myname);
+     printf("or:\n");
+     printf("  %s -req servername service threadsnum max_requests file\n",
+	    myname);
+}
 
 
 int main(int argc, char **argv)
 {
      int i;
 
-     if (argc < 4) {
-          printf
-              ("Usage:\n%s servername service threadsnum max_requests file1 file2 .....\n",
-               argv[0]);
+     if (argc < 5) {
+          usage(argv[0]);
           exit(1);
      }
      signal(SIGPIPE, SIG_IGN);
@@ -349,24 +476,42 @@ int main(int argc, char **argv)
      time(&START_TIME);
      srand((int) START_TIME);
 
-     servername = argv[1];
-     service = argv[2];
+     i=1;
+     if (strcmp(argv[i], "-req") == 0) {
+         if (argc<6 || !load_urls(argv[6])) {
+	     usage(argv[0]);
+	     exit(1);
+	 }
+	 
+         DoReqmod = 1;
+	 i++;	 
+     }
 
-     threadsnum = atoi(argv[3]);
+     servername = argv[i++];
+     service = argv[i++];
+
+     threadsnum = atoi(argv[i++]);
      if (threadsnum <= 0)
           return 0;
 
 
-     if ((MAX_REQUESTS = atoi(argv[4])) < 0)
+     if ((MAX_REQUESTS = atoi(argv[i++])) < 0)
           MAX_REQUESTS = 0;
 
      threads = malloc(sizeof(ci_thread_t) * threadsnum);
      for (i = 0; i < threadsnum; i++)
           threads[i] = 0;
 
-     if (argc > 4) {            //
-
-
+     if (DoReqmod) {
+          for (i = 0; i < threadsnum; i++) {
+               printf("Create thread %d\n", i);
+               ci_thread_create(&(threads[i]),
+                                (void *(*)(void *)) threadjobreqmod,
+                                (void *) NULL /*data*/);
+               sleep(1);
+          }
+     }
+     else {
           FILES = argv + 4;
           FILES_NUMBER = argc - 4;
           ci_thread_mutex_init(&filemtx);
@@ -381,20 +526,6 @@ int main(int argc, char **argv)
           }
 
      }
-     else {                     //Construct reqmod......
-       exit(-1);
-
-
-          for (i = 0; i < threadsnum; i++) {
-               printf("Create thread %d\n", i);
-               ci_thread_create(&(threads[i]),
-                                (void *(*)(void *)) threadjobreqmod,
-                                (void *) NULL /*data*/);
-               sleep(1);
-          }
-     }
-
-
 
      while (1) {
           sleep(1);
