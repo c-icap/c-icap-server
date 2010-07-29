@@ -805,6 +805,8 @@ void child_main(int sockfd, int pipefd)
      ci_debug_printf(5, "Child :%d going down :%d\n", getpid(),
                      child_data->to_be_killed);
      cancel_all_threads();
+
+     execute_stop_child_commands();
      exit_normaly();
 }
 

@@ -30,6 +30,7 @@
 #define MONITOR_PROC_POST_CMD 4
 #define ALL_PROC_CMD          7
 #define CHILD_START_CMD       8
+#define CHILD_STOP_CMD       16
 
 typedef struct ci_command{
      char *name;
@@ -49,5 +50,6 @@ CI_DECLARE_FUNC(void) reset_commands();
 CI_DECLARE_FUNC(int) execute_command(ci_command_t *command,char *cmdline,int exec_type);
 CI_DECLARE_FUNC(ci_command_t) *find_command(char *cmd_line);
 CI_DECLARE_FUNC(int) execure_start_child_commands();
+CI_DECLARE_FUNC(int) execute_stop_child_commands();
 
 #endif /*__COMMANDS_H*/

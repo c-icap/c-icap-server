@@ -134,7 +134,7 @@ int execute_command(ci_command_t * command, char *cmdline, int exec_type)
 }
 
 
-int execure_start_child_commands ()
+static int execute_child_commands (int cmd_type)
 {
     int i;
     ci_command_t *command;
@@ -143,7 +143,7 @@ int execure_start_child_commands ()
          command = &commands_list[i];
          ci_debug_printf(7, "Check command:%s, type: %d \n", 
                           command->name, command->type);
-      if (commands_list[i].type  == CHILD_START_CMD) {
+      if (commands_list[i].type  == cmd_type) {
 	  ci_debug_printf(5, "Execute command:%s \n",
 			  command->name);
 	  command->command_action_extend (command->name, command->type, command->data);
@@ -153,3 +153,14 @@ int execure_start_child_commands ()
     }
     return 1;
 }
+
+int execure_start_child_commands ()
+{
+    return execute_child_commands(CHILD_START_CMD);
+}
+
+int execute_stop_child_commands ()
+{
+    return execute_child_commands(CHILD_STOP_CMD);
+}
+
