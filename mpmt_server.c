@@ -1035,6 +1035,10 @@ int start_server()
      child_data->to_be_killed = 0;
      child_data->father_said = 0;
      child_data->idle = 1;
+     child_data->stats_size = ci_stat_memblock_size();
+     child_data->stats = malloc(child_data->stats_size);
+     child_data->stats->sig = MEMBLOCK_SIG;
+     ci_stat_attach_mem(child_data->stats, child_data->stats_size, NULL);
      child_main(LISTEN_SOCKET, 0);
 #endif
      return 1;
