@@ -33,8 +33,8 @@ dnl Checks for OS specific flags
 
 case "$host_os" in
      solaris2.*)
-          LIBS="-lsocket -lnsl"
-	  TEST_LIBS=" -lrt"
+          LIBS="-lsocket -lnsl -lrt"
+#	  TEST_LIBS=" -lrt"
       ;;
       cygwin*)
 	MODULES_LIBADD="-L../../ -licapapi"
@@ -392,6 +392,11 @@ OLD_LIBS="$LIBS"
 LIBS="$LIBS $TEST_LIBS"
 
 #AC_FUNC_VPRINTF
+
+AC_CHECK_FUNCS(nanosleep, 
+AC_DEFINE(HAVE_NANOSLEEP,1,[Define HAVE_NANOSLEEP if nanosleep exists])
+)
+
 AC_CHECK_FUNCS(inet_aton,
 AC_DEFINE(HAVE_INET_ATON,1,[Define HAVE_INET_ATON if inet_aton exists])
 )
