@@ -165,6 +165,7 @@ int add_xheader(char *directive, char **argv, void *setdata)
 
 char *icap_server = "localhost";
 int port = 1344;
+int preview_size = -1;
 char *service = "echo";
 char *input_file = NULL;
 char *output_file = NULL;
@@ -190,6 +191,7 @@ static struct ci_options_entry options[] = {
       "Do not send reshdr headers"},
      {"-x", "xheader", &xheaders, add_xheader, "Include xheader in icap request headers"},
      {"-hx", "xheader", &http_xheaders, add_xheader, "Include xheader in http headers"},
+     {"-w", "preview", &preview_size, ci_cfg_set_int, "Sets the maximum preview data size"},
      {"-v", NULL, &verbose, ci_cfg_enable, "Print response headers"},     
      {NULL, NULL, NULL, NULL}
 };
@@ -246,6 +248,10 @@ int main(int argc, char **argv)
      ci_conn_remote_ip(conn, ip);
      ci_debug_printf(1, "ICAP server:%s, ip:%s, port:%d\n\n", icap_server, ip,
                      port);
+
+     if (preview_size >= 0 && preview_size < req->preview) {
+         req->preview = preview_size;
+     }
 
      if (!input_file && !request_url) {
           ci_debug_printf(1, "OPTIONS:\n");
