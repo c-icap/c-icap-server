@@ -89,7 +89,7 @@ int bdb_table_do_real_open(struct ci_lookup_table *table)
 
     /* Open the environment  */ 
     if ((ret = dbdata->env_db->open(dbdata->env_db, home, 
-				     DB_CREATE | DB_INIT_LOCK | DB_INIT_MPOOL /*| DB_SYSTEM_MEM*/, 
+				     DB_CREATE | DB_INIT_LOCK | DB_INIT_MPOOL|DB_THREAD /*| DB_SYSTEM_MEM*/, 
 				     0)) != 0){ 
 	ci_debug_printf(1, "bdb_table_open: Environment open failed: %s\n", db_strerror(ret));
 	dbdata->env_db->close(dbdata->env_db, 0); 
@@ -106,7 +106,7 @@ int bdb_table_do_real_open(struct ci_lookup_table *table)
 
 #if(DB_VERSION_MINOR>=1)
     if ((ret = dbdata->db->open( dbdata->db, NULL, table->path, NULL,
-				 DB_BTREE, DB_RDONLY, 0)) != 0) {
+				 DB_BTREE, DB_RDONLY|DB_THREAD, 0)) != 0) {
 #else
     if ((ret = dbdata->db->open( dbdata->db, table->path, NULL,
 				 DB_BTREE, DB_RDONLY, 0)) != 0) {
