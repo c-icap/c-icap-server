@@ -116,6 +116,7 @@ struct ci_lookup_table *ci_lookup_table_create_ext(const char *table,
     lt->search = lt_type->search;
     lt->release_result = lt_type->release_result;
     lt->allocator = allocator;
+    lt->data = NULL;
 
     return lt;    
 }
