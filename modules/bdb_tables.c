@@ -93,6 +93,7 @@ int bdb_table_do_real_open(struct ci_lookup_table *table)
 				     0)) != 0){ 
 	ci_debug_printf(1, "bdb_table_open: Environment open failed: %s\n", db_strerror(ret));
 	dbdata->env_db->close(dbdata->env_db, 0); 
+        dbdata->env_db = NULL;
 	return 0; 
     }
     ci_debug_printf(5, "bdb_table_open: DB environment setup OK.\n");
@@ -100,6 +101,9 @@ int bdb_table_do_real_open(struct ci_lookup_table *table)
     
     if ((ret = db_create(&dbdata->db, dbdata->env_db, 0)) != 0) {
 	ci_debug_printf(1, "db_create: %s\n", db_strerror(ret));
+        dbdata->db = NULL;
+        dbdata->env_db->close(dbdata->env_db, 0);
+        dbdata->env_db = NULL;
 	return 0;
     }
 
@@ -113,6 +117,9 @@ int bdb_table_do_real_open(struct ci_lookup_table *table)
 #endif
 	    ci_debug_printf(1, "open db %s: %s\n", table->path, db_strerror(ret));
 	    dbdata->db->close(dbdata->db, 0);
+            dbdata->db = NULL;
+            dbdata->env_db->close(dbdata->env_db, 0);
+            dbdata->env_db = NULL;
 	    return 0;
     }
 
