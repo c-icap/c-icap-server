@@ -72,6 +72,9 @@ struct childs_queue{
      struct stat_memblock *stats_history;
      ci_shared_mem_id_t shmid;
      ci_proc_mutex_t queue_mtx;
+     unsigned int started_childs;
+     unsigned int closed_childs;
+     unsigned int crashed_childs;
 };
 
 
@@ -86,6 +89,7 @@ int wait_for_queue(struct connections_queue *q);
 
 int create_childs_queue(struct childs_queue *q, int size);
 int destroy_childs_queue(struct childs_queue *q);
+void announce_child(struct childs_queue *q, process_pid_t pid);
 int attach_childs_queue(struct childs_queue *q);
 int dettach_childs_queue(struct childs_queue *q);
 int childs_queue_is_empty(struct childs_queue *q);
@@ -96,7 +100,7 @@ child_shared_data_t *register_child(struct childs_queue *q,
 				    ci_pipe_t pipe
 );
 
-int remove_child(struct childs_queue *q, process_pid_t pid);
+int remove_child(struct childs_queue *q, process_pid_t pid, int status);
 int find_a_child_to_be_killed(struct childs_queue *q);
 int find_a_child_nrequests(struct childs_queue *q,int max_requests);
 int find_an_idle_child(struct childs_queue *q);

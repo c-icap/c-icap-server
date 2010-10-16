@@ -121,6 +121,11 @@ int create_childs_queue(struct childs_queue *q, int size)
      int ret, i;
      struct stat_memblock *mem_block;
      q->stats_block_size = ci_stat_memblock_size();
+     
+     /* reset statistics */
+     q->started_childs = 0;
+     q->closed_childs = 0;
+     q->crashed_childs = 0;
 
      q->shared_mem_size = sizeof(child_shared_data_t) * size /*child shared data*/
                           + q->stats_block_size * size /*child stats area*/
@@ -266,8 +271,13 @@ child_shared_data_t *register_child(struct childs_queue * q,
      return NULL;
 }
 
+void announce_child(struct childs_queue *q, process_pid_t pid)
+{
+    if (q->childs && pid)
+        q->started_childs++;
+}
 
-int remove_child(struct childs_queue *q, process_pid_t pid)
+int remove_child(struct childs_queue *q, process_pid_t pid, int status)
 {
      int i;
      struct stat_memblock *child_stats;
@@ -287,6 +297,9 @@ int remove_child(struct childs_queue *q, process_pid_t pid)
 	       /*re-arange pointers in childs memblock*/
 	       stat_memblock_reconstruct(child_stats);
 	       ci_stat_memblock_merge(q->stats_history, child_stats);
+               q->closed_childs++;
+               if (status)
+                   q->crashed_childs++;
                ci_proc_mutex_unlock(&(q->queue_mtx));
                return 1;
           }

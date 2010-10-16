@@ -266,21 +266,23 @@ static void kill_all_childs()
 
 static void check_for_exited_childs()
 {
-     int status, pid, ret;
+    int status, pid, ret, exit_status;
+    exit_status = 0;
      while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
           ci_debug_printf(5, "Child %d died ...\n", pid);
           if (!WIFEXITED(status)) {
                ci_debug_printf(1, "Child %d did not exit normally.", pid);
+               exit_status = 1;
                if (WIFSIGNALED(status))
                     ci_debug_printf(1, "signaled with signal:%d\n",
                                     WTERMSIG(status));
           }
-          ret = remove_child(childs_queue, pid);
+          ret = remove_child(childs_queue, pid, exit_status);
           if (ret == 0 && old_childs_queue) {
                ci_debug_printf(5,
                                "Child %d will be removed from the old list ...\n",
                                pid);
-               remove_child(old_childs_queue, pid);
+               remove_child(old_childs_queue, pid, exit_status);
                if (childs_queue_is_empty(old_childs_queue)) {
                     ret = destroy_childs_queue(old_childs_queue);
                     /* if(!ret){} */
@@ -843,6 +845,7 @@ int start_child(int fd)
      }
      else {
           close(pfd[0]);
+          announce_child(childs_queue, pid);
           return pid;
      }
 }

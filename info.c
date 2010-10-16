@@ -62,6 +62,9 @@ struct info_req_data {
      int *child_pids;
      int free_servers;
      int used_servers;
+     unsigned int started_childs;
+     unsigned int closed_childs;
+     unsigned int crashed_childs;
      struct stat_memblock *collect_stats;
 };
 
@@ -92,6 +95,9 @@ void *info_init_request_data(ci_request_t * req)
      info_data->child_pids = malloc(childs_queue->size * sizeof(int));
      info_data->free_servers = 0;
      info_data->used_servers = 0;
+     info_data->started_childs = 0;
+     info_data->closed_childs = 0;
+     info_data->crashed_childs = 0;
      info_data->txt_mode = 0;
      if (req->args) {
           if (strstr(req->args, "view=text"))
@@ -178,6 +184,10 @@ void fill_queue_statistics(struct childs_queue *q, struct info_req_data *info_da
      if (!q->childs)
           return;
 
+     info_data->started_childs = q->started_childs;
+     info_data->closed_childs = q->closed_childs;
+     info_data->crashed_childs = q->crashed_childs;
+
      /*Merge childs data*/
      for (i = 0; i < q->size; i++) {
           if (q->childs[i].pid != 0 && q->childs[i].to_be_killed == 0) {
@@ -224,7 +234,9 @@ struct stats_tmpl {
 
 struct stats_tmpl txt_tmpl = {
   "Running Servers Statistics\n===========================\n"\
-    "Childs number: %d\nFree Servers:%d\nUsed Servers:%d\n\n\n",
+  "Childs number: %d\nFree Servers: %d\nUsed Servers: %d\n"\
+  "Started Processes: %u\nClosed Processes: %u\nCrashed Processes: %u"\
+  "\n\n",
   "\n%s Statistics\n==================\n",
   "",
   "Child pids:",
@@ -236,11 +248,14 @@ struct stats_tmpl txt_tmpl = {
 
 struct stats_tmpl html_tmpl = {
   "<H1>Running Servers Statistics</H1>\n"\
-    "<TABLE>"\
-    "<TR><TH>Childs number:</TH><TD> %d<TD>"\
-    "<TR><TH>Free Servers:</TH><TD> %d<TD>"\
-    "<TR><TH>Used Servers:</TH><TD> %d<TD>"\
-    "</TABLE>\n",
+  "<TABLE>"                                     \
+  "<TR><TH>Childs number:</TH><TD> %d<TD>"                     \
+  "<TR><TH>Free Servers:</TH><TD> %d<TD>"                      \
+  "<TR><TH>Used Servers:</TH><TD> %d<TD>"                      \
+  "<TR><TH>Started Processes :</TH><TD> %u<TD>"                \
+  "<TR><TH>Closed Processes: </TH><TD>%u<TD>"                  \
+  "<TR><TH>Crashed Processes: </TH><TD>%u<TD>"                 \
+  "</TABLE>\n",
   "<H1>%s Statistics</H1>\n<TABLE>",
   "</TABLE>",
   "<TABLE> <TR><TH>Child pids:</TH>",
@@ -271,7 +286,11 @@ int build_statistics(struct info_req_data *info_data)
      sz = snprintf(buf, LOCAL_BUF_SIZE,tmpl->gen_template,
 		   info_data->childs,
 		   info_data->free_servers,
-		   info_data->used_servers);
+		   info_data->used_servers,
+                   info_data->started_childs,
+                   info_data->closed_childs,
+                   info_data->crashed_childs
+         );
     
      ci_membuf_write(info_data->body,buf, sz, 0);
 
