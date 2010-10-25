@@ -177,7 +177,13 @@ int record_extract(char *line,
      s=line;
      while(*s==' ' || *s == '\t') s++;
      v=s;
- 
+
+     if (*s == '#') /*it is a comment*/
+         return 1;
+
+     if (*s == '\0') /*it is a blank line*/
+         return 1;
+
      if( row_cols==1 ) 
 	 e=s+strlen(s);
      else
@@ -387,7 +393,7 @@ int main(int argc, char **argv)
 		ci_debug_printf(1, "Error parsing line : %s\n", line);
 		break;
 	    }
-	    else
+	    else if (key) /*if it is not comment or blank line */
 		store_db(key, keysize, val, valsize);
 	}
 	fclose(f);
