@@ -341,6 +341,7 @@ void  hash_table_close(struct ci_lookup_table *table)
     if (text_table && text_table->hash_table) {
         /*destroy the hash table */
 	ci_hash_destroy(text_table->hash_table);
+	text_table->hash_table = NULL;
     }
     /*... and then call the file_table_close:*/
     file_table_close(table);
