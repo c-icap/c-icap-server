@@ -60,12 +60,12 @@ struct ci_hash_table * ci_hash_build(unsigned int hash_size,
 	    new_hash_size = (new_hash_size << 1) -1;
 	}
     }
-    htable->hash_table=allocator->alloc(allocator, new_hash_size*sizeof(struct ci_hash_entry *));
+    htable->hash_table=allocator->alloc(allocator, (new_hash_size+1)*sizeof(struct ci_hash_entry *));
     if(!htable->hash_table) {
 	allocator->free(allocator, htable);
 	return NULL;
     }
-    memset(htable->hash_table, 0, new_hash_size*sizeof(struct ci_hash_entry *));
+    memset(htable->hash_table, 0, (new_hash_size + 1)*sizeof(struct ci_hash_entry *));
 
     htable->hash_table_size = new_hash_size; 
     htable->ops = ops;
@@ -75,9 +75,21 @@ struct ci_hash_table * ci_hash_build(unsigned int hash_size,
 
 void ci_hash_destroy(struct ci_hash_table *htable)
 {
+    int i;
+    struct ci_hash_entry *e;
+    ci_mem_allocator_t *allocator = htable->allocator;
+    for (i=0; i<= htable->hash_table_size; i++) {
+        while(htable->hash_table[i]) {
+            e = htable->hash_table[i];
+            htable->hash_table[i] = htable->hash_table[i]->hnext;
+            allocator->free(allocator, e);
+        }
+    }
+    htable->allocator->free(allocator,htable->hash_table );
+    allocator->free(allocator, htable);
 }
 
-void * ci_hash_search(struct ci_hash_table *htable,void *key)
+const void * ci_hash_search(struct ci_hash_table *htable,const void *key)
 {
     struct ci_hash_entry *e;
     unsigned int hash=ci_hash_compute(htable->hash_table_size, key, htable->ops->size(key));
@@ -94,7 +106,7 @@ void * ci_hash_search(struct ci_hash_table *htable,void *key)
     return NULL;
 }
 
-void * ci_hash_add(struct ci_hash_table *htable, void *key, void *val)
+void * ci_hash_add(struct ci_hash_table *htable, const void *key, const void *val)
 {
     struct ci_hash_entry *e;
     unsigned int hash=ci_hash_compute(htable->hash_table_size, key, htable->ops->size(key));
@@ -109,7 +121,6 @@ void * ci_hash_add(struct ci_hash_table *htable, void *key, void *val)
     e->val=val;
     e->hash=hash;
    
-
 //    if(htable->hash_table[hash])
 //	ci_debug_printf(9, "ci_hash_update:::Found %s\n", htable->hash_table[hash]->val);
 

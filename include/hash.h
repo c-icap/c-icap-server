@@ -26,8 +26,8 @@
 
 struct ci_hash_entry {
    unsigned int hash;
-   void *key;
-   void *val;
+   const void *key;
+   const void *val;
    struct ci_hash_entry *hnext;
 };
 
@@ -45,7 +45,7 @@ CI_DECLARE_FUNC(struct ci_hash_table *) ci_hash_build(unsigned int hash_size,
 						      ci_type_ops_t *ops, 
 						      ci_mem_allocator_t *allocator);
 CI_DECLARE_FUNC(void)   ci_hash_destroy(struct ci_hash_table *htable);
-CI_DECLARE_FUNC(void *) ci_hash_search(struct ci_hash_table *htable,void *key);
-CI_DECLARE_FUNC(void *) ci_hash_add(struct ci_hash_table *htable, void *key, void *val);
+CI_DECLARE_FUNC(const void *) ci_hash_search(struct ci_hash_table *htable,const void *key);
+CI_DECLARE_FUNC(void *) ci_hash_add(struct ci_hash_table *htable, const void *key, const void *val);
 
 #endif

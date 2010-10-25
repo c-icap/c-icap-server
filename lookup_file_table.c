@@ -138,7 +138,7 @@ int read_row(FILE *f, int cols, struct text_table_entry **e,
         end=index(s,':');
 
      s=end+1; /*Now points to the end (*s='\0') or after the ':' */
-      
+
      end--; 
      while(*end==' ' || *end=='\t') end--;
      *(end+1)='\0';
@@ -340,7 +340,8 @@ void  hash_table_close(struct ci_lookup_table *table)
     struct text_table *text_table = (struct text_table *)table->data;
     if (text_table && text_table->hash_table) {
         /*destroy the hash table */
-	ci_hash_destroy(text_table->hash_table);
+        ci_hash_destroy(text_table->hash_table);
+        text_table->hash_table = NULL;
     }
     /*... and then call the file_table_close:*/
     file_table_close(table);
