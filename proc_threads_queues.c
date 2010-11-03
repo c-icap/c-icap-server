@@ -122,14 +122,10 @@ int create_childs_queue(struct childs_queue *q, int size)
      struct stat_memblock *mem_block;
      q->stats_block_size = ci_stat_memblock_size();
      
-     /* reset statistics */
-     q->started_childs = 0;
-     q->closed_childs = 0;
-     q->crashed_childs = 0;
-
      q->shared_mem_size = sizeof(child_shared_data_t) * size /*child shared data*/
                           + q->stats_block_size * size /*child stats area*/
-                          + q->stats_block_size; /*Server history  stats area*/
+                          + q->stats_block_size /*Server history  stats area*/
+                          + sizeof(struct server_statistics); /*Server general statistics*/
      if ((q->childs =
           ci_shared_mem_create(&(q->shmid), q->shared_mem_size)) == NULL) {
           log_server(NULL, "can't get shared memory!");
@@ -144,6 +140,8 @@ int create_childs_queue(struct childs_queue *q, int size)
      }       
      q->stats_history = q->stats_area + q->size * q->stats_block_size;
      q->stats_history->sig = MEMBLOCK_SIG;
+
+     q->srv_stats = (struct server_statistics *)(q->stats_area + q->size * q->stats_block_size + q->stats_block_size);
      ci_debug_printf(2, "Create shared mem, qsize=%d stat_block_size=%d childshared data:%d\n",
 		     q->size,  q->stats_block_size, (int)sizeof(child_shared_data_t) * q->size);
 
@@ -155,6 +153,10 @@ int create_childs_queue(struct childs_queue *q, int size)
           q->childs[i].pipe = -1;
      }
 
+     /* reset statistics */
+     q->srv_stats->started_childs = 0;
+     q->srv_stats->closed_childs = 0;
+     q->srv_stats->crashed_childs = 0;
 
      if ((ret = ci_proc_mutex_init(&(q->queue_mtx))) == 0) {
           log_server(NULL, "can't create children queue semaphore!");
@@ -274,7 +276,7 @@ child_shared_data_t *register_child(struct childs_queue * q,
 void announce_child(struct childs_queue *q, process_pid_t pid)
 {
     if (q->childs && pid)
-        q->started_childs++;
+        q->srv_stats->started_childs++;
 }
 
 int remove_child(struct childs_queue *q, process_pid_t pid, int status)
@@ -297,9 +299,9 @@ int remove_child(struct childs_queue *q, process_pid_t pid, int status)
 	       /*re-arange pointers in childs memblock*/
 	       stat_memblock_reconstruct(child_stats);
 	       ci_stat_memblock_merge(q->stats_history, child_stats);
-               q->closed_childs++;
+               q->srv_stats->closed_childs++;
                if (status)
-                   q->crashed_childs++;
+                   q->srv_stats->crashed_childs++;
                ci_proc_mutex_unlock(&(q->queue_mtx));
                return 1;
           }

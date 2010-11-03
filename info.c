@@ -62,6 +62,8 @@ struct info_req_data {
      int *child_pids;
      int free_servers;
      int used_servers;
+     unsigned int closing_childs;
+     int *closing_child_pids;
      unsigned int started_childs;
      unsigned int closed_childs;
      unsigned int crashed_childs;
@@ -95,6 +97,8 @@ void *info_init_request_data(ci_request_t * req)
      info_data->child_pids = malloc(childs_queue->size * sizeof(int));
      info_data->free_servers = 0;
      info_data->used_servers = 0;
+     info_data->closing_childs = 0;
+     info_data->closing_child_pids = malloc(childs_queue->size * sizeof(int));
      info_data->started_childs = 0;
      info_data->closed_childs = 0;
      info_data->crashed_childs = 0;
@@ -180,13 +184,9 @@ void fill_queue_statistics(struct childs_queue *q, struct info_req_data *info_da
     int i;
     int requests = 0;
     struct stat_memblock *stats, copy_stats;
-
+    struct server_statistics *srv_stats;
      if (!q->childs)
           return;
-
-     info_data->started_childs = q->started_childs;
-     info_data->closed_childs = q->closed_childs;
-     info_data->crashed_childs = q->crashed_childs;
 
      /*Merge childs data*/
      for (i = 0; i < q->size; i++) {
@@ -206,8 +206,11 @@ void fill_queue_statistics(struct childs_queue *q, struct info_req_data *info_da
 		 + stats->counters64_size*sizeof(uint64_t);
 
 	       ci_stat_memblock_merge(info_data->collect_stats, &copy_stats);
-
-
+          }
+          else if (q->childs[i].pid != 0 && q->childs[i].to_be_killed) {
+               if (info_data->closing_child_pids)
+                   info_data->closing_child_pids[info_data->closing_childs] = q->childs[i].pid;
+               info_data->closing_childs++;
           }
      }
      /*Merge history data*/
@@ -219,6 +222,13 @@ void fill_queue_statistics(struct childs_queue *q, struct info_req_data *info_da
        + stats->counters64_size*sizeof(uint64_t);
 
      ci_stat_memblock_merge(info_data->collect_stats, &copy_stats);     
+
+     srv_stats = 
+         (struct server_statistics *)(q->stats_area + q->size * q->stats_block_size + q->stats_block_size);
+     /*Compute server statistics*/
+     info_data->started_childs = srv_stats->started_childs;
+     info_data->closed_childs = srv_stats->closed_childs;
+     info_data->crashed_childs = srv_stats->crashed_childs;
 }
 
 struct stats_tmpl {
@@ -228,6 +238,7 @@ struct stats_tmpl {
    char *childsHeader;
    char *childs_tmpl;
    char *childsEnd;
+   char *closingChildsHeader;
    char *statline_tmpl_int;
    char *statline_tmpl_kbs;
 };
@@ -236,12 +247,14 @@ struct stats_tmpl txt_tmpl = {
   "Running Servers Statistics\n===========================\n"\
   "Childs number: %d\nFree Servers: %d\nUsed Servers: %d\n"\
   "Started Processes: %u\nClosed Processes: %u\nCrashed Processes: %u"\
+  "Closing Processes: %u"\
   "\n\n",
   "\n%s Statistics\n==================\n",
   "",
   "Child pids:",
   " %d",
   "\n",
+  "Closing childs pids:",
   "%s : %lld\n",
   "%s : %lld Kbs %d bytes\n"
 };
@@ -255,12 +268,14 @@ struct stats_tmpl html_tmpl = {
   "<TR><TH>Started Processes :</TH><TD> %u<TD>"                \
   "<TR><TH>Closed Processes: </TH><TD>%u<TD>"                  \
   "<TR><TH>Crashed Processes: </TH><TD>%u<TD>"                 \
+  "<TR><TH>Closing Processes: </TH><TD>%u<TD>"                 \
   "</TABLE>\n",
   "<H1>%s Statistics</H1>\n<TABLE>",
   "</TABLE>",
   "<TABLE> <TR><TH>Child pids:</TH>",
   "<TD> %d</TD>",
   "</TR></TABLE>\n",
+  "<TABLE> <TR><TH>Closing childs pids:</TH>",
   "<TR><TH>%s:</TH><TD>  %lld</TD>\n",
   "<TR><TH>%s:</TH><TD>  %lld Kbs %d bytes</TD>\n"
 };
@@ -289,7 +304,8 @@ int build_statistics(struct info_req_data *info_data)
 		   info_data->used_servers,
                    info_data->started_childs,
                    info_data->closed_childs,
-                   info_data->crashed_childs
+                   info_data->crashed_childs,
+                   info_data->closing_childs
          );
     
      ci_membuf_write(info_data->body,buf, sz, 0);
@@ -301,6 +317,15 @@ int build_statistics(struct info_req_data *info_data)
           ci_membuf_write(info_data->body,buf, sz, 0);
      } 
      ci_membuf_write(info_data->body, tmpl->childsEnd, strlen(tmpl->childsEnd), 0);
+
+     /*print closing childs pids ...*/
+     ci_membuf_write(info_data->body, tmpl->closingChildsHeader, strlen(tmpl->closingChildsHeader), 0);
+     for (k =0; k < info_data->closing_childs; k++) {
+          sz = snprintf(buf, LOCAL_BUF_SIZE, tmpl->childs_tmpl, info_data->closing_child_pids[k]);
+          ci_membuf_write(info_data->body,buf, sz, 0);
+     } 
+     ci_membuf_write(info_data->body, tmpl->childsEnd, strlen(tmpl->childsEnd), 0);
+
 
      for (gid = 0; gid < STAT_GROUPS.entries_num; gid++) {
           stat_group = STAT_GROUPS.groups[gid];

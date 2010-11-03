@@ -62,6 +62,11 @@ typedef struct child_shared_data{
      int stats_size;
 } child_shared_data_t;
 
+struct server_statistics {
+    unsigned int started_childs;
+    unsigned int closed_childs;
+    unsigned int crashed_childs;
+};
 
 struct childs_queue{
      child_shared_data_t *childs;
@@ -72,9 +77,7 @@ struct childs_queue{
      struct stat_memblock *stats_history;
      ci_shared_mem_id_t shmid;
      ci_proc_mutex_t queue_mtx;
-     unsigned int started_childs;
-     unsigned int closed_childs;
-     unsigned int crashed_childs;
+    struct server_statistics *srv_stats;
 };
 
 
