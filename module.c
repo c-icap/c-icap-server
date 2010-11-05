@@ -47,11 +47,11 @@ struct modules_list {
 static struct modules_list service_handlers;
 service_handler_module_t *default_service_handler;
 
-static struct modules_list loggers;
-static struct modules_list access_controllers;
-static struct modules_list auth_methods;
-static struct modules_list authenticators;
-static struct modules_list common_modules;
+static struct modules_list loggers = {NULL, 0 , 0};
+static struct modules_list access_controllers = {NULL, 0 , 0};
+static struct modules_list auth_methods = {NULL, 0 , 0};
+static struct modules_list authenticators = {NULL, 0 , 0};
+static struct modules_list common_modules = {NULL, 0 , 0};
 
 
 static struct modules_list *modules_lists_table[] = {   /*Must follows the 'enum module_type' 
@@ -111,7 +111,6 @@ void *add_to_modules_list(struct modules_list *mod_list, void *module)
      mod_list->modules[mod_list->modules_num++] = module;
      return module;
 }
-
 
 static int module_type(char *type)
 {
@@ -654,6 +653,9 @@ int post_init_modules()
 int access_reset();
 void log_reset();
 
+#define RELEASE_MOD_LIST(mod) \
+    free(mod.modules); mod.modules = NULL; mod.list_size = 0; mod.modules_num=0;
+
 int release_modules()
 {
      int i;
@@ -668,14 +670,14 @@ int release_modules()
                ((service_handler_module_t *) service_handlers.modules[i])->
                    release_service_handler();
      }
-     service_handlers.modules_num = 0;
+     RELEASE_MOD_LIST(service_handlers);
 
 /*     loggers? loggers do not have post init handlers .... */
      for (i = 0; i < loggers.modules_num; i++) {
           if (((logger_module_t *) loggers.modules[i])->log_close != NULL)
                ((logger_module_t *) loggers.modules[i])->log_close();
      }
-     loggers.modules_num = 0;
+     RELEASE_MOD_LIST(loggers);
 
 /*     access_controllers */
      for (i = 0; i < access_controllers.modules_num; i++) {
@@ -684,7 +686,7 @@ int release_modules()
                ((access_control_module_t *) access_controllers.modules[i])->
                    release_access_controller(&CONF);
      }
-     access_controllers.modules_num = 0;
+     RELEASE_MOD_LIST(access_controllers);
 
 /*     auth_methods */
      for (i = 0; i < auth_methods.modules_num; i++) {
@@ -693,7 +695,7 @@ int release_modules()
                ((http_auth_method_t *) auth_methods.modules[i])->
                    close_auth_method(&CONF);
      }
-     auth_methods.modules_num = 0;
+     RELEASE_MOD_LIST(auth_methods);
 
 /*     authenticators */
      for (i = 0; i < authenticators.modules_num; i++) {
@@ -702,7 +704,7 @@ int release_modules()
                ((authenticator_module_t *) authenticators.modules[i])->
                    close_authenticator(&CONF);
      }
-     authenticators.modules_num = 0;
+     RELEASE_MOD_LIST(authenticators);
 
 /*     common modules */
      for (i = common_modules.modules_num-1; i >= 0 ; i--) {
@@ -711,7 +713,7 @@ int release_modules()
                ((common_module_t *) common_modules.modules[i])->
                    close_module(&CONF);
      }
-     common_modules.modules_num = 0;
+     RELEASE_MOD_LIST(common_modules);
 
      return 1;
 }

@@ -36,7 +36,8 @@ enum module_type{
      ACCESS_CONTROLLER,
      AUTH_METHOD,
      AUTHENTICATOR,
-     COMMON
+     COMMON,
+     MODS_TABLE_END
 };
 
 typedef struct  service_handler_module{

@@ -388,7 +388,15 @@ int release_services()
 	       service_extra_data_list[i].intl_srv_conf_table = NULL;
           }
      }
+
+     free(service_list);
+     service_list = NULL;
+     service_list_size = 0;
      services_num = 0;
+
+     free(service_aliases);
+     service_aliases = NULL;
+     service_aliases_size = 0;
      service_aliases_num = 0;
      return 1;
 }
