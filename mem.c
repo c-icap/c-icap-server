@@ -602,7 +602,7 @@ void pool_allocator_free(ci_mem_allocator_t *allocator,void *p)
     ci_thread_mutex_lock(&palloc->mutex);
     if(!palloc->allocated) {
 	/*Yes can happen! after a reset but users did not free all objects*/
-	free(p);
+        palloc->allocator->free(palloc->allocator,p);
     }
     else {
 	mem_item=palloc->allocated;
