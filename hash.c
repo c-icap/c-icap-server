@@ -20,6 +20,7 @@
 #include "common.h"
 #include "hash.h"
 #include "debug.h"
+#include <assert.h>
 
 unsigned int ci_hash_compute(unsigned long hash_max_value, void *key, int len)
 {
@@ -94,8 +95,7 @@ const void * ci_hash_search(struct ci_hash_table *htable,const void *key)
     struct ci_hash_entry *e;
     unsigned int hash=ci_hash_compute(htable->hash_table_size, key, htable->ops->size(key));
     
-    if(hash >= htable->hash_table_size) /*is it possible?*/
-	return NULL;
+    assert(hash <= htable->hash_table_size); /*is it possible?*/
     
     e = htable->hash_table[hash];
     while(e != NULL) {
@@ -110,7 +110,8 @@ void * ci_hash_add(struct ci_hash_table *htable, const void *key, const void *va
 {
     struct ci_hash_entry *e;
     unsigned int hash=ci_hash_compute(htable->hash_table_size, key, htable->ops->size(key));
-    
+    assert(hash <= htable->hash_table_size);
+
     e = htable->allocator->alloc(htable->allocator, sizeof(struct ci_hash_entry));
 
     if(!e)
