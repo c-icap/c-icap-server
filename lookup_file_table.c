@@ -40,7 +40,7 @@ struct text_table_entry *alloc_text_table_entry (int val_num, ci_mem_allocator_t
     e->next = NULL;
     if(!e) {
         ci_debug_printf(1,"Error allocating memory for table entry \n");
-        return 0;
+        return NULL;
     }
     if (val_num>0) {
         e->vals = allocator->alloc(allocator, (val_num + 1)*sizeof(void *));
@@ -48,7 +48,7 @@ struct text_table_entry *alloc_text_table_entry (int val_num, ci_mem_allocator_t
             allocator->free(allocator, e);
             e=NULL;
             ci_debug_printf(1,"Error allocating memory for values of  table entry.\n");
-            return 0;
+            return NULL;
         }
         for(i=0; i< val_num + 1; i++) 
             e->vals[i] = NULL;
@@ -233,6 +233,7 @@ void *file_table_open(struct ci_lookup_table *table)
     return (table->data=NULL);
   }
   text_table->hash_table = NULL;
+  text_table->rows = 0;
   return text_table;
 }
 
