@@ -141,7 +141,7 @@ void ci_lookup_table_destroy(struct ci_lookup_table *lt)
     if(lt->args)
 	free(lt->args);
     if(lt->allocator)
-	lt->allocator->destroy(lt->allocator);
+	ci_mem_allocator_destroy(lt->allocator);
     free(lt);
 }
 
