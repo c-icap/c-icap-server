@@ -47,11 +47,11 @@ struct modules_list {
 static struct modules_list service_handlers;
 service_handler_module_t *default_service_handler;
 
-static struct modules_list loggers;
-static struct modules_list access_controllers;
-static struct modules_list auth_methods;
-static struct modules_list authenticators;
-static struct modules_list common_modules;
+static struct modules_list loggers = {NULL, 0 , 0};
+static struct modules_list access_controllers = {NULL, 0 , 0};
+static struct modules_list auth_methods = {NULL, 0 , 0};
+static struct modules_list authenticators = {NULL, 0 , 0};
+static struct modules_list common_modules = {NULL, 0 , 0};
 
 
 static struct modules_list *modules_lists_table[] = {   /*Must follows the 'enum module_type' 
