@@ -89,6 +89,7 @@ void  dnsbl_table_close(struct ci_lookup_table *table)
 {
      struct dnsbl_data *dnsbl_data = table->data;
      table->data = NULL;
+     ci_cache_destroy(dnsbl_data->cache);
      free(dnsbl_data);
 }
 
