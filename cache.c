@@ -4,7 +4,7 @@
 #include "ci_threads.h"
 #include "lookup_table.h"
 #include "cache.h"
-
+#include <assert.h>
 
 time_t ci_internal_time()
 {
@@ -82,6 +82,7 @@ struct ci_cache *ci_cache_build( unsigned int cache_size,
     cache->first_queue_entry = (struct ci_cache_entry *)allocator->alloc(allocator, sizeof(struct ci_cache_entry)); 
     cache->last_queue_entry = cache->first_queue_entry;
     cache->last_queue_entry->hnext=NULL;
+    cache->last_queue_entry->qnext = NULL;
     cache->last_queue_entry->key = NULL;
     cache->last_queue_entry->val = NULL;
     cache->last_queue_entry->time = 0;
@@ -90,6 +91,7 @@ struct ci_cache *ci_cache_build( unsigned int cache_size,
 	cache->last_queue_entry->qnext=(struct ci_cache_entry *)allocator->alloc(allocator, sizeof(struct ci_cache_entry));
 	cache->last_queue_entry=cache->last_queue_entry->qnext;
 	cache->last_queue_entry->hnext=NULL;
+        cache->last_queue_entry->qnext = NULL;
 	cache->last_queue_entry->key = NULL;
 	cache->last_queue_entry->val = NULL;
 	cache->last_queue_entry->time = 0;
@@ -104,8 +106,8 @@ struct ci_cache *ci_cache_build( unsigned int cache_size,
 	}
     }
     ci_debug_printf(7,"Hash size: %d\n",new_hash_size);
-    cache->hash_table=(struct ci_cache_entry **)allocator->alloc(allocator, new_hash_size*sizeof(struct ci_cache_entry *));
-    memset(cache->hash_table,0,new_hash_size*sizeof(struct ci_cache_entry *));
+    cache->hash_table=(struct ci_cache_entry **)allocator->alloc(allocator, (new_hash_size+1)*sizeof(struct ci_cache_entry *));
+    memset(cache->hash_table,0,(new_hash_size+1)*sizeof(struct ci_cache_entry *));
     cache->hash_table_size = new_hash_size; 
     cache->ttl = ttl;
     common_mutex_init(&cache->mtx, 0);
@@ -128,6 +130,7 @@ void ci_cache_destroy(struct ci_cache *cache)
     }
     cache->allocator->free(cache->allocator, cache->hash_table);
     common_mutex_destroy(&cache->mtx);
+    ci_mem_allocator_destroy(cache->allocator);
     free(cache);
 }
 
@@ -135,8 +138,7 @@ void *ci_cache_search(struct ci_cache *cache,void *key, void **val, ci_mem_alloc
     struct ci_cache_entry *e;
     unsigned int hash=ci_hash_compute(cache->hash_table_size, key, cache->key_ops->size(key));
     
-    if(hash >= cache->hash_table_size) /*is it possible?*/
-	return NULL;
+    assert(hash <= cache->hash_table_size);
 
     common_mutex_lock(&cache->mtx);
     e=cache->hash_table[hash];
@@ -159,7 +161,7 @@ int ci_cache_update(struct ci_cache *cache, void *key, void *val) {
     int key_size;
     time_t current_time;
     unsigned int hash=ci_hash_compute(cache->hash_table_size, key, cache->key_ops->size(key));
-
+    assert(hash <= cache->hash_table_size);
     ci_debug_printf(10,"Adding :%s:%s\n",(char *)key, (char *)val);
 
     current_time = ci_internal_time();
@@ -191,6 +193,7 @@ int ci_cache_update(struct ci_cache *cache, void *key, void *val) {
 
     /*If it is in the hash table remove it...*/
     if(e->hash) {
+        assert(e->hash <= cache->hash_table_size);
 	tmp = cache->hash_table[e->hash];
 	if(tmp == e)
 	    cache->hash_table[e->hash] = tmp->hnext;
