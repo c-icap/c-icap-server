@@ -733,7 +733,7 @@ struct ci_magics_db *ci_magic_db_load(const char *filename)
 
 void ci_magic_db_free()
 {
-    if (!_MAGIC_DB)
+    if (_MAGIC_DB)
          ci_magics_db_release(_MAGIC_DB);
        
     _MAGIC_DB = NULL;
