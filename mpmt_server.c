@@ -60,6 +60,7 @@ typedef struct server_decl {
      ci_request_t *current_req;
      int served_requests;
      int served_requests_no_reallocation;
+     int running;
 } server_decl_t;
 
 #undef SINGLE_ACCEPT
@@ -180,28 +181,29 @@ void thread_signals(int islistener)
 
 static void exit_normaly()
 {
-     int i = 0;
-     server_decl_t *srv;
-     ci_debug_printf(5, "Suppose that all threads are already exited ...\n");
-     while ((srv = threads_list[i]) != NULL) {
-          if (srv->current_req) {
-               close_connection(srv->current_req->connection);
-               ci_request_destroy(srv->current_req);
-          }
-          free(srv);
-          threads_list[i] = NULL;
-          i++;
-     }
-     free(threads_list);
      dettach_childs_queue(childs_queue);
      system_shutdown();
 }
 
+static void release_thread_i(int i)
+{
+    if (threads_list[i]->current_req) {
+        close_connection(threads_list[i]->current_req->connection);
+        ci_request_destroy(threads_list[i]->current_req);
+    }
+    free(threads_list[i]);
+    threads_list[i] = NULL;
+}
 
-static void cancel_all_threads()
+static void cancel_all_threads(int exit_timeout)
 {
      int i = 0;
      int wait_listener_time = 10000;
+     int wait_for_workers = 999999; /*something huge*/
+     int servers_running;
+
+     if (exit_timeout)
+         wait_for_workers = exit_timeout;
 
      /*Cancel listener thread .... */
      /*we are going to wait maximum about 10 ms */
@@ -230,14 +232,45 @@ static void cancel_all_threads()
      }
 
      /*We are going to interupt the waiting for queue childs.
-        We are going to wait childs which serve a request. */
+        We are going to wait threads which serve a request. */
      ci_thread_cond_broadcast(&(con_queue->queue_cond));
-     while (threads_list[i] != NULL) {
-          ci_debug_printf(5, "Cancel server %d, thread_id %lu (%d)\n",
-                          threads_list[i]->srv_id, threads_list[i]->srv_pthread,
-                          i);
-          ci_thread_join(threads_list[i]->srv_pthread);
-          i++;
+     /*wait for a milisecond*/
+     ci_usleep(1000);
+     servers_running = START_SERVERS;
+     while (servers_running && wait_for_workers >= 0) {
+         for (i=0; i<START_SERVERS; i++) {
+             if (threads_list[i] != NULL) { /* if the i thread is still alive*/
+                 if (!threads_list[i]->running) { /*if the i thread is not running any more*/
+                     ci_debug_printf(5, "Cancel server %d, thread_id %lu (%d)\n",
+                                     threads_list[i]->srv_id, threads_list[i]->srv_pthread,
+                                     i);
+                     ci_thread_join(threads_list[i]->srv_pthread);
+                     release_thread_i(i);
+                     servers_running --;
+                 }
+                 else if (exit_timeout){ 
+                     /*The thread is still running, and we have a timeout for waiting 
+                       the thread to exit. */
+                     if (wait_for_workers <= 2) {
+                         ci_debug_printf(5, "Thread %ld still running near the timeout. Try to kill it\n", threads_list[i]->srv_pthread);
+                         pthread_kill( threads_list[i]->srv_pthread, SIGTERM);
+                     }
+                 }
+             }/*the i thread is still alive*/
+         } /* for(i=0;i< START_SERVERS;i++)*/
+
+         /*wait for 1 second for the next round*/
+         ci_usleep(999999);
+         if (exit_timeout) /*In the case there is a timeout decrease wait_for_workers*/
+             wait_for_workers --;
+     } /* while(servers_running)*/
+
+     if (servers_running) {
+         ci_debug_printf(5, "Not all the servers canceled. Anyway exiting....\n");
+     }
+     else {
+         ci_debug_printf(5, "All servers canceled\n");
+         free(threads_list);
      }
 }
 
@@ -452,6 +485,7 @@ server_decl_t *newthread(struct connections_queue *con_queue)
      serv->served_requests = 0;
      serv->served_requests_no_reallocation = 0;
      serv->current_req = NULL;
+     serv->running = 1;
 
      return serv;
 }
@@ -473,12 +507,16 @@ int thread_main(server_decl_t * srv)
              else if we are going to shutdown GRACEFULLY we are going to die 
              only if there are not any accepted connections
            */
-          if (child_data->to_be_killed == IMMEDIATELY)
+          if (child_data->to_be_killed == IMMEDIATELY) {
+               srv->running = 0;
                return 1;
+          }
 
           if ((ret = get_from_queue(con_queue, &con)) == 0) {
-               if (child_data->to_be_killed)
+               if (child_data->to_be_killed) {
+                    srv->running = 0;
                     return 1;
+               }
                ret = wait_for_queue(con_queue);
                continue;
           }
@@ -535,8 +573,15 @@ int thread_main(server_decl_t * srv)
                log_access(srv->current_req, request_status);
 //             break; //No keep-alive ......
 
-               if (child_data->to_be_killed)
+               if (child_data->to_be_killed  == IMMEDIATELY)
                     break;      //Just exiting the keep-alive loop
+
+               /*if we are going to term gracefully we will try to keep our promice for
+                 keepalived request....
+                */
+               if (child_data->to_be_killed  == GRACEFULLY && 
+                   srv->current_req->keepalive == 0)
+                    break;
 
                ci_debug_printf(8, "Keep-alive:%d\n",
                                srv->current_req->keepalive);
@@ -578,6 +623,7 @@ int thread_main(server_decl_t * srv)
           ci_thread_cond_signal(&free_server_cond);
 
      }
+     srv->running = 0;
      return 0;
 }
 
@@ -649,13 +695,16 @@ void listener_thread(int *fd)
                                               errno);
                               goto LISTENER_FAILS;
                          }
-                         if (child_data->to_be_killed) {
+                         /*Here we are going to exit only if accept interrupted by a signal
+                           else if we accepted an fd we must add it to queue for 
+                           processing. */
+                         if (errno == EINTR && child_data->to_be_killed) {
                               ci_debug_printf(5,
                                               "Listener server signalled to exit!\n");
                               goto LISTENER_FAILS;
                          }
                     }
-               } while (errno == EINTR);
+               } while (errno == EINTR && !child_data->to_be_killed);
                claddrlen = sizeof(conn.srvaddr.sockaddr);
                getsockname(conn.fd,
                            (struct sockaddr *) &(conn.srvaddr.sockaddr),
@@ -675,11 +724,16 @@ void listener_thread(int *fd)
                                     child_data->requests);
                     goto LISTENER_FAILS;
                }
+               (child_data->connections)++;     //NUM of Requests....
+
+               if (child_data->to_be_killed) {
+                   ci_debug_printf(5, "Listener server must exit!\n");
+                   goto LISTENER_FAILS;
+               }
                ci_thread_mutex_lock(&counters_mtx);
                haschild =
                    ((child_data->freeservers - jobs_in_queue) > 0 ? 1 : 0);
                ci_thread_mutex_unlock(&counters_mtx);
-               (child_data->connections)++;     //NUM of Requests....
           } while (haschild);
           ci_debug_printf(7, "Child %d STOPS getting requests now ...\n", pid);
           child_data->idle = 1;
@@ -801,13 +855,17 @@ void child_main(int sockfd, int pipefd)
 //          ci_debug_printf(5, "Do some tests\n");
      }
 
-     if (child_data->to_be_killed == IMMEDIATELY)
-          exit(0);
-     /*Else we are going to exit gracefully */
-     ci_debug_printf(5, "Child :%d going down :%d\n", getpid(),
-                     child_data->to_be_killed);
-     cancel_all_threads();
-
+     ci_debug_printf(5, "Child :%d going down :%s\n", getpid(),
+                     child_data->to_be_killed == IMMEDIATELY? 
+                     "IMMEDIATELY" : "GRACEFULLY");
+     
+     if (child_data->to_be_killed == IMMEDIATELY) {
+//          exit(0);
+         cancel_all_threads(10);
+     }
+     else {/*Else we are going to exit gracefully */
+         cancel_all_threads(0);
+     }
      execute_stop_child_commands();
      exit_normaly();
 }
