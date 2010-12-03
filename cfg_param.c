@@ -73,6 +73,7 @@ int MAX_FREE_SERVERS = 60;
 int MAX_REQUESTS_BEFORE_REALLOCATE_MEM = 100;
 int MAX_REQUESTS_PER_CHILD = 0;
 int DAEMON_MODE = 1;
+int DebugLevelSetFromCmd = 0;
 
 /* txtTemplate stuff */
 extern const char *TEMPLATE_DIR;
@@ -361,6 +362,15 @@ int print_variables()
 */
 int cfg_set_debug_level(char *directive, char **argv, void *setdata)
 {
+    if (!DebugLevelSetFromCmd)
+         return intl_cfg_set_int(directive, argv, &CI_DEBUG_LEVEL);
+    /*else ignore ....*/
+    return 1;
+}
+
+int cfg_set_debug_level_cmd(char *directive, char **argv, void *setdata)
+{
+     DebugLevelSetFromCmd = 1;
      return intl_cfg_set_int(directive, argv, &CI_DEBUG_LEVEL);
 }
 
@@ -794,7 +804,7 @@ static struct ci_options_entry options[] = {
      {opt_pre "f", "filename", &CONF.cfg_file, ci_cfg_set_str,
       "Specify the configuration file"},
      {opt_pre "N", NULL, &DAEMON_MODE, ci_cfg_disable, "Do not run as daemon"},
-     {opt_pre "d", "level", NULL, cfg_set_debug_level,
+     {opt_pre "d", "level", NULL, cfg_set_debug_level_cmd,
       "Specify the debug level"},
      {opt_pre "D", NULL, NULL, cfg_set_debug_stdout,
       "Print debug info to stdout"},
