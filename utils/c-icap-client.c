@@ -171,6 +171,7 @@ char *input_file = NULL;
 char *output_file = NULL;
 char *request_url = NULL;
 int send_headers = 1;
+int send_preview = 1;
 int verbose = 0;
 ci_headers_list_t *xheaders = NULL;
 ci_headers_list_t *http_xheaders = NULL;
@@ -189,6 +190,7 @@ static struct ci_options_entry options[] = {
       "debug level info to stdout"},
      {"-noreshdr", NULL, &send_headers, ci_cfg_disable,
       "Do not send reshdr headers"},
+     {"-nopreview", NULL, &send_preview, ci_cfg_disable, "Do not send preview data"},
      {"-x", "xheader", &xheaders, add_xheader, "Include xheader in icap request headers"},
      {"-hx", "xheader", &http_xheaders, add_xheader, "Include xheader in http headers"},
      {"-w", "preview", &preview_size, ci_cfg_set_int, "Sets the maximum preview data size"},
@@ -249,7 +251,9 @@ int main(int argc, char **argv)
      ci_debug_printf(1, "ICAP server:%s, ip:%s, port:%d\n\n", icap_server, ip,
                      port);
 
-     if (preview_size >= 0 && preview_size < req->preview) {
+     if (!send_preview) {
+         req->preview = -1;
+     } else if (preview_size >= 0 && preview_size < req->preview) {
          req->preview = preview_size;
      }
 
