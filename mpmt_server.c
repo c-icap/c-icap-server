@@ -76,6 +76,8 @@ struct childs_queue *childs_queue;
 struct childs_queue *old_childs_queue = NULL;
 child_shared_data_t *child_data;
 struct connections_queue *con_queue;
+/*Child shutdown timeout is 10 seconds:*/
+const int CHILD_SHUTDOWN_TIMEOUT = 10; 
 
 /*Interprocess accepting mutex ....*/
 ci_proc_mutex_t accept_mutex;
@@ -195,16 +197,12 @@ static void release_thread_i(int i)
     threads_list[i] = NULL;
 }
 
-static void cancel_all_threads(int exit_timeout)
+static void cancel_all_threads()
 {
      int i = 0;
      int wait_listener_time = 10000;
-     int wait_for_workers = 999999; /*something huge*/
+     int wait_for_workers = CHILD_SHUTDOWN_TIMEOUT>5?CHILD_SHUTDOWN_TIMEOUT:5;
      int servers_running;
-
-     if (exit_timeout)
-         wait_for_workers = exit_timeout;
-
      /*Cancel listener thread .... */
      /*we are going to wait maximum about 10 ms */
      while (wait_listener_time > 0 && listener_running != 0) {
@@ -248,7 +246,7 @@ static void cancel_all_threads(int exit_timeout)
                      release_thread_i(i);
                      servers_running --;
                  }
-                 else if (exit_timeout){ 
+                 else if (child_data->to_be_killed == IMMEDIATELY){ 
                      /*The thread is still running, and we have a timeout for waiting 
                        the thread to exit. */
                      if (wait_for_workers <= 2) {
@@ -261,8 +259,14 @@ static void cancel_all_threads(int exit_timeout)
 
          /*wait for 1 second for the next round*/
          ci_usleep(999999);
-         if (exit_timeout) /*In the case there is a timeout decrease wait_for_workers*/
+
+         /*
+           The child_data->to_be_killed may change while we are running this function.
+           In the case it has/got the value IMMEDIATELY decrease wait_for_workers:
+         */
+         if (child_data->to_be_killed == IMMEDIATELY)
              wait_for_workers --;
+         
      } /* while(servers_running)*/
 
      if (servers_running) {
@@ -859,13 +863,7 @@ void child_main(int sockfd, int pipefd)
                      child_data->to_be_killed == IMMEDIATELY? 
                      "IMMEDIATELY" : "GRACEFULLY");
      
-     if (child_data->to_be_killed == IMMEDIATELY) {
-//          exit(0);
-         cancel_all_threads(10);
-     }
-     else {/*Else we are going to exit gracefully */
-         cancel_all_threads(0);
-     }
+     cancel_all_threads();
      execute_stop_child_commands();
      exit_normaly();
 }
