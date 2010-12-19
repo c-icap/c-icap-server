@@ -35,6 +35,7 @@
 #define ci_thread_mutex_destroy(pmutex) pthread_mutex_destroy(pmutex)
 #define ci_thread_mutex_lock(pmutex) pthread_mutex_lock(pmutex)
 #define ci_thread_mutex_unlock(pmutex) pthread_mutex_unlock(pmutex)
+#define ci_thread_self  pthread_self
 
 #ifdef USE_PTHREADS_RWLOCK
 #define ci_thread_rwlock_t pthread_rwlock_t

@@ -30,6 +30,7 @@
 #include "debug.h"
 #include "txt_format.h"
 #include "acl.h"
+#include "proc_threads_queues.h"
 #include <errno.h>
 
 logger_module_t *default_logger = NULL;
@@ -67,13 +68,20 @@ void log_access(ci_request_t * req, int status)
 	  default_logger->log_access(req);
 }
 
-
+extern process_pid_t MY_PROC_PID;
 void log_server(ci_request_t * req, const char *format, ...)
 {                               /*req can be NULL......... */
      va_list ap;
+     char prefix[64];
      va_start(ap, format);
-     if (default_logger)
-          default_logger->log_server("general", format, ap);    /*First argument must be changed..... */
+     if (default_logger) {
+         if (MY_PROC_PID)
+             snprintf(prefix, 64, "%u/%u", (unsigned int)MY_PROC_PID, (unsigned int)ci_thread_self());
+         else /*probably the main process*/
+             strcpy(prefix, "main proc");
+         
+          default_logger->log_server(prefix, format, ap);    /*First argument must be changed..... */
+     }
      va_end(ap);
 }
 

@@ -74,8 +74,9 @@ ci_thread_mutex_t counters_mtx;
 
 struct childs_queue *childs_queue;
 struct childs_queue *old_childs_queue = NULL;
-child_shared_data_t *child_data;
+child_shared_data_t *child_data = NULL;
 struct connections_queue *con_queue;
+process_pid_t MY_PROC_PID = 0;
 /*Child shutdown timeout is 10 seconds:*/
 const int CHILD_SHUTDOWN_TIMEOUT = 10; 
 
@@ -892,6 +893,7 @@ int start_child(int fd)
           close(pfd[1]);
      }
      if ((pid = fork()) == 0) { //A Child .......
+          MY_PROC_PID = getpid();
           attach_childs_queue(childs_queue);
           child_data =
               register_child(childs_queue, getpid(), START_SERVERS, pfd[1]);
