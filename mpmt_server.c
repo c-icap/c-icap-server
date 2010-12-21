@@ -190,7 +190,6 @@ static void exit_normaly()
 static void release_thread_i(int i)
 {
     if (threads_list[i]->current_req) {
-        close_connection(threads_list[i]->current_req->connection);
         ci_request_destroy(threads_list[i]->current_req);
     }
     free(threads_list[i]);
