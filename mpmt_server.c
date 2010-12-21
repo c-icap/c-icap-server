@@ -78,6 +78,7 @@ child_shared_data_t *child_data;
 struct connections_queue *con_queue;
 /*Child shutdown timeout is 10 seconds:*/
 const int CHILD_SHUTDOWN_TIMEOUT = 10;
+int CHILD_HALT = 0;
 
 /*Interprocess accepting mutex ....*/
 ci_proc_mutex_t accept_mutex;
@@ -235,6 +236,10 @@ static void cancel_all_threads()
      ci_usleep(1000);
      servers_running = START_SERVERS;
      while (servers_running && wait_for_workers >= 0) {
+         /*child_data->to_be_killed, may change while we are inside this loop*/
+         if (child_data->to_be_killed == IMMEDIATELY) {
+             CHILD_HALT = 1;
+         }
          for (i=0; i<START_SERVERS; i++) {
              if (threads_list[i] != NULL) { /* if the i thread is still alive*/
                  if (!threads_list[i]->running) { /*if the i thread is not running any more*/

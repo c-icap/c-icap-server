@@ -39,6 +39,10 @@
 
 extern int TIMEOUT;
 
+/*This variable defined in mpm_server.c and become 1 when the child must 
+  halt imediatelly:*/
+extern int CHILD_HALT;
+
  /**/
     void send_headers_block(ci_request_t * req, ci_headers_list_t * responce_head);
 
@@ -73,6 +77,25 @@ void request_stats_init()
   STAT_HTTP_BYTES_OUT = ci_stat_entry_register("HTTP BYTES OUT", STAT_KBS_T, "General");
   STAT_BODY_BYTES_IN = ci_stat_entry_register("BODY BYTES IN", STAT_KBS_T, "General");
   STAT_BODY_BYTES_OUT = ci_stat_entry_register("BODY BYTES OUT", STAT_KBS_T, "General");
+}
+
+int wait_for_data(ci_socket fd, int secs, int what_wait)
+{
+    int wait_status;
+
+    /*if we are going down do not wait....*/
+    if (CHILD_HALT) 
+        return CI_ERROR;
+
+    do {
+        wait_status =ci_wait_for_data(fd, secs, what_wait);
+        if (wait_status < 0)
+            return CI_ERROR;
+        if (wait_status == 0 && CHILD_HALT) /*abort*/
+            return CI_ERROR;
+    } while (wait_status == 0);
+
+    return wait_status;
 }
 
 ci_request_t *newrequest(ci_connection_t * connection)
@@ -144,14 +167,18 @@ int icap_header_check_realloc(char **buf, int *size, int used, int mustadded)
 int ci_read_icap_header(ci_request_t * req, ci_headers_list_t * h, int timeout)
 {
      int bytes, request_status = 0, i, eoh = 0, startsearch = 0, readed = 0;
+     int wait_status;
      char *buf_end;
 
      buf_end = h->buf;
      readed = 0;
+     bytes = 0;
 
-     while ((bytes =
-             ci_read(req->connection->fd, buf_end, ICAP_HEADER_READSIZE,
-                     timeout)) > 0) {
+     while ((wait_status = wait_for_data(req->connection->fd, timeout, wait_for_read)) != CI_ERROR) {
+         bytes = ci_read_nonblock(req->connection->fd, buf_end, ICAP_HEADER_READSIZE);
+         if (bytes <= 0)
+             return CI_ERROR;
+
           readed += bytes;
           req->bytes_in += bytes;
           for (i = startsearch; i < bytes - 3; i++) {   /*search for end of header.... */
@@ -172,8 +199,8 @@ int ci_read_icap_header(ci_request_t * req, ci_headers_list_t * h, int timeout)
           if (startsearch > -3)
                startsearch = (readed > 3 ? -3 : -readed);       /*Including the last 3 char ellements ....... */
      }
-     if (bytes < 0)
-          return bytes;
+     if (wait_status == CI_ERROR)
+          return CI_ERROR;
      h->bufused = buf_end - h->buf;     /* -1 ; */
      req->pstrblock_read = buf_end + 2; /*after the \r\n\r\n. We keep the first \r\n and the other dropped.... */
      req->pstrblock_read_len = readed - h->bufused - 2; /*the 2 of the 4 characters \r\n\r\n and the '\0' character */
@@ -207,9 +234,10 @@ int read_encaps_header(ci_request_t * req, ci_headers_list_t * h, int size)
 
      remains = size - readed;
      while (remains > 0) {
-          if ((bytes =
-               ci_read(req->connection->fd, buf_end, remains, TIMEOUT)) < 0)
-               return bytes;
+          if (wait_for_data(req->connection->fd, TIMEOUT, wait_for_read) == CI_ERROR)
+               return CI_ERROR;
+          if ((bytes = ci_read_nonblock(req->connection->fd, buf_end, remains)) <= 0)
+               return CI_ERROR;
           remains -= bytes;
           buf_end += bytes;
           req->bytes_in += bytes;
@@ -394,8 +422,9 @@ int read_preview_data(ci_request_t * req)
      req->write_to_module_pending = 0;
 
      if (req->pstrblock_read_len == 0) {
-          if (!ci_wait_for_incomming_data(req->connection->fd, TIMEOUT))
-               return CI_ERROR;
+         if(wait_for_data(req->connection->fd, TIMEOUT, wait_for_read) < 0)
+             return CI_ERROR;
+             
           if (net_data_read(req) == CI_ERROR)
                return CI_ERROR;
      }
@@ -424,7 +453,7 @@ int read_preview_data(ci_request_t * req)
                }
           } while (ret != CI_NEEDS_MORE);
 
-          if (!ci_wait_for_incomming_data(req->connection->fd, TIMEOUT))
+          if (wait_for_data(req->connection->fd, TIMEOUT, wait_for_read) < 0)
                return CI_ERROR;
           if (net_data_read(req) == CI_ERROR)
                return CI_ERROR;
@@ -549,6 +578,12 @@ int send_current_block_data(ci_request_t * req)
           ci_debug_printf(5, "Error writing to server (errno:%d)", errno);
           return CI_ERROR;
      }
+
+     if (bytes == 0) {
+         ci_debug_printf(5, "Can not write to the client. Is the connection closed?");
+         return CI_ERROR;
+     }
+
      req->pstrblock_responce += bytes;
      req->remain_send_block_bytes -= bytes;
      req->bytes_out += bytes;
@@ -716,8 +751,8 @@ int get_send_body(ci_request_t * req, int parse_only)
                                (action & wait_for_write ? "Write" : "-")
                    );
                if ((ret =
-                    ci_wait_for_data(req->connection->fd, TIMEOUT,
-                                     action)) <= 0)
+                    wait_for_data(req->connection->fd, TIMEOUT,
+                                     action)) < 0)
                     break;
                if (ret & wait_for_read) {
                     if (net_data_read(req) == CI_ERROR)
@@ -859,8 +894,8 @@ int rest_responce(ci_request_t * req)
      do {
           while (req->remain_send_block_bytes > 0) {
                if ((ret =
-                    ci_wait_for_data(req->connection->fd, TIMEOUT,
-                                     wait_for_write)) <= 0) {
+                    wait_for_data(req->connection->fd, TIMEOUT,
+                                     wait_for_write)) < 0) {
                     ci_debug_printf(1,
                                     "Timeout sending data. Ending .......\n");
                     return CI_ERROR;
@@ -1018,8 +1053,8 @@ void options_responce(ci_request_t * req)
      req->remain_send_block_bytes = head->bufused;
 
      do {
-          if ((ci_wait_for_data(req->connection->fd, TIMEOUT, wait_for_write))
-              <= 0) {
+          if ((wait_for_data(req->connection->fd, TIMEOUT, wait_for_write))
+              < 0) {
                ci_debug_printf(3, "Timeout sending data. Ending .......\n");
                return;
           }
