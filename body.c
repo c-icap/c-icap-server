@@ -120,6 +120,47 @@ int ci_membuf_read(struct ci_membuf *b, char *data, int len)
      return copybytes;
 }
 
+/****/
+int do_write(int fd, const void *buf, size_t count) {
+    int bytes;
+    errno = 0;
+    do {
+        bytes = write(fd, buf, count);
+    }while ( bytes < 0 && errno == EINTR);
+
+    return bytes;
+}
+
+int do_read(int fd, void *buf, size_t count) {
+    int bytes;
+    errno = 0;
+    do {
+        bytes = read(fd, buf, count);
+    }while ( bytes < 0 && errno == EINTR);
+
+    return bytes;
+}
+
+#ifdef _WIN32
+#define F_PERM S_IREAD|S_IWRITE
+#else
+#define F_PERM S_IREAD|S_IWRITE|S_IRGRP|S_IROTH
+#endif
+
+int do_open(const char *pathname, int flags) {
+    int fd;
+    errno = 0;
+    do {
+        fd = open(pathname, flags, F_PERM);
+    } while ( fd < 0 && errno == EINTR);
+
+    return fd;
+}
+
+void do_close(int fd) {
+    errno = 0;
+    while (close(fd) < 0 && errno == EINTR);
+}
 
 /**************************************************************************/
 /*                                                                        */
@@ -195,18 +236,11 @@ ci_cached_file_t *ci_cached_file_new(int size)
      return body;
 }
 
-
-#ifdef _WIN32
-#define F_PERM S_IREAD|S_IWRITE
-#else
-#define F_PERM S_IREAD|S_IWRITE|S_IRGRP|S_IROTH
-#endif
-
 void ci_cached_file_reset(ci_cached_file_t * body, int new_size)
 {
 
      if (body->fd > 0) {
-          close(body->fd);
+          do_close(body->fd);
           unlink(body->filename);       /*Comment out for debuging reasons */
      }
 
@@ -231,7 +265,7 @@ void ci_cached_file_destroy(ci_cached_file_t * body)
           free(body->buf);
 
      if (body->fd >= 0) {
-          close(body->fd);
+          do_close(body->fd);
           unlink(body->filename);       /*Comment out for debuging reasons */
      }
 
@@ -247,7 +281,7 @@ void ci_cached_file_release(ci_cached_file_t * body)
           free(body->buf);
 
      if (body->fd >= 0) {
-          close(body->fd);
+          do_close(body->fd);
      }
      free(body);
 }
@@ -271,7 +305,7 @@ int ci_cached_file_write(ci_cached_file_t * body, char *buf, int len, int iseof)
 
      if (body->fd > 0) {        /*A file was open so write the data at the end of file....... */
           lseek(body->fd, 0, SEEK_END);
-          if ((ret = write(body->fd, buf, len)) < 0) {
+          if ((ret = do_write(body->fd, buf, len)) < 0) {
                ci_debug_printf(1, "Cannot write to file!!! (errno=%d)\n",
                                errno);
           }
@@ -290,8 +324,8 @@ int ci_cached_file_write(ci_cached_file_t * body, char *buf, int len, int iseof)
                                body->filename);
                return -1;
           }
-          ret = write(body->fd, body->buf, body->endpos);
-	  if( ret>=0 && write(body->fd, buf, len) >=0 ) {
+          ret = do_write(body->fd, body->buf, body->endpos);
+	  if( ret>=0 && do_write(body->fd, buf, len) >=0 ) {
 	      body->endpos += len;
 	      return len;
 	  }
@@ -335,7 +369,7 @@ int ci_cached_file_read(ci_cached_file_t * body, char *buf, int len)
           bytes = (remains > len ? len : remains);      /*Number of bytes that we are going to read from file..... */
 
           lseek(body->fd, body->readpos, SEEK_SET);
-          if ((bytes = read(body->fd, buf, bytes)) > 0)
+          if ((bytes = do_read(body->fd, buf, bytes)) > 0)
                body->readpos += bytes;
           return bytes;
      }
@@ -402,7 +436,7 @@ ci_simple_file_t *ci_simple_file_named_new(char *dir, char *filename,ci_off_t ma
      if (filename) {
           snprintf(body->filename, CI_FILENAME_LEN, "%s/%s", dir, filename);
           if ((body->fd =
-               open(body->filename, O_CREAT | O_RDWR | O_EXCL, F_PERM)) < 0) {
+               do_open(body->filename, O_CREAT | O_RDWR | O_EXCL)) < 0) {
                ci_debug_printf(1, "Can not open temporary filename: %s\n",
                                body->filename);
                free(body);
@@ -435,7 +469,7 @@ void ci_simple_file_destroy(ci_simple_file_t * body)
           return;
 
      if (body->fd >= 0) {
-          close(body->fd);
+          do_close(body->fd);
           unlink(body->filename);       /*Comment out for debuging reasons */
      }
 
@@ -449,7 +483,7 @@ void ci_simple_file_release(ci_simple_file_t * body)
           return;
 
      if (body->fd >= 0) {
-          close(body->fd);
+          do_close(body->fd);
      }
 
      free(body);
@@ -494,7 +528,7 @@ int ci_simple_file_write(ci_simple_file_t * body, char *buf, int len, int iseof)
      }
 
      lseek(body->fd, body->endpos, SEEK_SET);
-     if ((ret = write(body->fd, buf, wsize)) < 0) {
+     if ((ret = do_write(body->fd, buf, wsize)) < 0) {
 	 ci_debug_printf( 1, "Cannot write to file: %s\n", strerror( errno ) );
      }
      else {
@@ -552,7 +586,7 @@ int ci_simple_file_read(ci_simple_file_t * body, char *buf, int len)
 
      bytes = (remains > len ? len : remains);   /*Number of bytes that we are going to read from file..... */
      lseek(body->fd, body->readpos, SEEK_SET);
-     if ((bytes = read(body->fd, buf, bytes)) > 0) {
+     if ((bytes = do_read(body->fd, buf, bytes)) > 0) {
           body->readpos += bytes;
 	  body->bytes_out += bytes;
      }
