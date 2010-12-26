@@ -331,8 +331,8 @@ serial_allocator_t *serial_allocator_build(int size)
      serial_alloc = malloc(sizeof(serial_allocator_t));
      if (!serial_alloc)
           return NULL;
-     if (size % 4)
-          size = (size / 4 + 1) * 4;
+
+     size = _CI_ALIGN(size);
      serial_alloc->memchunk = malloc(size);
      if (!serial_alloc->memchunk) {
           free(serial_alloc);
@@ -353,9 +353,7 @@ void *serial_allocator_alloc(ci_mem_allocator_t *allocator,size_t size)
      if(!serial_alloc)
        return NULL;
 
-     if (size % 4)              /*round size to a multiple of 4 */
-          size = (size / 4 + 1) * 4;
-
+     size = _CI_ALIGN(size); /*round size to a correct alignment size*/
      max_size = serial_alloc->endpos - serial_alloc->memchunk;
      if (size > max_size)
           return NULL;
@@ -443,9 +441,7 @@ void *pack_allocator_alloc(ci_mem_allocator_t *allocator,size_t size)
      if(!pack_alloc)
        return NULL;
 
-     if (size % 4)              /*round size to a multiple of 4 */
-          size = (size / 4 + 1) * 4;
-
+     size = _CI_ALIGN(size); /*round size to a correct alignment size*/
      max_size = pack_alloc->endpos - pack_alloc->curpos;
 
      if (size > max_size)
