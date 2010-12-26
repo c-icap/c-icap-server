@@ -29,10 +29,11 @@ struct stat_groups_list STAT_GROUPS = {NULL, 0, 0};;
 struct stat_area *STATS = NULL;
 
 #define STEP 128
+#define _CI_ALIGN(val) ((val+7)&~7)
 
 int ci_stat_memblock_size(void)
 {
-   return sizeof(struct stat_memblock)+STAT_INT64.entries_num*sizeof(uint64_t)+STAT_KBS.entries_num*sizeof(kbs_t);
+   return _CI_ALIGN(sizeof(struct stat_memblock))+STAT_INT64.entries_num*sizeof(uint64_t)+STAT_KBS.entries_num*sizeof(kbs_t);
 }
 
 int stat_entry_by_name(struct stat_entry_list *list, const char *label);
@@ -202,8 +203,8 @@ struct stat_area *ci_stat_area_construct(void *mem_block, int size, void (*relea
      ci_thread_mutex_init(&(area->mtx));
      area->mem_block = mem_block;
      area->release_mem = release_mem;
-     area->mem_block->counters64 = mem_block + sizeof(struct stat_memblock);
-     area->mem_block->counterskbs = mem_block + sizeof(struct stat_memblock) + STAT_INT64.entries_num*sizeof(uint64_t);
+     area->mem_block->counters64 = mem_block + _CI_ALIGN(sizeof(struct stat_memblock));
+     area->mem_block->counterskbs = mem_block + _CI_ALIGN(sizeof(struct stat_memblock)) + STAT_INT64.entries_num*sizeof(uint64_t);
      area->mem_block->counters64_size =  STAT_INT64.entries_num;
      area->mem_block->counterskbs_size = STAT_KBS.entries_num;
      ci_stat_area_reset(area);
@@ -267,17 +268,17 @@ void stat_memblock_fix(struct stat_memblock *mem_block)
      assert(mem_block->sig == MEMBLOCK_SIG);
      mem_block->counters64_size =  STAT_INT64.entries_num;
      mem_block->counterskbs_size = STAT_KBS.entries_num;
-     mem_block->counters64 = (void *)mem_block + sizeof(struct stat_memblock);
-     mem_block->counterskbs = (void *)mem_block + sizeof(struct stat_memblock)
-                              + mem_block->counters64_size*sizeof(uint64_t);
+     mem_block->counters64 = (void *)mem_block + _CI_ALIGN(sizeof(struct stat_memblock));
+     mem_block->counterskbs = (void *)mem_block + _CI_ALIGN(sizeof(struct stat_memblock))
+                               + mem_block->counters64_size*sizeof(uint64_t);
 }
 
 /*Reconstruct a memblock which is located to a continues memory block*/
 void stat_memblock_reconstruct(struct stat_memblock *mem_block)
 {
      assert(mem_block->sig == MEMBLOCK_SIG);
-     mem_block->counters64 = (void *)mem_block + sizeof(struct stat_memblock);
-     mem_block->counterskbs = (void *)mem_block + sizeof(struct stat_memblock)
+     mem_block->counters64 = (void *)mem_block + _CI_ALIGN(sizeof(struct stat_memblock));
+     mem_block->counterskbs = (void *)mem_block + _CI_ALIGN(sizeof(struct stat_memblock))
                               + mem_block->counters64_size*sizeof(uint64_t);
 }
 
