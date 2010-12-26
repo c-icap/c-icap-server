@@ -556,7 +556,7 @@ int net_data_read(ci_request_t * req)
      }
 
      if ((bytes = ci_read_nonblock(req->connection->fd, req->rbuf + req->pstrblock_read_len, bytes)) <= 0) {    /*... read some data... */
-          ci_debug_printf(5, "Error reading data (read return=%d) \n", bytes);
+          ci_debug_printf(5, "Error reading data (read return=%d, errno=%d) \n", bytes, errno);
           return CI_ERROR;
      }
      req->pstrblock_read_len += bytes;  /* ... (size of data is readed plus old )... */
