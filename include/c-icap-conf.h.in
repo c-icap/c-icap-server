@@ -45,28 +45,65 @@
 #define __INTTYPES_H_EXISTS
 #endif
 
-#define CI_SIZEOF_OFF_T @DEFINE_SIZE_OFF_T@
+/*
+ The 64 bit data models as described by wikipedia are:
+   Data model       short  int      long   long long      pointers/size_t
+   LLP64             16    32       32       64                64 
+   LP64              16    32       64       64                64
+   ILP64             16    64       64       64                64
+   SILP64            64    64       64       64                64
 
-/* Define to `long int' if <sys/types.h> does not define. */
+ On most 32bit and 64bit unix machines, 'short' is always 16bit, 'int' is 32bit
+ long is 32bit or 64bit respectively and long long is always 64bit.
+ We are going to define:
+      off_t as long on 32bit machines and long long on 64bit (sizeof(void*)==8) 
+      size_t as long on 32bit machines and long long on 64bit
+
+  The c-icap should not use int32_t/uint32_t/int16_t/uint16_t types
+*/
+
+#define CI_SIZEOF_VOID_P @DEFINE_SIZE_VOID_P@
+
+/* typedef off_t  if <sys/types.h> does not define. */
 #if @DEFINE_OFF_T@
-#define off_t long int
+#if CI_SIZEOF_VOID_P == 8
+typedef long long off_t;
+#define CI_SIZEOF_OFF_T 8
+#elif CI_SIZEOF_VOID_P == 4
+typedef long off_t;
+#define CI_SIZEOF_OFF_T 4
+#else 
+#error "Unhandled size of void *"
+#endif
+#else /*if @DEFINE_OFF_T@*/
+#define CI_SIZEOF_OFF_T @DEFINE_SIZE_OFF_T@
 #endif
 
-/* Define to `unsigned int' if <sys/types.h> does not define. */
+/* typedef size_t if <sys/types.h> does not define. */
 #if @DEFINE_SIZE_T@
-#define size_t unsigned int
+#if SIZEOF_VOID_P == 8
+typedef unsigned long long size_t;
+#elif SIZEOF_VOID_P == 4
+typedef unsigned int size_t;
+#else 
+#error "Unhandled size of void *"
 #endif
-
-#if @DEFINE_UINT16@
-#define uint16_t unsigned short
-#endif
-
-#if @DEFINE_UINT32@
-#define uint32_t unsigned int
 #endif
 
 #if @DEFINE_UINT8@
-#define uint8_t unsigned char
+typedef unsigned char uint8_t;
+#endif
+
+#if @DEFINE_INT8@
+typedef char int8_t;
+#endif
+
+#if @DEFINE_UINT64@
+typedef unsigned long long uint64_t;
+#endif
+
+#if @DEFINE_INT64@
+typedef long long int64_t;
 #endif
 
 #endif
