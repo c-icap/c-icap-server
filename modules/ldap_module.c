@@ -503,7 +503,7 @@ void *read_val(void *val, int val_size, ci_mem_allocator_t *allocator)
 #if SIZEOF_VOID_P == 8
 	*indx = (char *) ((uint64_t)*indx+(uint64_t)data);
 #else
-	*indx = (char *) ((uint32_t)*indx+(uint32_t)data);
+	*indx = (char *) ((unsigned int)*indx+(unsigned int)data);
 #endif
 	indx++;
     }
