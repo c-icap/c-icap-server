@@ -515,11 +515,18 @@ void *ldap_table_open(struct ci_lookup_table *table)
 {
     char *path;
     struct ldap_table_data *ldapdata;
+    int use_cache = 1;
     
     path = strdup(table->path);
     if (!path) {
        ci_debug_printf(1, "ldap_table_open: error allocating memory!\n");
        return NULL;
+    }
+
+    if (table->args) {
+        if(strstr(table->args, "cache=no")) {
+            use_cache = 0;
+        }
     }
 
     ldapdata = malloc(sizeof(struct ldap_table_data));

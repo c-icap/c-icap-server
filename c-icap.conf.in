@@ -623,7 +623,7 @@ Service echo srv_echo.so
 # Description:
 #	Add LDAP support to c-icap. The user can use LDAP based lookup tables
 #	using the following lookup table path:
-#	      ldap://[username:password@]ldapserver?base?attr1,attr2?filter
+#	      ldap://[username:password@]ldapserver?base?attr1,attr2?filter[{[cache=no]}]
 #	The filter can contain the "%s" formating code which will be replaced by
 #	the search key
 #	Examples of supported ldap urls:
