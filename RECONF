@@ -2,5 +2,6 @@ echo `date +"%d%m%y"` > VERSION.m4
 aclocal
 autoconf
 autoheader
-cp /usr/share/libtool/ltmain.sh .
+#cp /usr/share/libtool/ltmain.sh .
+libtoolize  --copy --automake  -f
 automake --add-missing --copy
