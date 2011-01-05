@@ -1071,6 +1071,7 @@ void options_responce(ci_request_t * req)
 
 int do_request(ci_request_t * req)
 {
+     ci_service_xdata_t *srv_xdata = NULL;
      int res, preview_status = 0, auth_status = CI_ACCESS_ALLOW;
      int ret_status = CI_OK; /*By default ret_status is CI_OK, on error must set to CI_ERROR*/
      res = parse_header(req);
@@ -1082,6 +1083,12 @@ int do_request(ci_request_t * req)
           ci_debug_printf(5, "Error %d while parsing headers :(%d)\n",
 			  res ,req->request_header->bufused);
           return CI_ERROR;
+     }
+     assert(req->current_service_mod);
+     srv_xdata = service_data(req->current_service_mod);
+     if (!srv_xdata || srv_xdata->status != CI_SERVICE_OK) {
+         ci_debug_printf(2, "Service %s not initialized\n", req->current_service_mod->mod_name);
+         ec_responce(req, EC_500);
      }
 
      auth_status = req->access_type;
@@ -1099,13 +1106,6 @@ int do_request(ci_request_t * req)
 
      if (res == EC_100)
           res = parse_encaps_headers(req);
-
-     if (!req->current_service_mod) {
-          ci_debug_printf(1, "Service not found\n");
-          ec_responce(req, EC_404);
-	  req->return_code = EC_404;
-          return CI_ERROR;
-     }
 
      if (req->current_service_mod->mod_init_request_data)
           req->service_data =

@@ -57,6 +57,10 @@ struct ci_request;
 
 typedef struct  ci_service_module ci_service_module_t;
 
+enum SERVICE_STATUS {CI_SERVICE_NOT_INITIALIZED=-1, 
+                     CI_SERVICE_OK=0,  
+                     CI_SERVICE_ERROR=1
+};
 
 /**
  \typedef  ci_service_xdata_t
@@ -65,6 +69,7 @@ typedef struct  ci_service_module ci_service_module_t;
  */
 typedef struct ci_service_xdata {
      ci_thread_rwlock_t lock;
+     int status;
      struct ci_conf_entry *intl_srv_conf_table;
      uint64_t xopts;
      char ISTag[SRV_ISTAG_SIZE+1];

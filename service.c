@@ -215,6 +215,7 @@ void init_extra_data(ci_service_xdata_t * srv_xdata, char *service)
      srv_xdata->allow_204 = 0;
      srv_xdata->max_connections = 0;
      srv_xdata->xopts = 0;
+     srv_xdata->status = CI_SERVICE_NOT_INITIALIZED;
 
      snprintf(stat_group, 1023, "Service %s", service);
      stat_group[1023] = '\0';
@@ -261,6 +262,7 @@ ci_service_module_t *add_service(ci_service_module_t *service)
 {
      struct ci_service_xdata *xdata=NULL;
      struct ci_conf_entry *cfg_table;
+     int ret;
 
      if (service_list == NULL) {
           service_list_size = STEP;
@@ -287,8 +289,15 @@ ci_service_module_t *add_service(ci_service_module_t *service)
 
      xdata = &service_extra_data_list[services_num];
      init_extra_data(xdata, service->mod_name);
-     if (service->mod_init_service)
-          service->mod_init_service(xdata, &CONF);
+     if (service->mod_init_service) {
+          ret = service->mod_init_service(xdata, &CONF);
+          if (ret != CI_OK)
+               xdata->status = CI_SERVICE_ERROR;
+          else
+               xdata->status = CI_SERVICE_OK;
+     }
+     else
+          xdata->status = CI_SERVICE_OK;
 
      service_list[services_num++] = service;
 
@@ -355,11 +364,17 @@ int init_services()
 
 int post_init_services()
 {
-     int i;
+     int i, ret;
+     ci_service_xdata_t *xdata;
      for (i = 0; i < services_num; i++) {
           if (service_list[i]->mod_post_init_service != NULL) {
-               service_list[i]->
-                   mod_post_init_service(&service_extra_data_list[i], &CONF);
+               xdata = &service_extra_data_list[i];
+               if ( xdata->status == CI_SERVICE_OK) {
+                    ret = service_list[i]->
+                        mod_post_init_service(xdata, &CONF);
+                    if (ret != CI_OK)
+                        xdata->status = CI_SERVICE_ERROR;
+               }
           }
      }
      return 1;
