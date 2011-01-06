@@ -191,8 +191,8 @@ void fill_queue_statistics(struct childs_queue *q, struct info_req_data *info_da
 	       stats = q->stats_area + i * (q->stats_block_size);
 	       copy_stats.counters64_size = stats->counters64_size;
 	       copy_stats.counterskbs_size = stats->counterskbs_size;
-	       copy_stats.counters64 = (void *)stats + sizeof(struct stat_memblock);
-	       copy_stats.counterskbs = (void *)stats + sizeof(struct stat_memblock) 
+	       copy_stats.counters64 = (void *)stats + _CI_ALIGN(sizeof(struct stat_memblock));
+	       copy_stats.counterskbs = (void *)stats + _CI_ALIGN(sizeof(struct stat_memblock)) 
 		 + stats->counters64_size*sizeof(uint64_t);
 
 	       ci_stat_memblock_merge(info_data->collect_stats, &copy_stats);
@@ -204,8 +204,8 @@ void fill_queue_statistics(struct childs_queue *q, struct info_req_data *info_da
      stats = q->stats_area + q->size * q->stats_block_size;
      copy_stats.counters64_size = stats->counters64_size;
      copy_stats.counterskbs_size = stats->counterskbs_size;
-     copy_stats.counters64 = (void *)stats + sizeof(struct stat_memblock);
-     copy_stats.counterskbs = (void *)stats + sizeof(struct stat_memblock) 
+     copy_stats.counters64 = (void *)stats + _CI_ALIGN(sizeof(struct stat_memblock));
+     copy_stats.counterskbs = (void *)stats + _CI_ALIGN(sizeof(struct stat_memblock)) 
        + stats->counters64_size*sizeof(uint64_t);
 
      ci_stat_memblock_merge(info_data->collect_stats, &copy_stats);     
