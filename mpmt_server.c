@@ -41,6 +41,10 @@
 #include "cfg_param.h"
 #include "commands.h"
 
+#define MULTICHILD
+//#undef MULTICHILD
+
+
 extern int KEEPALIVE_TIMEOUT;
 extern int MAX_KEEPALIVE_REQUESTS;
 extern int MAX_SECS_TO_LINGER;
@@ -185,7 +189,9 @@ void thread_signals(int islistener)
 
 static void exit_normaly()
 {
+#ifdef MULTICHILD
      dettach_childs_queue(childs_queue);
+#endif
      system_shutdown();
 }
 
@@ -877,9 +883,6 @@ void child_main(int sockfd, int pipefd)
 /*****************************************************************************************/
 /*Main process functions                                                                 */
 
-#define MULTICHILD
-//#undef MULTICHILD
-
 int start_child(int fd)
 {
      int pid;
@@ -1105,6 +1108,8 @@ int start_server()
      child_data->stats->sig = MEMBLOCK_SIG;
      ci_stat_attach_mem(child_data->stats, child_data->stats_size, NULL);
      child_main(LISTEN_SOCKET, 0);
+     ci_proc_mutex_destroy(&accept_mutex);
+     destroy_childs_queue(childs_queue);
 #endif
      return 1;
 }
