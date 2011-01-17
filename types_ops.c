@@ -38,21 +38,21 @@ void *stringdup(const char *str, ci_mem_allocator_t *allocator)
     return new_s;
 }
 
-int stringcmp(void *key1,void *key2)
+int stringcmp(const void *key1,const void *key2)
 {
     if (!key2)
         return -1;
-    return strcmp((char *)key1,(char *)key2);
+    return strcmp((const char *)key1,(const char *)key2);
 }
 
-int stringequal(void *key1,void *key2)
+int stringequal(const void *key1,const void *key2)
 {
     if (!key2)
         return 0;
-    return strcmp((char *)key1,(char *)key2)==0;
+    return strcmp((const char *)key1,(const char *)key2)==0;
 }
 
-size_t stringlen(void *key)
+size_t stringlen(const void *key)
 {
     return strlen((const char *)key)+1;
 }
@@ -70,26 +70,26 @@ ci_type_ops_t  ci_str_ops = {
     stringequal,
 };
 
-int string_ext_cmp(void *key1,void *key2)
+int string_ext_cmp(const void *key1,const void *key2)
 {
     if (!key2)
         return -1;
 
-    if (strcmp(key1, "*") == 0)
+    if (strcmp((const char *)key1, "*") == 0)
 	return 0;
 
-    return strcmp((char *)key1,(char *)key2);
+    return strcmp((const char *)key1,(const char *)key2);
 }
 
-int string_ext_equal(void *key1,void *key2)
+int string_ext_equal(const void *key1,const void *key2)
 {
     if (!key2)
         return 0;
 
-    if (strcmp(key1, "*") == 0)
+    if (strcmp((const char *)key1, "*") == 0)
 	return 1;
 
-    return strcmp((char *)key1,(char *)key2)==0;
+    return strcmp((const char *)key1,(const char *)key2)==0;
 }
 
 
@@ -111,17 +111,17 @@ void *int32_dup(const char *str, ci_mem_allocator_t *allocator)
     return (void *)i;
 }
 
-int int32_cmp(void *key1,void *key2)
+int int32_cmp(const void *key1,const void *key2)
 {
     return (key1-key2);
 }
 
-int int32_equal(void *key1,void *key2)
+int int32_equal(const void *key1,const void *key2)
 {
     return key1 == key2;
 }
 
-size_t int32_len(void *key)
+size_t int32_len(const void *key)
 {
     return (size_t)4;
 }
@@ -218,7 +218,7 @@ void *regex_dup(const char *str, ci_mem_allocator_t *allocator)
     return reg;
 }
 
-int regex_cmp(void *key1,void *key2)
+int regex_cmp(const void *key1, const void *key2)
 {
     regmatch_t pmatch[1];
     struct ci_regex *reg=(struct ci_regex *)key1;
@@ -227,16 +227,16 @@ int regex_cmp(void *key1,void *key2)
     return regexec(&reg->preg, (char *)key2, 1, pmatch, 0);
 }
 
-int regex_equal(void *key1,void *key2)
+int regex_equal(const void *key1, const void *key2)
 {
     regmatch_t pmatch[1];
     struct ci_regex *reg=(struct ci_regex *)key1;
     if (!key2)
         return 0;
-    return regexec(&reg->preg, (char *)key2, 1, pmatch, 0)==0;
+    return regexec(&reg->preg, (const char *)key2, 1, pmatch, 0)==0;
 }
 
-size_t regex_len(void *key)
+size_t regex_len(const void *key)
 {
     return strlen(((const struct ci_regex *)key)->str);
 }
@@ -279,7 +279,7 @@ void *datatype_dup(const char *str, ci_mem_allocator_t *allocator)
     return (void *)val;
 }
 
-int datatype_cmp(void *key1, void *key2)
+int datatype_cmp(const void *key1, const void *key2)
 {
     unsigned int type = *(unsigned int *)key1;
 
@@ -297,7 +297,7 @@ int datatype_cmp(void *key1, void *key2)
     }
 }
 
-int datatype_equal(void *key1, void *key2)
+int datatype_equal(const void *key1, const void *key2)
 {
     unsigned int type = *(unsigned int *)key1;
 
@@ -315,7 +315,7 @@ int datatype_equal(void *key1, void *key2)
     }
 }
 
-size_t datatype_len(void *key)
+size_t datatype_len(const void *key)
 {
     return sizeof(unsigned int);
 }
@@ -464,19 +464,19 @@ void ip_free(void *data, ci_mem_allocator_t *allocator) {
     allocator->free(allocator, data);
 }
 
-size_t ip_len(void *key)
+size_t ip_len(const void *key)
 {
     return sizeof(ci_ip_t);
 }
 
-int ip_cmp(void *ref_key, void *key_check) {
+int ip_cmp(const void *ref_key, const void *key_check) {
     /*Not implemented*/
     return 0;
 }
 
-int ip_equal(void *ref_key, void *key_check) {
-    const ci_ip_t *ip_ref = (ci_ip_t *)ref_key;
-    ci_ip_t *ip_check = (ci_ip_t *)key_check;
+int ip_equal(const void *ref_key, const void *key_check) {
+    const ci_ip_t *ip_ref = (const ci_ip_t *)ref_key;
+    const ci_ip_t *ip_check = (const ci_ip_t *)key_check;
     char buf[128],buf1[128],buf2[128];
 
     if (!ip_check)
@@ -505,14 +505,14 @@ int ip_equal(void *ref_key, void *key_check) {
 
 }
 
-int ip_sockaddr_cmp(void *ref_key, void *key_check) {
+int ip_sockaddr_cmp(const void *ref_key, const void *key_check) {
     /*Not implemented*/
     return 1;
 }
 
-int ip_sockaddr_equal(void *ref_key, void *key_check) {
-    const ci_ip_t *ip_ref = (ci_ip_t *)ref_key;
-    ci_sockaddr_t *ip_check = (ci_sockaddr_t *)key_check;
+int ip_sockaddr_equal(const void *ref_key, const void *key_check) {
+    const ci_ip_t *ip_ref = (const ci_ip_t *)ref_key;
+    const ci_sockaddr_t *ip_check = (const ci_sockaddr_t *)key_check;
     char buf[128],buf1[128],buf2[128];
 
     if (!ip_check)

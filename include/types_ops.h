@@ -26,9 +26,9 @@
 typedef struct ci_type_ops {
     void *(*dup)(const char *, ci_mem_allocator_t *);
     void (*free)(void *key, ci_mem_allocator_t *);
-    int (*compare)(void *ref_key,void *check_key);
-    size_t (*size)(void *key);
-    int (*equal)(void *ref_key,void *check_key);
+    int (*compare)(const void *ref_key,const void *check_key);
+    size_t (*size)(const void *key);
+    int (*equal)(const void *ref_key,const void *check_key);
 } ci_type_ops_t;
 
 CI_DECLARE_DATA extern ci_type_ops_t ci_str_ops;

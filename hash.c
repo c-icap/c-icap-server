@@ -22,10 +22,10 @@
 #include "debug.h"
 #include <assert.h>
 
-unsigned int ci_hash_compute(unsigned long hash_max_value, void *key, int len)
+unsigned int ci_hash_compute(unsigned long hash_max_value, const void *key, int len)
 {
     unsigned long hash = 5381;
-    unsigned char *s = key;
+    const unsigned char *s = key;
     int i;
     
     if(len) {
@@ -44,7 +44,7 @@ unsigned int ci_hash_compute(unsigned long hash_max_value, void *key, int len)
 }
 
 struct ci_hash_table * ci_hash_build(unsigned int hash_size, 
-				     ci_type_ops_t *ops, ci_mem_allocator_t *allocator)
+				     const ci_type_ops_t *ops, ci_mem_allocator_t *allocator)
 {
     struct ci_hash_table *htable;
     unsigned int new_hash_size;

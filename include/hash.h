@@ -35,14 +35,14 @@ struct ci_hash_entry {
 struct ci_hash_table { 
     struct ci_hash_entry **hash_table;
     unsigned int hash_table_size;
-    ci_type_ops_t *ops;
+    const ci_type_ops_t *ops;
     ci_mem_allocator_t *allocator;
 };
 
 
-CI_DECLARE_FUNC(unsigned int) ci_hash_compute(unsigned long hash_max_value, void *key, int len);
+CI_DECLARE_FUNC(unsigned int) ci_hash_compute(unsigned long hash_max_value, const void *key, int len);
 CI_DECLARE_FUNC(struct ci_hash_table *) ci_hash_build(unsigned int hash_size, 
-						      ci_type_ops_t *ops, 
+						      const ci_type_ops_t *ops, 
 						      ci_mem_allocator_t *allocator);
 CI_DECLARE_FUNC(void)   ci_hash_destroy(struct ci_hash_table *htable);
 CI_DECLARE_FUNC(const void *) ci_hash_search(struct ci_hash_table *htable,const void *key);
