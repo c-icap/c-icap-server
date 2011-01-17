@@ -46,7 +46,7 @@
 # elif defined(PATH_MAX)
 #   define CI_MAX_PATH     PATH_MAX
 # else
-#   define CI_MAX_PATH     256
+#   define CI_MAX_PATH     4096 
 # endif
 # define CI_FILENAME_LEN CI_MAX_PATH
 #endif
