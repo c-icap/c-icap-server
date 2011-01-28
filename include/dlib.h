@@ -37,12 +37,12 @@ extern "C"
 #define CI_DLIB_HANDLE HMODULE
 #endif
 
-CI_DECLARE_FUNC(CI_DLIB_HANDLE) ci_module_load(char *module_file, char *default_path);
-CI_DECLARE_FUNC(void *)         ci_module_sym(CI_DLIB_HANDLE handle,char *symbol);
-CI_DECLARE_FUNC(int)            ci_module_unload(CI_DLIB_HANDLE handle,char *name);
+CI_DECLARE_FUNC(CI_DLIB_HANDLE) ci_module_load(const char *module_file, const char *default_path);
+CI_DECLARE_FUNC(void *)         ci_module_sym(CI_DLIB_HANDLE handle,const char *symbol);
+CI_DECLARE_FUNC(int)            ci_module_unload(CI_DLIB_HANDLE handle,const char *name);
 
 /*Utility functions */
-CI_DECLARE_FUNC(int)            ci_dlib_entry(char *name,char *file, CI_DLIB_HANDLE handle);
+CI_DECLARE_FUNC(int)            ci_dlib_entry(const char *name,const char *file, CI_DLIB_HANDLE handle);
 
 #ifdef __cplusplus
 }

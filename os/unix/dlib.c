@@ -24,7 +24,7 @@
 
 #ifdef HAVE_DLFCN_H
 
-void *ci_module_load(char *module_file, char *default_path)
+void *ci_module_load(const char *module_file, const char *default_path)
 {
      char path[CI_MAX_PATH];
      void *handle;
@@ -56,13 +56,13 @@ void *ci_module_load(char *module_file, char *default_path)
      return handle;
 }
 
-void *ci_module_sym(void *handle, char *symbol)
+void *ci_module_sym(void *handle, const char *symbol)
 {
      return dlsym(handle, symbol);
 }
 
 
-int ci_module_unload(void *handle, char *name)
+int ci_module_unload(void *handle, const char *name)
 {
      int ret;
      ret = dlclose(handle);

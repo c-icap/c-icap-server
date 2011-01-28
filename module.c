@@ -66,7 +66,7 @@ static struct modules_list *modules_lists_table[] = {   /*Must follows the 'enum
 };
 
 
-void *load_module(char *module_file)
+void *load_module(const char *module_file)
 {
      void *module = NULL;
      CI_DLIB_HANDLE module_handle;
@@ -112,7 +112,7 @@ void *add_to_modules_list(struct modules_list *mod_list, void *module)
      return module;
 }
 
-static int module_type(char *type)
+static int module_type(const char *type)
 {
      if (strcmp(type, "service_handler") == 0) {
           return SERVICE_HANDLER;
@@ -206,7 +206,7 @@ static int init_module(void *module, enum module_type type)
 }
 
 
-logger_module_t *find_logger(char *name)
+logger_module_t *find_logger(const char *name)
 {
      logger_module_t *sh;
      int i;
@@ -219,7 +219,7 @@ logger_module_t *find_logger(char *name)
 
 }
 
-access_control_module_t *find_access_controller(char *name)
+access_control_module_t *find_access_controller(const char *name)
 {
      access_control_module_t *sh;
      int i;
@@ -231,7 +231,7 @@ access_control_module_t *find_access_controller(char *name)
      return NULL;
 }
 
-common_module_t *find_common(char *name)
+common_module_t *find_common(const char *name)
 {
      common_module_t *m;
      int i;
@@ -249,7 +249,7 @@ common_module_t *find_common(char *name)
 
 
 
-http_auth_method_t *find_auth_method(char *method)
+http_auth_method_t *find_auth_method(const char *method)
 {
      int i;
      for (i = 0; i < auth_methods.modules_num; i++) {
@@ -267,7 +267,7 @@ Also return an integer (method_id) which corresponds to a hash key points
 to an array with authenticators which can handle the authentication method.
  */
 
-http_auth_method_t *find_auth_method_id(char *method, int *method_id)
+http_auth_method_t *find_auth_method_id(const char *method, int *method_id)
 {
      int i;
      *method_id = 0;
@@ -283,7 +283,7 @@ http_auth_method_t *find_auth_method_id(char *method, int *method_id)
 }
 
 
-authenticator_module_t *find_authenticator(char *name)
+authenticator_module_t *find_authenticator(const char *name)
 {
      int i;
      for (i = 0; i < authenticators.modules_num; i++) {
@@ -298,7 +298,7 @@ authenticator_module_t *find_authenticator(char *name)
 }
 
 
-service_handler_module_t *find_servicehandler(char *name)
+service_handler_module_t *find_servicehandler(const char *name)
 {
      service_handler_module_t *sh;
      int i;
@@ -310,7 +310,7 @@ service_handler_module_t *find_servicehandler(char *name)
      return NULL;
 }
 
-void *find_module(char *name, int *type)
+void *find_module(const char *name, int *type)
 {
      void *mod;
      if ((mod = find_logger(name)) != NULL) {
@@ -347,7 +347,7 @@ struct module_tmp_struct{
     void *other_data;
 };
 
-void *register_module(char *module_file, char *type)
+void *register_module(const char *module_file, const char *type)
 {
      void *module = NULL;
      int mod_type;
@@ -379,10 +379,10 @@ void *register_module(char *module_file, char *type)
 }
 
 
-service_handler_module_t *find_servicehandler_by_ext(char *extension)
+service_handler_module_t *find_servicehandler_by_ext(const char *extension)
 {
      service_handler_module_t *sh;
-     char *s;
+     const char *s;
      int i, len_extension, len_s = 0, found = 0;
      len_extension = strlen(extension);
      for (i = 0; i < service_handlers.modules_num; i++) {
@@ -487,8 +487,8 @@ int check_to_add_method_id(struct auth_hash *hash, int method_id)
 }
 
 
-int methods_authenticators(struct auth_hash *hash, char *method_name,
-                           int method_id, char **argv)
+int methods_authenticators(struct auth_hash *hash, const char *method_name,
+                           int method_id, const char **argv)
 {
      int i, k, auths_num;
      authenticator_module_t **new_mem, *auth_mod;
@@ -530,7 +530,7 @@ int methods_authenticators(struct auth_hash *hash, char *method_name,
 }
 
 
-int set_method_authenticators(char *method_name, char **argv)
+int set_method_authenticators(const char *method_name, const char **argv)
 {
      int method_id;
      http_auth_method_t *method_mod;
@@ -545,7 +545,7 @@ int set_method_authenticators(char *method_name, char **argv)
 }
 
 
-http_auth_method_t *get_authentication_schema(char *method_name,
+http_auth_method_t *get_authentication_schema(const char *method_name,
                                               authenticator_module_t ***
                                               authenticators)
 {

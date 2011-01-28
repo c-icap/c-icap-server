@@ -23,7 +23,7 @@
 #include "dlib.h"
 
 
-HMODULE ci_module_load(char *module_file, char *default_path)
+HMODULE ci_module_load(const char *module_file, const char *default_path)
 {
      HMODULE handle;
      WCHAR path[CI_MAX_PATH];
@@ -62,13 +62,13 @@ HMODULE ci_module_load(char *module_file, char *default_path)
      return handle;
 }
 
-void *ci_module_sym(HMODULE handle, char *symbol)
+void *ci_module_sym(HMODULE handle, const char *symbol)
 {
      return GetProcAddress(handle, symbol);
 }
 
 
-int ci_module_unload(HMODULE handle, char *name)
+int ci_module_unload(HMODULE handle, const char *name)
 {
      int ret;
      ret = FreeLibrary(handle);

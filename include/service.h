@@ -126,12 +126,12 @@ struct  ci_service_module{
      /**
        \brief The service name 
       */
-     char *mod_name;
+     const char *mod_name;
 
     /**
       \brief Service short description 
      */
-     char *mod_short_descr;
+     const char *mod_short_descr;
 
     /**
      \brief Service type 
@@ -263,11 +263,11 @@ typedef struct service_alias {
 
 /*Internal function */
 ci_service_module_t *add_service(ci_service_module_t *service);
-ci_service_module_t *register_service(char *module_file);
+ci_service_module_t *register_service(const char *module_file);
 
-service_alias_t *add_service_alias(char *service_alias,char *service_name,char *args);
-ci_service_module_t *find_service(char *service_name);
-service_alias_t *find_service_alias(char *service_name);
+service_alias_t *add_service_alias(const char *service_alias, const char *service_name,const char *args);
+ci_service_module_t *find_service(const char *service_name);
+service_alias_t *find_service_alias(const char *service_name);
 ci_service_xdata_t *service_data(ci_service_module_t *srv);
 int init_services();
 int post_init_services();
@@ -288,7 +288,7 @@ CI_DECLARE_FUNC(void) ci_service_data_read_unlock(ci_service_xdata_t *srv_xdata)
  \param istag is a string contains the new ISTAG for the service. The istag size can not be more than a size of 
  * SERVICE_ISTAG_SIZE.  If the lenght of istag is greater than SERVICE_ISTAG_SIZE the extra bytes ignored.
  */
-CI_DECLARE_FUNC(void) ci_service_set_istag(ci_service_xdata_t *srv_xdata,char *istag);
+CI_DECLARE_FUNC(void) ci_service_set_istag(ci_service_xdata_t *srv_xdata, const char *istag);
 
 /**
  \ingroup SERVICES
@@ -343,7 +343,7 @@ CI_DECLARE_FUNC(void) ci_service_add_xopts(ci_service_xdata_t *srv_xdata, uint64
  *   ci_service_set_transfer_preview(srv_xdata,"zip, tar");
  \endcode
  */
-CI_DECLARE_FUNC(void) ci_service_set_transfer_preview(ci_service_xdata_t *srv_xdata,char *preview);
+CI_DECLARE_FUNC(void) ci_service_set_transfer_preview(ci_service_xdata_t *srv_xdata,const char *preview);
 
 /**
  \ingroup SERVICES
@@ -359,7 +359,7 @@ CI_DECLARE_FUNC(void) ci_service_set_transfer_preview(ci_service_xdata_t *srv_xd
  *   ci_service_set_transfer_ignore(srv_xdata,"gif, jpeg");
  \endcode
  */
-CI_DECLARE_FUNC(void) ci_service_set_transfer_ignore(ci_service_xdata_t *srv_xdata,char *ignore);
+CI_DECLARE_FUNC(void) ci_service_set_transfer_ignore(ci_service_xdata_t *srv_xdata, const char *ignore);
 
 /**
  \ingroup SERVICES
@@ -375,7 +375,7 @@ CI_DECLARE_FUNC(void) ci_service_set_transfer_ignore(ci_service_xdata_t *srv_xda
  *   ci_service_set_transfer_complete(srv_xdata,"exe, bat, com, ole");
  \endcode
  */
-CI_DECLARE_FUNC(void) ci_service_set_transfer_complete(ci_service_xdata_t *srv_xdata,char *complete);
+CI_DECLARE_FUNC(void) ci_service_set_transfer_complete(ci_service_xdata_t *srv_xdata, const char *complete);
 
 /**
   \ingroup SERVICES

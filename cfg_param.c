@@ -122,7 +122,7 @@ int cfg_default_acl_access(char *directive, char **argv, void *setdata);
 /****/
 
 struct sub_table {
-     char *name;
+     const char *name;
      int type;
      struct ci_conf_entry *conf_table;
 };
@@ -211,7 +211,7 @@ void reset_conf_tables()
      conf_tables_num = 0;
 }
 
-int register_conf_table(char *name, struct ci_conf_entry *table, int type)
+int register_conf_table(const char *name, struct ci_conf_entry *table, int type)
 {
      struct sub_table *new;
      int i, insert_pos;
@@ -252,7 +252,7 @@ int register_conf_table(char *name, struct ci_conf_entry *table, int type)
      return 1;
 }
 
-struct ci_conf_entry *unregister_conf_table(char *name)
+struct ci_conf_entry *unregister_conf_table(const char *name)
 {
     int i;
     struct ci_conf_entry *table;
@@ -443,7 +443,7 @@ int cfg_load_magicfile(char *directive, char **argv, void *setdata)
 
      db_file = argv[0];
      if (strcmp(CONF.magics_file, db_file) == 0) {
-         ci_debug_printf(2, "The db file %d is the same as default. Ignoring...\n", db_file); 
+         ci_debug_printf(2, "The db file %s is the same as default. Ignoring...\n", db_file); 
          return 1;
      }
      ci_debug_printf(2, "Going to load magic file %s\n", db_file);
@@ -575,7 +575,7 @@ int cfg_set_auth_method(char *directive, char **argv, void *setdata)
      if (strncasecmp(argv[1], "none", 4) == 0) {
           return set_method_authenticators(method, NULL);
      }
-     return set_method_authenticators(method, argv + 1);
+     return set_method_authenticators(method, (const char **)argv + 1);
 }
 
 int cfg_include_config_file(char *directive, char **argv, void *setdata)

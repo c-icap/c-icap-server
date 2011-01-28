@@ -260,26 +260,26 @@ int check_user_group(const char *user, const char *group)
 /*defined in types_ops*/
 void *stringdup(const char *str, ci_mem_allocator_t *allocator);
 void stringfree(void *key, ci_mem_allocator_t *allocator);
-size_t stringlen(void *key);
+size_t stringlen(const void *key);
 
-int group_cmp(void *key1,void *key2)
+int group_cmp(const void *key1,const void *key2)
 {
-  char *group, *user;
+  const char *group, *user;
   if (!key2)                                   
     return -1;
 
-  group = (char *)key1;
-  user = (char *)key2;
+  group = (const char *)key1;
+  user = (const char *)key2;
   return check_user_group(user, group);
 }
-int group_equal(void *key1,void *key2)
+int group_equal(const void *key1,const void *key2)
 {
-  char *group, *user;
+  const char *group, *user;
   if (!key2)                                   
     return 0;
 
-  group = (char *)key1;
-  user = (char *)key2;
+  group = (const char *)key1;
+  user = (const char *)key2;
   return check_user_group(user, group);
 }
 

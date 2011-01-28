@@ -32,7 +32,7 @@ struct dlib_entry {
 struct dlib_entry *dlib_list = NULL;
 
 
-int ci_dlib_entry(char *name, char *file, CI_DLIB_HANDLE handle)
+int ci_dlib_entry(const char *name, const char *file, CI_DLIB_HANDLE handle)
 {
      struct dlib_entry *dl_e, *dl_cur;
 

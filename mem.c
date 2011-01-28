@@ -194,7 +194,7 @@ void ci_object_pools_destroy()
 }
 
 #define STEP 128
-int ci_object_pool_register(char *name, int size)
+int ci_object_pool_register(const char *name, int size)
 {
     int ID, i;
     ID = -1;

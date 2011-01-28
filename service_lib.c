@@ -32,7 +32,7 @@ void ci_service_data_read_unlock(ci_service_xdata_t * srv_xdata)
      ci_thread_rwlock_unlock(&srv_xdata->lock);
 }
 
-void ci_service_set_istag(ci_service_xdata_t * srv_xdata, char *istag)
+void ci_service_set_istag(ci_service_xdata_t * srv_xdata, const char *istag)
 {
      ci_thread_rwlock_wrlock(&srv_xdata->lock);
      strncpy(srv_xdata->ISTag + SRV_ISTAG_POS, istag,
@@ -42,7 +42,7 @@ void ci_service_set_istag(ci_service_xdata_t * srv_xdata, char *istag)
 }
 
 void ci_service_set_transfer_preview(ci_service_xdata_t * srv_xdata,
-                                     char *preview)
+                                     const char *preview)
 {
      ci_thread_rwlock_wrlock(&srv_xdata->lock);
      strcpy(srv_xdata->TransferPreview, "Transfer-Preview: ");
@@ -52,7 +52,7 @@ void ci_service_set_transfer_preview(ci_service_xdata_t * srv_xdata,
 }
 
 void ci_service_set_transfer_ignore(ci_service_xdata_t * srv_xdata,
-                                    char *ignore)
+                                    const char *ignore)
 {
      ci_thread_rwlock_wrlock(&srv_xdata->lock);
      strcpy(srv_xdata->TransferIgnore, "Transfer-Ignore: ");
@@ -62,7 +62,7 @@ void ci_service_set_transfer_ignore(ci_service_xdata_t * srv_xdata,
 }
 
 void ci_service_set_transfer_complete(ci_service_xdata_t * srv_xdata,
-                                      char *complete)
+                                      const char *complete)
 {
      ci_thread_rwlock_wrlock(&srv_xdata->lock);
      strcpy(srv_xdata->TransferComplete, "Transfer-Complete: ");

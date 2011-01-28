@@ -931,7 +931,7 @@ int rest_responce(ci_request_t * req)
 void options_responce(ci_request_t * req)
 {
      char buf[MAX_HEADER_SIZE + 1];
-     char *str;
+     const char *str;
      ci_headers_list_t *head;
      ci_service_xdata_t *srv_xdata;
      unsigned int xopts;
