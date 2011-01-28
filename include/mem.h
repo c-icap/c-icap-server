@@ -22,6 +22,11 @@
 
 #include "c-icap.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 typedef struct ci_mem_allocator {
     void *(*alloc)(struct ci_mem_allocator *,size_t size);
     void (*free)(struct ci_mem_allocator *,void *);
@@ -51,5 +56,9 @@ CI_DECLARE_FUNC(int)     ci_object_pool_register(char *name, int size);
 CI_DECLARE_FUNC(void)    ci_object_pool_unregister(int id);
 CI_DECLARE_FUNC(void *)  ci_object_pool_alloc(int id);
 CI_DECLARE_FUNC(void)    ci_object_pool_free(void *ptr);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

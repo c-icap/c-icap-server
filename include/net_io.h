@@ -22,7 +22,6 @@
 #define __NET_IO_H
 
 #ifndef _WIN32
-
 #include <netinet/in.h>
 #include <sys/ioctl.h>
 #include <sys/select.h>
@@ -31,18 +30,22 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <fcntl.h>
-
-
-#define ci_socket int
-#define CI_SOCKET_ERROR -1
-
-
 #else
 #include <WinSock2.h>
+#endif
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+#ifndef _WIN32
+#define ci_socket int
+#define CI_SOCKET_ERROR -1
+#else
 #define ci_socket SOCKET
 #define CI_SOCKET_ERROR INVALID_SOCKET
 #endif
-
 
 typedef struct ci_sockaddr{
 #ifdef USE_IPV6
@@ -151,5 +154,9 @@ CI_DECLARE_FUNC(int) ci_write_nonblock(ci_socket fd, const void *buf,size_t coun
 
 CI_DECLARE_FUNC(int) ci_linger_close(ci_socket fd,int secs_to_linger);
 CI_DECLARE_FUNC(int) ci_hard_close(ci_socket fd);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

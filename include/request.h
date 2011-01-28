@@ -25,7 +25,10 @@
 #include "service.h"
 #include "net_io.h"
 
-
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 
 /**
  \defgroup REQUEST ICAP request API
@@ -180,6 +183,10 @@ CI_DECLARE_FUNC(int)          ci_client_icapfilter(ci_request_t *req,
 
 #ifdef __CI_COMPAT
 #define request_t   ci_request_t
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif

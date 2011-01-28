@@ -24,6 +24,10 @@
 #include "net_io.h"
 #include "types_ops.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 
 /**
  \defgroup ACL Access lists API
@@ -217,5 +221,9 @@ CI_DECLARE_FUNC(const ci_acl_type_t *) ci_acl_type_search(const char *name);
    \return non zero on success, zero otherwise
  */
 CI_DECLARE_FUNC(int) ci_acl_type_add(const ci_acl_type_t *type);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif/* __ACL_H*/

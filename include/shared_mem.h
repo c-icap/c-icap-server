@@ -23,6 +23,15 @@
 
 #include "c-icap.h"
 
+#if defined (_WIN32)
+#include <windows.h>
+#endif
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 #ifdef USE_SYSV_IPC
 
 #define ci_shared_mem_id_t int
@@ -36,9 +45,7 @@ typedef struct ci_shared_mem_id {
 
 
 #elif defined (_WIN32)
-#include <windows.h>
 #define ci_shared_mem_id_t HANDLE
-
 #endif
 
 CI_DECLARE_FUNC(void) *ci_shared_mem_create(ci_shared_mem_id_t *id,int size);
@@ -46,6 +53,8 @@ CI_DECLARE_FUNC(void) *ci_shared_mem_attach(ci_shared_mem_id_t *id);
 CI_DECLARE_FUNC(int)   ci_shared_mem_detach(ci_shared_mem_id_t *id,void *shmem);
 CI_DECLARE_FUNC(int)   ci_shared_mem_destroy(ci_shared_mem_id_t *id,void *shmem);
 
-
+#ifdef __cplusplus
+}
+#endif
 
 #endif

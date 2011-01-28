@@ -22,6 +22,11 @@
 
 #include "c-icap.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 #define COMMANDS_BUFFER_SIZE 128
 
 #define NULL_CMD              0
@@ -51,5 +56,9 @@ CI_DECLARE_FUNC(int) execute_command(ci_command_t *command,char *cmdline,int exe
 CI_DECLARE_FUNC(ci_command_t) *find_command(char *cmd_line);
 CI_DECLARE_FUNC(int) execure_start_child_commands();
 CI_DECLARE_FUNC(int) execute_stop_child_commands();
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /*__COMMANDS_H*/

@@ -24,6 +24,11 @@
 #include "lookup_table.h"
 #include "mem.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 struct ci_hash_entry {
    unsigned int hash;
    const void *key;
@@ -47,5 +52,9 @@ CI_DECLARE_FUNC(struct ci_hash_table *) ci_hash_build(unsigned int hash_size,
 CI_DECLARE_FUNC(void)   ci_hash_destroy(struct ci_hash_table *htable);
 CI_DECLARE_FUNC(const void *) ci_hash_search(struct ci_hash_table *htable,const void *key);
 CI_DECLARE_FUNC(void *) ci_hash_add(struct ci_hash_table *htable, const void *key, const void *val);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

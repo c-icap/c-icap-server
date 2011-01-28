@@ -23,6 +23,11 @@
 #include "proc_mutex.h"
 #include "ci_threads.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 struct ci_cache_entry {
    unsigned int hash;
    time_t time;
@@ -73,5 +78,9 @@ CI_DECLARE_FUNC(struct ci_cache *) ci_cache_build( unsigned int cache_size,
 CI_DECLARE_FUNC(void *) ci_cache_search(struct ci_cache *cache,void *key, void **val, ci_mem_allocator_t *allocator);
 CI_DECLARE_FUNC(int) ci_cache_update(struct ci_cache *cache, void *key, void *val);
 CI_DECLARE_FUNC(void) ci_cache_destroy(struct ci_cache *cache);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

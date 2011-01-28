@@ -22,23 +22,31 @@
 #define __PROC_MUTEX_H
 
 #include "c-icap.h"
-
 #if defined (USE_SYSV_IPC)
-
 #include <sys/ipc.h>
 #include <sys/sem.h>
+#elif defined (USE_POSIX_SEMAPHORES)
+#include <semaphore.h>
+#elif defined (USE_POSIX_FILE_LOCK)
+#include <fcntl.h>
+#elif defined (_WIN32)
+#include <windows.h>
+#endif
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+#if defined (USE_SYSV_IPC)
 
 #define ci_proc_mutex_t int
 
 #elif defined (USE_POSIX_SEMAPHORES)
 
-#include <semaphore.h>
-
 #define ci_proc_mutex_t sem_t
 
 #elif defined (USE_POSIX_FILE_LOCK)
-
-#include <fcntl.h>
 
 #define FILE_LOCK_SIZE 25
 #define FILE_LOCK_TEMPLATE "/tmp/icap_lock.XXXXXX"
@@ -48,9 +56,8 @@ typedef struct ci_proc_mutex{
      int fd;
 } ci_proc_mutex_t;
 
-
 #elif defined (_WIN32)
-#include <windows.h>
+
 #define ci_proc_mutex_t HANDLE
 
 #endif
@@ -60,5 +67,8 @@ CI_DECLARE_FUNC(int) ci_proc_mutex_lock(ci_proc_mutex_t *mutex);
 CI_DECLARE_FUNC(int) ci_proc_mutex_unlock(ci_proc_mutex_t *mutex);
 CI_DECLARE_FUNC(int) ci_proc_mutex_destroy(ci_proc_mutex_t *mutex);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif

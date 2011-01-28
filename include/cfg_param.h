@@ -22,6 +22,11 @@
 #define __CFG_PARAM_H
 #include "body.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 struct ci_magics_db;
 
 
@@ -196,5 +201,8 @@ CI_DECLARE_FUNC(int)  ci_args_apply(int argc, char **argv,struct ci_options_entr
 #define  options_entry      ci_options_entry
 #endif
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif

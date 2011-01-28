@@ -26,6 +26,10 @@
 #include "txt_format.h"
 #include "body.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 
 CI_DECLARE_FUNC (ci_membuf_t *)
 ci_txt_template_build_content(const ci_request_t *req,
@@ -36,5 +40,9 @@ CI_DECLARE_FUNC (int)  ci_txt_template_init(void);
 CI_DECLARE_FUNC (void) ci_txt_template_close(void);
 CI_DECLARE_FUNC (void) ci_txt_template_set_dir(const char *dir);
 CI_DECLARE_FUNC (void) ci_txt_template_set_default_lang(const char *lang);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /*__TXTTEMPLATE_H*/

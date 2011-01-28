@@ -27,6 +27,11 @@
 #include "shared_mem.h"
 #include "stats.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 enum KILL_MODE {NO_KILL=0,GRACEFULLY,IMMEDIATELY};
 
 #ifdef _WIN32
@@ -110,5 +115,9 @@ int find_an_idle_child(struct childs_queue *q);
 int childs_queue_stats(struct childs_queue *q, int *childs,
 		       int *freeservers, int *used, int *maxrequests);
 void dump_queue_statistics(struct childs_queue *q);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

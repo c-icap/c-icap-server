@@ -20,6 +20,11 @@
 #ifndef __UTIL_H
 #define __UTIL_H
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 #define STR_TIME_SIZE 64
 
 CI_DECLARE_FUNC(void) ci_strtime(char *buf);
@@ -34,6 +39,10 @@ CI_DECLARE_FUNC(int) strncasecmp(const char *s1, const char *s2, size_t n);
 CI_DECLARE_FUNC(int) mkstemp(char *filename);
 CI_DECLARE_FUNC(struct tm*) localtime_r(const time_t *t, struct tm *tm);
 CI_DECLARE_FUNC(struct tm*) gmtime_r(const time_t *t, struct tm *tm);
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif

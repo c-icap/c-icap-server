@@ -72,6 +72,11 @@ CI_DECLARE_FUNC(int) ci_thread_rwlock_unlock(ci_thread_rwlock_t *);
 #define  ci_thread_cond_t    HANDLE
 #define  ci_thread_t         DWORD
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 CI_DECLARE_FUNC(int)  ci_thread_mutex_init(ci_thread_mutex_t *pmutex);
 CI_DECLARE_FUNC(int) ci_thread_mutex_destroy(ci_thread_mutex_t *pmutex);
 CI_DECLARE_FUNC(int) ci_thread_mutex_lock(ci_thread_mutex_t *pmutex);
@@ -92,6 +97,10 @@ CI_DECLARE_FUNC(int) ci_thread_cond_signal(ci_thread_cond_t *pcond);
 
 CI_DECLARE_FUNC(int) ci_thread_create(ci_thread_t *thread_id, void *(*pfunc)(void *), void *parg);
 CI_DECLARE_FUNC(int) ci_thread_join(ci_thread_t thread_id);
+
+#ifdef __cplusplus
+}
+#endif
 
 
 #endif

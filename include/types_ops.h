@@ -23,6 +23,11 @@
 #include "c-icap.h"
 #include "mem.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 typedef struct ci_type_ops {
     void *(*dup)(const char *, ci_mem_allocator_t *);
     void (*free)(void *key, ci_mem_allocator_t *);
@@ -40,4 +45,9 @@ CI_DECLARE_DATA extern ci_type_ops_t  ci_datatype_ops;
 #ifdef USE_REGEX
 CI_DECLARE_DATA extern ci_type_ops_t  ci_regex_ops;
 #endif
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif

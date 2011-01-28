@@ -23,6 +23,11 @@
 
 #include "c-icap.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 /**
  \defgroup HEADERS  Headers related API
  \ingroup API
@@ -202,4 +207,9 @@ CI_DECLARE_FUNC(int)  sizeofencaps(ci_encaps_entity_t *e);
 #ifdef __CI_COMPAT
 #define ci_headers_make ci_header_create
 #endif
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif

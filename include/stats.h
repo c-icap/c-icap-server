@@ -23,6 +23,10 @@
 #include "c-icap.h"
 #include "ci_threads.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 
 typedef struct kbs{
     uint64_t kb;
@@ -98,5 +102,9 @@ CI_DECLARE_FUNC(void) stat_memblock_reconstruct(struct stat_memblock *mem_block)
 #define STATS_UNLOCK() ci_thread_mutex_unlock(&STATS->mtx)
 #define STATS_INT64_INC(ID, count) (STATS->mem_block->counters64[ID] += count)
 #define STATS_KBS_INC(ID, count) (STATS->mem_block->counterskbs[ID].bytes += count, STATS->mem_block->counterskbs[ID].kb += (STATS->mem_block->counterskbs[ID].bytes >> 10), STATS->mem_block->counterskbs[ID].bytes &= 0x3FF)
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

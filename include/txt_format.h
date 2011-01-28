@@ -23,6 +23,11 @@
 
 #include "request.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 /**
  * \defgroup FORMATING Text formating api
  * \ingroup API
@@ -69,5 +74,9 @@ struct ci_fmt_entry {
  */
 int ci_format_text(ci_request_t *req_data, const char *fmt, char *buffer, int len,
 		   struct ci_fmt_entry *user_table);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

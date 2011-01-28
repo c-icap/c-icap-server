@@ -22,11 +22,18 @@
 #define __DLIB_H
 
 #include "c-icap.h"
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 
 #ifndef _WIN32
 #define CI_DLIB_HANDLE void *
 #else
-#include <windows.h>
 #define CI_DLIB_HANDLE HMODULE
 #endif
 
@@ -36,5 +43,9 @@ CI_DECLARE_FUNC(int)            ci_module_unload(CI_DLIB_HANDLE handle,char *nam
 
 /*Utility functions */
 CI_DECLARE_FUNC(int)            ci_dlib_entry(char *name,char *file, CI_DLIB_HANDLE handle);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /*__DLIB_H*/

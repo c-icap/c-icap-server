@@ -26,6 +26,11 @@
 #include "net_io.h"
 
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 #define CI_ACCESS_ALLOW        1
 #define CI_ACCESS_UNKNOWN      0
 #define CI_ACCESS_DENY        -1
@@ -52,6 +57,10 @@ int access_check_request(ci_request_t *req);
 int access_authenticate_request(ci_request_t *req);
 int access_check_logging(ci_request_t *req);
 
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

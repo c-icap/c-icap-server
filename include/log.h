@@ -23,6 +23,10 @@
 
 #include "request.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 
 int log_open();
 void log_close();
@@ -32,5 +36,9 @@ void log_flush();
 void log_access(ci_request_t *req,int status);
 void log_server(ci_request_t *req, const char *format, ... );
 void vlog_server(ci_request_t *req, const char *format, va_list ap);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

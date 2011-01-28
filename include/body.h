@@ -25,6 +25,10 @@
 #include <stdio.h>
 #include "util.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 
 typedef struct ci_membuf{
      int len;
@@ -137,5 +141,9 @@ CI_DECLARE_FUNC(int) ci_ring_buf_write_block(struct ci_ring_buf *buf, char **wb,
 CI_DECLARE_FUNC(int) ci_ring_buf_read_block(struct ci_ring_buf *buf, char **rb, int *len);
 CI_DECLARE_FUNC(void) ci_ring_buf_consume(struct ci_ring_buf *buf, int len);
 CI_DECLARE_FUNC(void) ci_ring_buf_produce(struct ci_ring_buf *buf, int len);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

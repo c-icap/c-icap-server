@@ -24,6 +24,10 @@
 #include "c-icap.h"
 #include "request.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 
 /**
  \defgroup HTTP API for HTTP object manipulation
@@ -350,6 +354,9 @@ CI_DECLARE_FUNC(int)              ci_icap_append_xheaders(ci_request_t *req,ci_h
 #define ci_request_add_xheader       ci_icap_add_xheader
 #endif
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

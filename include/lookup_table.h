@@ -24,6 +24,11 @@
 #include "mem.h"
 #include "types_ops.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 /**
  \defgroup LOOKUPTABLE  Lookup tables api
  \ingroup API
@@ -109,5 +114,9 @@ CI_DECLARE_FUNC(struct ci_lookup_table *) ci_lookup_table_create(const char *tab
  \param lt Pointer to the lookup table will be destroyed.
  */
 CI_DECLARE_FUNC(void) ci_lookup_table_destroy(struct ci_lookup_table *lt);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

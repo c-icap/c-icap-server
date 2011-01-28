@@ -27,6 +27,11 @@
 #include "service.h"
 #include "cfg_param.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 struct ci_request;
 
 enum module_type{
@@ -118,5 +123,9 @@ http_auth_method_t * get_authentication_schema(char *method_name,authenticator_m
 void *find_module(char *name,int *type);
 
 int set_method_authenticators(char *method_name,char **argv);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

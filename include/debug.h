@@ -25,6 +25,10 @@
 #include <stdio.h>
 #include <stdarg.h>
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 
 CI_DECLARE_DATA extern int CI_DEBUG_LEVEL;
 CI_DECLARE_DATA extern int CI_DEBUG_STDOUT;
@@ -40,5 +44,8 @@ CI_DECLARE_FUNC(void) __ldebug_printf(int i,const char *format, ...);
 #define ci_debug_printf(i, args...) if(i<=CI_DEBUG_LEVEL){ if(__log_error) (*__log_error)(NULL,args); if(CI_DEBUG_STDOUT) printf(args);}
 #endif
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif /*__DEBUG_H*/

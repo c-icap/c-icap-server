@@ -25,6 +25,11 @@
 #include "cfg_param.h"
 #include "ci_threads.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 /**
  \defgroup SERVICES Services API
  \ingroup API
@@ -415,5 +420,8 @@ CI_DECLARE_FUNC(void) ci_service_add_xincludes(ci_service_xdata_t *srv_xdata, ch
 
 #endif
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif

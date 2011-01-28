@@ -23,6 +23,11 @@
 #include "c-icap.h"
 #include "request.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 /**
  \defgroup DATATYPE  Data type recogintion api
  \ingroup API
@@ -189,5 +194,9 @@ CI_DECLARE_FUNC(char *) ci_magic_type_descr(int type);
  \return the name of the group or NULL if the group does not exists
  */
 CI_DECLARE_FUNC(char *) ci_magic_group_name(int group);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
