@@ -253,7 +253,8 @@ int ci_format_text(
        if(fmte != NULL) { 
             if (width) {
                 if (left_align) {
-                    val_len=fmte->format(req_data, b, space, parameter); 
+                    val_len=fmte->format(req_data, b, space, parameter);
+                    if (val_len > space) val_len = space;
                     b += val_len;
                     for (i=0; i < width-val_len; i++) b[i]=' ';
                     b += width-val_len;
@@ -261,6 +262,7 @@ int ci_format_text(
                 else {
                     lb = malloc((space+1)*sizeof(char));      
                     val_len=fmte->format(req_data, lb, space, parameter);
+                    if (val_len > space) val_len = space;
                     for (i=0; i < width-val_len; i++) b[i]=' ';
                     b += width-val_len; 
                     for (i=0; i < val_len; i++) b[i]=lb[i];
@@ -270,11 +272,8 @@ int ci_format_text(
                 remains -= width;
             } 
              else {
-		 val_len=fmte->format(req_data, b, space, parameter);
-                if (val_len > space) {
-                    ci_debug_printf(1,"format_line BUG! Please contact authors!!!\n");
-                    return 0;
-                }
+		val_len=fmte->format(req_data, b, space, parameter);
+                if (val_len > space) val_len = space;
                 b += val_len; 
                 remains -= val_len;
              }
