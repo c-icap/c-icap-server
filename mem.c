@@ -57,7 +57,6 @@ void ci_mem_allocator_destroy(ci_mem_allocator_t *allocator)
     free(allocator);
 }
 
-
 /*******************************************************************/
 /* Buffers pool api functions                                      */
 #define BUF_SIGNATURE 0xAA55
@@ -114,6 +113,22 @@ int ci_buffers_init() {
    return 1; 
 }
 
+int short_buffer_sizes[16] =  {
+    64, 
+    128,
+    256,256,
+    512, 512, 512, 512,
+    1024, 1024, 1024, 1024, 1024, 1024, 1024, 1024
+};
+
+int long_buffer_sizes[16] =  {
+    2048,
+    4096,
+    8192, 8192,
+    16384, 16384, 16384, 16384, 
+    32768, 32768, 32768, 32768, 32768, 32768, 32768, 32768
+};
+
 void ci_buffers_destroy() {
    int i;
   for(i=0; i<16; i++) {
@@ -133,8 +148,9 @@ void *ci_buffer_alloc(int block_size)
      }
      else if(type < 512) {
         type = type >> 5;       
-        if (long_buffers[type]!= NULL)
+        if (long_buffers[type]!= NULL) {
             block = long_buffers[type]->alloc(long_buffers[type], size);
+        }
      }
 
      if(!block) {
@@ -146,6 +162,44 @@ void *ci_buffer_alloc(int block_size)
      return (void *)block->data.ptr;
 }
 
+void * ci_buffer_realloc(void *data, int block_size)
+{
+    int type, full_block_size = 0;
+    struct mem_buffer_block *block;
+
+    if (!data)
+        return ci_buffer_alloc(block_size);
+
+    block = (struct mem_buffer_block *)(data-PTR_OFFSET);
+    if (block->sig != BUF_SIGNATURE) {
+        ci_debug_printf(1,"ci_buffer_realloc: ERROR, not internal buffer. This is a bug!!!!");
+        return NULL;
+    }
+
+    type = (block_size-1) >> 6;
+     if (type< 16 && short_buffers[type] != NULL) {
+         full_block_size = short_buffer_sizes[type];
+     }
+     else if(type < 512) {
+         type = type >> 5;       
+         if (long_buffers[type]!= NULL) {
+             full_block_size = long_buffer_sizes[type];
+         }
+     }
+     
+     if (!full_block_size)
+         full_block_size = block->ID;
+
+     if (block_size > full_block_size) {
+         data = ci_buffer_alloc(block_size);
+         if (!data)
+             return NULL;
+         memcpy(data, block->data.ptr, block->ID);
+         ci_buffer_free(block->data.ptr);
+     }
+     
+     return data;
+}
 
 void ci_buffer_free(void *data) {
     int block_size, type;

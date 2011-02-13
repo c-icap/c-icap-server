@@ -50,6 +50,7 @@ CI_DECLARE_FUNC(int) ci_buffers_init();
 CI_DECLARE_FUNC(void) ci_buffers_destroy();
 
 CI_DECLARE_FUNC(void *)  ci_buffer_alloc(int block_size);
+CI_DECLARE_FUNC(void *)  ci_buffer_realloc(void *data, int block_size);
 CI_DECLARE_FUNC(void)    ci_buffer_free(void *data);
 
 CI_DECLARE_FUNC(int)     ci_object_pool_register(const char *name, int size);
