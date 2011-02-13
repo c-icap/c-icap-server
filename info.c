@@ -307,13 +307,18 @@ int build_statistics(struct info_req_data *info_data)
                    info_data->crashed_childs,
                    info_data->closing_childs
          );
-    
+
+     if (sz > LOCAL_BUF_SIZE) 
+         sz = LOCAL_BUF_SIZE;
+
      ci_membuf_write(info_data->body,buf, sz, 0);
 
      /*print childs pids ...*/
      ci_membuf_write(info_data->body, tmpl->childsHeader, strlen(tmpl->childsHeader), 0);
      for (k =0; k < info_data->childs; k++) {
           sz = snprintf(buf, LOCAL_BUF_SIZE, tmpl->childs_tmpl, info_data->child_pids[k]);
+          if (sz > LOCAL_BUF_SIZE) 
+              sz = LOCAL_BUF_SIZE;
           ci_membuf_write(info_data->body,buf, sz, 0);
      } 
      ci_membuf_write(info_data->body, tmpl->childsEnd, strlen(tmpl->childsEnd), 0);
@@ -322,6 +327,8 @@ int build_statistics(struct info_req_data *info_data)
      ci_membuf_write(info_data->body, tmpl->closingChildsHeader, strlen(tmpl->closingChildsHeader), 0);
      for (k =0; k < info_data->closing_childs; k++) {
           sz = snprintf(buf, LOCAL_BUF_SIZE, tmpl->childs_tmpl, info_data->closing_child_pids[k]);
+          if (sz > LOCAL_BUF_SIZE) 
+              sz = LOCAL_BUF_SIZE;
           ci_membuf_write(info_data->body,buf, sz, 0);
      } 
      ci_membuf_write(info_data->body, tmpl->childsEnd, strlen(tmpl->childsEnd), 0);
@@ -331,12 +338,16 @@ int build_statistics(struct info_req_data *info_data)
           stat_group = STAT_GROUPS.groups[gid];
 
           sz = snprintf(buf, LOCAL_BUF_SIZE, tmpl->statsHeader, stat_group);
+          if (sz > LOCAL_BUF_SIZE) 
+              sz = LOCAL_BUF_SIZE;
           ci_membuf_write(info_data->body, buf, sz, 0);
 	  for (k=0; k < info_data->collect_stats->counters64_size && k < STAT_INT64.entries_num; k++) {
 	      if (gid == STAT_INT64.entries[k].gid) {
 		  sz = snprintf(buf, LOCAL_BUF_SIZE, tmpl->statline_tmpl_int,
 				STAT_INT64.entries[k].label, 
 				info_data->collect_stats->counters64[k]);
+                  if (sz > LOCAL_BUF_SIZE) 
+                      sz = LOCAL_BUF_SIZE;
 		  ci_membuf_write(info_data->body,buf, sz, 0);
 	      }
 	  }
@@ -346,6 +357,8 @@ int build_statistics(struct info_req_data *info_data)
 		   sz = snprintf(buf, LOCAL_BUF_SIZE, tmpl->statline_tmpl_kbs,
 				 STAT_KBS.entries[k].label, 
 				 info_data->collect_stats->counterskbs[k]);
+                   if (sz > LOCAL_BUF_SIZE) 
+                       sz = LOCAL_BUF_SIZE;
 		   ci_membuf_write(info_data->body,buf, sz, 0);
 	       }
 	  }

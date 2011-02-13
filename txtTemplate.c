@@ -405,6 +405,8 @@ ci_membuf_t *ci_txt_template_build_content(const ci_request_t *req, const char *
      else {
           makeTemplatePathFileName(templpath, CI_MAX_PATH, SERVICE_NAME, TEMPLATE_NAME, TEMPLATE_DEF_LANG);
           content->endpos = snprintf(content->buf, content->bufsize, "ERROR: Unable to find specified template: %s\n", templpath);
+          if (content->endpos > content->bufsize)
+              content->endpos = content->bufsize;
           ci_debug_printf(1, "ERROR: Unable to find specified template: %s\n", templpath);
      }
 
