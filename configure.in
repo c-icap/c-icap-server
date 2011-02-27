@@ -157,7 +157,7 @@ AC_SUBST(USE_COMPAT)
 
 # Checks for programs
 AC_CHECK_PROG(has_doxygen, doxygen, "yes", "no")
-if test a"$has_doxygen" == "ayes"; then
+if test a"$has_doxygen" = "ayes"; then
    doxygen_bin=doxygen
 else
    doxygen_bin="echo Doxygen is not installed /"
@@ -245,6 +245,7 @@ if test a"$zlib" = "ano"; then
 fi
 
 libdb="yes"
+libdbpath=""
 AC_ARG_WITH(bdb,
 [  --with-bdb        Where to find Berkeley DB library ],
 [ case "$withval" in
@@ -255,33 +256,105 @@ AC_ARG_WITH(bdb,
          libdb="no"
     ;;
     * )
-        libdb=$withval
+        libdb="yes"
+        libdbpath=$withval
     ;;
   esac
 ],
 )
 
 if test a"$libdb" != "ano"; then
-   if test a"$libdb" != "ayes"; then
-        OLDCFLAGS=$CFLAGS
-        OLDLDFLAGS=$LDFLAGS
-        CFLAGS="$CFLAGS -I$libdb/include"
-        LDFLAGS="$LDFLAGS -L $libdb/lib"
-      	AC_CHECK_LIB(db,  db_version, 
-		     [BDB_ADD_LDFLAG="-L $libdb/lib -ldb"; BDB_ADD_FLAG="-I$libdb/include"; AC_DEFINE(HAVE_BDB, 1, [Define HAVE_BDB if berkeley DB is installed])], 
-		     [libdb="no"]
-		     )
-        CFLAGS=$OLDCFLAGS
-        LDFLAGS=$OLDLDFLAGS
-	AC_SUBST(BDB_ADD_LDFLAG)
-	AC_SUBST(BDB_ADD_FLAG)
+   if test a"$libdbpath" = "a"; then
+#  Save old LDFLAGS
+      OLDLDFLAGS=$LDFLAGS
+      LDFLAGS="-ldb $LDFLAGS"
+      echo -n "checking for Berkeley DB under standard directories... "
+      AC_LINK_IFELSE(
+                     [
+                         #include <db.h>
+                         int main(){
+                              int major,minor,patch;
+                              if (!db_version(&major,&minor,&patch))
+                                   return -1;
+                              return 0;
+                         }
+                     ],	
+	    	     [BDB_ADD_LDFLAG=" -ldb"; libdb="yes"; echo "yes"],
+                     [libdb="no"; echo "no"]
+       )
+      AC_SUBST(BDB_ADD_LDFLAG)
+#restore LDFLAGS
+      LDFLAGS=$OLDLDFLAGS
    else
-	AC_CHECK_LIB(db,  db_version, 
-	 	     [BDB_ADD_LDFLAG=" -ldb"; AC_DEFINE(HAVE_BDB, 1, [Define HAVE_BDB if berkeley DB is installed])], 
-		     [libdb="no"]
-		     )
-	AC_SUBST(BDB_ADD_LDFLAG)
+#  Save old CFLAGS/LDFLAGS
+      OLDCFLAGS=$CFLAGS
+      OLDLDFLAGS=$LDFLAGS
+      CFLAGS="-I$libdbpath/include $CFLAGS"
+      LDFLAGS="-L $libdbpath/lib -ldb $LDFLAGS"
+      echo -n "checking for Berkeley DB under $libdbpath... "
+      AC_LINK_IFELSE(
+                [
+                    #include <db.h>
+                    int main(){
+                        int major,minor,patch;
+                        if (!db_version(&major,&minor,&patch))
+                             return -1;
+                         return 0;
+                    }
+                ],
+               [BDB_ADD_LDFLAG="-L $libdbpath/lib -ldb"; BDB_ADD_FLAG="-I$libdbpath/include";libdb="yes"; echo "yes"], 
+               [libdb="no"; echo "no"]
+      )
+#restore CFLAGS/LDFLAGS
+     CFLAGS=$OLDCFLAGS
+     LDFLAGS=$OLDLDFLAGS
    fi
+
+   if test a"$libdb" = "ano"; then
+# Here we still was not able to find a working Berkeley DB library.
+# We are going to see if we can found a Berkeley DB located under a
+# libdbpath/include/db4x and lbdbpath/lib/db4x directories.
+
+     if test a"$libdbpath" = "a"; then
+# if libdbpath is not given try with libdbpat="/usr"
+        libdbpath="/usr"
+     fi
+#  Save old CFLAGS/LDFLAGS
+     OLDCFLAGS=$CFLAGS
+     OLDLDFLAGS=$LDFLAGS
+     for DBVER in 49 48 47 46 45 44 43 42; do
+        if test -d $libdbpath/include/db$DBVER; then
+           echo -n "checking for Berleley DB under $libdbpath/include/db$DBVER and $libdbpath/lib/db$DBVER... "
+           CFLAGS="-I$libdbpath/include/db$DBVER $OLDCFLAGS"
+           LDFLAGS="-L $libdbpath/lib/db$DBVER -ldb $OLDLDFLAGS" 
+           AC_LINK_IFELSE(
+                  [
+                     #include <db.h>
+                     int main(){
+                        int major,minor,patch;
+                        if (!db_version(&major,&minor,&patch))
+                             return -1;
+                        return 0;
+                     }
+                  ],
+                  [echo yes;BDB_ADD_LDFLAG="-L$libdbpath/lib/db$DBVER -ldb"; BDB_ADD_FLAG="-I$libdbpath/include/db$DBVER";libdb="yes";], 
+                  [libdb="no"; echo "no";]
+           )
+        fi
+        if test a"$libdb" = "ayes"; then
+           break;
+        fi
+     done
+#restore CFLAGS/LDFLAGS
+     CFLAGS=$OLDCFLAGS
+     LDFLAGS=$OLDLDFLAGS
+   fi
+   AC_SUBST(BDB_ADD_LDFLAG)
+   AC_SUBST(BDB_ADD_FLAG)
+fi
+
+if test a"$libdb" = "ayes"; then
+    AC_DEFINE(HAVE_BDB, 1, [Define HAVE_BDB if berkeley DB is installed])
 fi
 
 libldap="yes"
