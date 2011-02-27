@@ -26,8 +26,6 @@
 #include "debug.h"
 #include "mem.h"
 
-#define _CI_ALIGN(val) ((val+7)&~7)
-
 int ci_buffers_init();
 
 /*General Functions */

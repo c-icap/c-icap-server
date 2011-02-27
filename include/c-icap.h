@@ -109,6 +109,13 @@ typedef off_t ci_off_t;
 #   define ci_strto_off_t strtoul
 #endif
 
+/*
+  Use 8 bytes alignment.
+  TODO: The correct alignment size should be detected in configure.in 
+  and defined in c-icap-conf.h file
+ */
+#define _CI_ALIGN(val) ((val+7)&~7)
+
 #define ICAP_OPTIONS   0x01
 #define ICAP_REQMOD    0x02
 #define ICAP_RESPMOD   0x04
