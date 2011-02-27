@@ -264,6 +264,8 @@ int ci_format_text(
                     b += width-val_len; 
                     for (i=0; i < val_len; i++) b[i]=lb[i];
                     b += val_len;
+                    free(lb);
+                    lb = NULL;
                 }
 
                 remains -= width;
