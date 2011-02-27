@@ -52,6 +52,7 @@ int icap_init_server_ipv6(char *address, int port, int *protocol_family, int sec
 
      icap_socket_opts(fd, secs_to_linger);
 
+     memset(&addr, 0, sizeof(addr));
      addr.sin6_family = AF_INET6;
      addr.sin6_port = htons(port);
      if(address == NULL) // ListenAddress is not set in configuration file. Bind to all interfaces
@@ -105,6 +106,7 @@ int icap_init_server(char *address, int port, int *protocol_family, int secs_to_
 
      icap_socket_opts(fd, secs_to_linger);
 
+     memset(&addr, 0, sizeof(addr));
      addr.sin_family = AF_INET;
      addr.sin_port = htons(port);
      if(address == NULL) // ListenAddress is not set in configuration file
