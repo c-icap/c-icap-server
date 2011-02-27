@@ -300,6 +300,8 @@ int ci_headers_addheaders(ci_headers_list_t * h, ci_headers_list_t * headers)
      h->bufused += headers->bufused;
      h->used += headers->used;
 
+     if (h->used && h->headers[0] == NULL)
+         h->headers[0] = h->buf;
      for (i = 1; i < h->used; i++)
           h->headers[i] = h->headers[i - 1] + strlen(h->headers[i - 1]) + 2;
      return 1;
