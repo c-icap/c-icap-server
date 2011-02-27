@@ -55,15 +55,21 @@ void ci_args_usage(char *progname, struct ci_options_entry *options)
      int i;
      printf("Usage : \n");
      printf("%s", progname);
-     for (i = 0; options[i].name != NULL; i++)
-          printf(" [%s %s]", options[i].name,
-                 (options[i].parameter == NULL ? "" : options[i].parameter));
+     for (i = 0; options[i].name != NULL; i++) {
+         if (options[i].name[0] == '$')
+             printf(" [file1] [file2] ...");
+         else
+             printf(" [%s %s]", options[i].name,
+                    (options[i].parameter == NULL ? "" : options[i].parameter));
+     }
      printf("\n\n");
      for (i = 0; options[i].name != NULL; i++)
-          printf("%s %s\t\t: %s\n", options[i].name,
-                 (options[i].parameter == NULL ? "\t" : options[i].parameter),
-                 options[i].msg);
-
+         if (options[i].name[0] == '$')
+             printf(" [file1] [file2] ...\t: %s\n", options[i].msg);
+         else
+             printf("%s %s\t\t: %s\n", options[i].name,
+                    (options[i].parameter == NULL ? "\t" : options[i].parameter),
+                    options[i].msg);
 }
 
 
@@ -71,8 +77,14 @@ struct ci_options_entry *search_options_table(char *directive,
                                            struct ci_options_entry *options)
 {
      int i;
+     const char *option_search;
+     if (directive[0] != '-') 
+         option_search = "$$";
+     else
+         option_search = directive;
+
      for (i = 0; options[i].name != NULL; i++) {
-          if (0 == strcmp(directive, options[i].name))
+          if (0 == strcmp(option_search, options[i].name))
                return &options[i];
      }
      return NULL;
@@ -83,16 +95,26 @@ int ci_args_apply(int argc, char **argv, struct ci_options_entry *options)
 {
      int i;
      struct ci_options_entry *entry;
+     char *act_args[2];
+     act_args[1] = NULL;
      for (i = 1; i < argc; i++) {
           if ((entry = search_options_table(argv[i], options)) == NULL)
                return 0;
           if (entry->parameter) {
                if (++i >= argc)
                     return 0;
-               (*(entry->action)) (entry->name, argv + i, entry->data);
+               act_args[0] = argv[i];
+               (*(entry->action)) (entry->name, act_args, entry->data);
           }
-          else
-               (*(entry->action)) (entry->name, NULL, entry->data);
+          else {
+              /*maybe is the "$$" directive ....*/
+              if (strcmp(entry->name, "$$") == 0) {
+                  act_args[0] = argv[i];
+                  (*(entry->action)) (entry->name, act_args, entry->data);
+              }
+              else
+                  (*(entry->action)) (entry->name, NULL, entry->data);
+          }
      }
      return 1;
 }
