@@ -106,13 +106,13 @@ void ci_txt_template_set_default_lang(const char *lang)
 
 static int templateExpired(txtTemplate_t *template)
 {
-     char path[MAXPATHLEN];
+     char path[CI_MAX_PATH];
      struct stat file;
      time_t current_time;
      time(&current_time);
 
      if (current_time - template->loaded >= TEMPLATE_RELOAD_TIME) {
-	  makeTemplatePathFileName(path, MAXPATHLEN, 
+	  makeTemplatePathFileName(path, CI_MAX_PATH, 
 				   template->SERVICE_NAME, template->TEMPLATE_NAME, template->LANGUAGE);
 	  
 	  if (stat(path, &file) < 0) {
@@ -250,7 +250,7 @@ static txtTemplate_t *templateTryLoadText(const ci_request_t * req, const char *
                               const char *page_name, const char *lang)
 {
      int fd;
-     char path[MAXPATHLEN];
+     char path[CI_MAX_PATH];
      char buf[4096];
      struct stat file;
      ssize_t len;
@@ -272,7 +272,7 @@ static txtTemplate_t *templateTryLoadText(const ci_request_t * req, const char *
 
      ci_thread_mutex_unlock(&templates_mutex); // We didn't go into the if, release the lock
 
-     makeTemplatePathFileName(path, MAXPATHLEN, service_name, page_name, lang);
+     makeTemplatePathFileName(path, CI_MAX_PATH, service_name, page_name, lang);
 
      ci_debug_printf(9, "templateTryLoadText: %s\n", path);
 
@@ -391,7 +391,7 @@ ci_membuf_t *ci_txt_template_build_content(const ci_request_t *req, const char *
                                const char *TEMPLATE_NAME, struct ci_fmt_entry *user_table)
 {
      ci_membuf_t *content = ci_membuf_new(TEMPLATE_MEMBUF_SIZE);
-     char templpath[MAXPATHLEN];
+     char templpath[CI_MAX_PATH];
      txtTemplate_t *template = NULL;
 
      /*templateLoadText also locks the template*/
@@ -403,7 +403,7 @@ ci_membuf_t *ci_txt_template_build_content(const ci_request_t *req, const char *
           ci_membuf_write(content, "\0", 1, 1);      // terminate the string for safety
      }
      else {
-          makeTemplatePathFileName(templpath, MAXPATHLEN, SERVICE_NAME, TEMPLATE_NAME, TEMPLATE_DEF_LANG);
+          makeTemplatePathFileName(templpath, CI_MAX_PATH, SERVICE_NAME, TEMPLATE_NAME, TEMPLATE_DEF_LANG);
           content->endpos = snprintf(content->buf, content->bufsize, "ERROR: Unable to find specified template: %s\n", templpath);
           ci_debug_printf(1, "ERROR: Unable to find specified template: %s\n", templpath);
      }
