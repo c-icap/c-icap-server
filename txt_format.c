@@ -440,36 +440,49 @@ int fmt_http_req_url_o(ci_request_t *req, char *buf,int len, char *param)
 
 int fmt_http_req_head_o(ci_request_t *req, char *buf,int len, char *param)
 {
-  char *s;
+  char *s = NULL;
   int i;
   if (!len)
      return 0;
 
-  if(param && (s = ci_http_request_get_header(req, param))) {
-     for(i=0;i<len && *s!= '\0' && *s != '\r' && *s!='\n'; i++,s++)
-        buf[i] = *s;
-     return i;
+  if (!param || param[0] == '\0') {
+      s = ci_http_request(req);
+  } else {
+      s = ci_http_request_get_header(req, param);
   }
-  else {
+
+  if (s)  {
+      for(i=0;i<len && *s!= '\0' && *s != '\r' && *s!='\n'; i++,s++)
+          buf[i] = *s;
+      return i;
+  } else {
      *buf = '-';
      return 1;
   }
-   
 }
 
 int fmt_http_res_head_o(ci_request_t *req, char *buf,int len, char *param)
 {
-  char *s;
+  char *s = NULL;
   int i;
+  ci_headers_list_t *http_resp_headers;
+
   if (!len)
      return 0;
 
-  if(param && (s = ci_http_response_get_header(req, param))) {
-     for(i=0;i<len && *s!= '\0' && *s != '\r' && *s!='\n'; i++,s++)
+  if (!param || param[0] == '\0') {
+      http_resp_headers = ci_http_response_headers(req);
+      if (http_resp_headers)
+          s = http_resp_headers->headers[0];
+  } else {
+      s = ci_http_response_get_header(req, param);
+  }
+
+  if (s) {
+     for (i=0;i<len && *s!= '\0' && *s != '\r' && *s!='\n'; i++,s++)
         buf[i] = *s;
      return i;
-  }
-  else {
+  } else {
      *buf = '-';
      return 1;
   }
@@ -478,17 +491,23 @@ int fmt_http_res_head_o(ci_request_t *req, char *buf,int len, char *param)
 
 int fmt_icap_req_head(ci_request_t *req, char *buf,int len, char *param)
 {
-  char *s;
+  char *s = NULL;
   int i;
   if (!len)
      return 0;
 
-  if(param && (s = ci_headers_value(req->request_header, param))) {
+  if (!param || param[0] == '\0') {
+      if (req->request_header)
+          s = req->request_header->headers[0];
+  } else {
+      s = ci_headers_value(req->request_header, param);
+  }
+
+  if (s) {
      for(i=0;i<len && *s!= '\0' && *s != '\r' && *s!='\n'; i++,s++)
         buf[i] = *s;
      return i;
-  }
-  else {
+  } else {
      *buf = '-';
      return 1;
   }
@@ -496,17 +515,23 @@ int fmt_icap_req_head(ci_request_t *req, char *buf,int len, char *param)
 
 int fmt_icap_res_head(ci_request_t *req, char *buf,int len, char *param)
 {
-  char *s;
+  char *s = NULL;
   int i;
   if (!len)
      return 0;
 
-  if(param && (s = ci_headers_value(req->response_header, param))) {
-     for(i=0;i<len && *s!= '\0' && *s != '\r' && *s!='\n'; i++,s++)
-        buf[i] = *s;
-     return i;
+  if (!param || param[0] == '\0') {
+      if (req->response_header)
+          s = req->response_header->headers[0];
+  } else {
+      s = ci_headers_value(req->response_header, param);
   }
-  else {
+
+  if (s) {
+      for(i=0;i<len && *s!= '\0' && *s != '\r' && *s!='\n'; i++,s++)
+          buf[i] = *s;
+      return i;
+  } else {
      *buf = '-';
      return 1;
   }

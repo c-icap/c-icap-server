@@ -410,17 +410,17 @@ RemoteProxyUserHeaderEncoded on
 #	       %tl: Local time. Supports optional strftime format argument
 #	       %tg: GMT time. Supports optional strftime format argument
 #	       %>ho: Modified Http request header. Supports header name
-#	       	     as argument
+#	       	     as argument. If no argument given the first line returned
 #	       %huo: Modified Http request url
 #	       %<ho: Modified Http reply header. Supports header name
-#	       	     as argument
+#	       	     as argument. If no argument given the first line returned
 #	       %iu: Icap request url
 #	       %im: Icap method
 #	       %is: Icap status code
 #	       %>ih: Icap request header. Supports header name
-#	       	     as argument
+#	       	     as argument. If no argument given the first line returned
 #	       %<ih: Icap response header. Supports header name
-#	       	     as argument
+#	       	     as argument. If no argument given the first line returned
 #	       %Ih: Http bytes received
 #	       %Oh: Http bytes sent
 #	       %Ib: Http body bytes received
