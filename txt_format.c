@@ -475,7 +475,7 @@ int fmt_http_res_head_o(ci_request_t *req, char *buf,int len, char *param)
 
   if (!param || param[0] == '\0') {
       http_resp_headers = ci_http_response_headers(req);
-      if (http_resp_headers)
+      if (http_resp_headers && http_resp_headers->used)
           s = http_resp_headers->headers[0];
   } else {
       s = ci_http_response_get_header(req, param);
@@ -500,7 +500,7 @@ int fmt_icap_req_head(ci_request_t *req, char *buf,int len, char *param)
      return 0;
 
   if (!param || param[0] == '\0') {
-      if (req->request_header)
+      if (req->request_header && req->request_header->used)
           s = req->request_header->headers[0];
   } else {
       s = ci_headers_value(req->request_header, param);
@@ -524,7 +524,7 @@ int fmt_icap_res_head(ci_request_t *req, char *buf,int len, char *param)
      return 0;
 
   if (!param || param[0] == '\0') {
-      if (req->response_header)
+      if (req->response_header && req->response_header->used)
           s = req->response_header->headers[0];
   } else {
       s = ci_headers_value(req->response_header, param);
