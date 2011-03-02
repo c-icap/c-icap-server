@@ -213,6 +213,10 @@ char *ci_http_request(ci_request_t * req)
      ci_headers_list_t *heads;
      if (!(heads = ci_http_request_headers(req)))
           return NULL;
+
+     if (!heads->used)
+        return NULL;
+
      return heads->headers[0];
 }
 
@@ -236,6 +240,9 @@ int ci_http_request_url(ci_request_t * req, char *buf, int buf_size)
    */
     if (!(heads = ci_http_request_headers(req)))
           return 0;
+
+    if (!heads->used)
+        return 0;
 
     str = heads->headers[0];
 
