@@ -132,12 +132,18 @@ struct ci_fmt_entry GlobalTable [] = {
 
 int fmt_none(ci_request_t *req, char *buf,int len, char *param)
 {
+  if (!len)
+     return 0;
+
   *buf = '-';
    return 1;
 }
 
 int fmt_percent(ci_request_t *req, char *buf,int len, char *param)
 {
+   if (!len)
+      return 0;
+      
   *buf = '%';
    return 1;
 }
@@ -362,6 +368,10 @@ int fmt_localtime(ci_request_t *req, char *buf,int len, char *param)
     struct tm tm;
     time_t t;
     char *tfmt = "%d/%b/%Y:%H:%M:%S %z";
+
+    if (!len)
+        return 0;
+
     if (param && param[0]!='\0') {
         tfmt = param;
     }
@@ -375,6 +385,10 @@ int fmt_gmttime(ci_request_t *req, char *buf,int len, char *param)
     struct tm tm;
     time_t t;
     char *tfmt = "%d/%b/%Y:%H:%M:%S";
+
+    if (!len)
+        return 0;
+
     if (param && param[0]!='\0') {
         tfmt = param;
     }
@@ -435,6 +449,9 @@ int fmt_httpserverip(ci_request_t *req, char *buf,int len, char *param)
 
 int fmt_http_req_url_o(ci_request_t *req, char *buf,int len, char *param)
 {
+    if (!len)
+        return 0;
+
      return ci_http_request_url(req, buf, len);
 }
 
@@ -564,7 +581,11 @@ int fmt_req_body_bytes_sent(ci_request_t *req, char *buf,int len, char *param) {
 
 int fmt_req_preview_hex(ci_request_t *req, char *buf,int len, char *param)
 {
-    int  i, num, n; 
+    int  i, num, n, bytes; 
+
+    if (!len)
+        return 0;
+
     if (req->preview_data.used <= 0) {
         *buf = '-';
         return 1;
@@ -576,11 +597,16 @@ int fmt_req_preview_hex(ci_request_t *req, char *buf,int len, char *param)
     else
        num = 5;
     n = 0;
-    for (i=0; i<num && i < req->preview_data.used; i++) {
-         if (req->preview_data.buf[i] >= ' ' && req->preview_data.buf[i] <= '~')
+    for (i=0; i<num && i < req->preview_data.used && len > 0; i++) {
+        if (req->preview_data.buf[i] >= ' ' && req->preview_data.buf[i] <= '~') {
             buf[n++] = req->preview_data.buf[i]; 
-         else
-	     n += snprintf(buf+n, len-n, "\\x%X",0xFF & (buf[i]));
+            len --;
+        } else {
+	     bytes = snprintf(buf+n, len, "\\x%X",0xFF & (buf[i]));
+             if (bytes > len) bytes = len;
+             n += bytes;
+             len -= bytes;
+         }
     }
     return n;
 }
