@@ -632,7 +632,7 @@ void *ldap_table_search(struct ci_lookup_table *table, void *key, void ***vals)
     memory_exhausted = 0;
     return_value = NULL;
 
-    if(data->cache && ci_cache_search(data->cache, key, (void *)vals, NULL)) {
+    if(data->cache && ci_cache_search(data->cache, key, (void **)vals, NULL)) {
 	ci_debug_printf(4, "Retrieving from cache....\n");
 	return key;
     }
