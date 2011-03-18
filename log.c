@@ -269,7 +269,7 @@ void file_log_close()
 void file_log_access(ci_request_t *req)
 {
     struct logfile *lf;
-    char logline[1024];
+    char logline[4096];
 
     for (lf = ACCESS_LOG_FILES; lf != NULL; lf = lf->next) {
          if (lf->access_log) {
@@ -278,7 +278,7 @@ void file_log_access(ci_request_t *req)
 		 continue;
 	     }
 	     ci_debug_printf(6, "Log request to access log file %s\n", lf->file);
-             ci_format_text(req, lf->log_fmt, logline, 1024, NULL);
+             ci_format_text(req, lf->log_fmt, logline, sizeof(logline), NULL);
 	     fprintf(lf->access_log,"%s\n", logline); 
 	 }
     }
