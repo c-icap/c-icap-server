@@ -39,6 +39,7 @@ typedef struct ci_type_ops {
 CI_DECLARE_DATA extern ci_type_ops_t ci_str_ops;
 CI_DECLARE_DATA extern ci_type_ops_t ci_str_ext_ops;
 CI_DECLARE_DATA extern ci_type_ops_t ci_int32_ops;
+CI_DECLARE_DATA extern ci_type_ops_t ci_uint64_ops;
 CI_DECLARE_DATA extern ci_type_ops_t ci_ip_ops;
 CI_DECLARE_DATA extern ci_type_ops_t ci_ip_sockaddr_ops;
 CI_DECLARE_DATA extern ci_type_ops_t  ci_datatype_ops;

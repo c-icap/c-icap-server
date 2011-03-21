@@ -106,19 +106,33 @@ ci_type_ops_t ci_str_ext_ops = {
 
 void *int32_dup(const char *str, ci_mem_allocator_t *allocator)
 {
-    long i;
-    i = strtol(str, NULL, 10);
+    int32_t *i;
+    i = allocator->alloc(allocator, sizeof(int32_t));
+    if (i)
+        *i = strtol(str, NULL, 10);    
     return (void *)i;
+
 }
 
 int int32_cmp(const void *key1,const void *key2)
 {
-    return (key1-key2);
+    int32_t k1, k2;
+    k1 = *(int32_t *)key1;
+    k2 = *(int32_t *)key2;
+    if (k1 < k2)
+        return -1;
+    if (k1 > k2)
+        return 1;
+
+    return 0;
 }
 
 int int32_equal(const void *key1,const void *key2)
 {
-    return key1 == key2;
+    int32_t k1,k2;
+    k1 = *(int32_t *)key1;
+    k2 = *(int32_t *)key2;
+    return k1 == k2;
 }
 
 size_t int32_len(const void *key)
@@ -129,6 +143,7 @@ size_t int32_len(const void *key)
 void int32_free(void *key, ci_mem_allocator_t *allocator)
 {
     /*nothing*/
+    allocator->free(allocator, key);
 }
 
 ci_type_ops_t  ci_int32_ops = {
@@ -138,6 +153,56 @@ ci_type_ops_t  ci_int32_ops = {
     int32_len,
     int32_equal
 };
+
+/*uint64 operators*/
+void *uint64_dup(const char *str, ci_mem_allocator_t *allocator)
+{
+    uint64_t *i;
+    i = allocator->alloc(allocator, sizeof(uint64_t));
+    if (i)
+        *i = strtoll(str, NULL, 10);    
+    return (void *)i;
+}
+
+int uint64_cmp(const void *key1,const void *key2)
+{
+    uint64_t k1,k2;
+    k1 = *(uint64_t *)key1;
+    k2 = *(uint64_t *)key2;
+    if (k1 < k2)
+        return -1;
+    if (k1 > k2)
+        return 1;
+
+    return 0;
+}
+
+int uint64_equal(const void *key1,const void *key2)
+{
+   uint64_t k1,k2;
+    k1 = *(uint64_t *)key1;
+    k2 = *(uint64_t *)key2;
+    return k1 == k2;
+}
+
+void uint64_free(void *key, ci_mem_allocator_t *allocator)
+{
+    allocator->free(allocator, key);
+}
+
+size_t uint64_len(const void *key)
+{
+    return (size_t)sizeof(uint64_t);
+}
+
+ci_type_ops_t  ci_uint64_ops = {
+    uint64_dup,
+    uint64_free,
+    uint64_cmp,
+    uint64_len,
+    uint64_equal
+};
+
 
 /*regular expresion operator definition  */
 #ifdef USE_REGEX
