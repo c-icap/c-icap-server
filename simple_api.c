@@ -128,7 +128,7 @@ int ci_http_request_create(ci_request_t * req, int has_body)
 }
 
 
-char *ci_http_response_add_header(ci_request_t * req, char *header)
+char *ci_http_response_add_header(ci_request_t * req, const char *header)
 {
      ci_headers_list_t *heads;
      if(req->packed)   /*Not in edit mode*/
@@ -139,7 +139,7 @@ char *ci_http_response_add_header(ci_request_t * req, char *header)
 }
 
 
-char *ci_http_request_add_header(ci_request_t * req, char *header)
+char *ci_http_request_add_header(ci_request_t * req, const char *header)
 {
      ci_headers_list_t *heads;
      if(req->packed)   /*Not in edit mode*/
@@ -149,7 +149,7 @@ char *ci_http_request_add_header(ci_request_t * req, char *header)
      return ci_headers_add(heads, header);
 }
 
-int ci_http_response_remove_header(ci_request_t * req, char *header)
+int ci_http_response_remove_header(ci_request_t * req, const char *header)
 {
      ci_headers_list_t *heads;
      if(req->packed)   /*Not in edit mode*/
@@ -160,7 +160,7 @@ int ci_http_response_remove_header(ci_request_t * req, char *header)
 }
 
 
-int ci_http_request_remove_header(ci_request_t * req, char *header)
+int ci_http_request_remove_header(ci_request_t * req, const char *header)
 {
      ci_headers_list_t *heads;
      if(req->packed)   /*Not in edit mode*/
@@ -171,7 +171,7 @@ int ci_http_request_remove_header(ci_request_t * req, char *header)
 }
 
 
-char *ci_http_response_get_header(ci_request_t * req, char *head_name)
+char *ci_http_response_get_header(ci_request_t * req, const char *head_name)
 {
      ci_headers_list_t *heads;
      char *val;
@@ -182,7 +182,7 @@ char *ci_http_response_get_header(ci_request_t * req, char *head_name)
      return val;
 }
 
-char *ci_http_request_get_header(ci_request_t * req, char *head_name)
+char *ci_http_request_get_header(ci_request_t * req, const char *head_name)
 {
      ci_headers_list_t *heads;
      char *val;
@@ -220,7 +220,7 @@ char *ci_http_request(ci_request_t * req)
      return heads->headers[0];
 }
 
-char *ci_icap_add_xheader(ci_request_t * req, char *header)
+char *ci_icap_add_xheader(ci_request_t * req, const char *header)
 {
      return ci_headers_add(req->xheaders, header);
 }

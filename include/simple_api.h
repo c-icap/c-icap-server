@@ -166,7 +166,7 @@ CI_DECLARE_FUNC(ci_headers_list_t *) ci_http_request_headers(ci_request_t *req);
  \param header is a string contains the header in the form "Header: value"
  \return Pointer to the header or NULL if fails.
  */
-CI_DECLARE_FUNC(char *)              ci_http_response_add_header(ci_request_t *req,char *header);
+CI_DECLARE_FUNC(char *)              ci_http_response_add_header(ci_request_t *req,const char *header);
 
 /**
  \ingroup HTTP
@@ -178,7 +178,7 @@ CI_DECLARE_FUNC(char *)              ci_http_response_add_header(ci_request_t *r
  \param header is a string contains the header in the form "Header: value"
  \return Pointer to the header or NULL if fails.
  */
-CI_DECLARE_FUNC(char *)              ci_http_request_add_header(ci_request_t *req,char *header);
+CI_DECLARE_FUNC(char *)              ci_http_request_add_header(ci_request_t *req,const char *header);
 
 /**
  \ingroup HTTP
@@ -190,7 +190,7 @@ CI_DECLARE_FUNC(char *)              ci_http_request_add_header(ci_request_t *re
  \param header is a string contains the header name
  \return Non zero if success or zero otherwise
  */
-CI_DECLARE_FUNC(int)                 ci_http_response_remove_header(ci_request_t *req,char *header);
+CI_DECLARE_FUNC(int)                 ci_http_response_remove_header(ci_request_t *req, const char *header);
 
 /**
  \ingroup HTTP
@@ -202,7 +202,7 @@ CI_DECLARE_FUNC(int)                 ci_http_response_remove_header(ci_request_t
  \param header is a string contains the header name
  \return Non zero if success or zero otherwise
  */
-CI_DECLARE_FUNC(int)                 ci_http_request_remove_header(ci_request_t *req,char *header);
+CI_DECLARE_FUNC(int)                 ci_http_request_remove_header(ci_request_t *req, const char *header);
 
 /**
  \ingroup HTTP
@@ -214,7 +214,7 @@ CI_DECLARE_FUNC(int)                 ci_http_request_remove_header(ci_request_t 
  \param head_name is a string contains the header name
  \return A string with the header value on success NULL otherwise
  */
-CI_DECLARE_FUNC(char *)              ci_http_response_get_header(ci_request_t *req,char *head_name);
+CI_DECLARE_FUNC(char *)              ci_http_response_get_header(ci_request_t *req, const char *head_name);
 
 /**
  \ingroup HTTP
@@ -226,7 +226,7 @@ CI_DECLARE_FUNC(char *)              ci_http_response_get_header(ci_request_t *r
  \param head_name is a string contains the header name
  \return A string with the header value on success NULL otherwise
  */
-CI_DECLARE_FUNC(char *)              ci_http_request_get_header(ci_request_t *req,char *head_name);
+CI_DECLARE_FUNC(char *)              ci_http_request_get_header(ci_request_t *req, const char *head_name);
 
 /**
  \ingroup HTTP
@@ -324,7 +324,7 @@ CI_DECLARE_FUNC(int) ci_http_request_url(ci_request_t * req, char *buf, int buf_
  \param header is the header to add in the form "Header: Value"
  \return pointer to the header in success or NULL otherwise
  */
-CI_DECLARE_FUNC(char *)              ci_icap_add_xheader(ci_request_t *req,char *header);
+CI_DECLARE_FUNC(char *)              ci_icap_add_xheader(ci_request_t *req, const char *header);
 
 /**
  \ingroup REQUEST
