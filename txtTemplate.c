@@ -342,10 +342,12 @@ static txtTemplate_t *templateTryLoadText(const ci_request_t * req, const char *
 static txtTemplate_t *templateLoadText(const ci_request_t * req, const char *service_name,
                            const char *page_name)
 {
+     const char *acceptLangHeader;
      char *languages = NULL;
      char *str = NULL, *preferred = NULL;
      txtTemplate_t *template = NULL;
-     if ((languages = ci_http_request_get_header((ci_request_t *)req, "Accept-Language")) != NULL) {
+     if ((acceptLangHeader = ci_http_request_get_header((ci_request_t *)req, "Accept-Language")) != NULL) {
+         languages = strdup(acceptLangHeader);
           ci_debug_printf(4, "templateLoadText: Languages are: '%s'\n", languages);
           str = strchr(languages, ';');
           if (str != NULL)
@@ -360,6 +362,7 @@ static txtTemplate_t *templateLoadText(const ci_request_t * req, const char *ser
                     template =
                         templateTryLoadText(req, service_name, page_name, preferred);
                     if (template != NULL) {
+                         free(languages);
                          return template;
                     }
 // This is a bad idea, as currently implemented it allows frequent disk accesses.
@@ -380,6 +383,7 @@ static txtTemplate_t *templateLoadText(const ci_request_t * req, const char *ser
                }
                preferred = str + 1;
           }
+          free(languages);
      }
      ci_debug_printf(4, "templateLoadText: Accept-Language header found or was empty!\n");
 
