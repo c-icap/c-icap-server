@@ -388,10 +388,10 @@ char *ci_request_set_log_str(ci_request_t *req, char *logstr)
      return req->log_str;
 }
 
-int process_encapsulated(ci_request_t * req, char *buf)
+int process_encapsulated(ci_request_t * req, const char *buf)
 {
-     char *start;
-     char *pos;
+     const char *start;
+     const char *pos;
      char *end;
      int type = 0, num = 0, val = 0;
      int hasbody = 1;           /*Assume that we have a resbody or reqbody or optbody */
@@ -655,7 +655,7 @@ int client_create_request(ci_request_t * req, char *servername, char *service,
 
 int get_request_options(ci_request_t * req, ci_headers_list_t * h)
 {
-     char *pstr;
+     const char *pstr;
 
      if ((pstr = ci_headers_value(h, "Preview")) != NULL) {
           req->preview = strtol(pstr, NULL, 10);
@@ -958,7 +958,8 @@ int client_parse_incoming_data(ci_request_t * req, void *data_dest,
                                int (*dest_write) (void *, char *, int))
 {
      int ret, v1, v2, status, bytes, size;
-     char *buf, *val;
+     char *buf;
+     const char *val;
      ci_headers_list_t *resp_heads;
 
      if (req->status == GET_NOTHING) {
@@ -1163,7 +1164,8 @@ int ci_client_icapfilter(ci_request_t * req,
                                                              int))
 {
      int i, ret, v1, v2, remains, pre_eof = 0, preview_status;
-     char *buf, *val;
+     char *buf;
+     const char *val;
 
      if (CI_OK !=
          client_create_request(req, req->req_server, req->service,

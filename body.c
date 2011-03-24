@@ -73,7 +73,7 @@ void ci_membuf_free(struct ci_membuf *b)
 }
 
 
-int ci_membuf_write(struct ci_membuf *b, char *data, int len, int iseof)
+int ci_membuf_write(struct ci_membuf *b, const char *data, int len, int iseof)
 {
      int remains, newsize;
      char *newbuf;
@@ -288,7 +288,7 @@ void ci_cached_file_release(ci_cached_file_t * body)
 
 
 
-int ci_cached_file_write(ci_cached_file_t * body, char *buf, int len, int iseof)
+int ci_cached_file_write(ci_cached_file_t * body, const char *buf, int len, int iseof)
 {
      int remains;
      int ret;
@@ -490,7 +490,7 @@ void ci_simple_file_release(ci_simple_file_t * body)
 }
 
 
-int ci_simple_file_write(ci_simple_file_t * body, char *buf, int len, int iseof)
+int ci_simple_file_write(ci_simple_file_t * body, const char *buf, int len, int iseof)
 {
      int ret;
      int wsize = 0;
@@ -683,7 +683,7 @@ void ci_ring_buf_produce(struct ci_ring_buf *buf, int len)
 
 }
 
-int ci_ring_buf_write(struct ci_ring_buf *buf, char *data,int size)
+int ci_ring_buf_write(struct ci_ring_buf *buf, const char *data,int size)
 {
   char *wb;
   int wb_len, ret, written;

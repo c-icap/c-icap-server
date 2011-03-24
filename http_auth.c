@@ -61,7 +61,7 @@ int http_authenticate(ci_request_t * req, char *use_method)
      struct http_auth_method *auth_method;
      authenticator_module_t **authenticators;
      void *method_data;
-     char *auth_str, *method_str, *username;
+     const char *auth_str, *method_str, *username;
      char *auth_header = NULL;
      int len, res;
 
@@ -95,12 +95,9 @@ int http_authenticate(ci_request_t * req, char *use_method)
           if ((auth_str = strchr(method_str, ' ')) == NULL)
                return CI_ACCESS_DENY;
           len = auth_str - method_str;
-          method_str[len] = '\0';       /*Just to check if we are support it ..... */
-	  if (strcmp(method_str,use_method) != 0)
+	  if (strncmp(method_str, use_method, len) != 0)
 	      return CI_ACCESS_DENY;
           ci_debug_printf(5, "Method is %s ....\n", method_str);
-	  method_str[len] = ' ';        /*Put back the space ......... */
-
 
           auth_str++;
           method_data = auth_method->create_auth_data(auth_str, &username);
@@ -365,8 +362,8 @@ static struct ci_conf_entry basic_conf_params[] = {
 
 int basic_post_init(struct ci_server_conf *server_conf);
 void basic_close();
-struct http_basic_auth_data *basic_create_auth_data(char *auth_line,
-                                                    char **username);
+struct http_basic_auth_data *basic_create_auth_data(const char *auth_line,
+                                                    const char **username);
 void basic_release_auth_data(struct http_basic_auth_data *data);
 char *basic_authentication_header();
 
@@ -375,7 +372,7 @@ http_auth_method_t basic_auth = {
      NULL,                      /*init */
      basic_post_init,
      basic_close,
-     (void *(*)(char *, char **)) basic_create_auth_data,
+     (void *(*)(const char *, const char **)) basic_create_auth_data,
      (void (*)(void *)) basic_release_auth_data,
      basic_authentication_header,
      NULL,   /*release_authentication_header*/
@@ -403,8 +400,8 @@ void basic_close()
      }
 }
 
-struct http_basic_auth_data *basic_create_auth_data(char *auth_line,
-                                                    char **username)
+struct http_basic_auth_data *basic_create_auth_data(const char *auth_line,
+                                                    const char **username)
 {
      struct http_basic_auth_data *data;
      char dec_http_user[MAX_USERNAME_LEN + HTTP_MAX_PASS_LEN + 2], *str;
@@ -455,7 +452,7 @@ static struct ci_conf_entry basic_simple_db_conf_variables[] = {
 
 int basic_simple_db_post_init(struct ci_server_conf *server_conf);
 void basic_simple_db_close();
-int basic_simple_db_athenticate(struct http_basic_auth_data *data, char *usedb);
+int basic_simple_db_athenticate(struct http_basic_auth_data *data, const char *usedb);
 
 
 authenticator_module_t basic_simple_db = {
@@ -493,7 +490,7 @@ void basic_simple_db_close()
  This function is under construction ........
 */
 
-int basic_simple_db_athenticate(struct http_basic_auth_data *data, char *usedb)
+int basic_simple_db_athenticate(struct http_basic_auth_data *data, const char *usedb)
 {
      char **pass = NULL;
 #ifdef HAVE_CRYPT_R

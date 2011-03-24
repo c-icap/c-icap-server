@@ -42,7 +42,7 @@ unsigned char base64_table[] = {
 };
 
 
-int ci_base64_decode(char *encoded, char *decoded, int len)
+int ci_base64_decode(const char *encoded, char *decoded, int len)
 {
     int i;
     unsigned char *str,*result;
@@ -76,7 +76,7 @@ int ci_base64_decode(char *encoded, char *decoded, int len)
 }
 
 
-char *ci_base64_decode_dup(char *encoded) 
+char *ci_base64_decode_dup(const char *encoded) 
 {
     int len;
     char *result;
@@ -91,7 +91,7 @@ char *ci_base64_decode_dup(char *encoded)
 
 
 /*url decoders  */
-int url_decoder(char *input,char *output, int output_len)
+int url_decoder(const char *input,char *output, int output_len)
 {
     int i, k;
     char str[3];

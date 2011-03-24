@@ -140,7 +140,7 @@ int process_request(ci_request_t *);
 /*Functions used in both server and icap-client library*/
 CI_DECLARE_FUNC(int) parse_chunk_data(ci_request_t *req, char **wdata);
 CI_DECLARE_FUNC(int) net_data_read(ci_request_t *req);
-CI_DECLARE_FUNC(int) process_encapsulated(ci_request_t *req,char *buf);
+CI_DECLARE_FUNC(int) process_encapsulated(ci_request_t *req, const char *buf);
 
 /*********************************************/
 /*Buffer functions (I do not know if they must included in ci library....) */

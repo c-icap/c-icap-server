@@ -119,7 +119,7 @@ extern "C"
  \param len    is the length of the result buffer
  \return the number of decoded bytes
  */
-CI_DECLARE_FUNC(int)                ci_base64_decode(char *str,char *result,int len);
+CI_DECLARE_FUNC(int)                ci_base64_decode(const char *str,char *result,int len);
 
 /**
  * Decodes a base64 encoded string, and also allocate memory for the result.
@@ -129,7 +129,7 @@ CI_DECLARE_FUNC(int)                ci_base64_decode(char *str,char *result,int 
  \return a pointer to the decoded string. It uses malloc to allocate space for the 
  * decoded string so the free function should used to release allocated memory.
  */
-CI_DECLARE_FUNC(char *)             ci_base64_decode_dup(char *str);
+CI_DECLARE_FUNC(char *)             ci_base64_decode_dup(const char *str);
 
 /**
  */
@@ -166,7 +166,7 @@ CI_DECLARE_FUNC(ci_headers_list_t *) ci_http_request_headers(ci_request_t *req);
  \param header is a string contains the header in the form "Header: value"
  \return Pointer to the header or NULL if fails.
  */
-CI_DECLARE_FUNC(char *)              ci_http_response_add_header(ci_request_t *req,const char *header);
+CI_DECLARE_FUNC(const char *)              ci_http_response_add_header(ci_request_t *req,const char *header);
 
 /**
  \ingroup HTTP
@@ -178,7 +178,7 @@ CI_DECLARE_FUNC(char *)              ci_http_response_add_header(ci_request_t *r
  \param header is a string contains the header in the form "Header: value"
  \return Pointer to the header or NULL if fails.
  */
-CI_DECLARE_FUNC(char *)              ci_http_request_add_header(ci_request_t *req,const char *header);
+CI_DECLARE_FUNC(const char *)              ci_http_request_add_header(ci_request_t *req,const char *header);
 
 /**
  \ingroup HTTP
@@ -214,7 +214,7 @@ CI_DECLARE_FUNC(int)                 ci_http_request_remove_header(ci_request_t 
  \param head_name is a string contains the header name
  \return A string with the header value on success NULL otherwise
  */
-CI_DECLARE_FUNC(char *)              ci_http_response_get_header(ci_request_t *req, const char *head_name);
+CI_DECLARE_FUNC(const char *)              ci_http_response_get_header(ci_request_t *req, const char *head_name);
 
 /**
  \ingroup HTTP
@@ -226,7 +226,7 @@ CI_DECLARE_FUNC(char *)              ci_http_response_get_header(ci_request_t *r
  \param head_name is a string contains the header name
  \return A string with the header value on success NULL otherwise
  */
-CI_DECLARE_FUNC(char *)              ci_http_request_get_header(ci_request_t *req, const char *head_name);
+CI_DECLARE_FUNC(const char *)              ci_http_request_get_header(ci_request_t *req, const char *head_name);
 
 /**
  \ingroup HTTP
@@ -301,7 +301,7 @@ CI_DECLARE_FUNC(ci_off_t)            ci_http_content_length(ci_request_t *req);
  \param req is a pointer to the current ICAP request object.
  \return The request line in success or NULL otherwise
  */
-CI_DECLARE_FUNC(char *)              ci_http_request(ci_request_t *req);
+CI_DECLARE_FUNC(const char *)              ci_http_request(ci_request_t *req);
 
 /**
  \ingroup HTTP
@@ -324,7 +324,7 @@ CI_DECLARE_FUNC(int) ci_http_request_url(ci_request_t * req, char *buf, int buf_
  \param header is the header to add in the form "Header: Value"
  \return pointer to the header in success or NULL otherwise
  */
-CI_DECLARE_FUNC(char *)              ci_icap_add_xheader(ci_request_t *req, const char *header);
+CI_DECLARE_FUNC(const char *)              ci_icap_add_xheader(ci_request_t *req, const char *header);
 
 /**
  \ingroup REQUEST

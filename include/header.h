@@ -133,7 +133,7 @@ CI_DECLARE_FUNC(int)     ci_headers_setsize(ci_headers_list_t *heads, int size);
  \endcode
  *
  */
-CI_DECLARE_FUNC(char *)  ci_headers_add(ci_headers_list_t *heads, char *header);
+CI_DECLARE_FUNC(const char *)  ci_headers_add(ci_headers_list_t *heads, const char *header);
 
 /**
  * Append a  headers list object to an other headers list
@@ -142,7 +142,7 @@ CI_DECLARE_FUNC(char *)  ci_headers_add(ci_headers_list_t *heads, char *header);
  \param someheaders is a ci_headers_list_t object which contains the headers will be added to the heads
  \return non zero on success zero otherwise
  */
-CI_DECLARE_FUNC(int)  ci_headers_addheaders(ci_headers_list_t *heads,ci_headers_list_t *someheaders);
+CI_DECLARE_FUNC(int)  ci_headers_addheaders(ci_headers_list_t *heads,const ci_headers_list_t *someheaders);
 
 /**
  * Removes a header from a header list
@@ -157,7 +157,7 @@ CI_DECLARE_FUNC(int)  ci_headers_addheaders(ci_headers_list_t *heads,ci_headers_
  \endcode
  *
  */
-CI_DECLARE_FUNC(int)     ci_headers_remove(ci_headers_list_t *heads, char *header);
+CI_DECLARE_FUNC(int)     ci_headers_remove(ci_headers_list_t *heads, const char *header);
 
 /**
  * Search for a header in a header list
@@ -174,7 +174,7 @@ CI_DECLARE_FUNC(int)     ci_headers_remove(ci_headers_list_t *heads, char *heade
  * In this example on success the head pointer will point to a \em "Content-Lenght: 1025" string
  *
  */
-CI_DECLARE_FUNC(char *)  ci_headers_search(ci_headers_list_t *heads, char *header);
+CI_DECLARE_FUNC(const char *)  ci_headers_search(ci_headers_list_t *heads, const char *header);
 
 /**
  * Search for a header in a header list and return the value of the first occurrence of this header
@@ -192,7 +192,7 @@ CI_DECLARE_FUNC(char *)  ci_headers_search(ci_headers_list_t *heads, char *heade
  \endcode
  *
  */
-CI_DECLARE_FUNC(char *)  ci_headers_value(ci_headers_list_t *heads, char *header);
+CI_DECLARE_FUNC(const char *)  ci_headers_value(ci_headers_list_t *heads, const char *header);
 
 /*The following headers are only used internally */
 CI_DECLARE_FUNC(void) ci_headers_pack(ci_headers_list_t *heads);
@@ -201,7 +201,7 @@ CI_DECLARE_FUNC(int)  sizeofheader(ci_headers_list_t *heads);
 
 CI_DECLARE_FUNC(ci_encaps_entity_t) *mk_encaps_entity(int type,int val);
 CI_DECLARE_FUNC(void) destroy_encaps_entity(ci_encaps_entity_t *e);
-CI_DECLARE_FUNC(int) get_encaps_type(char *buf,int *val,char **endpoint);
+CI_DECLARE_FUNC(int) get_encaps_type(const char *buf,int *val,char **endpoint);
 CI_DECLARE_FUNC(int)  sizeofencaps(ci_encaps_entity_t *e);
 
 #ifdef __CI_COMPAT

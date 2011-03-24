@@ -128,7 +128,7 @@ int ci_http_request_create(ci_request_t * req, int has_body)
 }
 
 
-char *ci_http_response_add_header(ci_request_t * req, const char *header)
+const char *ci_http_response_add_header(ci_request_t * req, const char *header)
 {
      ci_headers_list_t *heads;
      if(req->packed)   /*Not in edit mode*/
@@ -139,7 +139,7 @@ char *ci_http_response_add_header(ci_request_t * req, const char *header)
 }
 
 
-char *ci_http_request_add_header(ci_request_t * req, const char *header)
+const char *ci_http_request_add_header(ci_request_t * req, const char *header)
 {
      ci_headers_list_t *heads;
      if(req->packed)   /*Not in edit mode*/
@@ -171,10 +171,10 @@ int ci_http_request_remove_header(ci_request_t * req, const char *header)
 }
 
 
-char *ci_http_response_get_header(ci_request_t * req, const char *head_name)
+const char *ci_http_response_get_header(ci_request_t * req, const char *head_name)
 {
      ci_headers_list_t *heads;
-     char *val;
+     const char *val;
      if (!(heads =  ci_http_response_headers(req)))
           return NULL;
      if (!(val = ci_headers_value(heads, head_name)))
@@ -182,10 +182,10 @@ char *ci_http_response_get_header(ci_request_t * req, const char *head_name)
      return val;
 }
 
-char *ci_http_request_get_header(ci_request_t * req, const char *head_name)
+const char *ci_http_request_get_header(ci_request_t * req, const char *head_name)
 {
      ci_headers_list_t *heads;
-     char *val;
+     const char *val;
      if (!(heads = ci_http_request_headers(req)))
           return NULL;
      if (!(val = ci_headers_value(heads, head_name)))
@@ -197,7 +197,7 @@ char *ci_http_request_get_header(ci_request_t * req, const char *head_name)
 ci_off_t ci_http_content_length(ci_request_t * req)
 {
      ci_headers_list_t *heads;
-     char *val;
+     const char *val;
      if (!(heads =  ci_http_response_headers(req))) {
           /*Then maybe is a reqmod reauest, try to get request headers */
           if (!(heads = ci_http_request_headers(req)))
@@ -208,7 +208,7 @@ ci_off_t ci_http_content_length(ci_request_t * req)
      return ci_strto_off_t(val, NULL, 10);
 }
 
-char *ci_http_request(ci_request_t * req)
+const char *ci_http_request(ci_request_t * req)
 {
      ci_headers_list_t *heads;
      if (!(heads = ci_http_request_headers(req)))
@@ -220,7 +220,7 @@ char *ci_http_request(ci_request_t * req)
      return heads->headers[0];
 }
 
-char *ci_icap_add_xheader(ci_request_t * req, const char *header)
+const char *ci_icap_add_xheader(ci_request_t * req, const char *header)
 {
      return ci_headers_add(req->xheaders, header);
 }
@@ -233,7 +233,7 @@ int ci_icap_append_xheaders(ci_request_t *req,ci_headers_list_t *headers)
 int ci_http_request_url(ci_request_t * req, char *buf, int buf_size)
 {
    ci_headers_list_t *heads;
-   char *str;
+   const char *str;
    int i; 
    /*The request must have the form:
         GET url HTTP/X.X 

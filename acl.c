@@ -608,9 +608,10 @@ int cfg_acl_add(char *directive, char **argv, void *setdata)
 /* Some acl_type methods implementation               */
 #if HAVE_REGEX
 
-char *get_header(ci_headers_list_t *headers, char *head)
+const char *get_header(ci_headers_list_t *headers, char *head)
 {
-    char *val, *buf;
+    const char *val;
+    char *buf;
     int i;
 
     if(!headers || !head)

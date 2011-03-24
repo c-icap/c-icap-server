@@ -214,7 +214,7 @@ void ci_headers_reset(ci_headers_list_t * h)
      h->bufused = 0;
 }
 
-char *ci_headers_add(ci_headers_list_t * h, char *line)
+const char *ci_headers_add(ci_headers_list_t * h, const char *line)
 {
      char *newhead, **newspace, *newbuf;
      int len, linelen;
@@ -261,7 +261,7 @@ char *ci_headers_add(ci_headers_list_t * h, char *line)
 }
 
 
-int ci_headers_addheaders(ci_headers_list_t * h, ci_headers_list_t * headers)
+int ci_headers_addheaders(ci_headers_list_t * h, const ci_headers_list_t * headers)
 {
      int remains, len, i;
      char *newbuf, **newspace;
@@ -308,7 +308,7 @@ int ci_headers_addheaders(ci_headers_list_t * h, ci_headers_list_t * headers)
 }
 
 
-char *ci_headers_search(ci_headers_list_t * h, char *header)
+const char *ci_headers_search(ci_headers_list_t * h, const char *header)
 {
      int i;
      for (i = 0; i < h->used; i++) {
@@ -318,9 +318,9 @@ char *ci_headers_search(ci_headers_list_t * h, char *header)
      return NULL;
 }
 
-char *ci_headers_value(ci_headers_list_t * h, char *header)
+const char *ci_headers_value(ci_headers_list_t * h, const char *header)
 {
-     char *phead;
+     const char *phead;
      if (!(phead = ci_headers_search(h, header)))
           return NULL;
      while (*phead != '\0' && *phead != ':')
@@ -333,7 +333,7 @@ char *ci_headers_value(ci_headers_list_t * h, char *header)
      return phead;
 }
 
-int ci_headers_remove(ci_headers_list_t * h, char *header)
+int ci_headers_remove(ci_headers_list_t * h, const char *header)
 {
      char *phead;
      int i, j, header_len, rest_len;
@@ -378,7 +378,7 @@ int ci_headers_remove(ci_headers_list_t * h, char *header)
      return 0;
 }
 
-char *ci_headers_replace(ci_headers_list_t * h, char *header, char *newval)
+const char *ci_headers_replace(ci_headers_list_t * h, const char *header, const char *newval)
 {
     if (h->packed) /*Not in edit mode*/
 	 return NULL;
@@ -509,7 +509,7 @@ void destroy_encaps_entity(ci_encaps_entity_t * e)
      free(e);
 }
 
-int get_encaps_type(char *buf, int *val, char **endpoint)
+int get_encaps_type(const char *buf, int *val, char **endpoint)
 {
 
      if (0 == strncmp(buf, "req-hdr", 7)) {

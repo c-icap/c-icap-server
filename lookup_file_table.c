@@ -369,7 +369,7 @@ void  hash_table_close(struct ci_lookup_table *table)
 
 void *hash_table_search(struct ci_lookup_table *table, void *key, void ***vals)
 {
-    struct text_table_entry *e;
+    const struct text_table_entry *e;
     struct text_table *text_table = (struct text_table *)table->data;
 
     if(!text_table) {

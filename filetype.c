@@ -623,7 +623,8 @@ int extend_object_type(struct ci_magics_db *db, ci_headers_list_t *headers, cons
      char *unzipped_buf = NULL;
 #endif
      const char *checkbuf = buf;
-     char *content_type = NULL, *content_encoding = NULL;
+     const char *content_type = NULL;
+     const char *content_encoding = NULL;
 
      *iscompressed = CI_ENCODE_NONE;
 

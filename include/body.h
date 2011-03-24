@@ -42,7 +42,7 @@ typedef struct ci_membuf{
 CI_DECLARE_FUNC(struct ci_membuf) * ci_membuf_new();
 CI_DECLARE_FUNC(struct ci_membuf) * ci_membuf_new_sized(int size);
 CI_DECLARE_FUNC(void) ci_membuf_free(struct ci_membuf *);
-CI_DECLARE_FUNC(int) ci_membuf_write(struct ci_membuf *body, char *buf,int len, int iseof);
+CI_DECLARE_FUNC(int) ci_membuf_write(struct ci_membuf *body, const char *buf,int len, int iseof);
 CI_DECLARE_FUNC(int) ci_membuf_read(struct ci_membuf *body,char *buf,int len);
 
 
@@ -71,7 +71,7 @@ CI_DECLARE_DATA extern char *CI_TMPDIR;
 CI_DECLARE_FUNC(ci_cached_file_t) * ci_cached_file_new(int size);
 CI_DECLARE_FUNC(void) ci_cached_file_destroy(ci_cached_file_t *);
 CI_DECLARE_FUNC(int) ci_cached_file_write(ci_cached_file_t *body,
-					  char *buf,int len, int iseof);
+					  const char *buf,int len, int iseof);
 CI_DECLARE_FUNC(int) ci_cached_file_read(ci_cached_file_t *body,char *buf,int len);
 CI_DECLARE_FUNC(void) ci_cached_file_reset(ci_cached_file_t *body,int new_size);
 CI_DECLARE_FUNC(void) ci_cached_file_release(ci_cached_file_t *body);
@@ -107,7 +107,7 @@ CI_DECLARE_FUNC(ci_simple_file_t) * ci_simple_file_named_new(char *tmp,char*file
 CI_DECLARE_FUNC(void) ci_simple_file_release(ci_simple_file_t *);
 CI_DECLARE_FUNC(void) ci_simple_file_destroy(ci_simple_file_t *body);
 CI_DECLARE_FUNC(int) ci_simple_file_write(ci_simple_file_t *body,
-					  char *buf,int len, int iseof);
+					  const char *buf,int len, int iseof);
 CI_DECLARE_FUNC(int) ci_simple_file_read(ci_simple_file_t *body,char *buf,int len);
 
 
@@ -133,7 +133,7 @@ typedef struct ci_ring_buf {
 
 CI_DECLARE_FUNC(struct ci_ring_buf *) ci_ring_buf_new(int size);
 CI_DECLARE_FUNC(void) ci_ring_buf_destroy(struct ci_ring_buf *buf);
-CI_DECLARE_FUNC(int) ci_ring_buf_write(struct ci_ring_buf *buf, char *data,int size);
+CI_DECLARE_FUNC(int) ci_ring_buf_write(struct ci_ring_buf *buf, const char *data,int size);
 CI_DECLARE_FUNC(int) ci_ring_buf_read(struct ci_ring_buf *buf, char *data,int size);
 
 /*low level functions for ci_ring_buf*/

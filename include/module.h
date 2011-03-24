@@ -89,7 +89,7 @@ typedef struct http_auth_method{
      int (*init_auth_method)(struct ci_server_conf *server_conf);
      int (*post_init_auth_method)(struct ci_server_conf *server_conf);
      void (*close_auth_method)();
-     void *(*create_auth_data)(char *authorization_header,char **username);
+     void *(*create_auth_data)(const char *authorization_header,const char **username);
      void (*release_auth_data)(void *data);
      char *(*authentication_header)();
      void (*release_authentication_header)();
@@ -103,7 +103,7 @@ typedef struct authenticator_module{
      int (*init_authenticator)(struct ci_server_conf *server_conf);
      int (*post_init_authenticator)(struct ci_server_conf *server_conf);
      void (*close_authenticator)();
-    int (*authenticate)(void *data, char *usedb);
+    int (*authenticate)(void *data, const char *usedb);
      struct ci_conf_entry *conf_table;
 } authenticator_module_t;
 
