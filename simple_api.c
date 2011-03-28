@@ -54,6 +54,14 @@ ci_headers_list_t *ci_http_request_headers(ci_request_t * req)
      if (e_list[0] != NULL && e_list[0]->type == ICAP_REQ_HDR)  /*It is always the first ellement */
           return (ci_headers_list_t *) e_list[0]->entity;
 
+     /*We did not found the request headers but maybe there are in req->trash objects
+       Trying to retrieve hoping that it were not desstroyed yet
+      */
+     if(req->trash_entities[ICAP_REQ_HDR] &&
+        req->trash_entities[ICAP_REQ_HDR]->entity &&
+        ((ci_headers_list_t *) req->trash_entities[ICAP_REQ_HDR]->entity)->used)
+         return (ci_headers_list_t *) req->trash_entities[ICAP_REQ_HDR]->entity;
+
      return NULL;
 }
 
