@@ -342,29 +342,29 @@ static txtTemplate_t *templateTryLoadText(const ci_request_t * req, const char *
 static txtTemplate_t *templateLoadText(const ci_request_t * req, const char *service_name,
                            const char *page_name)
 {
-     char *languages = NULL;
-     char *str = NULL, *preferred = NULL;
+     const char *acceptLangHeader;
+     const char *s;
+     char preferred[32];
+     int i;
      txtTemplate_t *template = NULL;
-     if ((languages = ci_http_request_get_header((ci_request_t *)req, "Accept-Language")) != NULL) {
-          ci_debug_printf(4, "templateLoadText: Languages are: '%s'\n", languages);
-          str = strchr(languages, ';');
-          if (str != NULL)
-               str[0] = '\0';
-          preferred = languages;
-          while ((str = strchr(preferred, ',')) != NULL) {
-               str[0] = '\0';
-               if (preferred != '\0') {
-                    ci_debug_printf(4,
-                                    "templateLoadText: trying preferred language: '%s'\n",
-                                    preferred);
-                    template =
-                        templateTryLoadText(req, service_name, page_name, preferred);
-                    if (template != NULL) {
-                         return template;
-                    }
-// This is a bad idea, as currently implemented it allows frequent disk accesses.
-// Symlinks en_GB -> en, en_US->en, etc. are probably the right answer. On
-// thinking about it, these shouldn't trash the cash to badly.
+     if ((acceptLangHeader = ci_http_request_get_header((ci_request_t *)req, "Accept-Language")) != NULL) {
+         s = acceptLangHeader;
+         ci_debug_printf(4, "templateLoadText: Languages are: '%s'\n", s);
+
+         while ( *s != '\0') {
+             while (*s != '\0' && isspace(*s)) s++; /* eat spaces*/
+             for(i=0; *s != '\0' && *s != ',' && *s!= ';' && !isspace(*s) && i < sizeof(preferred) - 1; i++,s++) 
+                 preferred[i] = *s; /*Copy the language part*/
+             preferred[i] = '\0';
+             ci_debug_printf(6, "Try load the error message on language:%s\n", preferred);
+             template =
+                 templateTryLoadText(req, service_name, page_name, preferred);
+             if (template != NULL) {
+                 return template;
+             }
+/* This is a bad idea, as currently implemented it allows frequent disk accesses.
+   Symlinks en_GB -> en, en_US->en, etc. are probably the right answer. On
+   thinking about it, these shouldn't trash the cash to badly.*/
 /*                    else {
                          str2 = strchr(preferred, '-');
                          if(str2) str2[0] = '\0';
@@ -377,11 +377,12 @@ static txtTemplate_t *templateLoadText(const ci_request_t * req, const char *ser
                               return template;
                          }
                     } */
-               }
-               preferred = str + 1;
-          }
+
+             while (*s != '\0' && *s != ',') s++; /*ignore the qvalue part(at least for now)*/
+             if (*s == ',') s++;
+         }
      }
-     ci_debug_printf(4, "templateLoadText: Accept-Language header found or was empty!\n");
+     ci_debug_printf(4, "templateLoadText: Accept-Language header not found or was empty!\n");
 
      return templateTryLoadText(req, service_name, page_name, TEMPLATE_DEF_LANG);
 }
