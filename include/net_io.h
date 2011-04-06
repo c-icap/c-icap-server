@@ -126,7 +126,7 @@ CI_DECLARE_FUNC(const char *) ci_sockaddr_t_to_ip(ci_sockaddr_t *addr, char *ip,
 
 #ifdef USE_IPV6
 CI_DECLARE_FUNC(void) ci_sockaddr_set_port(ci_sockaddr_t *addr, int port);
-#define ci_sockaddr_set_family(addr,port) ((addr).sockaddr.ss_family=family)
+#define ci_sockaddr_set_family(addr,family) ((addr).sockaddr.ss_family=family)
 #else
 CI_DECLARE_FUNC(void) ci_sockaddr_set_port(ci_sockaddr_t *addr, int port);
 #define ci_sockaddr_set_family(addr,family) ((addr).sockaddr.sin_family=family/*,(addr).ci_sin_family=family*/)
