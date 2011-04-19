@@ -936,6 +936,7 @@ void options_responce(ci_request_t * req)
      ci_service_xdata_t *srv_xdata;
      unsigned int xopts;
      int preview, allow204, max_conns, xlen;
+     int ttl;
      head = req->response_header;
      srv_xdata = service_data(req->current_service_mod);
      ci_headers_reset(head);
@@ -973,6 +974,7 @@ void options_responce(ci_request_t * req)
      preview = srv_xdata->preview_size;
      allow204 = srv_xdata->allow_204;
      max_conns = srv_xdata->max_connections;
+     ttl = srv_xdata->options_ttl;
      ci_service_data_read_unlock(srv_xdata);
 
      ci_debug_printf(5, "Options responce:\n"
@@ -990,7 +992,12 @@ void options_responce(ci_request_t * req)
 	             );
 
      /* ci_headers_add(head, "Max-Connections: 20"); */
-     ci_headers_add(head, "Options-TTL: 3600");
+     if (ttl > 0) {
+         sprintf(buf, "Options-TTL: %d", ttl);
+         ci_headers_add(head, buf);
+     }
+     else
+         ci_headers_add(head, "Options-TTL: 3600");
      strcpy(buf, "Date: ");
      ci_strtime_rfc822(buf + strlen(buf));
      ci_headers_add(head, buf);
@@ -998,7 +1005,7 @@ void options_responce(ci_request_t * req)
           sprintf(buf, "Preview: %d", srv_xdata->preview_size);
           ci_headers_add(head, buf);
      }
-     if(max_conns > 0) {
+     if(max_conns >= 0) {
 	 sprintf(buf, "Max-Connections: %d", max_conns);
 	 ci_headers_add(head, buf);
      }

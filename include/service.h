@@ -84,6 +84,7 @@ typedef struct ci_service_xdata {
      char TransferComplete[MAX_HEADER_SIZE+1];
      int preview_size;
      int max_connections;
+     int options_ttl;
      int allow_204;
      /*statistics IDS*/
      int stat_bytes_in;
@@ -404,6 +405,15 @@ CI_DECLARE_FUNC(void) ci_service_enable_204(ci_service_xdata_t *srv_xdata);
   \param max_connections is the maximum connections
  */
 CI_DECLARE_FUNC(void) ci_service_set_max_connections(ci_service_xdata_t *srv_xdata, int max_connections);
+
+/**
+  \ingroup SERVICES
+  \brief Sets the Options ttl for this service
+  *
+  \param srv_xdata is a pointer to the c-icap internal service data.
+  \param ttl is the ttl value in seconds
+ */
+CI_DECLARE_FUNC(void) ci_service_set_options_ttl(ci_service_xdata_t *srv_xdata, int ttl);
 
 CI_DECLARE_FUNC(void) ci_service_add_xincludes(ci_service_xdata_t *srv_xdata, char **xincludes);
 

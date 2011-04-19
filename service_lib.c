@@ -93,6 +93,13 @@ void ci_service_set_max_connections(ci_service_xdata_t *srv_xdata, int max_conne
     ci_thread_rwlock_unlock(&srv_xdata->lock);
 }
 
+void ci_service_set_options_ttl(ci_service_xdata_t *srv_xdata, int ttl)
+{
+    ci_thread_rwlock_wrlock(&srv_xdata->lock);
+    srv_xdata->options_ttl = ttl;
+    ci_thread_rwlock_unlock(&srv_xdata->lock);
+}
+
 void ci_service_set_xopts(ci_service_xdata_t * srv_xdata, uint64_t xopts)
 {
      ci_thread_rwlock_wrlock(&srv_xdata->lock);

@@ -511,16 +511,21 @@ AccessLog @prefix@/var/log/access.log
 # Description:
 #	PreviewSize: The preview data size to advertise to the icap client
 #	MaxConnections: The client should not use more than MaxConnections
-#			for this service.
+#		for this service.
 #	TransferPreview: The list of file extensions, seperated by commas,
-#			 for which the client should send preview data.
+#		for which the client should send preview data.
 #	TransferIgnore: The list of file extensions that should not be sent
-#			to the icap server
+#		to the icap server
 #	TransferComplete: The list of file extensions that should be sent
-#			  in their entirety, without preview, to the icap server
+#		in their entirety, without preview, to the icap server
+#	OptionsTTL: The options ttl for the service. The "sec[s]", "min" or 
+#		"hour[s]" can be used to secify that the time is in seconds
+#		minutes or hours respectively. If no time-units given
+#		seconds are assumed.
 # Example:
 #	echo.PreviewSize 512
 #	echo.TransferIgnore gif, jpeg
+#	echo.OptionsTTL 3 min
 
 
 ######################################################
