@@ -446,8 +446,14 @@ int wait_for_commands(int pipe_fd, char *command_buffer, int secs)
                ret =
                    ci_read_nonblock(pipe_fd, command_buffer,
                                     COMMANDS_BUFFER_SIZE - 1);
-               command_buffer[ret] = '\0';
-               return ret;
+               if (ret > 0) {
+                   command_buffer[ret] = '\0';
+                   return ret;
+               }
+               else {
+                   ci_debug_printf(1, "Unxpected error while reading from control socket!\n");
+                   return -1;
+               }
           }
      }
      if (ret < 0 && errno != EINTR) {
