@@ -376,6 +376,27 @@ struct ldap_table_data {
     ci_cache_t *cache;
 };
 
+void str_trim(char *str)
+{
+    char *s, *e;
+
+    if (!str)
+        return;
+
+    s = str;
+    e = NULL;
+    while (*s == ' ' && s != '\0'){
+        e = s;
+        while (*e != '\0'){
+            *e = *(e+1);
+            e++;
+        }
+    }
+
+    /*if (e) e--;  else */
+    e = str+strlen(str);
+    while(*(--e) == ' ' && e >= str) *e = '\0';
+}
 
 int parse_ldap_str(struct ldap_table_data *fields)
 {
@@ -386,18 +407,6 @@ int parse_ldap_str(struct ldap_table_data *fields)
 
     if(!fields->str)
 	return 0;
-
-    s = fields->str;		/*Remove the ' '*/
-    while (*s != '\0'){
-	while (*s == ' '){
-	    e = s;
-	    while (*e != '\0'){
-		*e = *(e+1);
-		e++;
-	    }
-	}
-	s++;
-    }
     i = 0;
     s = fields->str;
     while(*s == '/'){    /*Ignore "//" at the beginning*/
@@ -415,22 +424,28 @@ int parse_ldap_str(struct ldap_table_data *fields)
 	if ((e=strchr(fields->user, ':')) != NULL) {
 	  *e = '\0';
 	  fields->password = e + 1;
+          str_trim(fields->password);
 	}
+        str_trim(fields->user); /* here we have parsed the user*/
     }
-
+    
     fields->server = s;	 /*The s points to the "server" field now*/
     while(*s != '?' && *s != '/'  && *s != '\0') s++;
     if (*s == '\0') 
 	return 0;
     *s = '\0';
+    str_trim(fields->server);
+
     s++;
     fields->base = s;	 /*The s points to the "base" field now*/
     while(*s != '?' && *s != '\0') s++;
     if (*s == '\0') 
 	return 0;
     *s = '\0';
+    str_trim(fields->base);
+
     s++;
-    e = s;			    /*Count the args*/
+    e = s;	/*Count the args*/
     array_size = 1;	
     while (*e != '?' && *e != '\0'){
 	if (*e == ',') 
@@ -452,11 +467,16 @@ int parse_ldap_str(struct ldap_table_data *fields)
 	fields->attrs[i] = s;  /*Every pointer of the array points to an "arg", the last points NULL*/
 	i++;
     }
-    fields->attrs[i] = NULL;
-    while (*s != '?') s++;												
+    while (*s != '?') s++;											
     *s = '\0';
+
+    fields->attrs[i] = NULL;
+    for(i=0; fields->attrs[i] != NULL; i++)
+        str_trim(fields->attrs[i]);
+
     s++;
-    fields->filter = s;		/*The s points to the "filter" field now*/
+    fields->filter = s;   /*The s points to the "filter" field now*/
+    str_trim(fields->filter);
     return 1;
 }
 
