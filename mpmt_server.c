@@ -426,7 +426,7 @@ void ci_named_pipe_close(int pipe_fd)
      close(pipe_fd);
 }
 
-int wait_for_commands(int pipe_fd, char *command_buffer, int secs)
+int wait_for_commands(int ctl_fd, char *command_buffer, int secs)
 {
      fd_set fds;
      struct timeval tv;
@@ -437,33 +437,34 @@ int wait_for_commands(int pipe_fd, char *command_buffer, int secs)
           tv.tv_usec = 0;
      }
      FD_ZERO(&fds);
-     FD_SET(pipe_fd, &fds);
+     FD_SET(ctl_fd, &fds);
      errno = 0;
      if ((ret =
-          select(pipe_fd + 1, &fds, NULL, NULL,
+          select(ctl_fd + 1, &fds, NULL, NULL,
                  (secs >= 0 ? &tv : NULL))) > 0) {
-          if (FD_ISSET(pipe_fd, &fds)) {
+          if (FD_ISSET(ctl_fd, &fds)) {
                ret =
-                   ci_read_nonblock(pipe_fd, command_buffer,
+                   ci_read_nonblock(ctl_fd, command_buffer,
                                     COMMANDS_BUFFER_SIZE - 1);
                if (ret > 0) {
                    command_buffer[ret] = '\0';
                    return ret;
                }
-               else {
-                   ci_debug_printf(1, "Unxpected error while reading from control socket!\n");
+
+               if (ret == 0 ) {
+                /*read return 0, This is an eof, we must return -1 to force socket reopening!*/
                    return -1;
                }
           }
      }
      if (ret < 0 && errno != EINTR) {
           ci_debug_printf(1,
-                          "Unxpected error waiting for events in control socket!\n");
-          /*returning 0 we are causing reopening control socket! */
-          return 0;
+                          "Unexpected error waiting for or reading  events in control socket!\n");
+          /*returning -1 we are causing reopening control socket! */
+          return -1;
      }
 
-     return -1;                 /*expired */
+     return 0; /*expired */
 }
 
 void handle_monitor_process_commands(char *cmd_line)
@@ -1013,7 +1014,7 @@ int start_server()
                                     command_buffer);
                     handle_monitor_process_commands(command_buffer);
                }
-               if (ret == 0) {  /*Eof received on pipe. Going to reopen ... */
+               if (ret < 0) {  /*Eof received on pipe. Going to reopen ... */
                     ci_named_pipe_close(ctl_socket);
                     ctl_socket = ci_named_pipe_open(CONF.COMMANDS_SOCKET);
                     if (ctl_socket < 0) {
