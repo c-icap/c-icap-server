@@ -106,6 +106,7 @@ ci_request_t *newrequest(ci_connection_t * connection)
      ci_connection_t *conn;
 
      conn = (ci_connection_t *) malloc(sizeof(ci_connection_t));
+     assert(conn);
      ci_copy_connection(conn, connection);
      req = ci_request_alloc(conn);
 
