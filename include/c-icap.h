@@ -130,7 +130,9 @@ enum ci_error_codes { EC_100, EC_200, EC_204, EC_400,
                    EC_401, EC_403,
 		   EC_404, EC_405, EC_407, EC_408,
 		   EC_500, EC_501, EC_502, 
-		   EC_503, EC_505};
+		   EC_503, EC_505,
+                   EC_MAX
+};
 
 typedef struct ci_error_code{
   int code;
@@ -138,8 +140,8 @@ typedef struct ci_error_code{
 } ci_error_code_t;
 
 CI_DECLARE_DATA extern const struct ci_error_code ci_error_codes[];
-#define ci_error_code(ec) (ec>=EC_100&&ec<=EC_500?ci_error_codes[ec].code:1000)
-#define ci_error_code_string(ec) (ec>=EC_100&&ec<=EC_500?ci_error_codes[ec].str:"UNKNOWN ERROR CODE")
+#define ci_error_code(ec) (ec>=EC_100&&ec<EC_MAX?ci_error_codes[ec].code:1000)
+#define ci_error_code_string(ec) (ec>=EC_100&&ec<EC_MAX?ci_error_codes[ec].str:"UNKNOWN ERROR CODE")
 
 
 #define ICAP_EOL "\r\n"

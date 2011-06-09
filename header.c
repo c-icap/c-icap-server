@@ -112,13 +112,13 @@ const struct ci_error_code ci_error_codes[] = {
 /*
 #ifdef __CYGWIN__
 int ci_error_code(int ec){
-     return (ec>=EC_100&&ec<=EC_500?CI_ErrorCodes[ec].code:1000);
+     return (ec>=EC_100&&ec<EC_MAX?ci_error_codes[ec].code:1000);
 }
 
 const char *unknownerrorcode="UNKNOWN ERROR CODE";
 
 const char *ci_error_code_string(int ec){
-     return (ec>=EC_100&&ec<=EC_505?CI_ErrorCodes[ec].str:unknownerrorcode);
+     return (ec>=EC_100&&ec<EC_MAX?ci_error_codes[ec].str:unknownerrorcode);
 }
 #endif
 */
