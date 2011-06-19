@@ -172,6 +172,7 @@ char *output_file = NULL;
 char *request_url = NULL;
 int send_headers = 1;
 int send_preview = 1;
+int allow204 = 1;
 int verbose = 0;
 ci_headers_list_t *xheaders = NULL;
 ci_headers_list_t *http_xheaders = NULL;
@@ -191,6 +192,7 @@ static struct ci_options_entry options[] = {
      {"-noreshdr", NULL, &send_headers, ci_cfg_disable,
       "Do not send reshdr headers"},
      {"-nopreview", NULL, &send_preview, ci_cfg_disable, "Do not send preview data"},
+     {"-no204", NULL, &allow204, ci_cfg_disable, "Do not allow204 outside preview"},
      {"-x", "xheader", &xheaders, add_xheader, "Include xheader in icap request headers"},
      {"-hx", "xheader", &http_xheaders, add_xheader, "Include xheader in http headers"},
      {"-w", "preview", &preview_size, ci_cfg_set_int, "Sets the maximum preview data size"},
@@ -257,6 +259,10 @@ int main(int argc, char **argv)
          req->preview = preview_size;
      }
 
+     /*If service does not support allow 204 disable it*/
+     if (!req->allow204)
+         allow204 = 0;
+     
      if (!input_file && !request_url) {
           ci_debug_printf(1, "OPTIONS:\n");
           ci_debug_printf(1,
@@ -293,6 +299,8 @@ int main(int argc, char **argv)
           ci_debug_printf(10, "OK allocating request going to send request\n");
 
 	  req->type = ICAP_RESPMOD;
+          if (allow204)
+              req->allow204 = 1;
 
 	  if (xheaders)
 	      ci_icap_append_xheaders(req, xheaders);
