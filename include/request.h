@@ -45,11 +45,11 @@ enum SENDDATA_STATUS {SEND_NOTHING=0, SEND_RESPHEAD, SEND_HEAD1, SEND_HEAD2, SEN
 /*enum BODY_RESPONCE_STATUS{ CHUNK_DEF=1,CHUNK_BODY,CHUNK_END};*/
 
 
-#define CI_OK          1
-#define CI_NEEDS_MORE  2
-
-#define CI_ERROR       -1
-#define CI_EOF         -2
+#define CI_NO_STATUS   0
+#define CI_OK                1
+#define CI_NEEDS_MORE 2
+#define CI_ERROR          -1
+#define CI_EOF              -2
 
 
 #define EXTRA_CHUNK_SIZE  30
@@ -127,6 +127,10 @@ typedef struct ci_request{
      uint64_t http_bytes_out;
      uint64_t body_bytes_in;
      uint64_t body_bytes_out;
+
+     /* added flags/variables*/
+     int allow206;
+     int64_t i206_use_original_body;
 } ci_request_t;
 
 #define lock_data(req) (req->data_locked=1)
@@ -166,6 +170,7 @@ CI_DECLARE_FUNC(int)          ci_request_release_entity(ci_request_t *req,int po
 CI_DECLARE_FUNC(char *)       ci_request_set_log_str(ci_request_t *req, char *logstr);
 
 CI_DECLARE_FUNC(int)          ci_read_icap_header(ci_request_t *req,ci_headers_list_t *h,int timeout);
+CI_DECLARE_FUNC(int)          ci_request_206_origin_body(ci_request_t *req, uint64_t offset);
 
 /*ICAP client api*/
 CI_DECLARE_FUNC(ci_request_t *)  ci_client_request(ci_connection_t *conn,char *server,char *service);

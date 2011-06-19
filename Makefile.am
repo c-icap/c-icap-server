@@ -19,7 +19,7 @@ bin_PROGRAMS = c-icap
 
 bin_SCRIPTS = c-icap-config c-icap-libicapapi-config
 
-UTIL_SOURCES=net_io.c os/unix/net_io.c os/unix/proc_mutex.c os/unix/shared_mem.c os/unix/threads.c os/unix/utilfunc.c os/unix/proc_utils.c os/unix/dlib.c
+UTIL_SOURCES=net_io.c util.c os/unix/net_io.c os/unix/proc_mutex.c os/unix/shared_mem.c os/unix/threads.c os/unix/utilfunc.c os/unix/proc_utils.c os/unix/dlib.c
 
 
 

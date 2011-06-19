@@ -41,6 +41,7 @@ extern "C"
 #define CI_MOD_DONE       1
 #define CI_MOD_CONTINUE 100
 #define CI_MOD_ALLOW204 204
+#define CI_MOD_ALLOW206 206
 #define CI_MOD_ERROR     -1
 
 #define MAX_SERVICE_NAME  63
@@ -86,6 +87,8 @@ typedef struct ci_service_xdata {
      int max_connections;
      int options_ttl;
      int allow_204;
+     int allow_206;
+     int disable_206; /*even if service support it do not use 206*/
      /*statistics IDS*/
      int stat_bytes_in;
      int stat_bytes_out;
@@ -396,6 +399,15 @@ CI_DECLARE_FUNC(void) ci_service_set_preview(ci_service_xdata_t *srv_xdata, int 
   \param srv_xdata is a pointer to the c-icap internal service data.
  */
 CI_DECLARE_FUNC(void) ci_service_enable_204(ci_service_xdata_t *srv_xdata);
+
+/**
+  \ingroup SERVICES
+  \brief  Enable the Partial Content 206 responses for this service.
+  *
+  * The service will supports the Partial Content 206 responses if the icap client support it too.
+  \param srv_xdata is a pointer to the c-icap internal service data.
+ */
+CI_DECLARE_FUNC(void) ci_service_enable_206(ci_service_xdata_t *srv_xdata);
 
 /**
   \ingroup SERVICES

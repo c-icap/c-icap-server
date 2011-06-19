@@ -57,6 +57,7 @@ int cfg_srv_transfer_complete(char *directive, char **argv, void *setdata);
 int cfg_srv_preview_size(char *directive, char **argv, void *setdata);
 int cfg_srv_max_connections(char *directive, char **argv, void *setdata);
 int cfg_srv_options_ttl(char *directive, char **argv, void *setdata);
+int cfg_srv_allow206(char *directive, char **argv, void *setdata);
 
 static struct ci_conf_entry services_global_conf_table[] = {
   {"TransferPreview", NULL, cfg_srv_transfer_preview, NULL},
@@ -65,6 +66,7 @@ static struct ci_conf_entry services_global_conf_table[] = {
   {"PreviewSize", NULL, cfg_srv_preview_size, NULL},
   {"MaxConnections", NULL, cfg_srv_max_connections, NULL},
   {"OptionsTTL", NULL, cfg_srv_options_ttl, NULL},
+  {"Allow206", NULL, cfg_srv_allow206, NULL},
   {NULL, NULL, NULL, NULL}
 };
 
@@ -191,6 +193,24 @@ int cfg_srv_options_ttl(char *directive, char **argv, void *setdata)
     return 1;
 }
 
+int cfg_srv_allow206(char *directive, char **argv, void *setdata)
+{
+    struct ci_service_xdata *srv_xdata = ( struct ci_service_xdata *)setdata;
+    if (argv == NULL || argv[0] == NULL) {
+	ci_debug_printf(1, "Missing arguments in directive %s \n", directive);
+	return 0;
+    }
+    ci_debug_printf(1, "Setting parameter :%s=%s\n", directive, argv[0]);
+    
+    if (strcasecmp(argv[0], "off")) {
+        ci_thread_rwlock_wrlock(&srv_xdata->lock);
+        srv_xdata->disable_206 = 1;
+        ci_thread_rwlock_unlock(&srv_xdata->lock);
+    }
+
+    return 1;
+}
+
 struct ci_conf_entry *create_service_conf_table(struct ci_service_xdata *srv_xdata,struct ci_conf_entry *user_table)
 {
     int i,k,size;
@@ -261,6 +281,8 @@ void init_extra_data(ci_service_xdata_t * srv_xdata, const char *service)
      memset(srv_xdata->TransferComplete, 0, MAX_HEADER_SIZE + 1);
      srv_xdata->preview_size = 0;
      srv_xdata->allow_204 = 0;
+     srv_xdata->allow_206 = 0;
+     srv_xdata->disable_206 = 0;
      srv_xdata->max_connections = -1;
      srv_xdata->xopts = 0;
      srv_xdata->status = CI_SERVICE_NOT_INITIALIZED;

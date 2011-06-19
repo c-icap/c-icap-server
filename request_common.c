@@ -53,7 +53,6 @@ void ci_buf_reset(struct ci_buf *buf)
 {
      buf->used = 0;
 }
-
 int ci_buf_mem_alloc(struct ci_buf *buf, int size)
 {
      if (!(buf->buf = __intl_malloc(size * sizeof(char))))
@@ -251,6 +250,7 @@ ci_request_t *ci_request_alloc(ci_connection_t * connection)
 
      req->keepalive = 1;        /*Keep alive connection is the default behaviour for icap protocol. */
      req->allow204 = 0;
+     req->allow206 = 0;
      req->hasbody = 0;
      req->responce_hasbody = 0;
      req->eof_received = 0;
@@ -270,6 +270,7 @@ ci_request_t *ci_request_alloc(ci_connection_t * connection)
      req->pstrblock_responce = NULL;
      req->remain_send_block_bytes = 0;
      req->data_locked = 1;
+     req->i206_use_original_body = -1;
 
      req->preview_data_type = -1;
      req->auth_required = 0;
@@ -313,6 +314,7 @@ void ci_request_reset(ci_request_t * req)
 
      req->keepalive = 1;        /*Keep alive connection is the default behaviour for icap protocol. */
      req->allow204 = 0;
+     req->allow206 = 0;
      req->hasbody = 0;
      req->responce_hasbody = 0;
      ci_headers_reset(req->request_header);
@@ -330,6 +332,7 @@ void ci_request_reset(ci_request_t * req)
      req->remain_send_block_bytes = 0;
      req->write_to_module_pending = 0;
      req->data_locked = 1;
+     req->i206_use_original_body = -1;
 
      req->preview_data_type = -1;
      req->auth_required = 0;
@@ -393,6 +396,26 @@ char *ci_request_set_log_str(ci_request_t *req, char *logstr)
          return NULL;
      strcpy(req->log_str, logstr);
      return req->log_str;
+}
+
+int ci_request_206_origin_body(ci_request_t *req, uint64_t offset)
+{
+    if (!req)
+        return 0;
+    
+    if (!req->allow206) {
+        ci_debug_printf(1, "Request does not support allow206 responses! Can not set use-original-body extension\n");
+        return 0;
+    }
+
+#if 0
+    if (req->body_bytes_in < offset) {
+        ci_debug_printf(1, "Can not set use-original-body extension to offset longer than the known body size");
+        return 0;
+    }
+#endif
+    req->i206_use_original_body = offset;
+    return 1;
 }
 
 int process_encapsulated(ci_request_t * req, const char *buf)
@@ -464,12 +487,14 @@ int parse_chunk_data(ci_request_t * req, char **wdata)
                if (req->current_chunk_len == 0) {
 
                     if (*end == ';') {
-                         if (req->pstrblock_read_len < 11) {    /*must hold a 0; ieof\r\n\r\n */
-                              return CI_NEEDS_MORE;
-                         }
+			 if(strnstr(end, "\r\n\r\n", req->pstrblock_read_len) == NULL)
+			      return CI_NEEDS_MORE;
 
-                         if (strncmp(end, "; ieof", 6) != 0)
-                              return CI_ERROR;
+			 if (strncmp(end, "; use-original-body=", 20) == 0) {
+			     req->i206_use_original_body = strtol(end+20, NULL, 10);
+		         }
+			 else if (strncmp(end, "; ieof", 6) != 0)
+			      return CI_ERROR;
 
                          req->eof_received = 1;
                          return CI_EOF;
@@ -616,6 +641,10 @@ void ci_client_request_reuse(ci_request_t * req)
      req->remain_send_block_bytes = 0;
      req->write_to_module_pending = 0;
      req->data_locked = 1;
+
+     req->allow204 = 0;
+     req->allow206 = 0;
+     req->i206_use_original_body = -1;
 
      req->bytes_in = 0;
      req->bytes_out = 0;
@@ -1241,7 +1270,7 @@ int ci_client_icapfilter(ci_request_t * req,
           sscanf(req->response_header->buf, "ICAP/%d.%d %d", &v1, &v2, &preview_status);
           ci_debug_printf(3, "Preview response was with status: %d \n",
                           preview_status);
-          if (req->eof_received && preview_status == 200) {
+          if ((req->eof_received && preview_status == 200) || preview_status == 206) {
                ci_headers_unpack(req->response_header);
                if ((val = ci_headers_search(req->response_header, "Encapsulated")) == NULL) {
                     ci_debug_printf(1, "No encapsulated entities!\n");

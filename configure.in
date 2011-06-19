@@ -495,6 +495,14 @@ AC_CHECK_FUNCS(inet_aton,
 AC_DEFINE(HAVE_INET_ATON,1,[Define HAVE_INET_ATON if inet_aton exists])
 )
 
+AC_CHECK_FUNCS(strnstr,
+AC_DEFINE(HAVE_STRNSTR,1,[Define HAVE_STRNSTR if strnstr exists])
+)
+
+AC_CHECK_FUNCS(strncasestr,
+AC_DEFINE(HAVE_STRNCASESTR,1,[Define HAVE_STRNCASESTR if strncasestr exists])
+)
+
 POSIX_MAPPED_FILES="0"
 AC_CHECK_FUNCS(mmap munmap,
 [AC_DEFINE(HAVE_POSIX_MAPPED_FILES,1,[Define HAVE_POSIX_MAPPED_FILES if mmap and munmap exists])
@@ -616,7 +624,7 @@ AM_CONDITIONAL(USELDAP, [test a"$libldap" != ano])
 
 AC_OUTPUT([
 include/c-icap-conf.h Makefile c-icap.conf utils/Makefile services/Makefile 
-services/echo/Makefile modules/Makefile tests/Makefile 
+services/echo/Makefile services/ex-206/Makefile modules/Makefile tests/Makefile 
 docs/Makefile docs/man/Makefile
 ])
 

@@ -161,13 +161,13 @@ int icap_header_check_realloc(char **buf, int *size, int used, int mustadded)
           *buf = newbuf;
           *size = *size + ICAP_HEADER_READSIZE;
      }
-     return 0;
+     return EC_100;
 }
 
 
 int ci_read_icap_header(ci_request_t * req, ci_headers_list_t * h, int timeout)
 {
-     int bytes, request_status = 0, i, eoh = 0, startsearch = 0, readed = 0;
+     int bytes, request_status = EC_100, i, eoh = 0, startsearch = 0, readed = 0;
      int wait_status;
      char *buf_end;
 
@@ -178,7 +178,7 @@ int ci_read_icap_header(ci_request_t * req, ci_headers_list_t * h, int timeout)
      while ((wait_status = wait_for_data(req->connection->fd, timeout, wait_for_read)) != CI_ERROR) {
          bytes = ci_read_nonblock(req->connection->fd, buf_end, ICAP_HEADER_READSIZE);
          if (bytes <= 0)
-             return CI_ERROR;
+             return EC_408;
 
           readed += bytes;
           req->bytes_in += bytes;
@@ -194,14 +194,14 @@ int ci_read_icap_header(ci_request_t * req, ci_headers_list_t * h, int timeout)
 
           if ((request_status =
                icap_header_check_realloc(&(h->buf), &(h->bufsize), readed,
-                                         ICAP_HEADER_READSIZE)) != 0)
+                                         ICAP_HEADER_READSIZE)) != EC_100)
                break;
           buf_end = h->buf + readed;
           if (startsearch > -3)
                startsearch = (readed > 3 ? -3 : -readed);       /*Including the last 3 char ellements ....... */
      }
      if (wait_status == CI_ERROR)
-          return CI_ERROR;
+          return EC_408;
      h->bufused = buf_end - h->buf;     /* -1 ; */
      req->pstrblock_read = buf_end + 2; /*after the \r\n\r\n. We keep the first \r\n and the other dropped.... */
      req->pstrblock_read_len = readed - h->bufused - 2; /*the 2 of the 4 characters \r\n\r\n and the '\0' character */
@@ -341,7 +341,7 @@ int parse_header(ci_request_t * req)
      ci_headers_list_t *h;
 
      h = req->request_header;
-     if ((request_status = ci_read_icap_header(req, h, TIMEOUT)) < 0)
+     if ((request_status = ci_read_icap_header(req, h, TIMEOUT)) != EC_100)
           return request_status;
 
      if ((result = get_method(h->buf)) >= 0) {
@@ -374,10 +374,11 @@ int parse_header(ci_request_t * req)
                /*else the default behaviour of keepalive ..... */
           }
           else if (strncasecmp("Allow:", h->headers[i], 6) == 0) {
-               if (strstr(h->headers[i]+6, "204")) {
-                    req->allow204 = 1;
-               }
-           }
+	       if (strstr(h->headers[i]+6, "204"))
+		    req->allow204 = 1;
+	       if (strstr(h->headers[i]+6, "206"))
+		    req->allow206 = 1;
+          }
      }
 
      return request_status;
@@ -519,7 +520,10 @@ int mk_responce_header(ci_request_t * req)
      srv_xdata = service_data(req->current_service_mod);
      ci_headers_reset(req->response_header);
      head = req->response_header;
-     ci_headers_add(head, "ICAP/1.0 200 OK");
+     assert(req->return_code >= EC_100 && req->return_code < EC_MAX);
+     snprintf(buf, 512, "ICAP/1.0 %d %s",
+              ci_error_code(req->return_code), ci_error_code_string(req->return_code));
+     ci_headers_add(head, buf);
      ci_headers_add(head, "Server: C-ICAP/" VERSION);
      if (req->keepalive)
           ci_headers_add(head, "Connection: keep-alive");
@@ -623,9 +627,17 @@ int format_body_chunk(ci_request_t * req)
           req->remain_send_block_bytes += def_bytes + 2;
      }
      else if (req->remain_send_block_bytes == CI_EOF) {
-          strcpy(req->wbuf, "0\r\n\r\n");
-          req->pstrblock_responce = req->wbuf;
-          req->remain_send_block_bytes = 5;
+	  if (req->return_code == EC_206 && req->i206_use_original_body >= 0) {
+               def_bytes = sprintf(req->wbuf, "0; use-original-body=%ld\r\n\r\n", 
+				    req->i206_use_original_body );
+	       req->pstrblock_responce = req->wbuf;
+	       req->remain_send_block_bytes = def_bytes;
+	  }
+          else {
+	       strcpy(req->wbuf, "0\r\n\r\n");
+	       req->pstrblock_responce = req->wbuf;
+	       req->remain_send_block_bytes = 5;
+	  }
           return CI_EOF;
      }
      return CI_OK;
@@ -666,16 +678,20 @@ int update_send_status(ci_request_t * req)
           req->pstrblock_responce = req->response_header->buf;
           req->remain_send_block_bytes = req->response_header->bufused;
           req->status = SEND_RESPHEAD;
+	  ci_debug_printf(9, "Going to send response headers\n");
           return CI_OK;
      }
 
      if (req->status == SEND_EOF) {
+	 ci_debug_printf(9, "The req->status is EOF (remain to send bytes:%d)\n", 
+			 req->remain_send_block_bytes);
           if (req->remain_send_block_bytes == 0)
                return CI_EOF;
           else
                return CI_OK;
      }
      if (req->status == SEND_BODY) {
+	  ci_debug_printf(9, "Send status is SEND_BODY return\n");
           return CI_OK;
      }
 
@@ -693,6 +709,7 @@ int update_send_status(ci_request_t * req)
                    ((ci_headers_list_t *) e->entity)->bufused;
 
                req->status = status;
+	       ci_debug_printf(9, "Going to send http headers on entity :%d\n", i);
                return CI_OK;
           }
           else if (req->responce_hasbody) {     /*end of headers, going to send body now.A body always follows the res_hdr or req_hdr..... */
@@ -823,10 +840,12 @@ int get_send_body(ci_request_t * req, int parse_only)
                     rbytes = 0;
 
                no_io = 0;
+	       ci_debug_printf(1, "get send body: going to write/read: %d/%d bytes\n", wbytes, rbytes);
                if ((*service_io)
                    (rchunkdata, &rbytes, wchunkdata, &wbytes, req->eof_received,
                     req) == CI_ERROR)
                     return CI_ERROR;
+	       ci_debug_printf(1, "get send body: written/read: %d/%d bytes (eof: %d)\n", wbytes, rbytes, req->eof_received);
                no_io = (rbytes==0 && wbytes==0);
                if (wbytes) {
                     wchunkdata += wbytes;
@@ -859,7 +878,7 @@ int get_send_body(ci_request_t * req, int parse_only)
           if (req->remain_send_block_bytes) {
                action = action | wait_for_write;
           }
-
+	  
      } while ((!req->eof_received || (req->eof_received && req->write_to_module_pending)) && action);
 
      if (req->eof_received)
@@ -908,9 +927,10 @@ int rest_responce(ci_request_t * req)
           if (req->status == SEND_BODY && req->remain_send_block_bytes == 0) {
                req->pstrblock_responce = req->wbuf + EXTRA_CHUNK_SIZE;  /*Leave space for chunk spec.. */
                req->remain_send_block_bytes = MAX_CHUNK_SIZE;
+	       ci_debug_printf(1, "rest response: going to read: %d bytes\n", req->remain_send_block_bytes);
                service_io(req->pstrblock_responce,
                           &(req->remain_send_block_bytes), NULL, NULL, 1, req);
-
+	       ci_debug_printf(1, "rest response: read: %d bytes\n", req->remain_send_block_bytes);
                if (req->remain_send_block_bytes == CI_ERROR)    /*CI_EOF of CI_ERROR, stop sending.... */
                     return CI_ERROR;
                if (req->remain_send_block_bytes == 0)
@@ -936,7 +956,7 @@ void options_responce(ci_request_t * req)
      ci_headers_list_t *head;
      ci_service_xdata_t *srv_xdata;
      unsigned int xopts;
-     int preview, allow204, max_conns, xlen;
+     int preview, allow204, allow206, max_conns, xlen;
      int ttl;
      head = req->response_header;
      srv_xdata = service_data(req->current_service_mod);
@@ -974,6 +994,7 @@ void options_responce(ci_request_t * req)
      xopts = srv_xdata->xopts;
      preview = srv_xdata->preview_size;
      allow204 = srv_xdata->allow_204;
+     allow206 = srv_xdata->allow_206;
      max_conns = srv_xdata->max_connections;
      ttl = srv_xdata->options_ttl;
      ci_service_data_read_unlock(srv_xdata);
@@ -981,11 +1002,13 @@ void options_responce(ci_request_t * req)
      ci_debug_printf(5, "Options responce:\n"
 		     " Preview :%d\n"
 		     " Allow 204:%s\n"
+		     " Allow 206:%s\n"
 		     " TransferPreview:\"%s\"\n"
 		     " TransferIgnore:%s\n"
 		     " TransferComplete:%s\n"
 		     " Max-Connections:%d\n",
 		     preview,(allow204?"yes":"no"),
+		     (allow206?"yes":"no"),
 		     srv_xdata->TransferPreview,
 		     srv_xdata->TransferIgnore,
 		     srv_xdata->TransferComplete,
@@ -1010,8 +1033,11 @@ void options_responce(ci_request_t * req)
 	 sprintf(buf, "Max-Connections: %d", max_conns);
 	 ci_headers_add(head, buf);
      }
-     if (allow204) {
-          ci_headers_add(head, "Allow: 204");
+     if (allow204 && allow206) {
+          ci_headers_add(head, "Allow: 204, 206");
+     }
+     else if (allow204) {
+	  ci_headers_add(head, "Allow: 204");
      }
      if (xopts) {
           strcpy(buf, "X-Include: ");
@@ -1084,8 +1110,10 @@ int do_request(ci_request_t * req)
      int ret_status = CI_OK; /*By default ret_status is CI_OK, on error must set to CI_ERROR*/
      res = parse_header(req);
      if (res != EC_100) {
-          if (res >= 0)
-               ec_responce(req, res);   /*Bad request or Service not found or Server error or what else...... */
+         /*if read some data, bad request or Service not found or Server error or what else,
+           else connection timeout, or client closes the connection*/
+          if (res >= EC_100 && req->request_header->bufused > 0)
+               ec_responce(req, res);
           req->return_code = res;
           req->keepalive = 0;   // Error occured, close the connection ......
           ci_debug_printf(5, "Error %d while parsing headers :(%d)\n",
@@ -1132,8 +1160,8 @@ int do_request(ci_request_t * req)
           break;
      case ICAP_REQMOD:
      case ICAP_RESPMOD:
-          preview_status = 0;
-          if (req->hasbody && req->preview >= 0) {
+          preview_status = CI_NO_STATUS;
+          if (req->hasbody && req->preview >= 0) { /*we are inside preview*/
                /*read_preview_data returns CI_OK, CI_EOF or CI_ERROR */
                if ((preview_status = read_preview_data(req)) == CI_ERROR) {
                     ci_debug_printf(5,
@@ -1155,38 +1183,62 @@ int do_request(ci_request_t * req)
 			 req->return_code = EC_204;
                          break; //Need no any modification.
                     }
-                    if (res == CI_ERROR) {
-                         ci_debug_printf(5,
-                                         "An error occured in preview handler!!");
+                    else if (res == CI_MOD_ALLOW206 && req->allow206) {
+                        req->return_code = EC_206;
+                        ci_debug_printf(5,"Preview handler return 206 response\n");
+                    }
+                    else if (res == CI_MOD_CONTINUE && preview_status == CI_OK) /*if 100 Continue and not "0;ieof"*/
+                         ec_responce(req, EC_100);
+                    else if (res == CI_MOD_CONTINUE /*&& preview_status == CI_EOF*/)  {
+                        /*0; ieof, do nothing*/
+                    }
+                    else{
+                        ci_debug_printf(5, "An error occured in preview handler!"
+                                        " return code: %d , req->allow204=%d, req->allow206=%d\n",
+                                        res, req->allow204, req->allow206);
                          ec_responce(req, EC_500);
-			 req->return_code = EC_500;
-			 ret_status = CI_ERROR;
+                         req->return_code = EC_500;
+                         ret_status = CI_ERROR;
                          break;
                     }
-                    if (preview_status > 0)
-                         ec_responce(req, EC_100);
                }
           }
           else if (req->current_service_mod->mod_check_preview_handler) {
+              /*We are outside preview. The preview handler will be called but it needs
+                special handle.*/
                res =
                    req->current_service_mod->mod_check_preview_handler(NULL, 0,
                                                                        req);
-               if (req->allow204 && res == CI_MOD_ALLOW204) {
-		   if (ec_responce_with_istag(req, EC_204) < 0) {
-		       ret_status = CI_ERROR;
-		       break;
-		   }
-		    req->return_code = EC_204;
-                    /*And now parse body data we read and data the client going to send us,
-                       but do not pass them to the service */
-                    if (req->hasbody)
-			 ret_status = get_send_body(req, 1);
-                    break;
+               if (res == CI_MOD_ALLOW204 && req->allow204) {
+                   if (ec_responce_with_istag(req, EC_204) < 0) {
+                       ret_status = CI_ERROR;
+                       break;
+                   }
+                   req->return_code = EC_204;
+                   /*And now parse body data we read and data the client going to send us,
+                     but do not pass them to the service */
+                   if (req->hasbody)
+                       ret_status = get_send_body(req, 1);
+                   break;
+               }
+               else if (res == CI_MOD_ALLOW206 && req->allow204 && req->allow206) {
+                   req->return_code = EC_206;
+               }
+               else if (res != CI_MOD_CONTINUE){
+                   ci_debug_printf(1, "An error occured in preview handler (outside preview)!"
+                                   " return code: %d, req->allow204=%d, req->allow206=%d\n", 
+                                   res, req->allow204, req->allow206);
+                   ec_responce(req, EC_500);
+                   req->return_code = EC_500;
+                   ret_status = CI_ERROR;
+                   break;
                }
           }
 
-	  req->return_code = EC_200;
-          if (req->hasbody && preview_status >= 0) {
+	  if (req->return_code == -1)
+	       req->return_code = EC_200;
+
+          if (req->return_code == EC_200 && req->hasbody && preview_status >= 0) {
                ci_debug_printf(9, "Going to get_send_data.....\n");
                ret_status = get_send_body(req, 0);
                if (ret_status != CI_OK) {
@@ -1204,13 +1256,28 @@ int do_request(ci_request_t * req)
 		    //can send some data here .........
 		    }
 */
-               if (req->allow204 && res == CI_MOD_ALLOW204) {
-		    if (ec_responce_with_istag(req, EC_204) < 0) {
+               if (res == CI_MOD_ALLOW204 && req->allow204 && req->bytes_out == 0) {
+                    if (ec_responce_with_istag(req, EC_204) < 0) {
 		        ci_debug_printf(5, "An error ocured while sending allow 204 response\n");
 		        ret_status = CI_ERROR;
 		    }
 		    req->return_code = EC_204;
                     break;      //Need no any modification.
+               }
+	       else if (res == CI_MOD_ALLOW206 && req->allow204 && req->allow206 
+                        &&  req->bytes_out == 0) {
+		   req->return_code = EC_206;
+	       }
+               else if (res != CI_MOD_DONE) {
+                   ci_debug_printf(1, "An error occured in end-of-data handler !"
+                                   "return code : %d, req->allow204=%d, req->allow206=%d\n",
+                                   res, req->allow204, req->allow206);
+                   ret_status = CI_ERROR;
+                   if (req->bytes_out == 0) {
+                       ec_responce(req, EC_500);
+                       req->return_code = EC_500;
+                   }
+                   break;
                }
           }
           unlock_data(req);

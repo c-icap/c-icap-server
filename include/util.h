@@ -41,6 +41,14 @@ CI_DECLARE_FUNC(struct tm*) localtime_r(const time_t *t, struct tm *tm);
 CI_DECLARE_FUNC(struct tm*) gmtime_r(const time_t *t, struct tm *tm);
 #endif
 
+#ifndef HAVE_STRNSTR
+CI_DECLARE_FUNC(const char *) strnstr(const char *s, const char *find, size_t slen);
+#endif
+
+#ifndef HAVE_STRNCASESTR
+CI_DECLARE_FUNC(const char *) strncasestr(const char *s, const char *find, size_t slen);
+#endif
+
 #ifdef __cplusplus
 }
 #endif

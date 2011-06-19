@@ -522,6 +522,8 @@ AccessLog @prefix@/var/log/access.log
 #		"hour[s]" can be used to secify that the time is in seconds
 #		minutes or hours respectively. If no time-units given
 #		seconds are assumed.
+#	Allow206 on|off: Enable/disable advertise of 206 responses.
+#
 # Example:
 #	echo.PreviewSize 512
 #	echo.TransferIgnore gif, jpeg

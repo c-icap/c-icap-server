@@ -94,6 +94,23 @@ extern "C"
 #define ci_req_allow204(req)    ((req)->allow204)
 
 /**
+ \def ci_req_allow206(ci_request_t) 
+ \ingroup REQUEST
+ \param req  is pointer to an object of type ci_request_t
+ \return True (non zero int) if the ICAP request supports "Allow 206"
+ */
+#define ci_req_allow206(req)    ((req)->allow206)
+
+/**
+ \def ci_req_allow206_outside_preview(ci_request_t) 
+ \ingroup REQUEST
+ \param req  is pointer to an object of type ci_request_t
+ \return True (non zero int) if the ICAP request supports "Allow 206" outside preview requests
+ */
+#define ci_req_allow206_outside_preview(req)    ((req)->allow206 && (req)->allow204)
+
+
+/**
  \def ci_req_sent_data(ci_request_t) 
  \ingroup REQUEST
  \param req  is pointer to an object of type ci_request_t

@@ -86,6 +86,14 @@ void ci_service_enable_204(ci_service_xdata_t * srv_xdata)
      ci_thread_rwlock_unlock(&srv_xdata->lock);
 }
 
+void ci_service_enable_206(ci_service_xdata_t * srv_xdata)
+{
+     ci_thread_rwlock_wrlock(&srv_xdata->lock);
+     if (!srv_xdata->disable_206)
+         srv_xdata->allow_206 = 1;
+     ci_thread_rwlock_unlock(&srv_xdata->lock);
+}
+
 void ci_service_set_max_connections(ci_service_xdata_t *srv_xdata, int max_connections)
 {
     ci_thread_rwlock_wrlock(&srv_xdata->lock);
