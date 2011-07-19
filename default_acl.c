@@ -104,7 +104,8 @@ int cfg_default_acl_access(char *directive, char **argv, void *setdata)
      int only_connection =0;
      char *acl_spec_name;
      ci_access_entry_t **tolist,*access_entry;
-//     const ci_acl_spec_t *acl_spec;
+     const ci_acl_spec_t *acl_spec;
+     const ci_acl_type_t *spec_type ;
 
      if (argv[0] == NULL || argv[1] == NULL) {
           ci_debug_printf(1, "Parse error in directive %s \n", directive);
@@ -142,11 +143,15 @@ int cfg_default_acl_access(char *directive, char **argv, void *setdata)
      ci_debug_printf(2,"Creating new access entry as %s with specs:\n", argv[0]);
      for(argc=1; argv[argc] != NULL; argc++){	  
 	  acl_spec_name = argv[argc];
-
-	  if(only_connection && 
-	     strcmp(acl_spec_name,"port") != 0 && 
-	     strcmp(acl_spec_name,"src") != 0 &&
-	     strcmp(acl_spec_name,"srvip") != 0 ) 
+          acl_spec = ci_acl_search(acl_spec_name);
+          if (acl_spec)
+              spec_type = acl_spec->type;
+          else
+              spec_type = NULL;
+	  if(only_connection && spec_type && 
+	     strcmp(spec_type->name,"port") != 0 && 
+	     strcmp(spec_type->name,"src") != 0 &&
+	     strcmp(spec_type->name,"srvip") != 0 ) 
 	  {
 	       ci_debug_printf(1, "Only \"port\", \"src\" and \"srvip\" acl types allowed in client_access access list (given :%s)\n", acl_spec_name);
 	       error = 1;
