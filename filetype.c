@@ -417,8 +417,7 @@ int check_ascii(unsigned char *buf, int buflen)
      if (res <= 3)
           return CI_ISO8859_DATA;
 
-     /* return CI_XASCII_DATA; *//*Extend ascii for web pages? */
-     return -1;
+     return CI_XASCII_DATA; /*Extend ascii for web pages? */
 }
 
 
