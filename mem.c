@@ -153,9 +153,14 @@ void *ci_buffer_alloc(int block_size)
         }
      }
 
-     if(!block) {
+     if(!block)
         block = (struct mem_buffer_block *)malloc(size); 
+
+     if (!block) {
+         ci_debug_printf(1, "Failed to allocate space for buffer of size:%d\n", block_size);
+         return NULL;
      }
+
      block->sig = BUF_SIGNATURE; 
      block->ID = block_size;
      ci_debug_printf(8, "Geting buffer from pool %d:%d\n", block_size, type);
@@ -203,7 +208,12 @@ void * ci_buffer_realloc(void *data, int block_size)
 
 void ci_buffer_free(void *data) {
     int block_size, type;
-    struct mem_buffer_block *block = (struct mem_buffer_block *)(data-PTR_OFFSET);
+    struct mem_buffer_block *block;
+
+    if (!data)
+        return;
+
+    block = (struct mem_buffer_block *)(data-PTR_OFFSET);
     if (block->sig != BUF_SIGNATURE) {
         ci_debug_printf(1,"ci_mem_buffer_free: ERROR, not internal buffer. This is a bug!!!!");
         return;
@@ -466,8 +476,10 @@ ci_mem_allocator_t *ci_create_serial_allocator(int size)
   if(!sdata)
     return NULL;
   allocator = malloc(sizeof(ci_mem_allocator_t));
-  if(!allocator)
-    return NULL;
+  if(!allocator) {
+      /*we are leeking here*/
+      return NULL;
+  }
   allocator->alloc = serial_allocator_alloc;
   allocator->free = serial_allocator_free;
   allocator->reset = serial_allocator_reset;
@@ -538,8 +550,10 @@ ci_mem_allocator_t *ci_create_pack_allocator(char *memblock, int size)
   pack_alloc->endpos = pack_alloc->memchunk + size;
   
   allocator = malloc(sizeof(ci_mem_allocator_t));
-  if(!allocator)
-    return NULL;
+  if(!allocator) {
+      free(pack_alloc);
+      return NULL;
+  }
   allocator->alloc = pack_allocator_alloc;
   allocator->free = pack_allocator_free;
   allocator->reset = pack_allocator_reset;

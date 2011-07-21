@@ -150,11 +150,12 @@ int read_row(FILE *f, int cols, struct text_table_entry **e,
      s=line;
      while(*s==' ' || *s == '\t') s++;
      val=s; 
-     
-     if( row_cols==1 ) 
-        end=s+strlen(s);
-     else
-        end=index(s,':');
+    
+     end = NULL;
+     if (row_cols > 1)
+         end=index(s,':');
+     if (end == NULL) /*no ":" char or the only column is the key (row_cols <=1)*/
+         end=s+strlen(s);
 
      s=end+1; /*Now points to the end (*s='\0') or after the ':' */
 
@@ -170,7 +171,7 @@ int read_row(FILE *f, int cols, struct text_table_entry **e,
          return -1;
      }
 
-     if(row_cols!=1) {
+     if(row_cols > 1) {
          assert((*e)->vals);
          for (i=0; *s!='\0'; i++) { /*probably we have vals*/
              if(i>=row_cols) {
@@ -209,7 +210,11 @@ int load_text_table(char *filename, struct ci_lookup_table *table) {
 	 ci_debug_printf(1, "Error opening file: %s\n", filename);
 	 return 0;
      }
+
      rows = 0;
+     if (text_table->entries != NULL) /*if table is not empty try to find the last element*/
+         for (l = text_table->entries; l->next != NULL; l = l->next); 
+
      while(0 < (ret=read_row(f, table->cols, &e, table))) {
          if (e) {
              e->next = NULL;

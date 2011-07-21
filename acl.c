@@ -279,8 +279,10 @@ ci_acl_spec_t *  ci_acl_spec_new(char *name, char *type, char *param, struct ci_
      strncpy(spec->name, name, MAX_NAME_LEN);
      spec->name[MAX_NAME_LEN] = '\0';
      if(param) {
-	 if (!(spec->parameter = strdup(param)))
-	     return NULL;/*leak but if a simple strdup fails who cares....*/
+	 if (!(spec->parameter = strdup(param))) {
+             free(spec);
+	     return NULL;
+         }
      }
      else
 	 spec->parameter = NULL;
@@ -316,6 +318,10 @@ ci_acl_data_t *ci_acl_spec_new_data(ci_acl_spec_t *spec, char *val)
 	 return NULL;
 
      new_data = malloc(sizeof(ci_acl_data_t));
+     if (!new_data) {
+         ops->free(data, default_allocator);
+         return NULL;
+     }
      new_data->data = data;
      new_data->next = NULL;
      if ((list=spec->data) != NULL) {
@@ -386,6 +392,7 @@ int ci_acl_typelist_init(struct ci_acl_type_list *list)
 int ci_acl_typelist_add(struct ci_acl_type_list *list, const ci_acl_type_t *type)
 {
      ci_acl_type_t *cur;
+     ci_acl_type_t *nl = NULL;
 
      if (!type->name)
        return 0;
@@ -397,8 +404,13 @@ int ci_acl_typelist_add(struct ci_acl_type_list *list, const ci_acl_type_t *type
 
      if (list->acl_type_list_num == list->acl_type_list_size) {
 	  list->acl_type_list_size += STEP;
-	  list->acl_type_list = realloc((void *)list->acl_type_list, 
+          nl = realloc((void *)list->acl_type_list, 
 					list->acl_type_list_size*sizeof(ci_acl_type_t));
+          if (!nl) {
+              ci_debug_printf(1, "Failed to allocate more space for new ci_acl_typr_t\n");
+              return 0;
+          }
+          list->acl_type_list = nl;
      }
 
      cur = &(list->acl_type_list[list->acl_type_list_num]);
@@ -636,7 +648,7 @@ const char *get_header(ci_headers_list_t *headers, char *head)
 
 void release_header_value(ci_headers_list_t *headers, char *head)
 {
-    if (headers->packed) /*The headers are packed, we have allocated buffer*/
+    if (headers && headers->packed && head) /*The headers are packed, we have allocated buffer*/
 	ci_buffer_free(head);
 }
 
@@ -703,7 +715,11 @@ void *get_data_type(ci_request_t *req, char *param){
     type = ci_magic_req_data_type(req, &isenc);
     if (type < 0)
         return NULL;
+
     ret_type = malloc(sizeof(unsigned int));
+    if (!ret_type)
+        return NULL;
+
     *ret_type = type;
     return (void *)ret_type;
 }

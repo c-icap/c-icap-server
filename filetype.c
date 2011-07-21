@@ -268,6 +268,9 @@ struct ci_magics_db *ci_magics_db_init()
      struct ci_magics_db *db;
      int i;
      db = malloc(sizeof(struct ci_magics_db));
+     if (!db)
+         return NULL;
+
      types_init(db);
      groups_init(db);
      magics_init(db);

@@ -143,11 +143,15 @@ struct ci_lookup_table *ci_lookup_table_create_ext(const char *table,
 struct ci_lookup_table *ci_lookup_table_create(const char *table) 
 {
     ci_mem_allocator_t *allocator;
+    struct ci_lookup_table *lt;
     allocator = ci_create_os_allocator();
     if(!allocator)
 	return NULL;
 
-    return ci_lookup_table_create_ext(table, &ci_str_ops, &ci_str_ops, allocator);
+    lt = ci_lookup_table_create_ext(table, &ci_str_ops, &ci_str_ops, allocator);
+    if (!lt)
+        ci_mem_allocator_destroy(allocator);
+    return lt;
 }
 
 void ci_lookup_table_destroy(struct ci_lookup_table *lt)

@@ -53,6 +53,8 @@ int stat_entry_add(struct stat_entry_list *list,const char *label, int type, int
  
        if (list->size==0) {
            list->entries = malloc(STEP*sizeof(struct stat_entry));
+           if (!list->entries)
+               return -1;
        }
        else {
            l = realloc(list->entries, (list->size+STEP)*sizeof(struct stat_entry));
@@ -107,6 +109,8 @@ int stat_group_add(char *group)
 
    if (STAT_GROUPS.size == 0) {
        STAT_GROUPS.groups = malloc(STEP * sizeof(char *));
+       if (!STAT_GROUPS.groups)
+           return -1;
        STAT_GROUPS.size = STEP;
    }
    else if (STAT_GROUPS.size == STAT_GROUPS.entries_num) {
@@ -193,10 +197,14 @@ void ci_stat_kbs_inc(int ID, int count)
 */
 struct stat_area *ci_stat_area_construct(void *mem_block, int size, void (*release_mem)(void *))
 {
-     struct stat_area  *area = malloc(sizeof(struct stat_area));
+     struct stat_area  *area = NULL;
      if (size < ci_stat_memblock_size() )
          return NULL;
-     
+
+     area = malloc(sizeof(struct stat_area));
+     if (!area)
+         return NULL;
+
      assert(((struct stat_memblock *)mem_block)->sig == MEMBLOCK_SIG);
 
      ci_thread_mutex_init(&(area->mtx));
