@@ -516,7 +516,7 @@ int thread_main(server_decl_t * srv)
 {
      ci_connection_t con;
      char clientname[CI_MAXHOSTNAMELEN + 1];
-     int ret, request_status = 0;
+     int ret, request_status = CI_NO_STATUS;
      int keepalive_reqs;
 //***********************
      thread_signals(0);
@@ -577,11 +577,11 @@ int thread_main(server_decl_t * srv)
                if (child_data->to_be_killed)    /*We are going to die do not keep-alive */
                     srv->current_req->keepalive = 0;
 
-               if ((request_status = process_request(srv->current_req)) < 0) {
+               if ((request_status = process_request(srv->current_req)) == CI_NO_STATUS) {
                     ci_debug_printf(5,
                                     "Process request timeout or interrupted....\n");
                     ci_request_reset(srv->current_req);
-                    break;      //
+                    break;
                }
                srv->served_requests++;
                srv->served_requests_no_reallocation++;
@@ -620,7 +620,7 @@ int thread_main(server_decl_t * srv)
           } while (1);
 
           if (srv->current_req) {
-               if (request_status < 0 || child_data->to_be_killed) {
+               if (request_status != CI_OK || child_data->to_be_killed) {
                     hard_close_connection(srv->current_req->connection);
                }
                else {

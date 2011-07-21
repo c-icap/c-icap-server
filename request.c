@@ -337,7 +337,7 @@ int get_method(char *buf)
 
 int parse_header(ci_request_t * req)
 {
-     int i, request_status = 0, result;
+     int i, request_status = EC_100, result;
      ci_headers_list_t *h;
 
      h = req->request_header;
@@ -356,7 +356,7 @@ int parse_header(ci_request_t * req)
      if ((request_status = ci_headers_unpack(h)) != EC_100)
           return request_status;
 
-     for (i = 1; i < h->used; i++) {
+     for (i = 1; i < h->used && request_status == EC_100; i++) {
           if (strncasecmp("Preview:", h->headers[i], 8) == 0) {
                result = strtol(h->headers[i] + 9, NULL, 10);
                if (errno != EINVAL && errno != ERANGE) {
@@ -1221,6 +1221,14 @@ int do_request(ci_request_t * req)
                        ret_status = get_send_body(req, 1);
                    break;
                }
+               else if (res == CI_MOD_ALLOW204 && !req->hasbody) {
+                   0;
+                   /*Just copy http headers to icap response. No need at this time*/
+                   /*
+                     TODO: remove the "!req->hasbody" from if and  attach a (ring?) buffer to 
+                     echo data back to user
+                   */
+               }
                else if (res == CI_MOD_ALLOW206 && req->allow204 && req->allow206) {
                    req->return_code = EC_206;
                }
@@ -1307,69 +1315,66 @@ int process_request(ci_request_t * req)
     ci_service_xdata_t *srv_xdata;
     res = do_request(req);
    
-    if (!STATS)
-        return res;
-
     if (res<0 && req->request_header->bufused == 0) /*Did not read anything*/
-	return res;
+	return CI_NO_STATUS;
 
-    if (req->return_code == EC_404) {
-        return res;
+    if (STATS) {
+        if (req->return_code != EC_404 && req->current_service_mod)
+            srv_xdata = service_data(req->current_service_mod);
+        else
+            srv_xdata = NULL;
+
+        STATS_LOCK();
+        if (STAT_REQUESTS >= 0) STATS_INT64_INC(STAT_REQUESTS,1);
+        
+        if (req->type == ICAP_REQMOD) {
+            STATS_INT64_INC(STAT_REQMODS, 1);
+            if (srv_xdata)
+                STATS_INT64_INC(srv_xdata->stat_reqmods, 1);
+        }
+        else if (req->type == ICAP_RESPMOD) {
+            STATS_INT64_INC(STAT_RESPMODS, 1);
+            if (srv_xdata)
+                STATS_INT64_INC(srv_xdata->stat_respmods, 1);
+        }
+        else if (req->type == ICAP_OPTIONS) {
+            STATS_INT64_INC(STAT_OPTIONS, 1);
+            if (srv_xdata)
+                STATS_INT64_INC(srv_xdata->stat_options, 1);
+        }
+
+        if (res <0 && STAT_FAILED_REQUESTS >= 0)
+            STATS_INT64_INC(STAT_FAILED_REQUESTS,1);
+        else if (req->return_code == EC_204) {
+            STATS_INT64_INC(STAT_ALLOW204, 1);
+            if (srv_xdata)
+                STATS_INT64_INC(srv_xdata->stat_allow204, 1);
+        }
+
+
+        if (STAT_BYTES_IN >= 0) STATS_KBS_INC(STAT_BYTES_IN, req->bytes_in);
+        if (STAT_BYTES_OUT >= 0) STATS_KBS_INC(STAT_BYTES_OUT, req->bytes_out);
+        if (STAT_HTTP_BYTES_IN >= 0) STATS_KBS_INC(STAT_HTTP_BYTES_IN, req->http_bytes_in);
+        if (STAT_HTTP_BYTES_OUT >= 0) STATS_KBS_INC(STAT_HTTP_BYTES_OUT, req->http_bytes_out);
+        if (STAT_BODY_BYTES_IN >= 0) STATS_KBS_INC(STAT_BODY_BYTES_IN, req->body_bytes_in);
+        if (STAT_BODY_BYTES_OUT >= 0) STATS_KBS_INC(STAT_BODY_BYTES_OUT, req->body_bytes_out);
+
+        if (srv_xdata) {
+            if (srv_xdata->stat_bytes_in >= 0) 
+                STATS_KBS_INC(srv_xdata->stat_bytes_in, req->bytes_in);
+            if (srv_xdata->stat_bytes_out >= 0) 
+                STATS_KBS_INC(srv_xdata->stat_bytes_out, req->bytes_out);
+            if (srv_xdata->stat_http_bytes_in >= 0) 
+                STATS_KBS_INC(srv_xdata->stat_http_bytes_in, req->http_bytes_in);
+            if (srv_xdata->stat_http_bytes_out >= 0) 
+                STATS_KBS_INC(srv_xdata->stat_http_bytes_out, req->http_bytes_out);
+            if (srv_xdata->stat_body_bytes_in >= 0) 
+                STATS_KBS_INC(srv_xdata->stat_body_bytes_in, req->body_bytes_in);
+            if (srv_xdata->stat_body_bytes_out >= 0) 
+                STATS_KBS_INC(srv_xdata->stat_body_bytes_out, req->body_bytes_out);
+        }
+        STATS_UNLOCK();
     }
 
-    srv_xdata = service_data(req->current_service_mod);
-    if (!srv_xdata) {
-        ci_debug_printf(5, "Service not found, statistics not logged.");
-        return res;
-    }
-	
-    STATS_LOCK();
-    if (STAT_REQUESTS >= 0) STATS_INT64_INC(STAT_REQUESTS,1);
-
-    if (req->type == ICAP_REQMOD) {
-      STATS_INT64_INC(STAT_REQMODS, 1);
-      STATS_INT64_INC(srv_xdata->stat_reqmods, 1);
-    }
-    else if (req->type == ICAP_RESPMOD) {
-      STATS_INT64_INC(STAT_RESPMODS, 1);
-      STATS_INT64_INC(srv_xdata->stat_respmods, 1);
-    }
-    else if (req->type == ICAP_OPTIONS) {
-      STATS_INT64_INC(STAT_OPTIONS, 1);
-      STATS_INT64_INC(srv_xdata->stat_options, 1);
-    }
-
-    if (res <0 && STAT_FAILED_REQUESTS >= 0)
-        STATS_INT64_INC(STAT_FAILED_REQUESTS,1);
-
-    if (req->return_code == EC_204) {
-      STATS_INT64_INC(STAT_ALLOW204, 1);
-      STATS_INT64_INC(srv_xdata->stat_allow204, 1);
-    }
-
-
-    if (STAT_BYTES_IN >= 0) STATS_KBS_INC(STAT_BYTES_IN, req->bytes_in);
-    if (STAT_BYTES_OUT >= 0) STATS_KBS_INC(STAT_BYTES_OUT, req->bytes_out);
-    if (STAT_HTTP_BYTES_IN >= 0) STATS_KBS_INC(STAT_HTTP_BYTES_IN, req->http_bytes_in);
-    if (STAT_HTTP_BYTES_OUT >= 0) STATS_KBS_INC(STAT_HTTP_BYTES_OUT, req->http_bytes_out);
-    if (STAT_BODY_BYTES_IN >= 0) STATS_KBS_INC(STAT_BODY_BYTES_IN, req->body_bytes_in);
-    if (STAT_BODY_BYTES_OUT >= 0) STATS_KBS_INC(STAT_BODY_BYTES_OUT, req->body_bytes_out);
-
-
-    if (srv_xdata->stat_bytes_in >= 0) 
-      STATS_KBS_INC(srv_xdata->stat_bytes_in, req->bytes_in);
-    if (srv_xdata->stat_bytes_out >= 0) 
-      STATS_KBS_INC(srv_xdata->stat_bytes_out, req->bytes_out);
-    if (srv_xdata->stat_http_bytes_in >= 0) 
-      STATS_KBS_INC(srv_xdata->stat_http_bytes_in, req->http_bytes_in);
-    if (srv_xdata->stat_http_bytes_out >= 0) 
-      STATS_KBS_INC(srv_xdata->stat_http_bytes_out, req->http_bytes_out);
-    if (srv_xdata->stat_body_bytes_in >= 0) 
-      STATS_KBS_INC(srv_xdata->stat_body_bytes_in, req->body_bytes_in);
-    if (srv_xdata->stat_body_bytes_out >= 0) 
-      STATS_KBS_INC(srv_xdata->stat_body_bytes_out, req->body_bytes_out);
-
-    STATS_UNLOCK();
-
-    return res;
+    return res; /*Allow to log even the failed requests*/
 }
