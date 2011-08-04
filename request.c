@@ -840,12 +840,12 @@ int get_send_body(ci_request_t * req, int parse_only)
                     rbytes = 0;
 
                no_io = 0;
-	       ci_debug_printf(1, "get send body: going to write/read: %d/%d bytes\n", wbytes, rbytes);
+	       ci_debug_printf(7, "get send body: going to write/read: %d/%d bytes\n", wbytes, rbytes);
                if ((*service_io)
                    (rchunkdata, &rbytes, wchunkdata, &wbytes, req->eof_received,
                     req) == CI_ERROR)
                     return CI_ERROR;
-	       ci_debug_printf(1, "get send body: written/read: %d/%d bytes (eof: %d)\n", wbytes, rbytes, req->eof_received);
+	       ci_debug_printf(7, "get send body: written/read: %d/%d bytes (eof: %d)\n", wbytes, rbytes, req->eof_received);
                no_io = (rbytes==0 && wbytes==0);
                if (wbytes) {
                     wchunkdata += wbytes;
@@ -886,7 +886,7 @@ int get_send_body(ci_request_t * req, int parse_only)
 
      if (!action) {
           ci_debug_printf(1,
-                          "Bug in the service. Please report to the servive author!!!!\n");
+                          "Bug in the service. Please report to the service author!!!!\n");
      }
      else {
           ci_debug_printf(5, "Error reading from network......\n");
@@ -927,10 +927,10 @@ int rest_responce(ci_request_t * req)
           if (req->status == SEND_BODY && req->remain_send_block_bytes == 0) {
                req->pstrblock_responce = req->wbuf + EXTRA_CHUNK_SIZE;  /*Leave space for chunk spec.. */
                req->remain_send_block_bytes = MAX_CHUNK_SIZE;
-	       ci_debug_printf(1, "rest response: going to read: %d bytes\n", req->remain_send_block_bytes);
+	       ci_debug_printf(7, "rest response: going to read: %d bytes\n", req->remain_send_block_bytes);
                service_io(req->pstrblock_responce,
                           &(req->remain_send_block_bytes), NULL, NULL, 1, req);
-	       ci_debug_printf(1, "rest response: read: %d bytes\n", req->remain_send_block_bytes);
+	       ci_debug_printf(7, "rest response: read: %d bytes\n", req->remain_send_block_bytes);
                if (req->remain_send_block_bytes == CI_ERROR)    /*CI_EOF of CI_ERROR, stop sending.... */
                     return CI_ERROR;
                if (req->remain_send_block_bytes == 0)
