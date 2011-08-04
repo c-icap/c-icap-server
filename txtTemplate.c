@@ -28,6 +28,7 @@
 #include <assert.h>
 #include <stdlib.h>
 
+#include "common.h" 
 #include "body.h"
 #include "c-icap.h"
 #include "service.h"
