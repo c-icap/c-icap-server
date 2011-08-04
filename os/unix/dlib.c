@@ -49,9 +49,9 @@ void *ci_module_load(const char *module_file, const char *default_path)
      handle = dlopen(path, RTLD_NOW | RTLD_GLOBAL);
 
      if (!handle) {
-          ci_debug_printf(1, "Error loading module %s:%s\n", module_file,
-                          dlerror());
-          return NULL;
+       char *error_str = dlerror ();
+       ci_debug_printf(1, "Error loading module %s:%s\n", module_file, error_str);
+       return NULL;
      }
      return handle;
 }
