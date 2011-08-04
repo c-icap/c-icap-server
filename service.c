@@ -386,7 +386,7 @@ ci_service_module_t *register_service(const char *service_file)
      ci_service_module_t *service;
      service = create_service(service_file);
      if (!service) {
-          ci_debug_printf(1, "Error finding symbol \"service\" in  module %s\n",
+          ci_debug_printf(3, "Error while loading service %s\n",
                           service_file);
           return NULL;
      }

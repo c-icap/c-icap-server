@@ -361,7 +361,7 @@ void *register_module(const char *module_file, const char *type)
 
      module = load_module(module_file);
      if (!module) {
-          ci_debug_printf(1, "Error finding symbol \"module\" in  module %s\n",
+          ci_debug_printf(3, "Error while loading  module %s\n",
                           module_file);
           return NULL;
      }
