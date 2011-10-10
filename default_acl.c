@@ -17,6 +17,7 @@
  *  MA  02110-1301  USA.
  */
 
+#include "common.h" 
 #include "c-icap.h"
 #include "request.h"
 #include "module.h"
