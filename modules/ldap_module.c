@@ -255,13 +255,13 @@ LDAP *ldap_connection_open(struct ldap_connections_pool *pool)
 
 
   conn=malloc(sizeof(struct ldap_connection));
-  conn->hits = 1;
   if (!conn) {
 #ifdef LDAP_MAX_CONNECTIONS
      ci_thread_mutex_unlock(&pool->mutex);
 #endif
      return NULL;
   }
+  conn->hits = 1;
 
   ret = ldap_initialize(&conn->ldap, pool->ldap_uri);
   if (!conn->ldap){
@@ -270,6 +270,7 @@ LDAP *ldap_connection_open(struct ldap_connections_pool *pool)
 #endif
      ci_debug_printf(1, "Error allocating memory for ldap connection: %s!\n",
 		     ldap_err2string(ret));
+     free(conn);
      return NULL;
   }
 
@@ -497,6 +498,10 @@ void *store_val(void *val,int *val_size, ci_mem_allocator_t *allocator)
     *val_size = indx_size + cache_val->size;
 
     data = allocator->alloc(allocator, *val_size);
+    if (!data) {
+        ci_debug_printf(1, "Memory allocation failed inside ldap_module.c:store_val() \n");
+        return NULL;
+    }
     data_start = data + indx_size;
     data_indx = data;
     val_data = cache_val->data;

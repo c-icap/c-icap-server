@@ -220,6 +220,8 @@ ci_request_t *ci_request_alloc(ci_connection_t * connection)
      ci_request_t *req;
      int i;
      req = (ci_request_t *) malloc(sizeof(ci_request_t));
+     if (!req)
+         return NULL;
     
      req->connection = connection;
      req->packed = 0;
@@ -368,19 +370,24 @@ int process_encapsulated(ci_request_t * req, char *buf)
      int hasbody = 1;           /*Assume that we have a resbody or reqbody or optbody */
      start = buf + 14;
      pos = start;
+     end = (char *)start;
      while (*pos != '\0') {
           while (!isalpha(*pos) && *pos != '\0')
                pos++;
           type = get_encaps_type(pos, &val, &end);
+          if (type < 0) /*parse error - return "400 bad request"*/
+              return EC_400;
           if (num > 5)          /*In practice there is an error here .... */
                break;
           if (type == ICAP_NULL_BODY)
                hasbody = 0;     /*We have not a body */
           req->entities[num++] = ci_request_alloc_entity(req, type, val);
+
+          assert(start != end);
           pos = end;            /* points after the value of entity.... */
      }
      req->hasbody = hasbody;
-     return 0;
+     return EC_100;
 }
 
 
@@ -547,6 +554,10 @@ ci_request_t *ci_client_request(ci_connection_t * conn, char *server,
 {
      ci_request_t *req;
      req = ci_request_alloc(conn);
+     if (!req) {
+         ci_debug_printf(1, "Error allocation ci_request_t object(ci_client_request())\n");
+         return NULL;
+     }
      strncpy(req->req_server, server, CI_MAXHOSTNAMELEN);
      req->req_server[CI_MAXHOSTNAMELEN] = '\0';
      strncpy(req->service, service, MAX_SERVICE_NAME);

@@ -103,6 +103,10 @@ void *echo_init_request_data(ci_request_t * req)
 
     /*Allocate memory fot the echo_data*/
     echo_data = malloc(sizeof(struct echo_req_data));
+    if (!echo_data) {
+        ci_debug_printf(1, "Memory allocation failed inside echo_init_request_data!\n");
+        return NULL;
+    }
 
     /*If the ICAP request encuspulates a HTTP objects which contains body data 
       and not only headers allocate a ci_cached_file_t object to store the body data.

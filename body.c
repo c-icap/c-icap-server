@@ -602,7 +602,15 @@ int ci_simple_file_read(ci_simple_file_t * body, char *buf, int len)
 struct ci_ring_buf *ci_ring_buf_new(int size)
 {
   struct ci_ring_buf *buf = malloc(sizeof(struct ci_ring_buf));
+  if (!buf)
+      return NULL;
+
   buf->buf = malloc(size);
+  if (!buf->buf) {
+      free(buf);
+      return NULL;
+  }
+
   buf->end_buf=buf->buf+size-1; 
   buf->read_pos = buf->buf;
   buf->write_pos = buf->buf;

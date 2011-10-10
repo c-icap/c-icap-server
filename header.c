@@ -156,9 +156,12 @@ ci_headers_list_t *ci_headers_create()
 {
      ci_headers_list_t *h;
      h = malloc(sizeof(ci_headers_list_t));
-     if (!h)
+     if (!h) {
+          ci_debug_printf(1, "Error allocation memory for ci_headers_list_t (header.c: ci_headers_create)\n");
           return NULL;
-
+     }
+     h->headers = NULL;
+     h->buf = NULL;
      if (!(h->headers = malloc(HEADERSTARTSIZE * sizeof(char *)))
          || !(h->buf = malloc(HEADSBUFSIZE * sizeof(char)))) {
           ci_debug_printf(1, "Server Error: Error allocation memory \n");
@@ -166,8 +169,7 @@ ci_headers_list_t *ci_headers_create()
                free(h->headers);
           if (h->buf)
                free(h->buf);
-          if (h)
-               free(h);
+          free(h);
           return NULL;
      }
 

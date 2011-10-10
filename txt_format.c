@@ -241,6 +241,7 @@ int ci_format_text(
    unsigned int width, space=0;
    char parameter[MAX_VARIABLE_SIZE];
 
+   lb = NULL;
    s = fmt;
    b = buffer;
    remains = len;
@@ -262,8 +263,7 @@ int ci_format_text(
                     for (i=0; i < width-val_len; i++) b[i]=' ';
                     b += width-val_len;
                 }
-                else {
-                    lb = malloc((space+1)*sizeof(char));      
+                else if ((lb = malloc((space+1)*sizeof(char))) != NULL) {
                     val_len=fmte->format(req_data, lb, space, parameter);
                     if (val_len > space) val_len = space;
                     for (i=0; i < width-val_len; i++) b[i]=' ';
@@ -273,6 +273,7 @@ int ci_format_text(
                     free(lb);
                     lb = NULL;
                 }
+                /*else allocation failed! Just ignore?????*/
 
                 remains -= width;
             } 

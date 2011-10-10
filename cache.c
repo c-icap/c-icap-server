@@ -86,8 +86,14 @@ struct ci_cache *ci_cache_build( unsigned int cache_size,
     /*until we are going to create an allocator which can allocate/release from 
      continues memory blocks like those we have in shared memory*/
     allocator = ci_create_os_allocator();
-    
+    if (!allocator)
+        return NULL;
+
     cache = malloc(sizeof(struct ci_cache));
+    if (!cache) {
+        ci_mem_allocator_destroy(allocator);
+        return NULL;
+    }
     cache->key_ops = key_ops;
     cache->allocator = allocator;
 //    cache->data_release = data_release;
@@ -99,6 +105,11 @@ struct ci_cache *ci_cache_build( unsigned int cache_size,
     cache->copy_from = copy_from_cache;
     
     cache->first_queue_entry = (struct ci_cache_entry *)allocator->alloc(allocator, sizeof(struct ci_cache_entry)); 
+    if (!cache->first_queue_entry) {
+        ci_mem_allocator_destroy(allocator);
+        free(cache);
+        return NULL;
+    }
     cache->last_queue_entry = cache->first_queue_entry;
     cache->last_queue_entry->hnext=NULL;
     cache->last_queue_entry->qnext = NULL;
@@ -108,6 +119,12 @@ struct ci_cache *ci_cache_build( unsigned int cache_size,
     cache->last_queue_entry->hash = 0;
     for (i=0; i < cache_items-1; i++) {
 	cache->last_queue_entry->qnext=(struct ci_cache_entry *)allocator->alloc(allocator, sizeof(struct ci_cache_entry));
+        if (!cache->last_queue_entry->qnext) {
+            /*we are leaking here the cache->first_queue_entry elements. TODO...*/
+            ci_mem_allocator_destroy(allocator);
+            free(cache);
+            return NULL;            
+        }
 	cache->last_queue_entry=cache->last_queue_entry->qnext;
 	cache->last_queue_entry->hnext=NULL;
         cache->last_queue_entry->qnext = NULL;
@@ -126,6 +143,12 @@ struct ci_cache *ci_cache_build( unsigned int cache_size,
     }
     ci_debug_printf(7,"Hash size: %d\n",new_hash_size);
     cache->hash_table=(struct ci_cache_entry **)allocator->alloc(allocator, (new_hash_size+1)*sizeof(struct ci_cache_entry *));
+    if (!cache->hash_table) {
+        /*we are leaking here the cache->first_queue_entry elements. TODO...*/
+        ci_mem_allocator_destroy(allocator);
+        free(cache);
+        return NULL;
+    }
     memset(cache->hash_table,0,(new_hash_size+1)*sizeof(struct ci_cache_entry *));
     cache->hash_table_size = new_hash_size; 
     cache->ttl = ttl;

@@ -361,6 +361,10 @@ int main(int argc, char **argv)
           MAX_REQUESTS = 0;
 
      threads = malloc(sizeof(ci_thread_t) * threadsnum);
+     if (!threads) {
+          ci_debug_printf(1, "Error allocation memory for threads array\n");
+          exit(-1);
+     }
      for (i = 0; i < threadsnum; i++)
           threads[i] = 0;
 

@@ -289,8 +289,10 @@ static txtTemplate_t *templateTryLoadText(const ci_request_t * req, const char *
      /* TODO: do not allow txttemplates bigger than 64k 
       */
      textbuff = ci_membuf_new_sized(file.st_size + 1);
-     
-     assert(textbuff != NULL);
+     if (!textbuff) {
+         ci_debug_printf(1, "templateTryLoadText: membuf allocation failed!\n");
+         return NULL;
+     }
      
      while ((len = read(fd, buf, sizeof(buf))) > 0) {
 	  ci_membuf_write(textbuff, buf, len, 0);
@@ -319,6 +321,7 @@ static txtTemplate_t *templateTryLoadText(const ci_request_t * req, const char *
 	  if (!tempTemplate) {
 	       ci_debug_printf(1, "templateTryLoadText: memory allocation error!\n");
 	       ci_thread_mutex_unlock(&templates_mutex);
+               ci_membuf_free(textbuff);
 	       return NULL;
 	  }
 	  tempTemplate->non_cached = 1;
@@ -391,9 +394,15 @@ static txtTemplate_t *templateLoadText(const ci_request_t * req, const char *ser
 ci_membuf_t *ci_txt_template_build_content(const ci_request_t *req, const char *SERVICE_NAME,
                                const char *TEMPLATE_NAME, struct ci_fmt_entry *user_table)
 {
-     ci_membuf_t *content = ci_membuf_new(TEMPLATE_MEMBUF_SIZE);
+    ci_membuf_t *content;
      char templpath[CI_MAX_PATH];
      txtTemplate_t *template = NULL;
+
+     content = ci_membuf_new(TEMPLATE_MEMBUF_SIZE);
+     if (!content) {
+         ci_debug_printf(1, "Failed to allocate buffer to load template!");
+         return NULL;
+     }
 
      /*templateLoadText also locks the template*/
      template = templateLoadText(req, SERVICE_NAME, TEMPLATE_NAME);

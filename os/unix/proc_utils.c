@@ -66,12 +66,15 @@ int is_icap_running(char *pidfile)
      bytes = read(fd, strPid, sizeof(strPid));
      close(fd);
 
+     if (bytes < 0)
+         return 0;
+
      if (bytes < sizeof(strPid) - 1)
           strPid[bytes] = '\0';
      else
           strPid[sizeof(strPid) - 1] = '\0';    /*Maybe check for errors? */
      pid = strtol(strPid, NULL, 10);
-     if (pid < 0)               /*garbage */
+     if (pid <= 0)               /*garbage */
           return 0;
      ret = kill(pid, 0);
      if (ret < 0)
