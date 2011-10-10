@@ -55,6 +55,7 @@ struct dnsbl_data {
 
 void *store_val(void *val,int *val_size, ci_mem_allocator_t *allocator)
 {
+    *val_size = 0;
     return val;
 }
 

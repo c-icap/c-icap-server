@@ -228,7 +228,7 @@ int ci_cache_update(struct ci_cache *cache, void *key, void *val) {
 	cache->key_ops->free(e->key, cache->allocator);
 	e->key = NULL;
     }
-    if (e->val) {
+    if (e->val && e->val_size > 0) {
 	cache->allocator->free(cache->allocator, e->val);
 	e->val = NULL;
     }
