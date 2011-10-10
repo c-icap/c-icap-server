@@ -230,6 +230,7 @@ ci_request_t *ci_request_alloc(ci_connection_t * connection)
      req->access_type = 0;
 
      req->service[0] = '\0';
+     req->req_server[0] = '\0';
      req->current_service_mod = NULL;
      req->service_data = NULL;
      req->args[0] = '\0';
