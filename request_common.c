@@ -175,6 +175,11 @@ ci_encaps_entity_t *ci_request_alloc_entity(ci_request_t * req, int type, int va
           req->trash_entities[type] = NULL;
           e->type = type;
           e->start = val;
+          if (e->type == ICAP_REQ_HDR
+              || e->type == ICAP_RES_HDR) {
+              if (e->entity)
+                  ci_headers_reset((ci_headers_list_t *)e->entity);
+          }
           ci_debug_printf(8, "Get entity from trash....\n");
           return e;
      }
@@ -205,11 +210,6 @@ int ci_request_release_entity(ci_request_t * req, int pos)
           destroy_encaps_entity(req->trash_entities[type]);
      }
      req->trash_entities[type] = req->entities[pos];
-     if (req->trash_entities[type]->type == ICAP_REQ_HDR
-         || req->trash_entities[type]->type == ICAP_RES_HDR) {
-          if (req->trash_entities[type]->entity)
-               ci_headers_reset(req->trash_entities[type]->entity);
-     }
      req->entities[pos] = NULL;
      return 1;
 }
@@ -328,6 +328,13 @@ void ci_request_reset(ci_request_t * req)
           ci_request_release_entity(req, i);
      }
 
+     /*Reset the encapsulated response or request headers*/
+     if (req->trash_entities[ICAP_REQ_HDR] && 
+         req->trash_entities[ICAP_REQ_HDR]->entity)
+         ci_headers_reset((ci_headers_list_t *)req->trash_entities[ICAP_REQ_HDR]->entity);
+     if (req->trash_entities[ICAP_RES_HDR] && 
+         req->trash_entities[ICAP_RES_HDR]->entity)
+         ci_headers_reset((ci_headers_list_t *)req->trash_entities[ICAP_RES_HDR]->entity);
 }
 
 void ci_request_destroy(ci_request_t * req)
