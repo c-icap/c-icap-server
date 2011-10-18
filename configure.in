@@ -229,7 +229,7 @@ if test a"$zlib" != "ano"; then
         OLDCFLAGS=$CFLAGS
         OLDLDFLAGS=$LDFLAGS
         CFLAGS="$CFLAGS -I$zlib/include"
-        LDFLAGS="$LDFLAGS -L $zlib/lib"
+        LDFLAGS="$LDFLAGS -L$zlib/lib"
 	AC_CHECK_LIB(z,inflate,[ZLIB_ADD_LDFLAG="-L$zlib/lib -lz";ZLIB_ADD_FLAG="-I$zlib/include";AC_DEFINE(HAVE_ZLIB,1,[Define HAVE_ZLIB if zlib installed])],[zlib=no])
         CFLAGS=$OLDCFLAGS
         LDFLAGS=$OLDLDFLAGS
@@ -290,7 +290,7 @@ if test a"$libdb" != "ano"; then
       OLDCFLAGS=$CFLAGS
       OLDLDFLAGS=$LDFLAGS
       CFLAGS="-I$libdbpath/include $CFLAGS"
-      LDFLAGS="-L $libdbpath/lib -ldb $LDFLAGS"
+      LDFLAGS="-L$libdbpath/lib -ldb $LDFLAGS"
       echo -n "checking for Berkeley DB under $libdbpath... "
       AC_LINK_IFELSE(
                 [
@@ -302,7 +302,7 @@ if test a"$libdb" != "ano"; then
                          return 0;
                     }
                 ],
-               [BDB_ADD_LDFLAG="-L $libdbpath/lib -ldb"; BDB_ADD_FLAG="-I$libdbpath/include";libdb="yes"; echo "yes"], 
+               [BDB_ADD_LDFLAG="-L$libdbpath/lib -ldb"; BDB_ADD_FLAG="-I$libdbpath/include";libdb="yes"; echo "yes"], 
                [libdb="no"; echo "no"]
       )
 #restore CFLAGS/LDFLAGS
@@ -326,7 +326,7 @@ if test a"$libdb" != "ano"; then
         if test -d $libdbpath/include/db$DBVER; then
            echo -n "checking for Berleley DB under $libdbpath/include/db$DBVER and $libdbpath/lib/db$DBVER... "
            CFLAGS="-I$libdbpath/include/db$DBVER $OLDCFLAGS"
-           LDFLAGS="-L $libdbpath/lib/db$DBVER -ldb $OLDLDFLAGS" 
+           LDFLAGS="-L$libdbpath/lib/db$DBVER -ldb $OLDLDFLAGS" 
            AC_LINK_IFELSE(
                   [
                      #include <db.h>
@@ -379,7 +379,7 @@ if test a"$libldap" != "ano"; then
         OLDCFLAGS=$CFLAGS
         OLDLDFLAGS=$LDFLAGS
         CFLAGS="$CFLAGS -I$libldap/include"
-        LDFLAGS="$LDFLAGS -L $libldap/lib" 
+        LDFLAGS="$LDFLAGS -L$libldap/lib" 
         AC_CHECK_LIB(ldap,  ldap_search_ext_s,
                      [LDAP_ADD_LDFLAG="-L$libldap/lib -lldap"; LDAP_ADD_FLAG="-I$libldap/include"; AC_DEFINE(HAVE_LDAP, 1, [Define HAVE_LDAP if LDAP libraries are installed])],
                      [libldap="no"]
