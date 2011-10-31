@@ -29,7 +29,7 @@
 int ci_buffers_init();
 
 /*General Functions */
-ci_mem_allocator_t *default_allocator;
+ci_mem_allocator_t *default_allocator = NULL;
 
 int mem_init()
 {
@@ -169,7 +169,7 @@ void *ci_buffer_alloc(int block_size)
 
 void * ci_buffer_realloc(void *data, int block_size)
 {
-    int type, full_block_size = 0;
+    int type, current_block_size = 0;
     struct mem_buffer_block *block;
 
     if (!data)
@@ -181,21 +181,25 @@ void * ci_buffer_realloc(void *data, int block_size)
         return NULL;
     }
 
-    type = (block_size-1) >> 6;
+    type = (block->ID - 1) >> 6;
      if (type< 16 && short_buffers[type] != NULL) {
-         full_block_size = short_buffer_sizes[type];
+         current_block_size = short_buffer_sizes[type];
      }
      else if(type < 512) {
          type = type >> 5;       
          if (long_buffers[type]!= NULL) {
-             full_block_size = long_buffer_sizes[type];
+             current_block_size = long_buffer_sizes[type];
          }
      }
-     
-     if (!full_block_size)
-         full_block_size = block->ID;
 
-     if (block_size > full_block_size) {
+     ci_debug_printf(10, "Current block size for realloc: %d, requested block size: %d. The initial size: %d\n",
+                     current_block_size, block_size, block->ID);
+
+     /*If no needs_block_size found probably requires a realloc.....*/
+     if (!current_block_size) 
+         current_block_size = block->ID;
+
+     if (block_size > current_block_size) {
          data = ci_buffer_alloc(block_size);
          if (!data)
              return NULL;
