@@ -169,7 +169,6 @@ CI_DECLARE_FUNC(ci_encaps_entity_t *) ci_request_alloc_entity(ci_request_t *req,
 CI_DECLARE_FUNC(int)          ci_request_release_entity(ci_request_t *req,int pos);
 CI_DECLARE_FUNC(char *)       ci_request_set_log_str(ci_request_t *req, char *logstr);
 
-CI_DECLARE_FUNC(int)          ci_read_icap_header(ci_request_t *req,ci_headers_list_t *h,int timeout);
 CI_DECLARE_FUNC(int)          ci_request_206_origin_body(ci_request_t *req, uint64_t offset);
 
 /*ICAP client api*/
