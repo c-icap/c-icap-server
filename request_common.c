@@ -27,12 +27,12 @@
 #include "request.h"
 #include "simple_api.h"
 
-void * _os_malloc(int size)
+static void * _os_malloc(int size)
 {
      return malloc(size);
 }
 
-void _os_free(void *ptr)
+static void _os_free(void *ptr)
 {
      free(ptr);
 }
@@ -673,7 +673,7 @@ void ci_client_request_reuse(ci_request_t * req)
 
 
 
-int client_create_request(ci_request_t * req, char *servername, char *service,
+static int client_create_request(ci_request_t * req, char *servername, char *service,
                           int reqtype)
 {
      char buf[256];
@@ -701,7 +701,7 @@ int client_create_request(ci_request_t * req, char *servername, char *service,
      return CI_OK;
 }
 
-int get_request_options(ci_request_t * req, ci_headers_list_t * h)
+static int get_request_options(ci_request_t * req, ci_headers_list_t * h)
 {
      const char *pstr;
 
@@ -745,7 +745,7 @@ int get_request_options(ci_request_t * req, ci_headers_list_t * h)
 }
 
 
-int ci_writen(int fd, char *buf, int len, int timeout)
+static int ci_writen(int fd, char *buf, int len, int timeout)
 {
      int ret = 0, remains;
      remains = len;
@@ -760,7 +760,7 @@ int ci_writen(int fd, char *buf, int len, int timeout)
 
 
 
-int client_send_request_headers(ci_request_t * req, int has_eof, int timeout)
+static int client_send_request_headers(ci_request_t * req, int has_eof, int timeout)
 {
      ci_encaps_entity_t **elist, *e;
      ci_headers_list_t *headers;
@@ -835,7 +835,7 @@ static int check_realloc(char **buf, int *size, int used, int mustadded)
 }
 
 
-int client_parse_icap_header(ci_request_t * req, ci_headers_list_t * h)
+static int client_parse_icap_header(ci_request_t * req, ci_headers_list_t * h)
 {
      int readed = 0, eoh = 0;
      char *buf, *end;
@@ -865,7 +865,7 @@ int client_parse_icap_header(ci_request_t * req, ci_headers_list_t * h)
      return CI_OK;
 }
 
-int client_parse_encaps_header(ci_request_t * req, ci_headers_list_t * h, int size)
+static int client_parse_encaps_header(ci_request_t * req, ci_headers_list_t * h, int size)
 {
      int remains, readed = 0;
      char *buf_end = NULL;
@@ -972,7 +972,7 @@ ci_connection_t *ci_client_connect_to(char *servername, int port, int proto)
 }
 
 
-int client_prepere_body_chunk(ci_request_t * req, void *data,
+static int client_prepere_body_chunk(ci_request_t * req, void *data,
                               int (*readdata) (void *data, char *, int))
 {
      int chunksize, def_bytes;
@@ -1002,7 +1002,7 @@ int client_prepere_body_chunk(ci_request_t * req, void *data,
 }
 
 
-int client_parse_incoming_data(ci_request_t * req, void *data_dest,
+static int client_parse_incoming_data(ci_request_t * req, void *data_dest,
                                int (*dest_write) (void *, char *, int))
 {
      int ret, v1, v2, status, bytes, size;
@@ -1118,9 +1118,9 @@ int client_parse_incoming_data(ci_request_t * req, void *data_dest,
      return CI_OK;
 }
 
-const char *eof_str = "0\r\n\r\n";
+static const char *eof_str = "0\r\n\r\n";
 
-int client_send_get_data(ci_request_t * req,
+static int client_send_get_data(ci_request_t * req,
                          int timeout,
                          void *data_source, int (*source_read) (void *, char *,
                                                                 int),
