@@ -895,8 +895,8 @@ int get_send_body(ci_request_t * req, int parse_only)
 }
 
 
-
-int rest_responce(ci_request_t * req)
+/*Return CI_ERROR on error or CI_OK on success*/
+static int send_remaining_response(ci_request_t * req)
 {
      int ret = 0;
      int (*service_io) (char *rbuf, int *rlen, char *wbuf, int *wlen, int iseof,
@@ -916,7 +916,7 @@ int rest_responce(ci_request_t * req)
                if ((ret =
                     wait_for_data(req->connection->fd, TIMEOUT,
                                      wait_for_write)) < 0) {
-                    ci_debug_printf(1,
+                    ci_debug_printf(3,
                                     "Timeout sending data. Ending .......\n");
                     return CI_ERROR;
                }
@@ -1103,6 +1103,192 @@ void options_responce(ci_request_t * req)
 
 }
 
+/*Read preview data, call preview handler and respond with error,  "204" or 
+  "100 Continue" if required.
+  Returns:
+  - CI_OK on success and 100 Continue,
+  - CI_EOF on ieof chunk response (means all body data received,
+     inside preview, no need to read more data from the client)
+  - CI_ERROR on error
+*/
+static int do_request_preview(ci_request_t *req){
+    int preview_read_status;
+    int res;
+
+    ci_debug_printf(8,"Read preview data if there are and process request\n");
+
+    /*read_preview_data returns CI_OK, CI_EOF or CI_ERROR */
+    if (!req->hasbody)
+        preview_read_status = CI_EOF;
+    else if ((preview_read_status = read_preview_data(req)) == CI_ERROR) {
+        ci_debug_printf(5,
+                        "An error occured while reading preview data (propably timeout)\n");
+        ec_responce(req, EC_408);
+        req->return_code = EC_408;
+        return CI_ERROR;
+    }
+    
+    if (!req->current_service_mod->mod_check_preview_handler) {
+        /*We have not a preview data handler. We are responding with "100 Continue"
+          assuming that the service needs to process all data.
+          The preview data are stored in req->preview_data.buf, if the service needs them.
+         */
+        ci_debug_printf(3, "Preview request but no preview data handler. Respond with \"100 Continue\"\n");
+        res =  CI_MOD_CONTINUE;
+    }
+    else {
+        /*We have a preview handler and we are going to call it*/
+        res = req->current_service_mod->mod_check_preview_handler(
+            req->preview_data.buf, req->preview_data.used, req);
+    }
+
+    if (res == CI_MOD_ALLOW204) {
+        req->return_code = EC_204;
+        if (ec_responce_with_istag(req, EC_204) < 0)
+            return CI_ERROR;
+
+        ci_debug_printf(5,"Preview handler return allow 204 response\n");
+        /*we are finishing here*/
+        return CI_OK;
+    }
+
+    if (res == CI_MOD_ALLOW206 && req->allow206) {
+        req->return_code = EC_206;
+        ci_debug_printf(5,"Preview handler return 206 response\n");
+        return CI_OK;
+    }
+
+    /*The CI_MOD_CONTINUE is the only remaining valid answer */
+    if (res != CI_MOD_CONTINUE) {        
+        ci_debug_printf(5, "An error occured in preview handler!"
+                        " return code: %d , req->allow204=%d, req->allow206=%d\n",
+                        res, req->allow204, req->allow206);
+        ec_responce(req, EC_500);
+        req->return_code = EC_500;
+        return CI_ERROR;
+    }
+
+    if (preview_read_status != CI_EOF)  {
+        ec_responce(req, EC_100);     /*if 100 Continue and not "0;ieof"*/
+    }
+    /* else 100 Continue and "0;ieof" received. Do not send "100 Continue"*/
+
+    ci_debug_printf(5,"Preview handler %s\n", 
+                    (preview_read_status == CI_EOF ? "receives all body data" : "continue reading more body data"));
+
+    return preview_read_status;
+}
+
+/* 
+   Call the preview handler in the case there is not preview request.
+   
+*/
+static int do_fake_preview(ci_request_t * req)
+{
+    int res;
+    /*We are outside preview. The preview handler will be called but it needs
+      special handle.
+      Currently the preview data handler called with no preview data.In the future we 
+      should add code to read data from client and pass them to the service.
+      Also in the future the service should not need to know if preview supported
+      by the client or not
+    */
+
+    if (!req->current_service_mod->mod_check_preview_handler)
+        return CI_OK; /*do nothing*/
+    
+    ci_debug_printf(8,"Preview does not supported. Call the preview handler with no preview data.\n");
+    res = req->current_service_mod->mod_check_preview_handler(NULL, 0, req);
+
+    /*We are outside preview. The client should support allow204 outside preview
+      to support it.
+     */
+    if (res == CI_MOD_ALLOW204 && req->allow204) {
+        ci_debug_printf(5,"Preview handler return allow 204 response, and allow204 outside preview supported\n");
+        req->return_code = EC_204;
+        if (ec_responce_with_istag(req, EC_204) < 0)
+            return CI_ERROR;
+
+        /*And now parse body data we have read and data the client going to send us,
+          but do not pass them to the service (second argument of the get_send_body)*/
+        if (req->hasbody)
+            res = get_send_body(req, 1); /*we do not care about return code...*/
+        return CI_OK;
+    }
+
+    if (res == CI_MOD_ALLOW204 && !req->hasbody) {
+        ci_debug_printf(5,"Preview handler return allow 204 response, and allow204 outside preview does NOT supported\n");
+        /*Just copy http headers to icap response. No need at this time*/
+        /*
+          TODO: remove the "!req->hasbody" from if and  attach a (ring?) buffer to 
+          echo data back to user
+        */
+        return CI_OK;
+    }
+
+    if (res == CI_MOD_ALLOW206 && req->allow204 && req->allow206) {
+        ci_debug_printf(5,"Preview handler return allow 204 response, allow204 outside preview and allow206 supported by t");
+        req->return_code = EC_206;
+        return CI_OK;
+    }
+
+    if (res == CI_MOD_CONTINUE)
+        return CI_OK;
+
+    ci_debug_printf(1, "An error occured in preview handler (outside preview)!"
+                    " return code: %d, req->allow204=%d, req->allow206=%d\n", 
+                    res, req->allow204, req->allow206);
+    ec_responce(req, EC_500);
+    req->return_code = EC_500;
+    return CI_ERROR;
+}
+
+/*
+  Return CI_ERROR or CI_OK
+*/
+static int do_end_of_data(ci_request_t * req) {
+    int res;
+
+    if (!req->current_service_mod->mod_end_of_data_handler)
+        return CI_OK; /*Nothing to do*/
+
+    res = req->current_service_mod->mod_end_of_data_handler(req);
+/* 
+     while( req->current_service_mod->mod_end_of_data_handler(req)== CI_MOD_NOT_READY){
+     //can send some data here .........
+     }
+*/
+    if (res == CI_MOD_ALLOW204 && req->allow204 && !ci_req_sent_data(req)) {
+        req->return_code = EC_204;
+        if (ec_responce_with_istag(req, EC_204) < 0) {
+            ci_debug_printf(5, "An error occured while sending allow 204 response\n");
+            return CI_ERROR;
+        }
+
+        return CI_OK;
+    }
+
+    if (res == CI_MOD_ALLOW206 && req->allow204 && req->allow206 && !ci_req_sent_data(req)) {
+        req->return_code = EC_206;
+        return CI_OK;
+    }
+
+    if (res != CI_MOD_DONE) {
+        ci_debug_printf(1, "An error occured in end-of-data handler !"
+                        "return code : %d, req->allow204=%d, req->allow206=%d\n",
+                        res, req->allow204, req->allow206);
+
+        if (!ci_req_sent_data(req)) {
+            ec_responce(req, EC_500);
+            req->return_code = EC_500;
+        }
+        return CI_ERROR;
+    }
+
+    return CI_OK;
+}
+
+
 int do_request(ci_request_t * req)
 {
      ci_service_xdata_t *srv_xdata = NULL;
@@ -1161,140 +1347,50 @@ int do_request(ci_request_t * req)
      case ICAP_REQMOD:
      case ICAP_RESPMOD:
           preview_status = CI_NO_STATUS;
-          if (req->hasbody && req->preview >= 0) { /*we are inside preview*/
-               /*read_preview_data returns CI_OK, CI_EOF or CI_ERROR */
-               if ((preview_status = read_preview_data(req)) == CI_ERROR) {
-                    ci_debug_printf(5,
-                                    "An error occured while reading preview data (propably timeout)\n");
-                    ec_responce(req, EC_408);
-		    req->return_code = EC_408;
-		    ret_status = CI_ERROR;
-                    /*Responce with error..... */
-                    break;
-               }
-               else if (req->current_service_mod->mod_check_preview_handler) {
-                    res =
-                        req->current_service_mod->
-                        mod_check_preview_handler(req->preview_data.buf,
-                                                  req->preview_data.used, req);
-                    if (res == CI_MOD_ALLOW204) {
-			 if (ec_responce_with_istag(req, EC_204) < 0)
-			     ret_status = CI_ERROR;
-			 req->return_code = EC_204;
-                         break; //Need no any modification.
-                    }
-                    else if (res == CI_MOD_ALLOW206 && req->allow206) {
-                        req->return_code = EC_206;
-                        ci_debug_printf(5,"Preview handler return 206 response\n");
-                    }
-                    else if (res == CI_MOD_CONTINUE && preview_status == CI_OK) /*if 100 Continue and not "0;ieof"*/
-                         ec_responce(req, EC_100);
-                    else if (res == CI_MOD_CONTINUE /*&& preview_status == CI_EOF*/)  {
-                        /*0; ieof, do nothing*/
-                    }
-                    else{
-                        ci_debug_printf(5, "An error occured in preview handler!"
-                                        " return code: %d , req->allow204=%d, req->allow206=%d\n",
-                                        res, req->allow204, req->allow206);
-                         ec_responce(req, EC_500);
-                         req->return_code = EC_500;
-                         ret_status = CI_ERROR;
-                         break;
-                    }
-               }
-          }
-          else if (req->current_service_mod->mod_check_preview_handler) {
-              /*We are outside preview. The preview handler will be called but it needs
-                special handle.*/
-               res =
-                   req->current_service_mod->mod_check_preview_handler(NULL, 0,
-                                                                       req);
-               if (res == CI_MOD_ALLOW204 && req->allow204) {
-                   if (ec_responce_with_istag(req, EC_204) < 0) {
-                       ret_status = CI_ERROR;
-                       break;
-                   }
-                   req->return_code = EC_204;
-                   /*And now parse body data we read and data the client going to send us,
-                     but do not pass them to the service */
-                   if (req->hasbody)
-                       ret_status = get_send_body(req, 1);
-                   break;
-               }
-               else if (res == CI_MOD_ALLOW204 && !req->hasbody) {
-                   0;
-                   /*Just copy http headers to icap response. No need at this time*/
-                   /*
-                     TODO: remove the "!req->hasbody" from if and  attach a (ring?) buffer to 
-                     echo data back to user
-                   */
-               }
-               else if (res == CI_MOD_ALLOW206 && req->allow204 && req->allow206) {
-                   req->return_code = EC_206;
-               }
-               else if (res != CI_MOD_CONTINUE){
-                   ci_debug_printf(1, "An error occured in preview handler (outside preview)!"
-                                   " return code: %d, req->allow204=%d, req->allow206=%d\n", 
-                                   res, req->allow204, req->allow206);
-                   ec_responce(req, EC_500);
-                   req->return_code = EC_500;
-                   ret_status = CI_ERROR;
-                   break;
-               }
+          if (req->preview >= 0) /*we are inside preview*/
+              preview_status = do_request_preview(req);
+          else
+              preview_status = do_fake_preview(req);
+          
+          if (preview_status == CI_ERROR) {
+              ret_status = CI_ERROR;
+              break;
           }
 
-	  if (req->return_code == -1)
+          if (req->return_code == EC_204) /*Allow 204,  Stop processing here*/
+              break;
+          /*else 100 continue or 206  response*/
+          
+	  if (req->return_code == -1) /*Still not initialized, means no response yet, or "100 Continue" */
 	       req->return_code = EC_200;
 
-          if (req->return_code == EC_200 && req->hasbody && preview_status >= 0) {
-               ci_debug_printf(9, "Going to get_send_data.....\n");
+          if (req->return_code == EC_200 && req->hasbody && preview_status != CI_EOF) {
+               ci_debug_printf(9, "Going to get/send body data.....\n");
                ret_status = get_send_body(req, 0);
-               if (ret_status != CI_OK) {
+               if (ret_status == CI_ERROR) {
                     ci_debug_printf(5,
                                     "An error occured. Parse error or the client closed the connection (res:%d, preview status:%d)\n",
                                     ret_status, preview_status);
-		    ret_status = CI_ERROR;
                     break;
                }
           }
 
-          if (req->current_service_mod->mod_end_of_data_handler) {
-               res = req->current_service_mod->mod_end_of_data_handler(req);
-/*	       while( req->current_service_mod->mod_end_of_data_handler(req,b)== CI_MOD_NOT_READY){
-		    //can send some data here .........
-		    }
-*/
-               if (res == CI_MOD_ALLOW204 && req->allow204 && req->bytes_out == 0) {
-                    if (ec_responce_with_istag(req, EC_204) < 0) {
-		        ci_debug_printf(5, "An error ocured while sending allow 204 response\n");
-		        ret_status = CI_ERROR;
-		    }
-		    req->return_code = EC_204;
-                    break;      //Need no any modification.
-               }
-	       else if (res == CI_MOD_ALLOW206 && req->allow204 && req->allow206 
-                        &&  req->bytes_out == 0) {
-		   req->return_code = EC_206;
-	       }
-               else if (res != CI_MOD_DONE) {
-                   ci_debug_printf(1, "An error occured in end-of-data handler !"
-                                   "return code : %d, req->allow204=%d, req->allow206=%d\n",
-                                   res, req->allow204, req->allow206);
-                   ret_status = CI_ERROR;
-                   if (req->bytes_out == 0) {
-                       ec_responce(req, EC_500);
-                       req->return_code = EC_500;
-                   }
-                   break;
-               }
-          }
-          unlock_data(req);
-          if ((ret_status = rest_responce(req)) != CI_OK) {
-               ci_debug_printf(5,
-                               "An error occured while sending rest responce. The client closed the connection (ret_status:%d)\n",
-                               ret_status);
-	       ret_status = CI_ERROR;
-	  }
+          /*We have received all data from the client. Call the end-of-data service handler and process*/
+          ret_status = do_end_of_data(req);
+          if (ret_status == CI_ERROR)
+              break;
+          
+          if (req->return_code == EC_204)
+              break;  /* Nothing to be done, stop here*/
+          /*else we have to send response to the client*/
+
+
+          unlock_data(req); /*unlock data if locked so that it can be send to the client*/
+          ret_status = send_remaining_response(req);
+          if (ret_status == CI_ERROR)
+              ci_debug_printf(5, "Error while sending rest responce or client closed the connection\n");
+
+          /*We are finished here*/
           break;
      default:
           ret_status = CI_ERROR;
