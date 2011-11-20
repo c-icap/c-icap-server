@@ -57,7 +57,7 @@ struct ci_fmt_entry {
      * \param param Parameter of the directive
      * \return Non zero on success, zero on error
      */
-    int (*format)(ci_request_t *req_data, char *buf, int len, char *param);
+    int (*format)(ci_request_t *req_data, char *buf, int len, const char *param);
 };
 
 /**

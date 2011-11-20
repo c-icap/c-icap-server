@@ -30,6 +30,7 @@
 #include "cfg_param.h"
 #include "commands.h"
 #include "acl.h"
+#include "txtTemplate.h"
 
 #define LINESIZE 8192
 #define MAX_DIRECTIVE_SIZE 80
@@ -96,29 +97,29 @@ extern int REMOTE_PROXY_USER_HEADER_ENCODED;
 
 
 /*Functions declaration */
-int parse_file(char *conf_file);
+int parse_file(const char *conf_file);
 
 /*config table functions*/
-int cfg_load_magicfile(char *directive, char **argv, void *setdata);
-int cfg_load_service(char *directive, char **argv, void *setdata);
-int cfg_service_alias(char *directive, char **argv, void *setdata);
-int cfg_load_module(char *directive, char **argv, void *setdata);
-int cfg_set_logformat(char *directive, char **argv, void *setdata);
-int cfg_set_logger(char *directive, char **argv, void *setdata);
-int cfg_set_accesslog(char *directive, char **argv, void *setdata);
-int cfg_set_debug_level(char *directive, char **argv, void *setdata);
-int cfg_set_debug_stdout(char *directive, char **argv, void *setdata);
-int cfg_set_body_maxmem(char *directive, char **argv, void *setdata);
-int cfg_set_tmp_dir(char *directive, char **argv, void *setdata);
-int cfg_set_acl_controllers(char *directive, char **argv, void *setdata);
-int cfg_set_auth_method(char *directive, char **argv, void *setdata);
-int cfg_include_config_file(char *directive, char **argv, void *setdata);
-int cfg_group_source_by_group(char *directive, char **argv, void *setdata);
-int cfg_group_source_by_user(char *directive, char **argv, void *setdata);
+int cfg_load_magicfile(const char *directive, const char **argv, void *setdata);
+int cfg_load_service(const char *directive, const char **argv, void *setdata);
+int cfg_service_alias(const char *directive, const char **argv, void *setdata);
+int cfg_load_module(const char *directive, const char **argv, void *setdata);
+int cfg_set_logformat(const char *directive, const char **argv, void *setdata);
+int cfg_set_logger(const char *directive, const char **argv, void *setdata);
+int cfg_set_accesslog(const char *directive, const char **argv, void *setdata);
+int cfg_set_debug_level(const char *directive, const char **argv, void *setdata);
+int cfg_set_debug_stdout(const char *directive, const char **argv, void *setdata);
+int cfg_set_body_maxmem(const char *directive, const char **argv, void *setdata);
+int cfg_set_tmp_dir(const char *directive, const char **argv, void *setdata);
+int cfg_set_acl_controllers(const char *directive, const char **argv, void *setdata);
+int cfg_set_auth_method(const char *directive, const char **argv, void *setdata);
+int cfg_include_config_file(const char *directive, const char **argv, void *setdata);
+int cfg_group_source_by_group(const char *directive, const char **argv, void *setdata);
+int cfg_group_source_by_user(const char *directive, const char **argv, void *setdata);
 
 /*The following 2 functions defined in access.c file*/
-int cfg_acl_add(char *directive, char **argv, void *setdata);
-int cfg_default_acl_access(char *directive, char **argv, void *setdata);
+int cfg_acl_add(const char *directive, const char **argv, void *setdata);
+int cfg_default_acl_access(const char *directive, const char **argv, void *setdata);
 /****/
 
 struct sub_table {
@@ -360,7 +361,7 @@ int print_variables()
    The following tree functions refered to non constant variables so
    the compilers in Win32 have problem to appeared in static arrays
 */
-int cfg_set_debug_level(char *directive, char **argv, void *setdata)
+int cfg_set_debug_level(const char *directive, const char **argv, void *setdata)
 {
     if (!DebugLevelSetFromCmd)
          return intl_cfg_set_int(directive, argv, &CI_DEBUG_LEVEL);
@@ -368,23 +369,23 @@ int cfg_set_debug_level(char *directive, char **argv, void *setdata)
     return 1;
 }
 
-int cfg_set_debug_level_cmd(char *directive, char **argv, void *setdata)
+int cfg_set_debug_level_cmd(const char *directive, const char **argv, void *setdata)
 {
      DebugLevelSetFromCmd = 1;
      return intl_cfg_set_int(directive, argv, &CI_DEBUG_LEVEL);
 }
 
-int cfg_set_debug_stdout(char *directive, char **argv, void *setdata)
+int cfg_set_debug_stdout(const char *directive, const char **argv, void *setdata)
 {
      return intl_cfg_enable(directive, argv, &CI_DEBUG_STDOUT);
 }
 
-int cfg_set_body_maxmem(char *directive, char **argv, void *setdata)
+int cfg_set_body_maxmem(const char *directive, const char **argv, void *setdata)
 {
      return intl_cfg_size_long(directive, argv, &CI_BODY_MAX_MEM);
 }
 
-int cfg_load_service(char *directive, char **argv, void *setdata)
+int cfg_load_service(const char *directive, const char **argv, void *setdata)
 {
      ci_service_module_t *service = NULL;
      if (argv == NULL || argv[0] == NULL || argv[1] == NULL) {
@@ -401,7 +402,7 @@ int cfg_load_service(char *directive, char **argv, void *setdata)
      return 1;
 }
 
-int cfg_service_alias(char *directive, char **argv, void *setdata)
+int cfg_service_alias(const char *directive, const char **argv, void *setdata)
 {
      char *service_args = NULL;
      if (argv == NULL || argv[0] == NULL || argv[1] == NULL) {
@@ -418,7 +419,7 @@ int cfg_service_alias(char *directive, char **argv, void *setdata)
      return 1;
 }
 
-int cfg_load_module(char *directive, char **argv, void *setdata)
+int cfg_load_module(const char *directive, const char **argv, void *setdata)
 {
      if (argv == NULL || argv[0] == NULL || argv[1] == NULL) {
           ci_debug_printf(1, "Missing arguments in LoadModule directive\n");
@@ -433,9 +434,9 @@ int cfg_load_module(char *directive, char **argv, void *setdata)
      return 1;
 }
 
-int cfg_load_magicfile(char *directive, char **argv, void *setdata)
+int cfg_load_magicfile(const char *directive, const char **argv, void *setdata)
 {
-     char *db_file;
+     const char *db_file;
      struct ci_magics_db *ndb;
      if (argv == NULL || argv[0] == NULL) {
           return 0;
@@ -458,8 +459,8 @@ int cfg_load_magicfile(char *directive, char **argv, void *setdata)
      return 1;
 }
 
-int logformat_add(char *name, char *format);
-int cfg_set_logformat(char *directive, char **argv, void *setdata)
+int logformat_add(const char *name, const char *format);
+int cfg_set_logformat(const char *directive, const char **argv, void *setdata)
 {
      if (argv == NULL || argv[0] == NULL || argv[1] == NULL) {
           ci_debug_printf(1, "Missing arguments in directive %s\n", directive);
@@ -469,10 +470,10 @@ int cfg_set_logformat(char *directive, char **argv, void *setdata)
      return logformat_add(argv[0], argv[1]);
 }
 
-int file_log_addlogfile(char *file, char *format, char **acls);
-int cfg_set_accesslog(char *directive, char **argv, void *setdata)
+int file_log_addlogfile(const char *file, const char *format, const char **acls);
+int cfg_set_accesslog(const char *directive, const char **argv, void *setdata)
 {
-     char **acls = NULL;
+     const char **acls = NULL;
      if (argv == NULL || argv[0] == NULL ) {
           ci_debug_printf(1, "Missing arguments in directive %s\n", directive);
           return 0;
@@ -486,7 +487,7 @@ int cfg_set_accesslog(char *directive, char **argv, void *setdata)
 
 
 extern logger_module_t file_logger;
-int cfg_set_logger(char *directive, char **argv, void *setdata)
+int cfg_set_logger(const char *directive, const char **argv, void *setdata)
 {
      logger_module_t *logger;
      if (argv == NULL || argv[0] == NULL) {
@@ -501,7 +502,7 @@ int cfg_set_logger(char *directive, char **argv, void *setdata)
      return 1;
 }
 
-int cfg_set_tmp_dir(char *directive, char **argv, void *setdata)
+int cfg_set_tmp_dir(const char *directive, const char **argv, void *setdata)
 {
      int len;
      if (argv == NULL || argv[0] == NULL) {
@@ -530,7 +531,7 @@ int cfg_set_tmp_dir(char *directive, char **argv, void *setdata)
      return 1;
 }
 
-int cfg_set_acl_controllers(char *directive, char **argv, void *setdata)
+int cfg_set_acl_controllers(const char *directive, const char **argv, void *setdata)
 {
      int i, k, argc, ret;
      access_control_module_t *acl_mod;
@@ -564,9 +565,9 @@ int cfg_set_acl_controllers(char *directive, char **argv, void *setdata)
 }
 
 
-int cfg_set_auth_method(char *directive, char **argv, void *setdata)
+int cfg_set_auth_method(const char *directive, const char **argv, void *setdata)
 {
-     char *method = NULL;
+     const char *method = NULL;
      if (argv == NULL || argv[0] == NULL || argv[1] == NULL) {
           return 0;
      }
@@ -578,9 +579,10 @@ int cfg_set_auth_method(char *directive, char **argv, void *setdata)
      return set_method_authenticators(method, (const char **)argv + 1);
 }
 
-int cfg_include_config_file(char *directive, char **argv, void *setdata)
+int cfg_include_config_file(const char *directive, const char **argv, void *setdata)
 {
-     char path[CI_MAX_PATH], *cfg_file;
+    char path[CI_MAX_PATH];
+    const char *cfg_file;
 
      if (argv == NULL || argv[0] == NULL) {
           return 0;
@@ -599,24 +601,24 @@ int cfg_include_config_file(char *directive, char **argv, void *setdata)
 int group_source_add_by_group(const char *table_name);
 int group_source_add_by_user(const char *table_name);
 
-int cfg_group_source_by_group(char *directive, char **argv, void *setdata)
+int cfg_group_source_by_group(const char *directive, const char **argv, void *setdata)
 {
-  char *group_table = NULL;
+  const char *group_table = NULL;
   if (argv == NULL || argv[0] == NULL) {
     return 0;
   }
   group_table = argv[0];
-  return group_source_add_by_group((const char *)group_table);
+  return group_source_add_by_group(group_table);
 }
 
-int cfg_group_source_by_user(char *directive, char **argv, void *setdata)
+int cfg_group_source_by_user(const char *directive, const char **argv, void *setdata)
 {
-  char *group_table = NULL;
+  const char *group_table = NULL;
   if (argv == NULL || argv[0] == NULL) {
     return 0;
   }
   group_table = argv[0];
-  return group_source_add_by_user((const char *)group_table);
+  return group_source_add_by_user(group_table);
 }
 
 /**************************************************************************/
@@ -741,7 +743,7 @@ int process_line(char *orig_line)
 
      if (entry && entry->action) {
           argv = split_args(args);
-          if ((*(entry->action)) (entry->name, argv, entry->data) == 0)
+          if ((*(entry->action)) (entry->name, (const char **)argv, entry->data) == 0)
 	      ret = 0;
           free_args(argv);
           return ret;
@@ -754,7 +756,7 @@ int process_line(char *orig_line)
 
 static int PARSE_LEVEL = 0;
 
-int parse_file(char *conf_file)
+int parse_file(const char *conf_file)
 {
      FILE *f_conf;
      char line[LINESIZE];
@@ -857,6 +859,7 @@ void release_modules();
 void ci_dlib_closeall();
 int log_open();
 void ci_magic_db_free();
+void reset_http_auth();
 
 void system_shutdown()
 {
@@ -1016,7 +1019,7 @@ void cfg_default_value_restore_all()
 /********************************************************************/
 /* functions for setting parameters and saving the default values   */
 
-int intl_cfg_set_str(char *directive, char **argv, void *setdata)
+int intl_cfg_set_str(const char *directive, const char **argv, void *setdata)
 {
      if (!setdata)
           return 0;
@@ -1025,7 +1028,7 @@ int intl_cfg_set_str(char *directive, char **argv, void *setdata)
      return ci_cfg_set_str(directive, argv, setdata);
 }
 
-int intl_cfg_set_int(char *directive, char **argv, void *setdata)
+int intl_cfg_set_int(const char *directive, const char **argv, void *setdata)
 {
      if (!setdata)
           return 0;
@@ -1033,7 +1036,7 @@ int intl_cfg_set_int(char *directive, char **argv, void *setdata)
      return ci_cfg_set_int(directive, argv, setdata);
 }
 
-int intl_cfg_onoff(char *directive, char **argv, void *setdata)
+int intl_cfg_onoff(const char *directive, const char **argv, void *setdata)
 {
      if (!setdata)
           return 0;
@@ -1041,7 +1044,7 @@ int intl_cfg_onoff(char *directive, char **argv, void *setdata)
      return ci_cfg_onoff(directive, argv, setdata);
 }
 
-int intl_cfg_disable(char *directive, char **argv, void *setdata)
+int intl_cfg_disable(const char *directive, const char **argv, void *setdata)
 {
      if (!setdata)
           return 0;
@@ -1049,7 +1052,7 @@ int intl_cfg_disable(char *directive, char **argv, void *setdata)
      return ci_cfg_disable(directive, argv, setdata);
 }
 
-int intl_cfg_enable(char *directive, char **argv, void *setdata)
+int intl_cfg_enable(const char *directive, const char **argv, void *setdata)
 {
      if (!setdata)
           return 0;
@@ -1057,7 +1060,7 @@ int intl_cfg_enable(char *directive, char **argv, void *setdata)
      return ci_cfg_enable(directive, argv, setdata);
 }
 
-int intl_cfg_size_off(char *directive, char **argv, void *setdata)
+int intl_cfg_size_off(const char *directive, const char **argv, void *setdata)
 {
      if (!setdata)
           return 0;
@@ -1065,7 +1068,7 @@ int intl_cfg_size_off(char *directive, char **argv, void *setdata)
      return ci_cfg_size_off(directive, argv, setdata);
 }
 
-int intl_cfg_size_long(char *directive, char **argv, void *setdata)
+int intl_cfg_size_long(const char *directive, const char **argv, void *setdata)
 {
      if (!setdata)
           return 0;

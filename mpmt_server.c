@@ -922,25 +922,25 @@ int start_child(int fd)
      }
 }
 
-void stop_command(char *name, int type, char **argv)
+void stop_command(const char *name, int type, const char **argv)
 {
      c_icap_going_to_term = 1;
 }
 
-void reconfigure_command(char *name, int type, char **argv)
+void reconfigure_command(const char *name, int type, const char **argv)
 {
      if (type == MONITOR_PROC_CMD)
 	  c_icap_reconfigure = 1;
 	 //server_reconfigure();
 }
 
-void dump_statistics_command(char *name, int type, char **argv)
+void dump_statistics_command(const char *name, int type, const char **argv)
 {
      if (type == MONITOR_PROC_CMD)
           dump_queue_statistics(childs_queue);
 }
 
-void test_command(char *name, int type, char **argv)
+void test_command(const char *name, int type, const char **argv)
 {
      int i = 0;
      ci_debug_printf(1, "Test command for %s. Arguments:",

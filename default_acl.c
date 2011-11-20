@@ -38,8 +38,8 @@ void default_acl_release();
 int default_acl_client_match(ci_request_t *req);
 int default_acl_request_match(ci_request_t *req);
 
-int cfg_default_acl_add(char *directive, char **argv, void *setdata);
-int cfg_default_acl_access(char *directive, char **argv, void *setdata);
+int cfg_default_acl_add(const char *directive, const char **argv, void *setdata);
+int cfg_default_acl_access(const char *directive, const char **argv, void *setdata);
 
 
 ci_access_entry_t *acl_connection_access_list = NULL;
@@ -94,16 +94,16 @@ int default_acl_request_match(ci_request_t *req)
 }
 
 
-int cfg_default_acl_add(char *directive, char **argv, void *setdata)
+int cfg_default_acl_add(const char *directive, const char **argv, void *setdata)
 {
     return 1;
 }
 
-int cfg_default_acl_access(char *directive, char **argv, void *setdata)
+int cfg_default_acl_access(const char *directive, const char **argv, void *setdata)
 {
      int type, argc, error=0;
      int only_connection =0;
-     char *acl_spec_name;
+     const char *acl_spec_name;
      ci_access_entry_t **tolist,*access_entry;
      const ci_acl_spec_t *acl_spec;
      const ci_acl_type_t *spec_type ;

@@ -175,7 +175,7 @@ CI_DECLARE_FUNC(const ci_acl_spec_t *) ci_access_entry_add_acl(ci_access_entry_t
    \param aclname The name of the acl to be added.
    \return non zero on success, zero otherwise
  */
-CI_DECLARE_FUNC(int) ci_access_entry_add_acl_by_name(ci_access_entry_t *access_entry, char *aclname);
+CI_DECLARE_FUNC(int) ci_access_entry_add_acl_by_name(ci_access_entry_t *access_entry, const char *aclname);
 
 /**
    \brief Check if an access entries list matches a request object

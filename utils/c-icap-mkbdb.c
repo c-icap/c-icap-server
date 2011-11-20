@@ -24,7 +24,7 @@ char *dbfile = NULL;
 int DUMP_MODE = 0;
 
 ci_mem_allocator_t *allocator = NULL;
-int cfg_set_type(char *directive, char **argv, void *setdata);
+int cfg_set_type(const char *directive, const char **argv, void *setdata);
 
 static struct ci_options_entry options[] = {
     {"-d", "debug_level", &CI_DEBUG_LEVEL, ci_cfg_set_int,
@@ -282,7 +282,7 @@ void store_db(void *key, int keysize, void *val, int  valsize)
 }
 
 
-int cfg_set_type(char *directive, char **argv, void *setdata)
+int cfg_set_type(const char *directive, const char **argv, void *setdata)
 {
     ci_type_ops_t *ops = &ci_str_ops;
 

@@ -127,7 +127,7 @@ int bdb_table_do_real_open(struct ci_lookup_table *table)
 }
 
 
-void command_real_open_table(char *name, int type, void *data)
+void command_real_open_table(const char *name, int type, void *data)
 {
      struct ci_lookup_table *table = data;
      bdb_table_do_real_open(table);

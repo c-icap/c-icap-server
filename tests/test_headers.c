@@ -52,5 +52,5 @@ int main(int argc, char *argv[])
     ci_headers_pack(headers);
 
     printf("\n\nThe Packed headers are:\n%s\n",headers->headers[0]);
-    
+    return 0;    
 }

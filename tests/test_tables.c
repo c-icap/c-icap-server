@@ -25,7 +25,7 @@ void log_errors(void *unused, const char *format, ...)
 }
 
 
-int load_module(char *directive,char **argv,void *setdata)
+int load_module(const char *directive,const char **argv,void *setdata)
 {
     CI_DLIB_HANDLE lib;
     common_module_t *module;

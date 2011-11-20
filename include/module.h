@@ -69,7 +69,7 @@ typedef struct  logger_module{
      int  (*log_open)(); /*Or better post_init_logger .......*/
      void (*log_close)();
      void  (*log_access)(ci_request_t *req);
-     void  (*log_server)(char *server, const char *format, va_list ap);
+     void  (*log_server)(const char *server, const char *format, va_list ap);
      struct ci_conf_entry *conf_table;
 } logger_module_t;
 

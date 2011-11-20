@@ -81,11 +81,11 @@ struct ci_conf_entry{
     /**
      * The configuration directive
      */
-     char *name;
+     const char *name;
     /**
      * A pointer to the configuration data
      */
-     void *data;
+    void *data;
     /**
      * Pointer to the function which will be used to set configuration data.
      \param name is the configuration directive.It passed as argument by the c-icap server
@@ -93,20 +93,20 @@ struct ci_conf_entry{
      \param setdata is o pointer to set data which passed as argument by c-icap server
      \return Non zero on success, zero otherwise
      */
-     int (*action)(char *name, char **argv,void *setdata);
+     int (*action)(const char *name, const char **argv,void *setdata);
     /**
      * A description message
      */
-     char *msg;
+     const char *msg;
 };
 
 /* Command line options implementation structure */
 struct ci_options_entry{
-     char *name;
-     char *parameter;
+     const char *name;
+     const char *parameter;
      void *data;
-     int (*action)(char *name, char **argv,void *setdata);
-     char *msg;
+     int (*action)(const char *name, const char **argv,void *setdata);
+     const char *msg;
 };
 
 /*Struct for storing default parameter values*/
@@ -132,13 +132,13 @@ int register_conf_table(const char *name,struct ci_conf_entry *table,int type);
 struct ci_conf_entry * unregister_conf_table(const char *name);
 int config(int argc, char **argv);
 
-int intl_cfg_set_str(char *directive,char **argv,void *setdata);
-int intl_cfg_set_int(char *directive,char **argv,void *setdata);
-int intl_cfg_onoff(char *directive,char **argv,void *setdata);
-int intl_cfg_disable(char *directive,char **argv,void *setdata);
-int intl_cfg_enable(char *directive,char **argv,void *setdata);
-int intl_cfg_size_off(char *directive,char **argv,void *setdata);
-int intl_cfg_size_long(char *directive,char **argv,void *setdata);
+int intl_cfg_set_str(const char *directive,const char **argv,void *setdata);
+int intl_cfg_set_int(const char *directive,const char **argv,void *setdata);
+int intl_cfg_onoff(const char *directive,const char **argv,void *setdata);
+int intl_cfg_disable(const char *directive,const char **argv,void *setdata);
+int intl_cfg_enable(const char *directive,const char **argv,void *setdata);
+int intl_cfg_size_off(const char *directive,const char **argv,void *setdata);
+int intl_cfg_size_long(const char *directive,const char **argv,void *setdata);
 #endif
 
 
@@ -150,49 +150,49 @@ CI_DECLARE_FUNC(void *) ci_cfg_alloc_mem(int size);
  * Sets a string configuration parameter. The setdata are a pointer to a string pointer
  \ingroup CONFIG
  */
-CI_DECLARE_FUNC(int) ci_cfg_set_str(char *directive,char **argv,void *setdata);
+CI_DECLARE_FUNC(int) ci_cfg_set_str(const char *directive,const char **argv,void *setdata);
 
 /**
  * Sets an int configuration parameter. The setdata is a pointer to an integer
  \ingroup CONFIG
  */
-CI_DECLARE_FUNC(int) ci_cfg_set_int(char *directive,char **argv,void *setdata);
+CI_DECLARE_FUNC(int) ci_cfg_set_int(const char *directive,const char **argv,void *setdata);
 
 /**
  * Sets an on/off configuration parameter. The setdata is a pointer to an integer, which
  * when the argument is "on" it is set to 1 and when the argument is "off" it is set to 0.
  \ingroup CONFIG
  */
-CI_DECLARE_FUNC(int) ci_cfg_onoff(char *directive,char **argv,void *setdata);
+CI_DECLARE_FUNC(int) ci_cfg_onoff(const char *directive,const char **argv,void *setdata);
 
 /**
  * Can used with configuration parameters which does not takes arguments but when defined just disable a feature.
  * The setdata is a pointer to an int which is set to zero.
  \ingroup CONFIG
  */
-CI_DECLARE_FUNC(int) ci_cfg_disable(char *directive,char **argv,void *setdata);
+CI_DECLARE_FUNC(int) ci_cfg_disable(const char *directive,const char **argv,void *setdata);
 
 /**
  * Can used with configuration parameters which does not takes arguments but when defined just enable a feature.
  * The setdata is a pointer to an int which is set to non zero. 
  \ingroup CONFIG
  */
-CI_DECLARE_FUNC(int) ci_cfg_enable(char *directive,char **argv,void *setdata);
+CI_DECLARE_FUNC(int) ci_cfg_enable(const char *directive,const char **argv,void *setdata);
 
 /**
  * Sets a configuration parameter of type ci_off_t (typedef of off_t type).
  \ingroup CONFIG
  */
-CI_DECLARE_FUNC(int) ci_cfg_size_off(char *directive,char **argv,void *setdata);
+CI_DECLARE_FUNC(int) ci_cfg_size_off(const char *directive,const char **argv,void *setdata);
 
 /**
  * Sets a configuration parameter of type long.
  \ingroup CONFIG
  */
-CI_DECLARE_FUNC(int) ci_cfg_size_long(char *directive,char **argv,void *setdata);
+CI_DECLARE_FUNC(int) ci_cfg_size_long(const char *directive,const char **argv,void *setdata);
 
-CI_DECLARE_FUNC(void) ci_args_usage(char *progname,struct ci_options_entry *options);
-CI_DECLARE_FUNC(int)  ci_args_apply(int argc, char **argv,struct ci_options_entry *options);
+CI_DECLARE_FUNC(void) ci_args_usage(const char *progname,struct ci_options_entry *options);
+CI_DECLARE_FUNC(int)  ci_args_apply(int argc, char *argv[],struct ci_options_entry *options);
 
 
 #ifdef __CI_COMPAT

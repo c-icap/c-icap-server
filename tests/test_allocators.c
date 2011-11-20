@@ -50,6 +50,7 @@ static struct ci_options_entry options[] = {
     {NULL,NULL,NULL,NULL,NULL}
 };
 
+int mem_init();
 int main(int argc, char *argv[])
 {
     int i;
@@ -82,6 +83,7 @@ int main(int argc, char *argv[])
        ci_debug_printf(6, "Thread %d exited\n", i);
    }
    
+   return 0;
 }
 
 

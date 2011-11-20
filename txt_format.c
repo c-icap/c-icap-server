@@ -26,33 +26,33 @@
 
 #define MAX_VARIABLE_SIZE 256
 
-int fmt_none(ci_request_t *req_data, char *buf,int len, char *param);
-int fmt_percent(ci_request_t *req_data, char *buf,int len, char *param);
-int fmt_remoteip(ci_request_t *req_data, char *buf,int len, char *param);
-int fmt_localip(ci_request_t *req_data, char *buf,int len, char *param);
-int fmt_icapstatus(ci_request_t *req_data, char *buf,int len, char *param);
-int fmt_icapmethod(ci_request_t *req_data, char *buf,int len, char *param);
-int fmt_service(ci_request_t *req_data, char *buf,int len, char *param);
-int fmt_username(ci_request_t *req_data, char *buf,int len, char *param);
-int fmt_request(ci_request_t *req_data, char *buf,int len, char *param);
-int fmt_localtime(ci_request_t *req_data, char *buf,int len, char *param);
-int fmt_gmttime(ci_request_t *req_data, char *buf,int len, char *param);
-int fmt_seconds(ci_request_t *req_data, char *buf,int len, char *param);
-int fmt_httpclientip(ci_request_t *req_data, char *buf,int len, char *param);
-int fmt_httpserverip(ci_request_t *req_data, char *buf,int len, char *param);
-int fmt_http_req_url_o(ci_request_t *req_data, char *buf,int len, char *param);
-int fmt_http_req_head_o(ci_request_t *req_data, char *buf,int len, char *param);
-int fmt_http_res_head_o(ci_request_t *req_data, char *buf,int len, char *param);
-int fmt_icap_req_head(ci_request_t *req_data, char *buf,int len, char *param);
-int fmt_icap_res_head(ci_request_t *req_data, char *buf,int len, char *param);
-int fmt_req_bytes_rcv(ci_request_t *req_data, char *buf,int len, char *param);
-int fmt_req_bytes_sent(ci_request_t *req_data, char *buf,int len, char *param);
-int fmt_req_http_bytes_rcv(ci_request_t *req_data, char *buf,int len, char *param);
-int fmt_req_http_bytes_sent(ci_request_t *req_data, char *buf,int len, char *param);
-int fmt_req_body_bytes_rcv(ci_request_t *req_data, char *buf,int len, char *param);
-int fmt_req_body_bytes_sent(ci_request_t *req_data, char *buf,int len, char *param);
-int fmt_req_preview_hex(ci_request_t *req_data, char *buf,int len, char *param);
-int fmt_logstr(ci_request_t *req_data, char *buf,int len, char *param);
+int fmt_none(ci_request_t *req_data, char *buf,int len, const char *param);
+int fmt_percent(ci_request_t *req_data, char *buf,int len, const char *param);
+int fmt_remoteip(ci_request_t *req_data, char *buf,int len, const char *param);
+int fmt_localip(ci_request_t *req_data, char *buf,int len, const char *param);
+int fmt_icapstatus(ci_request_t *req_data, char *buf,int len, const char *param);
+int fmt_icapmethod(ci_request_t *req_data, char *buf,int len, const char *param);
+int fmt_service(ci_request_t *req_data, char *buf,int len, const char *param);
+int fmt_username(ci_request_t *req_data, char *buf,int len, const char *param);
+int fmt_request(ci_request_t *req_data, char *buf,int len, const char *param);
+int fmt_localtime(ci_request_t *req_data, char *buf,int len, const char *param);
+int fmt_gmttime(ci_request_t *req_data, char *buf,int len, const char *param);
+int fmt_seconds(ci_request_t *req_data, char *buf,int len, const char *param);
+int fmt_httpclientip(ci_request_t *req_data, char *buf,int len, const char *param);
+int fmt_httpserverip(ci_request_t *req_data, char *buf,int len, const char *param);
+int fmt_http_req_url_o(ci_request_t *req_data, char *buf,int len, const char *param);
+int fmt_http_req_head_o(ci_request_t *req_data, char *buf,int len, const char *param);
+int fmt_http_res_head_o(ci_request_t *req_data, char *buf,int len, const char *param);
+int fmt_icap_req_head(ci_request_t *req_data, char *buf,int len, const char *param);
+int fmt_icap_res_head(ci_request_t *req_data, char *buf,int len, const char *param);
+int fmt_req_bytes_rcv(ci_request_t *req_data, char *buf,int len, const char *param);
+int fmt_req_bytes_sent(ci_request_t *req_data, char *buf,int len, const char *param);
+int fmt_req_http_bytes_rcv(ci_request_t *req_data, char *buf,int len, const char *param);
+int fmt_req_http_bytes_sent(ci_request_t *req_data, char *buf,int len, const char *param);
+int fmt_req_body_bytes_rcv(ci_request_t *req_data, char *buf,int len, const char *param);
+int fmt_req_body_bytes_sent(ci_request_t *req_data, char *buf,int len, const char *param);
+int fmt_req_preview_hex(ci_request_t *req_data, char *buf,int len, const char *param);
+int fmt_logstr(ci_request_t *req_data, char *buf,int len, const char *param);
 
 /**
    \brief Internal formating directives table.
@@ -133,7 +133,7 @@ struct ci_fmt_entry GlobalTable [] = {
     { NULL, NULL, NULL} 
 };
 
-int fmt_none(ci_request_t *req, char *buf,int len, char *param)
+int fmt_none(ci_request_t *req, char *buf,int len, const char *param)
 {
   if (!len)
      return 0;
@@ -142,7 +142,7 @@ int fmt_none(ci_request_t *req, char *buf,int len, char *param)
    return 1;
 }
 
-int fmt_percent(ci_request_t *req, char *buf,int len, char *param)
+int fmt_percent(ci_request_t *req, char *buf,int len, const char *param)
 {
    if (!len)
       return 0;
@@ -307,7 +307,7 @@ int ci_format_text(
 
 /******************************************************************/
 
-int fmt_remoteip(ci_request_t *req, char *buf,int len, char *param)
+int fmt_remoteip(ci_request_t *req, char *buf,int len, const char *param)
 {
     if (len<CI_IPLEN)
 	return 0;
@@ -318,7 +318,7 @@ int fmt_remoteip(ci_request_t *req, char *buf,int len, char *param)
     return strlen(buf);
 }
 
-int fmt_localip(ci_request_t *req, char *buf,int len, char *param)
+int fmt_localip(ci_request_t *req, char *buf,int len, const char *param)
 {
     if (len<CI_IPLEN)
         return 0;
@@ -329,7 +329,7 @@ int fmt_localip(ci_request_t *req, char *buf,int len, char *param)
     return strlen(buf);
 }
 
-int fmt_icapmethod(ci_request_t *req, char *buf,int len, char *param)
+int fmt_icapmethod(ci_request_t *req, char *buf,int len, const char *param)
 {
    int i;
    const char *s = ci_method_string(req->type);
@@ -338,7 +338,7 @@ int fmt_icapmethod(ci_request_t *req, char *buf,int len, char *param)
    return i;
 }
 
-int fmt_service(ci_request_t *req, char *buf,int len, char *param)
+int fmt_service(ci_request_t *req, char *buf,int len, const char *param)
 {
    int i;
    char *s = req->service;
@@ -347,7 +347,7 @@ int fmt_service(ci_request_t *req, char *buf,int len, char *param)
    return i;
 }
 
-int fmt_username(ci_request_t *req, char *buf,int len, char *param)
+int fmt_username(ci_request_t *req, char *buf,int len, const char *param)
 {
    int i;
    char *s = req->user;
@@ -356,7 +356,7 @@ int fmt_username(ci_request_t *req, char *buf,int len, char *param)
    return i;
 }
 
-int fmt_request(ci_request_t *req, char *buf,int len, char *param)
+int fmt_request(ci_request_t *req, char *buf,int len, const char *param)
 {
    int i;
    char *s = req->service;
@@ -373,11 +373,11 @@ int fmt_request(ci_request_t *req, char *buf,int len, char *param)
    return i;
 }
 
-int fmt_localtime(ci_request_t *req, char *buf,int len, char *param)
+int fmt_localtime(ci_request_t *req, char *buf,int len, const char *param)
 {
     struct tm tm;
     time_t t;
-    char *tfmt = "%d/%b/%Y:%H:%M:%S %z";
+    const char *tfmt = "%d/%b/%Y:%H:%M:%S %z";
 
     if (!len)
         return 0;
@@ -390,11 +390,11 @@ int fmt_localtime(ci_request_t *req, char *buf,int len, char *param)
     return strftime(buf, len, tfmt, &tm);
 }
 
-int fmt_gmttime(ci_request_t *req, char *buf,int len, char *param)
+int fmt_gmttime(ci_request_t *req, char *buf,int len, const char *param)
 {
     struct tm tm;
     time_t t;
-    char *tfmt = "%d/%b/%Y:%H:%M:%S";
+    const char *tfmt = "%d/%b/%Y:%H:%M:%S";
 
     if (!len)
         return 0;
@@ -407,20 +407,20 @@ int fmt_gmttime(ci_request_t *req, char *buf,int len, char *param)
     return strftime(buf, len, tfmt, &tm);
 }
 
-int fmt_icapstatus(ci_request_t *req, char *buf,int len, char *param)
+int fmt_icapstatus(ci_request_t *req, char *buf,int len, const char *param)
 {
    return snprintf(buf, len, "%d", ci_error_code(req->return_code));
 }
 
 
-int fmt_seconds(ci_request_t *req, char *buf,int len, char *param)
+int fmt_seconds(ci_request_t *req, char *buf,int len, const char *param)
 {
    time_t tm;
    time(&tm);
    return snprintf(buf, len, "%ld", tm);
 }
 
-int fmt_httpclientip(ci_request_t *req, char *buf,int len, char *param)
+int fmt_httpclientip(ci_request_t *req, char *buf,int len, const char *param)
 {
   const char *s;
   int i;
@@ -439,7 +439,7 @@ int fmt_httpclientip(ci_request_t *req, char *buf,int len, char *param)
 
 }
 
-int fmt_httpserverip(ci_request_t *req, char *buf,int len, char *param)
+int fmt_httpserverip(ci_request_t *req, char *buf,int len, const char *param)
 {
   const char *s;
   int i;
@@ -457,7 +457,7 @@ int fmt_httpserverip(ci_request_t *req, char *buf,int len, char *param)
   }
 }
 
-int fmt_http_req_url_o(ci_request_t *req, char *buf,int len, char *param)
+int fmt_http_req_url_o(ci_request_t *req, char *buf,int len, const char *param)
 {
     if (!len)
         return 0;
@@ -465,7 +465,7 @@ int fmt_http_req_url_o(ci_request_t *req, char *buf,int len, char *param)
      return ci_http_request_url(req, buf, len);
 }
 
-int fmt_http_req_head_o(ci_request_t *req, char *buf,int len, char *param)
+int fmt_http_req_head_o(ci_request_t *req, char *buf,int len, const char *param)
 {
   const char *s = NULL;
   int i;
@@ -488,7 +488,7 @@ int fmt_http_req_head_o(ci_request_t *req, char *buf,int len, char *param)
   }
 }
 
-int fmt_http_res_head_o(ci_request_t *req, char *buf,int len, char *param)
+int fmt_http_res_head_o(ci_request_t *req, char *buf,int len, const char *param)
 {
   const char *s = NULL;
   int i;
@@ -516,7 +516,7 @@ int fmt_http_res_head_o(ci_request_t *req, char *buf,int len, char *param)
 }
 
 
-int fmt_icap_req_head(ci_request_t *req, char *buf,int len, char *param)
+int fmt_icap_req_head(ci_request_t *req, char *buf,int len, const char *param)
 {
   const char *s = NULL;
   int i;
@@ -540,7 +540,7 @@ int fmt_icap_req_head(ci_request_t *req, char *buf,int len, char *param)
   }
 }
 
-int fmt_icap_res_head(ci_request_t *req, char *buf,int len, char *param)
+int fmt_icap_res_head(ci_request_t *req, char *buf,int len, const char *param)
 {
   const char *s = NULL;
   int i;
@@ -565,31 +565,31 @@ int fmt_icap_res_head(ci_request_t *req, char *buf,int len, char *param)
 }
 
 
-int fmt_req_bytes_rcv(ci_request_t *req, char *buf,int len, char *param) {
+int fmt_req_bytes_rcv(ci_request_t *req, char *buf,int len, const char *param) {
     return snprintf(buf, len, "%" PRINTF_OFF_T , (CAST_OFF_T) req->bytes_in);
 }
 
-int fmt_req_bytes_sent(ci_request_t *req, char *buf,int len, char *param) {
+int fmt_req_bytes_sent(ci_request_t *req, char *buf,int len, const char *param) {
     return snprintf(buf, len, "%" PRINTF_OFF_T , (CAST_OFF_T) req->bytes_out);
 }
 
-int fmt_req_http_bytes_rcv(ci_request_t *req, char *buf,int len, char *param) {
+int fmt_req_http_bytes_rcv(ci_request_t *req, char *buf,int len, const char *param) {
     return snprintf(buf, len, "%" PRINTF_OFF_T , (CAST_OFF_T) req->http_bytes_in);
 }
 
-int fmt_req_http_bytes_sent(ci_request_t *req, char *buf,int len, char *param) {
+int fmt_req_http_bytes_sent(ci_request_t *req, char *buf,int len, const char *param) {
     return snprintf(buf, len, "%" PRINTF_OFF_T , (CAST_OFF_T) req->http_bytes_out);
 }
 
-int fmt_req_body_bytes_rcv(ci_request_t *req, char *buf,int len, char *param) {
+int fmt_req_body_bytes_rcv(ci_request_t *req, char *buf,int len, const char *param) {
     return snprintf(buf, len, "%" PRINTF_OFF_T , (CAST_OFF_T) req->body_bytes_in);
 }
 
-int fmt_req_body_bytes_sent(ci_request_t *req, char *buf,int len, char *param) {
+int fmt_req_body_bytes_sent(ci_request_t *req, char *buf,int len, const char *param) {
     return snprintf(buf, len, "%" PRINTF_OFF_T , (CAST_OFF_T) req->body_bytes_out);
 }
 
-int fmt_req_preview_hex(ci_request_t *req, char *buf,int len, char *param)
+int fmt_req_preview_hex(ci_request_t *req, char *buf,int len, const char *param)
 {
     int  i, num, n, bytes; 
 
@@ -621,7 +621,7 @@ int fmt_req_preview_hex(ci_request_t *req, char *buf,int len, char *param)
     return n;
 }
 
-int fmt_logstr(ci_request_t *req, char *buf,int len, char *param)
+int fmt_logstr(ci_request_t *req, char *buf,int len, const char *param)
 {
    int i;
    const char *s;

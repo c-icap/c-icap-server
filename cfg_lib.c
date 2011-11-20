@@ -50,7 +50,7 @@ void *ci_cfg_alloc_mem(int size)
 /****************************************************************/
 /* Command line options implementation, function and structures */
 
-void ci_args_usage(char *progname, struct ci_options_entry *options)
+void ci_args_usage(const char *progname, struct ci_options_entry *options)
 {
      int i;
      printf("Usage : \n");
@@ -73,7 +73,7 @@ void ci_args_usage(char *progname, struct ci_options_entry *options)
 }
 
 
-struct ci_options_entry *search_options_table(char *directive,
+struct ci_options_entry *search_options_table(const char *directive,
                                            struct ci_options_entry *options)
 {
      int i;
@@ -91,11 +91,11 @@ struct ci_options_entry *search_options_table(char *directive,
 }
 
 
-int ci_args_apply(int argc, char **argv, struct ci_options_entry *options)
+int ci_args_apply(int argc, char *argv[], struct ci_options_entry *options)
 {
      int i;
      struct ci_options_entry *entry;
-     char *act_args[2];
+     const char *act_args[2];
      act_args[1] = NULL;
      for (i = 1; i < argc; i++) {
           if ((entry = search_options_table(argv[i], options)) == NULL)
@@ -123,7 +123,7 @@ int ci_args_apply(int argc, char **argv, struct ci_options_entry *options)
 /****************************************************************************/
 /*Various functions for setting parameters from command line or config file */
 
-int ci_cfg_set_int(char *directive, char **argv, void *setdata)
+int ci_cfg_set_int(const char *directive, const char **argv, void *setdata)
 {
      int val = 0;
      char *end;
@@ -147,7 +147,7 @@ int ci_cfg_set_int(char *directive, char **argv, void *setdata)
      return 1;
 }
 
-int ci_cfg_set_str(char *directive, char **argv, void *setdata)
+int ci_cfg_set_str(const char *directive, const char **argv, void *setdata)
 {
      if (setdata == NULL)
           return 0;
@@ -166,7 +166,7 @@ int ci_cfg_set_str(char *directive, char **argv, void *setdata)
      return 1;
 }
 
-int ci_cfg_onoff(char *directive, char **argv, void *setdata)
+int ci_cfg_onoff(const char *directive, const char **argv, void *setdata)
 {
      if (setdata == NULL)
           return 0;
@@ -189,7 +189,7 @@ int ci_cfg_onoff(char *directive, char **argv, void *setdata)
 }
 
 
-int ci_cfg_disable(char *directive, char **argv, void *setdata)
+int ci_cfg_disable(const char *directive, const char **argv, void *setdata)
 {
      if (setdata == NULL)
           return 0;
@@ -200,7 +200,7 @@ int ci_cfg_disable(char *directive, char **argv, void *setdata)
 
 }
 
-int ci_cfg_enable(char *directive, char **argv, void *setdata)
+int ci_cfg_enable(const char *directive, const char **argv, void *setdata)
 {
      if (setdata == NULL)
           return 0;
@@ -210,7 +210,7 @@ int ci_cfg_enable(char *directive, char **argv, void *setdata)
      return 1;
 }
 
-int ci_cfg_size_off(char *directive, char **argv, void *setdata)
+int ci_cfg_size_off(const char *directive, const char **argv, void *setdata)
 {
      ci_off_t val = 0;
      char *end;
@@ -242,7 +242,7 @@ int ci_cfg_size_off(char *directive, char **argv, void *setdata)
 }
 
 
-int ci_cfg_size_long(char *directive, char **argv, void *setdata)
+int ci_cfg_size_long(const char *directive, const char **argv, void *setdata)
 {
      long int val = 0;
      char *end;

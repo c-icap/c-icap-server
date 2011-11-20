@@ -29,7 +29,7 @@
 #include "filetype.h"
 
 
-int cfg_acl_add(char *directive, char **argv, void *setdata);
+int cfg_acl_add(const char *directive, const char **argv, void *setdata);
 struct ci_conf_entry acl_conf_variables[] = {
      {"acl", NULL, cfg_acl_add, NULL},
      {NULL, NULL, NULL, NULL}
@@ -243,7 +243,7 @@ const ci_acl_spec_t *ci_access_entry_add_acl(ci_access_entry_t *access_entry, co
      return acl;
 }
 
-int ci_access_entry_add_acl_by_name(ci_access_entry_t *access_entry, char *acl_name){
+int ci_access_entry_add_acl_by_name(ci_access_entry_t *access_entry, const char *acl_name){
      const ci_acl_spec_t *acl;
      int negate = 0;
      if (acl_name[0] == '!') {
@@ -265,7 +265,7 @@ int ci_access_entry_add_acl_by_name(ci_access_entry_t *access_entry, char *acl_n
 /*********************************************************************************/
 /*ci_acl_spec functions                                                          */
 
-ci_acl_spec_t *  ci_acl_spec_new(char *name, char *type, char *param, struct ci_acl_type_list *list, ci_acl_spec_t **spec_list)
+ci_acl_spec_t *  ci_acl_spec_new(const char *name, const char *type, const char *param, struct ci_acl_type_list *list, ci_acl_spec_t **spec_list)
 {
      ci_acl_spec_t *spec,*cur;
      const ci_acl_type_t *acl_type;
@@ -303,7 +303,7 @@ ci_acl_spec_t *  ci_acl_spec_new(char *name, char *type, char *param, struct ci_
      return spec;
 }
 
-ci_acl_data_t *ci_acl_spec_new_data(ci_acl_spec_t *spec, char *val)
+ci_acl_data_t *ci_acl_spec_new_data(ci_acl_spec_t *spec, const char *val)
 {
      ci_acl_data_t *new_data, *list;
      const ci_type_ops_t *ops;
@@ -571,9 +571,10 @@ int ci_acl_type_add(const ci_acl_type_t *type)
     return ci_acl_typelist_add(&types_list, type);
 }
 
-int cfg_acl_add(char *directive, char **argv, void *setdata)
+int cfg_acl_add(const char *directive, const char **argv, void *setdata)
 {
-    char *s, *acl_name,*acl_type, *param=NULL;
+     const char *acl_name;
+     char *s, *acl_type, *param=NULL;
      int argc;
      ci_acl_spec_t *spec;
      const ci_acl_type_t *spec_type;
@@ -583,8 +584,13 @@ int cfg_acl_add(char *directive, char **argv, void *setdata)
      
      
      acl_name = argv[0];
-     acl_type = argv[1];
-     if ((s=strchr(argv[1],'{')) != NULL) {
+     acl_type = strdup(argv[1]);
+     if (!acl_type) {
+         ci_debug_printf(1, "cfg_acl_add: error strduping!\n"); 
+         return 0;
+     }
+     s = acl_type;
+     if ((s=strchr(s,'{')) != NULL) {
 	 *s='\0';
 	 param=s+1;
 	 if((s=strchr(param,'}')) != NULL)
@@ -596,6 +602,7 @@ int cfg_acl_add(char *directive, char **argv, void *setdata)
 	  if(spec_type != spec->type){
 	       ci_debug_printf(1, "The acl type:%s does not much with type of existing acl \"%s\"", 
 			       acl_type,acl_name);
+               free(acl_type);
 	       return 0;
 	  }
      }
@@ -607,12 +614,14 @@ int cfg_acl_add(char *directive, char **argv, void *setdata)
      if (!spec){
 	  ci_debug_printf(1, "Error in acl:%s! Maybe the acl type \"%s\" does not exists!\n",
 			  acl_name,acl_type);
+          free(acl_type);
 	  return 0;
      }
      for (argc = 2; argv[argc] != NULL; argc++){
 	  ci_debug_printf(2, "Adding to acl %s the data %s\n", acl_name, argv[argc]);
 	  ci_acl_spec_new_data(spec, argv[argc]);
-     }	  
+     }
+     free(acl_type);
      return 1;
 }
 

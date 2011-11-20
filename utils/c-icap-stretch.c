@@ -500,10 +500,10 @@ void usage(char *myname){
 	    myname);
 }
 
-int add_xheader(char *directive, char **argv, void *setdata)
+int add_xheader(const char *directive, const char **argv, void *setdata)
 {
     ci_headers_list_t **xh = (ci_headers_list_t **)setdata;
-    char *h;
+    const char *h;
 
     if (argv == NULL || argv[0] == NULL) {
 	ci_debug_printf(1, "Missing arguments in directive:%s\n", directive);
@@ -524,7 +524,7 @@ int add_xheader(char *directive, char **argv, void *setdata)
 }
 
 static int FILES_SIZE =0;
-int cfg_files_to_use(char *directive, char **argv, void *setdata)
+int cfg_files_to_use(const char *directive, const char **argv, void *setdata)
 {
     assert ((void *)FILES == *(void **)setdata);
 
@@ -546,7 +546,7 @@ int cfg_files_to_use(char *directive, char **argv, void *setdata)
     return 1;
 }
 
-int add_xclient_headers(char *directive, char **argv, void *setdata)
+int add_xclient_headers(const char *directive, const char **argv, void *setdata)
 {
     int ip1, ip2, ip3, ip4_start, ip4_end, i;
     const char *ip, *s;

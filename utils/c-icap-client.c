@@ -139,10 +139,10 @@ int filewrite(void *fd, char *buf, int len)
      return ret;
 }
 
-int add_xheader(char *directive, char **argv, void *setdata)
+int add_xheader(const char *directive, const char **argv, void *setdata)
 {
     ci_headers_list_t **xh = (ci_headers_list_t **)setdata;
-    char *h;
+    const char *h;
 
     if (argv == NULL || argv[0] == NULL) {
 	ci_debug_printf(1, "Missing arguments in directive:%s\n", directive);

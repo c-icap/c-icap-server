@@ -53,9 +53,9 @@ void check_commands_list()
      }
 }
 
-void register_command(char *name, int type,
-                      void (*command_action) (char *name, int type,
-                                              char **argv))
+void register_command(const char *name, int type,
+                      void (*command_action) (const char *name, int type,
+                                              const char **argv))
 {
      if (! (type & ALL_PROC_CMD)) {
           ci_debug_printf(1, "Can not register command %s ! Wrong type\n", name );
@@ -68,8 +68,8 @@ void register_command(char *name, int type,
      commands_list[commands_list_num++].command_action = command_action;
 }
 
-void register_command_extend(char *name, int type, void *data,
-			     void (*command_action) (char *name, int type,
+void register_command_extend(const char *name, int type, void *data,
+			     void (*command_action) (const char *name, int type,
 						     void *data))
 {
      if (type != CHILD_START_CMD) {
@@ -101,7 +101,7 @@ char **split_args(char *args);
 void free_args(char **argv);
 
 
-ci_command_t *find_command(char *cmd_line)
+ci_command_t *find_command(const char *cmd_line)
 {
      int len, i;
      char *s;
@@ -128,7 +128,7 @@ int execute_command(ci_command_t * command, char *cmdline, int exec_type)
      if (!command)
           return 0;
      args = split_args(cmdline);
-     command->command_action(args[0], exec_type, args + 1);
+     command->command_action(args[0], exec_type, (const char **)(args + 1));
      free_args(args);
      return 1;
 }

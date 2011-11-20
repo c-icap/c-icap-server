@@ -110,7 +110,7 @@ struct logformat {
 
 struct logformat *LOGFORMATS = NULL;
 
-int logformat_add(char *name, char *format)
+int logformat_add(const char *name, const char *format)
 {
   struct logformat *lf, *tmp;
   lf = malloc(sizeof(struct logformat));
@@ -156,7 +156,7 @@ void logformat_release()
    LOGFORMATS = NULL;
 }
 
-char *logformat_fmt(char *name)
+char *logformat_fmt(const char *name)
 {
     struct logformat *tmp;
     if (!(tmp = LOGFORMATS))
@@ -178,7 +178,7 @@ char *logformat_fmt(char *name)
 int file_log_open();
 void file_log_close();
 void file_log_access(ci_request_t *req);
-void file_log_server(char *server, const char *format, va_list ap);
+void file_log_server(const char *server, const char *format, va_list ap);
 
 /*char *LOGS_DIR=LOGDIR;*/
 char *SERVER_LOG_FILE = LOGDIR "/cicap-server.log";
@@ -285,7 +285,7 @@ void file_log_access(ci_request_t *req)
 }
 
 
-void file_log_server(char *server, const char *format, va_list ap)
+void file_log_server(const char *server, const char *format, va_list ap)
 {
      char buf[STR_TIME_SIZE];
 
@@ -299,10 +299,10 @@ void file_log_server(char *server, const char *format, va_list ap)
 }
 
 
-int file_log_addlogfile(char *file, char *format, char **acls) 
+int file_log_addlogfile(const char *file, const char *format, const char **acls) 
 {
      char *access_log_file, *access_log_format;
-     char * acl_name;
+     const char *acl_name;
      struct logfile *lf, *newlf;
      int i;
 

@@ -39,7 +39,7 @@
 int sys_log_open();
 void sys_log_close();
 void sys_log_access(ci_request_t *req);
-void sys_log_server(char *server, const char *format, va_list ap);
+void sys_log_server(const char *server, const char *format, va_list ap);
 
 char *log_ident = "c-icap: ";
 static int FACILITY = LOG_DAEMON;
@@ -49,18 +49,18 @@ char *syslog_logformat = "%la %a %im %iu %is";
 static ci_access_entry_t *syslog_access_list = NULL;
 
 
-int cfg_set_facility(char *directive, char **argv, void *setdata);
-int cfg_set_priority(char *directive, char **argv, void *setdata);
-/*int cfg_set_prefix(char *directive,char **argv,void *setdata);*/
-int cfg_syslog_logformat(char *directive, char **argv, void *setdata);
-int cfg_syslog_access(char *directive, char **argv, void *setdata);
+int cfg_set_facility(const char *directive, const char **argv, void *setdata);
+int cfg_set_priority(const char *directive, const char **argv, void *setdata);
+/*int cfg_set_prefix(const char *directive,const char **argv,void *setdata);*/
+int cfg_syslog_logformat(const char *directive, const char **argv, void *setdata);
+int cfg_syslog_access(const char *directive, const char **argv, void *setdata);
 
 
 /*
    functions declared in log.c. This file is not included in c-icap library
    but defined in primary c-icap binary.
 */
-extern char *logformat_fmt(char *name);
+extern char *logformat_fmt(const char *name);
 
 /*Configuration Table .....*/
 static struct ci_conf_entry conf_variables[] = {
@@ -86,7 +86,7 @@ CI_DECLARE_DATA logger_module_t module = {
 };
 
 
-int cfg_set_facility(char *directive, char **argv, void *setdata)
+int cfg_set_facility(const char *directive, const char **argv, void *setdata)
 {
      if (argv == NULL || argv[0] == NULL) {
 //        ci_debug_printf(1,"Missing arguments in directive\n");
@@ -127,7 +127,7 @@ int cfg_set_facility(char *directive, char **argv, void *setdata)
      return 1;
 }
 
-int cfg_set_priority(char *directive, char **argv, void *setdata)
+int cfg_set_priority(const char *directive, const char **argv, void *setdata)
 {
      if (argv == NULL || argv[0] == NULL) {
           ci_debug_printf(1, "Missing arguments in directive\n");
@@ -155,7 +155,7 @@ int cfg_set_priority(char *directive, char **argv, void *setdata)
      return 1;
 }
 
-int cfg_syslog_logformat(char *directive, char **argv, void *setdata)
+int cfg_syslog_logformat(const char *directive, const char **argv, void *setdata)
 {
      if (argv == NULL || argv[0] == NULL) {
           ci_debug_printf(1, "Missing arguments in directive\n");
@@ -199,7 +199,7 @@ void sys_log_access(ci_request_t *req)
 }
 
 
-void sys_log_server(char *server, const char *format, va_list ap)
+void sys_log_server(const char *server, const char *format, va_list ap)
 {
      char buf[512];
      char prefix[150];
@@ -213,10 +213,10 @@ void sys_log_server(char *server, const char *format, va_list ap)
 }
 
 
-int cfg_syslog_access(char *directive, char **argv, void *setdata)
+int cfg_syslog_access(const char *directive, const char **argv, void *setdata)
 {
      int argc, error;
-     char *acl_spec_name;
+     const char *acl_spec_name;
 
      if (argv[0] == NULL) {
           ci_debug_printf(1, "Parse error in directive %s \n", directive);

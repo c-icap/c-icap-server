@@ -42,18 +42,18 @@ typedef struct ci_command{
      int type;
      void *data;
      union {
-         void (*command_action)(char *name,int type,char **argv);
-         void (*command_action_extend)(char *name, int type, void *data);
+         void (*command_action)(const char *name,int type,const char **argv);
+         void (*command_action_extend)(const char *name, int type, void *data);
      };
 } ci_command_t;
 
 
-CI_DECLARE_FUNC(void) register_command(char *name,int type, void (*command_action)(char *name,int type, char **argv));
-CI_DECLARE_FUNC(void) register_command_extend(char *name, int type, void *data,
-                                              void (*command_action) (char *name, int type, void *data));
+CI_DECLARE_FUNC(void) register_command(const char *name,int type, void (*command_action)(const char *name,int type, const char **argv));
+CI_DECLARE_FUNC(void) register_command_extend(const char *name, int type, void *data,
+                                              void (*command_action) (const char *name, int type, void *data));
 CI_DECLARE_FUNC(void) reset_commands();
 CI_DECLARE_FUNC(int) execute_command(ci_command_t *command,char *cmdline,int exec_type);
-CI_DECLARE_FUNC(ci_command_t) *find_command(char *cmd_line);
+CI_DECLARE_FUNC(ci_command_t) *find_command(const char *cmd_line);
 CI_DECLARE_FUNC(int) execure_start_child_commands();
 CI_DECLARE_FUNC(int) execute_stop_child_commands();
 

@@ -51,13 +51,13 @@ static int service_aliases_num = 0;
 /**************************************************************/
 /*service globale config table                                */
 
-int cfg_srv_transfer_preview(char *directive, char **argv, void *setdata);
-int cfg_srv_transfer_ignore(char *directive, char **argv, void *setdata);
-int cfg_srv_transfer_complete(char *directive, char **argv, void *setdata);
-int cfg_srv_preview_size(char *directive, char **argv, void *setdata);
-int cfg_srv_max_connections(char *directive, char **argv, void *setdata);
-int cfg_srv_options_ttl(char *directive, char **argv, void *setdata);
-int cfg_srv_allow206(char *directive, char **argv, void *setdata);
+int cfg_srv_transfer_preview(const char *directive, const char **argv, void *setdata);
+int cfg_srv_transfer_ignore(const char *directive, const char **argv, void *setdata);
+int cfg_srv_transfer_complete(const char *directive, const char **argv, void *setdata);
+int cfg_srv_preview_size(const char *directive, const char **argv, void *setdata);
+int cfg_srv_max_connections(const char *directive, const char **argv, void *setdata);
+int cfg_srv_options_ttl(const char *directive, const char **argv, void *setdata);
+int cfg_srv_allow206(const char *directive, const char **argv, void *setdata);
 
 static struct ci_conf_entry services_global_conf_table[] = {
   {"TransferPreview", NULL, cfg_srv_transfer_preview, NULL},
@@ -70,7 +70,7 @@ static struct ci_conf_entry services_global_conf_table[] = {
   {NULL, NULL, NULL, NULL}
 };
 
-int cfg_srv_transfer_preview(char *directive, char **argv, void *setdata)
+int cfg_srv_transfer_preview(const char *directive, const char **argv, void *setdata)
 {
     struct ci_service_xdata *srv_xdata = ( struct ci_service_xdata *)setdata;
     if (argv == NULL || argv[0] == NULL) {
@@ -82,7 +82,7 @@ int cfg_srv_transfer_preview(char *directive, char **argv, void *setdata)
     return 1;
 }
 
-int cfg_srv_transfer_ignore(char *directive, char **argv, void *setdata)
+int cfg_srv_transfer_ignore(const char *directive, const char **argv, void *setdata)
 {
     struct ci_service_xdata *srv_xdata = ( struct ci_service_xdata *)setdata;
     if (argv == NULL || argv[0] == NULL) {
@@ -94,7 +94,7 @@ int cfg_srv_transfer_ignore(char *directive, char **argv, void *setdata)
     return 1;
 }
 
-int cfg_srv_transfer_complete(char *directive, char **argv, void *setdata)
+int cfg_srv_transfer_complete(const char *directive, const char **argv, void *setdata)
 {
     struct ci_service_xdata *srv_xdata = ( struct ci_service_xdata *)setdata;
     if (argv == NULL || argv[0] == NULL) {
@@ -106,7 +106,7 @@ int cfg_srv_transfer_complete(char *directive, char **argv, void *setdata)
     return 1;
 }
 
-int cfg_srv_preview_size(char *directive, char **argv, void *setdata)
+int cfg_srv_preview_size(const char *directive, const char **argv, void *setdata)
 {
     int preview;
     char *end;
@@ -126,7 +126,7 @@ int cfg_srv_preview_size(char *directive, char **argv, void *setdata)
     return 1;
 }
 
-int cfg_srv_max_connections(char *directive, char **argv, void *setdata)
+int cfg_srv_max_connections(const char *directive, const char **argv, void *setdata)
 {
     int max_connections;
     char *end;
@@ -146,12 +146,12 @@ int cfg_srv_max_connections(char *directive, char **argv, void *setdata)
     return 1;
 }
 
-int cfg_srv_options_ttl(char *directive, char **argv, void *setdata)
+int cfg_srv_options_ttl(const char *directive, const char **argv, void *setdata)
 {
     int ttl;
     int u;
     char *end = NULL;
-    char *units;
+    const char *units;
     struct ci_service_xdata *srv_xdata = ( struct ci_service_xdata *)setdata;
     if (argv == NULL || argv[0] == NULL) {
 	ci_debug_printf(1, "Missing arguments in directive %s \n", directive);
@@ -193,7 +193,7 @@ int cfg_srv_options_ttl(char *directive, char **argv, void *setdata)
     return 1;
 }
 
-int cfg_srv_allow206(char *directive, char **argv, void *setdata)
+int cfg_srv_allow206(const char *directive, const char **argv, void *setdata)
 {
     struct ci_service_xdata *srv_xdata = ( struct ci_service_xdata *)setdata;
     if (argv == NULL || argv[0] == NULL) {
