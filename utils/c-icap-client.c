@@ -35,15 +35,18 @@
 /*Must declared ....*/
 int CONN_TIMEOUT = 300;
 
+void printhead(void *d, const char *head, const char *value)
+{
+    ci_debug_printf(1, "\t%s:%s\n", head, value);
+}
+
 void print_headers(ci_request_t * req)
 {
      int i;
      int type;
      ci_headers_list_t *headers;
      ci_debug_printf(1, "\nICAP HEADERS:\n");
-     for (i = 0; i < req->response_header->used; i++) {
-          ci_debug_printf(1, "\t%s\n", req->response_header->headers[i]);
-     }
+     ci_headers_iterate(req->response_header, NULL, printhead);
      ci_debug_printf(1, "\n");
 
      if ((headers =  ci_http_response_headers(req)) == NULL) {
@@ -55,10 +58,7 @@ void print_headers(ci_request_t * req)
 
      if (headers) {
           ci_debug_printf(1, "%s HEADERS:\n", ci_method_string(type));
-          for (i = 0; i < headers->used; i++) {
-               if (headers->headers[i])
-                    ci_debug_printf(1, "\t%s\n", headers->headers[i]);
-          }
+          ci_headers_iterate(headers, NULL, printhead);
           ci_debug_printf(1, "\n");
      }
 }

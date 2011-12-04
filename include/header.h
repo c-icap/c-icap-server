@@ -194,6 +194,38 @@ CI_DECLARE_FUNC(const char *)  ci_headers_search(ci_headers_list_t *heads, const
  */
 CI_DECLARE_FUNC(const char *)  ci_headers_value(ci_headers_list_t *heads, const char *header);
 
+/**
+ * Search for a header in a header list and copy the value to a buffer if exist
+ \ingroup HEADERS
+ \param heads is a pointer to the ci_headers_list_t object
+ \param header is the name of the header
+ \param buf is the buffer to store header value
+\param len is the size of the buffer buf
+\return a pointer to the buf on success, NULL otherwise
+ *
+ *example usage:
+ \code
+ char *headval;
+ char buf[1024];
+ int content_length;
+ headval = ci_headers_copy_value(heads, "Content-Length", buf, sizeof(buf));
+ if (headval)
+     printf("Content-Length: %s\n", buf);
+ \endcode
+ *
+ */
+CI_DECLARE_FUNC(const char *) ci_headers_copy_value(ci_headers_list_t *heads, const char *header, char *buf, size_t len);
+
+/**
+ * Run the given function for each header name/value pair
+ \ingroup HEADERS
+ \param heads is a pointer to the ci_headers_list_t object
+ \param data is a pointer to data which will passed as first argument to the fn function
+ \param fn is a pointer to a function which will run for each header name/value pair.
+ \return non zero on success, zero otherwise
+ */
+CI_DECLARE_FUNC(int) ci_headers_iterate(ci_headers_list_t *heads, void *data, void (*fn)(void *data, const char  *header_name, const char  *header_value));
+
 /*The following headers are only used internally */
 CI_DECLARE_FUNC(void) ci_headers_pack(ci_headers_list_t *heads);
 CI_DECLARE_FUNC(int)  ci_headers_unpack(ci_headers_list_t *heads);

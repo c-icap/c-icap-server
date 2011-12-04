@@ -336,6 +336,32 @@ const char *ci_headers_value(ci_headers_list_t * h, const char *header)
      return phead;
 }
 
+const char *ci_headers_copy_value(ci_headers_list_t * h, const char *header, char *buf, size_t len)
+{
+     const char *phead;
+     int i;
+     if (!(phead = ci_headers_search(h, header)))
+          return NULL;
+     if (h->packed)
+         while (*phead != '\0' && *phead != ':' && *phead != '\r' && *phead !='\n') phead++;
+     else
+         while (*phead != '\0' && *phead != ':') phead++;
+
+     if (*phead != ':')
+          return NULL;
+     phead++;
+     /*skip spaces at the beginning*/
+     while (isspace(*phead) && *phead != '\0')
+          phead++;
+
+     /*phead now points to the biggining of the header value.*/
+     /*copy value to buf*/
+     for(i=0; i < len-1 && *phead != '\0' && *phead != '\r' && *phead != '\n'; i++, phead++)
+         buf[i] = *phead;
+     buf[i] = '\0';
+     return buf;
+}
+
 int ci_headers_remove(ci_headers_list_t * h, const char *header)
 {
      char *phead;
@@ -389,6 +415,29 @@ const char *ci_headers_replace(ci_headers_list_t * h, const char *header, const 
      return NULL;
 }
 
+int ci_headers_iterate(ci_headers_list_t * h, void *data, void (*fn)(void *, const char  *head, const char  *value))
+{
+    char header[256];
+    char value[8124];
+    char *s;
+    int i, j;
+    for (i = 0; i < h->used; i++) {
+        s = h->headers[i];
+        for (j = 0;  j < sizeof(header)-1 && *s != ':' &&  *s != '\0' && *s != '\r' && *s!='\n'; s++, j++)
+            header[j] = *s;
+        header[j] = '\0';
+        j = 0;
+        if (*s == ':') {
+            s++;
+            while (*s == ' ' && *s != '\0' && *s != '\r' && *s!='\n') s++;
+            for (j = 0;  j < sizeof(value)-1 &&  *s != '\0' && *s != '\r' && *s!='\n'; s++, j++)
+                value[j] = *s;
+        }
+        value[j] = '\0';
+        fn(data, header, value);
+    }
+    return 1;
+}
 
 void ci_headers_pack(ci_headers_list_t * h)
 {                               /*Put the \r\n sequence at the end of each header before sending...... */
@@ -413,7 +462,7 @@ void ci_headers_pack(ci_headers_list_t * h)
           h->buf[h->bufused] = '\n';
           h->bufused++;
      }
-     h->packed = 0;
+     h->packed = 1;
 }
 
 
