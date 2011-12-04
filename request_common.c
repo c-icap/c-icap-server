@@ -280,6 +280,7 @@ ci_request_t *ci_request_alloc(ci_connection_t * connection)
 
      
      req->log_str = NULL;
+     req->attributes = NULL;
 
      req->bytes_in = 0;
      req->bytes_out = 0;
@@ -344,6 +345,10 @@ void ci_request_reset(ci_request_t * req)
          __intl_free(req->log_str);
      req->log_str = NULL;
 
+     if (req->attributes)
+         ci_array_destroy(req->attributes);
+     req->attributes = NULL;
+
      req->bytes_in = 0;
      req->bytes_out = 0;
      req->http_bytes_in = 0;
@@ -384,6 +389,10 @@ void ci_request_destroy(ci_request_t * req)
 
      if (req->log_str)
          __intl_free(req->log_str);
+
+     if (req->attributes)
+         ci_array_destroy(req->attributes);
+
      __intl_free(req);
 }
 
@@ -399,6 +408,23 @@ char *ci_request_set_log_str(ci_request_t *req, char *logstr)
          return NULL;
      strcpy(req->log_str, logstr);
      return req->log_str;
+}
+
+int  ci_request_set_str_attribute(ci_request_t *req, const char *name, const char *value)
+{
+    if (req->attributes == NULL) {
+        req->attributes = ci_array_new(4096);
+        if (!req->attributes) {
+            ci_debug_printf(1, "Error allocating request attributes array!\n");
+            return 0;
+        }
+    }
+
+    if (!ci_str_array_add(req->attributes, name, value)) {
+        ci_debug_printf(1, "Not enough space to add attribute %s:%s for service %s\n", name, value, req->service);
+        return 0;
+    }
+    return 1;
 }
 
 int ci_request_206_origin_body(ci_request_t *req, uint64_t offset)

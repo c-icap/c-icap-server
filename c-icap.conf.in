@@ -432,6 +432,8 @@ RemoteProxyUserHeaderEncoded on
 #	       	     Supports the number of bytes to output as argument.
 #	       %un: Username
 #	       %Sl: Service log string
+#              %Sa: Attribute value set by service. The attribute name must 
+#                   given as argument.
 # Default:
 #	None set
 # Example:

@@ -53,6 +53,7 @@ int fmt_req_body_bytes_rcv(ci_request_t *req_data, char *buf,int len, const char
 int fmt_req_body_bytes_sent(ci_request_t *req_data, char *buf,int len, const char *param);
 int fmt_req_preview_hex(ci_request_t *req_data, char *buf,int len, const char *param);
 int fmt_logstr(ci_request_t *req_data, char *buf,int len, const char *param);
+int fmt_req_attribute(ci_request_t *req_data, char *buf,int len, const char *param);
 
 /**
    \brief Internal formating directives table.
@@ -83,7 +84,8 @@ int fmt_logstr(ci_request_t *req_data, char *buf,int len, const char *param);
    * \em "%O": Bytes sent \n
    * \em "%bph": Body data preview \n
    * \em "%un": Username \n
-   * \em "%Sl": Service log string\n
+   * \em "%Sl": Log string set by service\n
+   * \em "%Sa": Attribute value set by service\n
    *
    * Not yet implemented:\n
    * \em "%tr": Response time \n
@@ -129,6 +131,7 @@ struct ci_fmt_entry GlobalTable [] = {
     {"%bph", "Body data preview", fmt_req_preview_hex},
     {"%un", "Username", fmt_username},
     {"%Sl", "Service log string", fmt_logstr},
+    {"%Sa", "Attribute set by service", fmt_req_attribute},
     {"%%", "% sign", fmt_percent},
     { NULL, NULL, NULL} 
 };
@@ -633,4 +636,18 @@ int fmt_logstr(ci_request_t *req, char *buf,int len, const char *param)
    for(i=0;i<len && *s;i++,s++)
         buf[i] = *s;
    return i;
+}
+
+int fmt_req_attribute(ci_request_t *req, char *buf,int len, const char *param)
+{
+    int i;
+    const char *s;
+    if (!req->attributes)
+        return 0;
+    if (! (s =ci_str_array_search(req->attributes, param)))
+        return 0;
+
+    for(i=0; i<len && *s; i++, s++)
+        buf[i] = *s;
+    return i;
 }

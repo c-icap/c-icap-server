@@ -24,6 +24,7 @@
 #include "header.h"
 #include "service.h"
 #include "net_io.h"
+#include "array.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -119,6 +120,7 @@ typedef struct ci_request{
 
      /*log string*/
      char *log_str;
+    ci_str_array_t *attributes;
 
      /* statistics */
      uint64_t bytes_in;
@@ -168,6 +170,7 @@ CI_DECLARE_FUNC(void)         ci_response_pack(ci_request_t *req);
 CI_DECLARE_FUNC(ci_encaps_entity_t *) ci_request_alloc_entity(ci_request_t *req,int type,int val);
 CI_DECLARE_FUNC(int)          ci_request_release_entity(ci_request_t *req,int pos);
 CI_DECLARE_FUNC(char *)       ci_request_set_log_str(ci_request_t *req, char *logstr);
+CI_DECLARE_FUNC(int)       ci_request_set_str_attribute(ci_request_t *req, const char *name, const char *value);
 
 CI_DECLARE_FUNC(int)          ci_request_206_origin_body(ci_request_t *req, uint64_t offset);
 
