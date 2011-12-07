@@ -52,6 +52,7 @@ int fmt_req_http_bytes_sent(ci_request_t *req_data, char *buf,int len, const cha
 int fmt_req_body_bytes_rcv(ci_request_t *req_data, char *buf,int len, const char *param);
 int fmt_req_body_bytes_sent(ci_request_t *req_data, char *buf,int len, const char *param);
 int fmt_req_preview_hex(ci_request_t *req_data, char *buf,int len, const char *param);
+int fmt_req_preview_len(ci_request_t *req_data, char *buf,int len, const char *param);
 int fmt_logstr(ci_request_t *req_data, char *buf,int len, const char *param);
 int fmt_req_attribute(ci_request_t *req_data, char *buf,int len, const char *param);
 
@@ -76,6 +77,7 @@ int fmt_req_attribute(ci_request_t *req_data, char *buf,int len, const char *par
    * \em "%is": Icap status code \n
    * \em "%>ih": Icap request header \n
    * \em "%<ih": Icap response header \n
+   * \em "%ipl": Icap preview length \n
    * \em "%Ih": Http bytes received \n
    * \em "%Oh": Http bytes sent \n
    * \em "%Ib": Http body bytes received \n
@@ -119,6 +121,7 @@ struct ci_fmt_entry GlobalTable [] = {
     {"%is", "Icap status code", fmt_icapstatus},
     {"%>ih", "Icap request header", fmt_icap_req_head},
     {"%<ih", "Icap response header", fmt_icap_res_head},
+    {"%ipl", "Icap preview length", fmt_req_preview_len},
     
     {"%Ih", "Http bytes received", fmt_req_http_bytes_rcv},
     {"%Oh", "Http bytes sent", fmt_req_http_bytes_sent},
@@ -622,6 +625,18 @@ int fmt_req_preview_hex(ci_request_t *req, char *buf,int len, const char *param)
          }
     }
     return n;
+}
+
+int fmt_req_preview_len(ci_request_t *req, char *buf, int len, const char *param)
+{
+    if (!len)
+        return 0;
+
+    if (req->preview >=0 )
+        return snprintf(buf, len, "%d", req->preview_data.used);
+    
+    *buf = '-';
+    return 1;
 }
 
 int fmt_logstr(ci_request_t *req, char *buf,int len, const char *param)
