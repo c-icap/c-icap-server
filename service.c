@@ -115,13 +115,19 @@ int cfg_srv_preview_size(const char *directive, const char **argv, void *setdata
 	ci_debug_printf(1, "Missing arguments in directive %s \n", directive);
 	return 0;
     }
-    errno = 0;
-    preview = strtoll(argv[0], &end, 10);
-    if (errno != 0 || preview < 0) {
-	ci_debug_printf(1, "Invalid argument in directive %s \n", directive);
-	return 0;
+    if (strcmp(argv[0], "-") == 0) {
+        preview = -1;
+        ci_debug_printf(2, "Setting parameter :%s=\"disable\"\n", directive);
     }
-    ci_debug_printf(2, "Setting parameter :%s=%d\n", directive, preview);
+    else {
+        errno = 0;
+        preview = strtoll(argv[0], &end, 10);
+        if (errno != 0 || preview < 0) {
+	    ci_debug_printf(1, "Invalid argument in directive %s \n", directive);
+	    return 0;
+        }
+        ci_debug_printf(2, "Setting parameter :%s=%d\n", directive, preview)
+    }
     ci_service_set_preview(srv_xdata, preview);
     return 1;
 }
