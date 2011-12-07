@@ -953,6 +953,7 @@ static void options_responce(ci_request_t * req)
      ci_service_xdata_t *srv_xdata;
      unsigned int xopts;
      int preview, allow204, allow206, max_conns, xlen;
+     int hastransfer = 0;
      int ttl;
      head = req->response_header;
      srv_xdata = service_data(req->current_service_mod);
@@ -980,12 +981,21 @@ static void options_responce(ci_request_t * req)
 
      ci_service_data_read_lock(srv_xdata);
      ci_headers_add(head, srv_xdata->ISTag);
-     if (srv_xdata->TransferPreview[0] != '\0')
+     if (srv_xdata->TransferPreview[0] != '\0' && srv_xdata->preview_size >= 0) {
           ci_headers_add(head, srv_xdata->TransferPreview);
-     if (srv_xdata->TransferIgnore[0] != '\0')
+          hastransfer++;
+     }
+     if (srv_xdata->TransferIgnore[0] != '\0') {
           ci_headers_add(head, srv_xdata->TransferIgnore);
-     if (srv_xdata->TransferComplete[0] != '\0')
+          hastransfer++;
+     }
+     if (srv_xdata->TransferComplete[0] != '\0') {
           ci_headers_add(head, srv_xdata->TransferComplete);
+          hastransfer++;
+     }
+     /*If none of the Transfer-* headers configured but preview configured  send all requests*/
+     if (!hastransfer && srv_xdata->preview_size >= 0)
+         ci_headers_add(head, "Transfer-Preview: *");
      /*Get service options before close the lock.... */
      xopts = srv_xdata->xopts;
      preview = srv_xdata->preview_size;
