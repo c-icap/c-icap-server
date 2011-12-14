@@ -50,6 +50,7 @@ c_icap_CFLAGS= -Iinclude/ -DCONFDIR=\"$(CONFIGDIR)\" -DMODSDIR=\"$(MODULESDIR)\"
 c_icap_LDADD = libicapapi.la @DL_ADD_FLAG@ @THREADS_LDADD@
 c_icap_LDFLAGS = -rdynamic -rpath @libdir@ @THREADS_LDFLAGS@
 
+EXT_PROGRAMS_MKLIB = -licapapi @DL_ADD_FLAG@ @THREADS_LDADD@
 
 
 INCS = access.h body.h cfg_param.h c-icap-conf.h c-icap.h ci_threads.h \
@@ -74,6 +75,7 @@ do_subst=sed -e 's%[@]SYSCONFDIR[@]%$(CONFIGDIR)%g' \
              -e 's%[@]PKGDATADIR[@]%$(pkgdatadir)%g' \
              -e 's%[@]CFLAGS[@]%$(CFLAGS)%g' \
              -e 's%[@]MODULES_LIBADD[@]%$(MODULES_LIBADD)%g' \
+             -e 's%[@]EXT_PROGRAMS_LIBADD[@]%$(EXT_PROGRAMS_MKLIB)%g' \
              -e 's%[@]SOCKDIR[@]%$(SOCKDIR)%g'
 
 CLEANFILES = c-icap-config c-icap-libicapapi-config
