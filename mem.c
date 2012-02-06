@@ -25,24 +25,34 @@
 #include "ci_threads.h"
 #include "debug.h"
 #include "mem.h"
+#include <assert.h>
 
 int ci_buffers_init();
 
 /*General Functions */
 ci_mem_allocator_t *default_allocator = NULL;
+int MEM_ALLOCATOR_POOL = -1;
+int PACK_ALLOCATOR_POOL = -1;
+
+static size_t sizeof_pack_allocator();
+ci_mem_allocator_t *ci_create_pool_allocator(int items_size);
 
 int mem_init()
 {
-    int ret;
+    int ret = -1;
     ret = ci_buffers_init();
-    if(!ret)
-	return 0;
 
     default_allocator = ci_create_os_allocator();
-    if (!default_allocator)
-	return 0;
+    if (!default_allocator && ret ==-1)
+	ret = 0;
 
-    return 1;
+    MEM_ALLOCATOR_POOL = ci_object_pool_register("ci_mem_allocator_t", sizeof(ci_mem_allocator_t));
+    assert(MEM_ALLOCATOR_POOL >=0);
+
+    PACK_ALLOCATOR_POOL = ci_object_pool_register("pack_allocator_t", sizeof_pack_allocator());
+    assert(PACK_ALLOCATOR_POOL >=0);
+
+    return ret;
 }
 
 void mem_reset()
@@ -52,9 +62,33 @@ void mem_reset()
 void ci_mem_allocator_destroy(ci_mem_allocator_t *allocator)
 {
     allocator->destroy(allocator);
-    /*space for ci_mem_allocator_t struct always should allocated 
+    /*space for ci_mem_allocator_t struct is not always allocated 
       using malloc */
-    free(allocator);
+    if (allocator->must_free == 1)
+        free(allocator);
+    else if (allocator->must_free == 2)
+        ci_object_pool_free(allocator);
+  /*
+    else if (allocator->must_free == 0)
+        user is responsible to release the struct
+  */
+    
+}
+
+/******************/
+static ci_mem_allocator_t *alloc_mem_allocator_struct()
+{
+    ci_mem_allocator_t *alc;
+    if (MEM_ALLOCATOR_POOL < 0) {
+        alc = (ci_mem_allocator_t *) malloc(sizeof(ci_mem_allocator_t));
+        alc->must_free = 1;
+    }
+    else {
+        alc = ci_object_pool_alloc(MEM_ALLOCATOR_POOL);
+        alc->must_free = 2;
+    }
+
+    return alc;
 }
 
 /*******************************************************************/
@@ -82,17 +116,17 @@ int ci_buffers_init() {
    ci_mem_allocator_t *buf2048_pool, *buf4096_pool,
                       *buf8192_pool, *buf16384_pool, *buf32768_pool;
 
-   buf64_pool = ci_create_pool_allocator(64+PTR_OFFSET, NULL);
-   buf128_pool = ci_create_pool_allocator(128+PTR_OFFSET, NULL);
-   buf256_pool = ci_create_pool_allocator(256+PTR_OFFSET, NULL);
-   buf512_pool = ci_create_pool_allocator(512+PTR_OFFSET, NULL);
-   buf1024_pool = ci_create_pool_allocator(1024+PTR_OFFSET, NULL);
+   buf64_pool = ci_create_pool_allocator(64+PTR_OFFSET);
+   buf128_pool = ci_create_pool_allocator(128+PTR_OFFSET);
+   buf256_pool = ci_create_pool_allocator(256+PTR_OFFSET);
+   buf512_pool = ci_create_pool_allocator(512+PTR_OFFSET);
+   buf1024_pool = ci_create_pool_allocator(1024+PTR_OFFSET);
 
-   buf2048_pool = ci_create_pool_allocator(2048+PTR_OFFSET, NULL);
-   buf4096_pool = ci_create_pool_allocator(4096+PTR_OFFSET, NULL);
-   buf8192_pool = ci_create_pool_allocator(8192+PTR_OFFSET, NULL);
-   buf16384_pool = ci_create_pool_allocator(16384+PTR_OFFSET, NULL);
-   buf32768_pool = ci_create_pool_allocator(32768+PTR_OFFSET, NULL);
+   buf2048_pool = ci_create_pool_allocator(2048+PTR_OFFSET);
+   buf4096_pool = ci_create_pool_allocator(4096+PTR_OFFSET);
+   buf8192_pool = ci_create_pool_allocator(8192+PTR_OFFSET);
+   buf16384_pool = ci_create_pool_allocator(16384+PTR_OFFSET);
+   buf32768_pool = ci_create_pool_allocator(32768+PTR_OFFSET);
 
    short_buffers[0] = buf64_pool;
    short_buffers[1] = buf128_pool;
@@ -167,9 +201,36 @@ void *ci_buffer_alloc(int block_size)
      return (void *)block->data.ptr;
 }
 
+size_t ci_buffer_blocksize(void *data)
+{
+    struct mem_buffer_block *block;
+    int type;
+    size_t buffer_block_size = 0;
+    block = (struct mem_buffer_block *)(data-PTR_OFFSET);
+    if (block->sig != BUF_SIGNATURE) {
+        ci_debug_printf(1,"ci_buffer_blocksize: ERROR, not internal buffer. This is a bug!!!!");
+        return 0;
+    }
+
+    type = (block->ID - 1) >> 6;
+     if (type< 16 && short_buffers[type] != NULL) {
+         buffer_block_size = short_buffer_sizes[type];
+     }
+     else if(type < 512) {
+         type = type >> 5;       
+         if (long_buffers[type]!= NULL) {
+             buffer_block_size = long_buffer_sizes[type];
+         }
+     }
+
+     if (!buffer_block_size) 
+         buffer_block_size = block->ID;
+     return buffer_block_size;
+}
+
 void * ci_buffer_realloc(void *data, int block_size)
 {
-    int type, current_block_size = 0;
+    int buffer_size = 0;
     struct mem_buffer_block *block;
 
     if (!data)
@@ -181,25 +242,13 @@ void * ci_buffer_realloc(void *data, int block_size)
         return NULL;
     }
 
-    type = (block->ID - 1) >> 6;
-     if (type< 16 && short_buffers[type] != NULL) {
-         current_block_size = short_buffer_sizes[type];
-     }
-     else if(type < 512) {
-         type = type >> 5;       
-         if (long_buffers[type]!= NULL) {
-             current_block_size = long_buffer_sizes[type];
-         }
-     }
+    buffer_size = ci_buffer_blocksize(data);
+    assert(buffer_size > 0);
+    ci_debug_printf(10, "Current block size for realloc: %d, requested block size: %d. The initial size: %d\n",
+                    buffer_size, block_size, block->ID);
 
-     ci_debug_printf(10, "Current block size for realloc: %d, requested block size: %d. The initial size: %d\n",
-                     current_block_size, block_size, block->ID);
-
-     /*If no needs_block_size found probably requires a realloc.....*/
-     if (!current_block_size) 
-         current_block_size = block->ID;
-
-     if (block_size > current_block_size) {
+     /*If no block_size created than our buffer actual size probably requires a realloc.....*/
+     if (block_size > buffer_size) {
          data = ci_buffer_alloc(block_size);
          if (!data)
              return NULL;
@@ -290,7 +339,7 @@ int ci_object_pool_register(const char *name, int size)
     if(object_pools == NULL) //??????
 	return -1;
 
-    object_pools[ID] = ci_create_pool_allocator(size+PTR_OFFSET, NULL);
+    object_pools[ID] = ci_create_pool_allocator(size+PTR_OFFSET);
 
     object_pools_used++;
     return ID;
@@ -346,29 +395,29 @@ void ci_object_pool_free(void *ptr)
 /*******************************************************************/
 /*A simple allocator implementation which uses the system malloc    */
 
-void *os_allocator_alloc(ci_mem_allocator_t *allocator,size_t size)
+static void *os_allocator_alloc(ci_mem_allocator_t *allocator,size_t size)
 {
   return malloc(size);
 }
 
-void os_allocator_free(ci_mem_allocator_t *allocator,void *p)
+static void os_allocator_free(ci_mem_allocator_t *allocator,void *p)
 {
   free(p);
 }
 
-void os_allocator_reset(ci_mem_allocator_t *allocator)
+static void os_allocator_reset(ci_mem_allocator_t *allocator)
 {
   /*nothing to do*/
 }
 
-void os_allocator_destroy(ci_mem_allocator_t *allocator)
+static void os_allocator_destroy(ci_mem_allocator_t *allocator)
 {
   /*nothing to do*/
 }
 
 ci_mem_allocator_t *ci_create_os_allocator()
 {
-  ci_mem_allocator_t *allocator = malloc(sizeof(ci_mem_allocator_t));
+  ci_mem_allocator_t *allocator = alloc_mem_allocator_struct();
   if(!allocator)
     return NULL;
   allocator->alloc = os_allocator_alloc;
@@ -376,6 +425,8 @@ ci_mem_allocator_t *ci_create_os_allocator()
   allocator->reset = os_allocator_reset;
   allocator->destroy = os_allocator_destroy;
   allocator->data = NULL;
+  allocator->name = NULL;
+  allocator->type = OS_ALLOC;
   return allocator;
 }
 
@@ -393,59 +444,62 @@ typedef struct serial_allocator{
 } serial_allocator_t;
 
 
-serial_allocator_t *serial_allocator_build(int size)
+static serial_allocator_t *serial_allocator_build(int size)
 {
      serial_allocator_t *serial_alloc;
-     serial_alloc = malloc(sizeof(serial_allocator_t));
-     if (!serial_alloc)
-          return NULL;
-
+     void *buffer;
      size = _CI_ALIGN(size);
-     serial_alloc->memchunk = malloc(size);
-     if (!serial_alloc->memchunk) {
-          free(serial_alloc);
-          return NULL;
-     }
+     if (size < sizeof(serial_allocator_t))
+         return NULL;
+     buffer = ci_buffer_alloc(size);
+     serial_alloc = buffer;
+
+     serial_alloc->memchunk = buffer + sizeof(serial_allocator_t);
+     size -= sizeof(serial_allocator_t);
      serial_alloc->curpos = serial_alloc->memchunk;
      serial_alloc->endpos = serial_alloc->memchunk + size;
      serial_alloc->next = NULL;
      return serial_alloc;
 }
 
-void *serial_allocator_alloc(ci_mem_allocator_t *allocator,size_t size)
+static void *serial_allocation(serial_allocator_t *serial_alloc, size_t size)
 {
-     int max_size;
-     void *mem;
+    int max_size;
+    void *mem;
+    size = _CI_ALIGN(size); /*round size to a correct alignment size*/
+    max_size = serial_alloc->endpos - serial_alloc->memchunk;
+    if (size > max_size)
+        return NULL;
+
+    while (size > (serial_alloc->endpos - serial_alloc->curpos)) {
+        if (serial_alloc->next == NULL) {
+            serial_alloc->next = serial_allocator_build(max_size);
+            if (!serial_alloc->next)
+                return NULL;
+        }
+        serial_alloc = serial_alloc->next;
+    }
+
+    mem = serial_alloc->curpos;
+    serial_alloc->curpos += size;
+    return mem;
+}
+
+static void *serial_allocator_alloc(ci_mem_allocator_t *allocator,size_t size)
+{
      serial_allocator_t *serial_alloc = (serial_allocator_t *)allocator->data;
 
      if(!serial_alloc)
        return NULL;
-
-     size = _CI_ALIGN(size); /*round size to a correct alignment size*/
-     max_size = serial_alloc->endpos - serial_alloc->memchunk;
-     if (size > max_size)
-          return NULL;
-
-     while (size > (serial_alloc->endpos - serial_alloc->curpos)) {
-          if (serial_alloc->next == NULL) {
-               serial_alloc->next = serial_allocator_build(max_size);
-               if (!serial_alloc->next)
-                    return NULL;
-          }
-          serial_alloc = serial_alloc->next;
-     }
-
-     mem = serial_alloc->curpos;
-     serial_alloc->curpos += size;
-     return mem;
+     return serial_allocation(serial_alloc, size);
 }
 
-void serial_allocator_free(ci_mem_allocator_t *allocator,void *p)
+static void serial_allocator_free(ci_mem_allocator_t *allocator,void *p)
 {
   /* We can not free :-)  */
 }
 
-void serial_allocator_reset(ci_mem_allocator_t *allocator)
+static void serial_allocator_reset(ci_mem_allocator_t *allocator)
 {
   serial_allocator_t *cur;
   cur = (serial_allocator_t *)allocator->data;
@@ -455,7 +509,7 @@ void serial_allocator_reset(ci_mem_allocator_t *allocator)
   }
 }
 
-void serial_allocator_destroy(ci_mem_allocator_t *allocator)
+static void serial_allocator_destroy(ci_mem_allocator_t *allocator)
 {
   serial_allocator_t *cur, *next;
 
@@ -465,8 +519,7 @@ void serial_allocator_destroy(ci_mem_allocator_t *allocator)
   cur = (serial_allocator_t *)allocator->data;
   next = cur->next;
   while (cur) {
-    free(cur->memchunk);
-    free(cur);
+    ci_buffer_free((void *)cur);
     cur = next;
     if (next)
       next = next->next;
@@ -475,13 +528,14 @@ void serial_allocator_destroy(ci_mem_allocator_t *allocator)
 
 ci_mem_allocator_t *ci_create_serial_allocator(int size)
 {
-  ci_mem_allocator_t *allocator;
+  ci_mem_allocator_t *allocator;  
+  
   serial_allocator_t *sdata= serial_allocator_build(size);
-  if(!sdata)
-    return NULL;
-  allocator = malloc(sizeof(ci_mem_allocator_t));
+
+  /*Allocate space for ci_mem_allocator_t from our serial allocator ...*/
+  allocator = serial_allocation(sdata, sizeof(ci_mem_allocator_t));
   if(!allocator) {
-      /*we are leeking here*/
+      ci_buffer_free((void *)sdata);
       return NULL;
   }
   allocator->alloc = serial_allocator_alloc;
@@ -489,6 +543,10 @@ ci_mem_allocator_t *ci_create_serial_allocator(int size)
   allocator->reset = serial_allocator_reset;
   allocator->destroy = serial_allocator_destroy;
   allocator->data = sdata;
+  allocator->name = NULL;
+  allocator->type = SERIAL_ALLOC;
+  /*It is allocated in our buffer space...*/
+  allocator->must_free = 0;
   return allocator;
 }
 /****************************************************************/
@@ -498,20 +556,23 @@ typedef struct pack_allocator{
      void *memchunk;
      void *curpos;
      void *endpos;
+    void *end;
+    int must_free;
 } pack_allocator_t;
 
-
-
-void *pack_allocator_alloc(ci_mem_allocator_t *allocator,size_t size)
+/*Api functions for pack allocator:*/
+void *ci_pack_allocator_alloc_unaligned(ci_mem_allocator_t *allocator, size_t size)
 {
      int max_size;
      void *mem;
-     pack_allocator_t *pack_alloc = (pack_allocator_t *)allocator->data;
+     pack_allocator_t *pack_alloc;
+
+     assert(allocator->type == PACK_ALLOC);
+     pack_alloc = (pack_allocator_t *)allocator->data;
 
      if(!pack_alloc)
        return NULL;
 
-     size = _CI_ALIGN(size); /*round size to a correct alignment size*/
      max_size = pack_alloc->endpos - pack_alloc->curpos;
 
      if (size > max_size)
@@ -522,54 +583,156 @@ void *pack_allocator_alloc(ci_mem_allocator_t *allocator,size_t size)
      return mem;
 }
 
-void pack_allocator_free(ci_mem_allocator_t *allocator,void *p)
+void *ci_pack_allocator_alloc(ci_mem_allocator_t *allocator,size_t size)
+{
+    size = _CI_ALIGN(size); /*round size to a correct alignment size*/
+    return ci_pack_allocator_alloc_unaligned(allocator, size);
+}
+
+void  *ci_pack_allocator_alloc_from_rear(ci_mem_allocator_t *allocator, int size)
+{
+    int max_size;
+    void *mem;
+    pack_allocator_t *pack_alloc;
+
+    assert(allocator->type == PACK_ALLOC);
+    pack_alloc = (pack_allocator_t *)allocator->data;
+    
+    if(!pack_alloc)
+        return NULL;
+
+    size = _CI_ALIGN(size); /*round size to a correct alignment size*/
+    max_size = pack_alloc->endpos - pack_alloc->curpos;
+    
+    if (size > max_size)
+        return NULL;
+    
+    pack_alloc->endpos -= size; /*Allocate block from the end of memory block*/
+    mem = pack_alloc->endpos;
+    return mem;
+}
+
+void ci_pack_allocator_free(ci_mem_allocator_t *allocator,void *p)
 {
   /* We can not free :-)  */
 }
 
-void pack_allocator_reset(ci_mem_allocator_t *allocator)
+void ci_pack_allocator_reset(ci_mem_allocator_t *allocator)
 {
   pack_allocator_t *pack_alloc;
+  assert(allocator->type == PACK_ALLOC);
   pack_alloc = (pack_allocator_t *)allocator->data;
   pack_alloc->curpos = pack_alloc->memchunk;
 }
 
-void pack_allocator_destroy(ci_mem_allocator_t *allocator)
+void ci_pack_allocator_destroy(ci_mem_allocator_t *allocator)
 {
-    if(allocator->data) {
-	free(allocator->data);
+    pack_allocator_t *pack_alloc;
+    assert(allocator->type == PACK_ALLOC);
+    pack_alloc = (pack_allocator_t *)allocator->data;
+    if(pack_alloc->must_free != 0) {
+        ci_object_pool_free(allocator->data);
 	allocator->data = NULL;
     }
 }
 
-/*Api functions for pack allocator:*/
-ci_mem_allocator_t *ci_create_pack_allocator(char *memblock, int size)
+/*If "off" is not aligned return the first smaller aligned offset*/
+#define _ALIGNED_OFFSET(off) (off != _CI_ALIGN(off) ? _CI_ALIGN(off - _CI_NBYTES_ALIGNMENT) : off)
+
+ci_mem_allocator_t *init_pack_allocator(ci_mem_allocator_t *allocator, pack_allocator_t *pack_alloc, char *memblock, size_t size, int free)
+{
+    /*We may not be able to use all of the memblock size.
+      We need to support allocating memory space from the end, so we 
+      need to have aligned the pack_alloc->end to correctly calculate
+      memory block offsets from the end in ci_pack_allocator_alloc_from_rear 
+      function.
+    */
+    size =  _ALIGNED_OFFSET(size);
+    pack_alloc->memchunk = memblock;
+    pack_alloc->curpos =pack_alloc->memchunk;
+    pack_alloc->end = pack_alloc->memchunk + size;
+    pack_alloc->endpos = pack_alloc->end;
+    pack_alloc->must_free = free;
+
+    allocator->alloc = ci_pack_allocator_alloc;
+    allocator->free = ci_pack_allocator_free;
+    allocator->reset = ci_pack_allocator_reset;
+    allocator->destroy = ci_pack_allocator_destroy;
+    allocator->data = pack_alloc;
+    allocator->name = NULL;
+    allocator->type = PACK_ALLOC;
+    allocator->must_free = free;
+    return allocator;
+}
+
+ci_mem_allocator_t *ci_create_pack_allocator(char *memblock, size_t size)
 {
   ci_mem_allocator_t *allocator;
-  pack_allocator_t *pack_alloc = malloc(sizeof(pack_allocator_t));
+  pack_allocator_t *pack_alloc;
+  pack_alloc = ci_object_pool_alloc(PACK_ALLOCATOR_POOL);
   if(!pack_alloc)
       return NULL;
-  pack_alloc->memchunk = memblock;
-  pack_alloc->curpos =pack_alloc->memchunk;
-  pack_alloc->endpos = pack_alloc->memchunk + size;
-  
-  allocator = malloc(sizeof(ci_mem_allocator_t));
+  allocator = alloc_mem_allocator_struct();
   if(!allocator) {
-      free(pack_alloc);
+      ci_object_pool_free(pack_alloc);
       return NULL;
   }
-  allocator->alloc = pack_allocator_alloc;
-  allocator->free = pack_allocator_free;
-  allocator->reset = pack_allocator_reset;
-  allocator->destroy = pack_allocator_destroy;
-  allocator->data = pack_alloc;
-  return allocator;
+  
+  return   init_pack_allocator(allocator, pack_alloc, memblock, size, 1);
+}
+
+/*similar to the above but allocates required space for pack_allocator on the given memblock*/
+ci_mem_allocator_t *ci_create_pack_allocator_on_memblock(char *memblock, size_t size)
+{
+    ci_mem_allocator_t *allocator;
+
+    /*We need to allocate space on memblock for internal structures*/
+    if (size <= (_CI_ALIGN(sizeof(pack_allocator_t)) + _CI_ALIGN(sizeof(ci_mem_allocator_t))))
+        return NULL;
+
+    pack_allocator_t *pack_alloc = (pack_allocator_t *)memblock;
+    memblock += _CI_ALIGN(sizeof(pack_allocator_t));
+    size -= _CI_ALIGN(sizeof(pack_allocator_t));
+    allocator = (ci_mem_allocator_t *)memblock;
+    memblock += _CI_ALIGN(sizeof(ci_mem_allocator_t));
+    size -= _CI_ALIGN(sizeof(ci_mem_allocator_t));
+
+    return   init_pack_allocator(allocator, pack_alloc, memblock, size, 0);
 }
 
 int ci_pack_allocator_data_size(ci_mem_allocator_t *allocator)
 {
+   assert(allocator->type == PACK_ALLOC);
    pack_allocator_t *pack_alloc = (pack_allocator_t *)allocator->data;
    return (int) (pack_alloc->curpos - pack_alloc->memchunk);
+}
+
+size_t  ci_pack_allocator_required_size()
+{
+    return _CI_ALIGN(sizeof(pack_allocator_t)) + _CI_ALIGN(sizeof(ci_mem_allocator_t));
+}
+
+static size_t sizeof_pack_allocator() {return sizeof(pack_allocator_t);}
+
+void ci_pack_allocator_set_start_pos(ci_mem_allocator_t *allocator, void *p)
+{
+    pack_allocator_t *pack_alloc;
+    assert(allocator->type == PACK_ALLOC);
+    pack_alloc = (pack_allocator_t *)allocator->data;
+    assert(p >= pack_alloc->memchunk);
+    pack_alloc->curpos = p;
+}
+
+void ci_pack_allocator_set_end_pos(ci_mem_allocator_t *allocator, void *p)
+{
+    pack_allocator_t *pack_alloc;
+    assert(allocator->type == PACK_ALLOC);
+    pack_alloc = (pack_allocator_t *)allocator->data;
+    assert(p <= pack_alloc->end);
+    if (p == NULL)
+        pack_alloc->endpos = pack_alloc->end;
+    else
+        pack_alloc->endpos = p;
 }
 
 /****************************************************************/
@@ -582,8 +745,6 @@ struct mem_block_item {
 struct pool_allocator {
     int items_size;
     int strict;
-    ci_mem_allocator_t *allocator;
-    int free_allocator;
     int alloc_count;
     int hits_count;
     ci_thread_mutex_t mutex;
@@ -591,28 +752,14 @@ struct pool_allocator {
     struct mem_block_item *allocated;
 };
 
-struct pool_allocator *pool_allocator_build(int items_size, 
-					    int strict,
-					    ci_mem_allocator_t *use_alloc)
+static struct pool_allocator *pool_allocator_build(int items_size, 
+					    int strict)
 {
-    int free_allocator = 0; 
     struct pool_allocator *palloc;
     
-    if(!use_alloc) {
-	free_allocator = 1;
-	use_alloc = ci_create_os_allocator();
-    }
-    
-    if(!use_alloc) {
-	/*a debug message*/
-	return NULL;
-    }
-    palloc = use_alloc->alloc(use_alloc, sizeof(struct pool_allocator));
+    palloc = (struct pool_allocator *)malloc(sizeof(struct pool_allocator));
     
     if(!palloc) {
-	/*An error message*/
-	if(free_allocator)
-	    ci_mem_allocator_destroy(use_alloc);
 	return NULL;
     }
     
@@ -620,15 +767,13 @@ struct pool_allocator *pool_allocator_build(int items_size,
     palloc->strict = strict;
     palloc->free = NULL;
     palloc->allocated = NULL;
-    palloc->free_allocator = free_allocator; 
-    palloc->allocator = use_alloc;
     palloc->alloc_count = 0;
     palloc->hits_count = 0;
     ci_thread_mutex_init(&palloc->mutex);
     return palloc;
 }
 
-void *pool_allocator_alloc(ci_mem_allocator_t *allocator,size_t size)
+static void *pool_allocator_alloc(ci_mem_allocator_t *allocator,size_t size)
 {
     struct mem_block_item *mem_item;
     void *data = NULL;
@@ -647,10 +792,9 @@ void *pool_allocator_alloc(ci_mem_allocator_t *allocator,size_t size)
 	palloc->hits_count++;
     }
     else {
-	mem_item = palloc->allocator->alloc(palloc->allocator, 
-					    sizeof(struct mem_block_item));
+	mem_item = malloc(sizeof(struct mem_block_item));
 	mem_item->data=NULL;
-	data = palloc->allocator->alloc(palloc->allocator, palloc->items_size);
+	data = malloc(palloc->items_size);
 	palloc->alloc_count++;
     }
     
@@ -662,7 +806,7 @@ void *pool_allocator_alloc(ci_mem_allocator_t *allocator,size_t size)
     return data;
 }
 
-void pool_allocator_free(ci_mem_allocator_t *allocator,void *p)
+static void pool_allocator_free(ci_mem_allocator_t *allocator,void *p)
 {
     struct mem_block_item *mem_item;
     struct pool_allocator *palloc = (struct pool_allocator *)allocator->data;
@@ -670,7 +814,7 @@ void pool_allocator_free(ci_mem_allocator_t *allocator,void *p)
     ci_thread_mutex_lock(&palloc->mutex);
     if(!palloc->allocated) {
 	/*Yes can happen! after a reset but users did not free all objects*/
-        palloc->allocator->free(palloc->allocator,p);
+        free(p);
     }
     else {
 	mem_item=palloc->allocated;
@@ -683,7 +827,7 @@ void pool_allocator_free(ci_mem_allocator_t *allocator,void *p)
     ci_thread_mutex_unlock(&palloc->mutex);
 }
 
-void pool_allocator_reset(ci_mem_allocator_t *allocator)
+static void pool_allocator_reset(ci_mem_allocator_t *allocator)
 {
     struct mem_block_item *mem_item, *cur;
     struct pool_allocator *palloc = (struct pool_allocator *)allocator->data;
@@ -694,7 +838,7 @@ void pool_allocator_reset(ci_mem_allocator_t *allocator)
 	while(mem_item!=NULL) {
 	    cur = mem_item;
 	    mem_item = mem_item->next;
-	    palloc->allocator->free(palloc->allocator, cur);
+	    free(cur);
 	}
 	
     }
@@ -704,8 +848,8 @@ void pool_allocator_reset(ci_mem_allocator_t *allocator)
 	while(mem_item!=NULL) {
 	    cur = mem_item;
 	    mem_item = mem_item->next;
-	    palloc->allocator->free(palloc->allocator, cur->data);
-	    palloc->allocator->free(palloc->allocator, cur);
+	    free(cur->data);
+	    free(cur);
 	}
     }
     palloc->free = NULL;
@@ -713,26 +857,22 @@ void pool_allocator_reset(ci_mem_allocator_t *allocator)
 }
 
 
-void pool_allocator_destroy(ci_mem_allocator_t *allocator)
+static void pool_allocator_destroy(ci_mem_allocator_t *allocator)
 {
-    int free_allocator = 0;
     pool_allocator_reset(allocator);
     struct pool_allocator *palloc = (struct pool_allocator *)allocator->data;
-    ci_mem_allocator_t *use_alloc = palloc->allocator;
     ci_thread_mutex_destroy(&palloc->mutex);
-    free_allocator = palloc->free_allocator;
-    use_alloc->free(use_alloc, palloc);
-    if(free_allocator)
-	ci_mem_allocator_destroy(use_alloc);
+    free(palloc);
 }
 
-ci_mem_allocator_t *ci_create_pool_allocator(int items_size, ci_mem_allocator_t *use_alloc)
+ci_mem_allocator_t *ci_create_pool_allocator(int items_size)
 {
     struct pool_allocator *palloc;
     ci_mem_allocator_t *allocator;
     
-    palloc = pool_allocator_build(items_size, 0, use_alloc);
-    allocator= malloc(sizeof(ci_mem_allocator_t));
+    palloc = pool_allocator_build(items_size, 0);
+    /*Use always malloc for ci_mem_alocator struct.*/
+    allocator = (ci_mem_allocator_t *) malloc(sizeof(ci_mem_allocator_t));
     if (!allocator)
 	return NULL;
     allocator->alloc = pool_allocator_alloc;
@@ -740,5 +880,8 @@ ci_mem_allocator_t *ci_create_pool_allocator(int items_size, ci_mem_allocator_t 
     allocator->reset = pool_allocator_reset;
     allocator->destroy = pool_allocator_destroy;
     allocator->data = palloc;
+    allocator->name = NULL;
+    allocator->type = POOL_ALLOC;
+    allocator->must_free = 1;
     return allocator;
 }

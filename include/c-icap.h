@@ -110,11 +110,13 @@ typedef off_t ci_off_t;
 #endif
 
 /*
-  Use 8 bytes alignment.
-  TODO: The correct alignment size should be detected in configure.in 
-  and defined in c-icap-conf.h file
- */
-#define _CI_ALIGN(val) ((val+7)&~7)
+  Detect n-bytes alignment.
+  Old 8 bytes alignment macro:
+  #define _CI_ALIGN(val) ((val+7)&~7)
+*/
+struct _ci_align_test {char n[1]; double d;};
+#define _CI_NBYTES_ALIGNMENT ((size_t) &(((struct _ci_align_test *)0)[0].d))
+#define _CI_ALIGN(val) ((val+(_CI_NBYTES_ALIGNMENT - 1))&~(_CI_NBYTES_ALIGNMENT - 1))
 
 #define ICAP_OPTIONS   0x01
 #define ICAP_REQMOD    0x02
