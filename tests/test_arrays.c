@@ -23,10 +23,11 @@ static struct ci_options_entry options[] = {
     {NULL,NULL,NULL,NULL,NULL}
 };
 
-void print_str(void *data, const char *name, const void *value)
+int print_str(void *data, const char *name, const void *value)
 {
     const char *v = (const char *)value;
     ci_debug_printf(2, "\t%s: %s\n", name, v);
+    return 0;
 }
 
 int mem_init();
@@ -34,10 +35,14 @@ int main(int argc,char *argv[])
 {
     ci_str_array_t *arr_str;
     ci_ptr_array_t *arr_ptr;
-    int i;
+    ci_vector_t *vect_str;
+    ci_vector_t *vect_ptr;
+    const ci_array_item_t *item;
+    int i, j;
     char name[128];
     char value[128];
     void *data;
+    char *strdata;
     ci_cfg_lib_init();
     mem_init();
     __log_error = (void (*)(void *, const char *,...)) log_errors;     /*set c-icap library log  function */
@@ -58,6 +63,23 @@ int main(int argc,char *argv[])
     ci_debug_printf(2, "\n\nArray of strings:\n");
     ci_str_array_iterate(arr_str, NULL, print_str);
 
+    ci_debug_printf(1, "Test pop1: \n");
+    for (i = 0; i < 64; i++)
+        ci_str_array_pop(arr_str);
+    for (i = 64; i < 128; i++) {
+        sprintf(name, "name%d", i);
+        sprintf(value, "value%d", i);
+        ci_str_array_add(arr_str, name, value);
+    }
+    
+    ci_debug_printf(2, "Result: \n");
+    ci_str_array_iterate(arr_str, NULL, print_str);
+
+    ci_debug_printf(1, "Test pop 2: \n");
+    while ((item = ci_str_array_pop(arr_str)) != NULL) {
+        ci_debug_printf(2, " popped : %s %s \n", item->name, (char *)item->value);
+    }
+
     ci_str_array_destroy(arr_str);
     ci_debug_printf(1, "done \n");
 
@@ -75,13 +97,30 @@ int main(int argc,char *argv[])
     ci_debug_printf(1, "done\n");
     char buf[1024];
     ci_debug_printf(1, "Test pop on array of pointers...");
-    while((data = ci_ptr_array_pop(arr_ptr, buf, sizeof(buf))) != NULL) {
+    while((data = ci_ptr_array_pop_value(arr_ptr, buf, sizeof(buf))) != NULL) {
         ci_debug_printf(3, "Deleting : %s: %s\n", buf, (char *)data);
         free(data);
     }
     ci_debug_printf(1, "done\n");
     ci_ptr_array_destroy(arr_ptr);
 
-    
+    vect_str = ci_str_vector_create(4096);
+
+    for (j = 1; j < 3; j++) {
+        for (i = 1; i< 128; i++) {
+            sprintf(value, "value: %d", i);
+            strdata = ci_str_vector_add(vect_str, value);
+            if (!strdata)
+                ci_debug_printf(2, "Can not add: %s\n", value);
+        }
+        
+        while((strdata = ci_str_vector_pop(vect_str)) != NULL) {
+            ci_debug_printf(2, "Popped value: %s\n", strdata);
+        }
+    }
+
+    ci_str_vector_destroy(vect_str);
+
+
     return 0;
 }
