@@ -449,7 +449,9 @@ static serial_allocator_t *serial_allocator_build(int size)
      serial_allocator_t *serial_alloc;
      void *buffer;
      size = _CI_ALIGN(size);
-     if (size < sizeof(serial_allocator_t))
+     /*The serial_allocator and mem_allocator structures will be
+      allocated in the buffer */
+     if (size < sizeof(serial_allocator_t) + sizeof(ci_mem_allocator_t))
          return NULL;
      buffer = ci_buffer_alloc(size);
      serial_alloc = buffer;
@@ -501,12 +503,19 @@ static void serial_allocator_free(ci_mem_allocator_t *allocator,void *p)
 
 static void serial_allocator_reset(ci_mem_allocator_t *allocator)
 {
-  serial_allocator_t *cur;
-  cur = (serial_allocator_t *)allocator->data;
-  while (cur) {
-    cur->curpos = cur->memchunk;
-    cur = cur->next;
-  }
+    serial_allocator_t *serial_alloc, *sa;
+    void *tmp;
+    serial_alloc = (serial_allocator_t *)allocator->data;
+    serial_alloc->curpos = serial_alloc->memchunk + _CI_ALIGN(sizeof(ci_mem_allocator_t));
+    sa = serial_alloc->next;
+    serial_alloc->next = NULL;
+
+    /*release any other allocated chunk*/
+    while (sa) {
+        tmp = (void *)sa;
+        ci_buffer_free(tmp);
+        sa = sa->next;
+    }
 }
 
 static void serial_allocator_destroy(ci_mem_allocator_t *allocator)
