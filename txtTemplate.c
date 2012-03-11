@@ -408,16 +408,19 @@ ci_membuf_t *ci_txt_template_build_content(const ci_request_t *req, const char *
      /*templateLoadText also locks the template*/
      template = templateLoadText(req, SERVICE_NAME, TEMPLATE_NAME);
      if (template) {
-       content->endpos = ci_format_text((ci_request_t *)req, template->data->buf, content->buf, content->bufsize, user_table);
-          template_release(template);
+         content->endpos = ci_format_text((ci_request_t *)req, template->data->buf, content->buf, content->bufsize, user_table);
+         ci_membuf_write(content, "\0", 1, 1);      // terminate the string for safety (????)
+         if (template->LANGUAGE)
+             ci_membuf_attr_add(content, "lang", template->LANGUAGE, strlen(template->LANGUAGE) + 1);
 
-          ci_membuf_write(content, "\0", 1, 1);      // terminate the string for safety
+          template_release(template);
      }
      else {
           makeTemplatePathFileName(templpath, CI_MAX_PATH, SERVICE_NAME, TEMPLATE_NAME, TEMPLATE_DEF_LANG);
           content->endpos = snprintf(content->buf, content->bufsize, "ERROR: Unable to find specified template: %s\n", templpath);
           if (content->endpos > content->bufsize)
               content->endpos = content->bufsize;
+          ci_membuf_attr_add(content, "lang", TEMPLATE_DEF_LANG, strlen(TEMPLATE_DEF_LANG) + 1);
           ci_debug_printf(1, "ERROR: Unable to find specified template: %s\n", templpath);
      }
 
