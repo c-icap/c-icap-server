@@ -97,6 +97,10 @@ int main(int argc, char **argv)
      init_internal_lookup_tables();
      ci_acl_init();
      init_http_auth();
+     if (init_body_system() != CI_OK) {
+         ci_debug_printf(1, "Can not initialize body system\n");
+         exit(-1);
+     }
      ci_txt_template_init();
      ci_txt_template_set_dir(DATADIR"templates");
 

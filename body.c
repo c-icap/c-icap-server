@@ -37,6 +37,44 @@
 #define min(x,y) ((x)>(y)?(y):(x))
 #define max(x,y) ((x)>(y)?(x):(y))
 
+static int MEMBUF_POOL = -1;
+static int CACHED_FILE_POOL = -1;
+static int SIMPLE_FILE_POOL = -1;
+static int RING_BUF_POOL = -1;
+
+int init_body_system()
+{
+    MEMBUF_POOL = ci_object_pool_register("ci_membuf_t", 
+                                          sizeof(ci_membuf_t));
+    if (MEMBUF_POOL < 0)
+        return CI_ERROR;
+
+    CACHED_FILE_POOL = ci_object_pool_register("ci_cached_file_t", 
+                                               sizeof(ci_cached_file_t));
+    if (CACHED_FILE_POOL < 0)
+        return CI_ERROR;
+
+    SIMPLE_FILE_POOL = ci_object_pool_register("ci_simple_file_t", 
+                                               sizeof(ci_simple_file_t));
+    if (SIMPLE_FILE_POOL < 0)
+        return CI_ERROR;
+
+    RING_BUF_POOL = ci_object_pool_register("ci_ring_buf_t", 
+                                            sizeof(ci_ring_buf_t));
+    if (RING_BUF_POOL < 0)
+        return CI_ERROR;
+    
+    return CI_OK;
+}
+
+void release_body_system()
+{
+    ci_object_pool_unregister(MEMBUF_POOL);
+    ci_object_pool_unregister(CACHED_FILE_POOL);
+    ci_object_pool_unregister(SIMPLE_FILE_POOL);
+    ci_object_pool_unregister(RING_BUF_POOL);
+}
+
 struct ci_membuf *ci_membuf_new()
 {
     return ci_membuf_new_sized(STARTLEN);
@@ -45,7 +83,7 @@ struct ci_membuf *ci_membuf_new()
 struct ci_membuf *ci_membuf_new_sized(int size)
 {
      struct ci_membuf *b;
-     b = malloc(sizeof(struct ci_membuf));
+     b = ci_object_pool_alloc(MEMBUF_POOL);
      if (!b)
           return NULL;
 
@@ -53,23 +91,26 @@ struct ci_membuf *ci_membuf_new_sized(int size)
      b->endpos = 0;
      b->readpos = 0;
      b->hasalldata = 0;
-     b->buf = malloc(size * sizeof(char));
+     b->buf = ci_buffer_alloc(size * sizeof(char));
      if (b->buf == NULL) {
           free(b);
           return NULL;
      }
      b->bufsize = size;
+     b->attributes = NULL;
      return b;
 }
 
 
 void ci_membuf_free(struct ci_membuf *b)
 {
-     if (!b)
-          return;
-     if (b->buf)
-          free(b->buf);
-     free(b);
+    if (!b)
+        return;
+    if (b->buf)
+        ci_buffer_free(b->buf);
+    if (b->attributes)
+        ci_array_destroy(b->attributes);
+    ci_object_pool_free(b);
 }
 
 
@@ -87,7 +128,7 @@ int ci_membuf_write(struct ci_membuf *b, const char *data, int len, int iseof)
      remains = b->bufsize - b->endpos;
      while (remains < len) {
           newsize = b->bufsize + INCSTEP;
-          newbuf = realloc(b->buf, newsize);
+          newbuf = ci_buffer_realloc(b->buf, newsize);
           if (newbuf == NULL) {
                if (remains)
                     memcpy(b->buf + b->endpos, data, remains);
@@ -118,6 +159,26 @@ int ci_membuf_read(struct ci_membuf *b, char *data, int len)
      }
 
      return copybytes;
+}
+
+#define BODY_ATTRS_SIZE 1024
+int ci_membuf_attr_add(struct ci_membuf *body,const char *attr, const void *val, size_t val_size)
+{
+
+    if (!body->attributes)
+        body->attributes = ci_array_new(BODY_ATTRS_SIZE);
+
+    if (body->attributes)
+        return (ci_array_add(body->attributes, attr, val, val_size) != NULL);
+
+    return 0;
+}
+
+const void * ci_membuf_attr_get(struct ci_membuf *body,const char *attr)
+{
+    if (body->attributes)
+        return ci_array_search(body->attributes, attr);
+    return NULL;
 }
 
 /****/
@@ -191,7 +252,7 @@ int resize_buffer(ci_cached_file_t * body, int new_size)
      if (new_size > CI_BODY_MAX_MEM)
           return 0;
 
-     newbuf = realloc(body->buf, new_size);
+     newbuf = ci_buffer_realloc(body->buf, new_size);
      if (newbuf) {
           body->buf = newbuf;
           body->bufsize = new_size;
@@ -202,14 +263,14 @@ int resize_buffer(ci_cached_file_t * body, int new_size)
 ci_cached_file_t *ci_cached_file_new(int size)
 {
      ci_cached_file_t *body;
-     if (!(body = malloc(sizeof(ci_cached_file_t))))
+     if (!(body = ci_object_pool_alloc(CACHED_FILE_POOL)))
           return NULL;
 
      if (size == 0)
           size = CI_BODY_MAX_MEM;
 
      if (size > 0 && size <= CI_BODY_MAX_MEM) {
-          body->buf = malloc(size * sizeof(char));
+          body->buf = ci_buffer_alloc(size * sizeof(char));
      }
      else
           body->buf = NULL;
@@ -221,7 +282,7 @@ ci_cached_file_t *ci_cached_file_new(int size)
                ci_debug_printf(1,
                                "Can not open temporary filename in directory:%s\n",
                                CI_TMPDIR);
-               free(body);
+               ci_object_pool_free(body);
                return NULL;
           }
      }
@@ -233,6 +294,7 @@ ci_cached_file_t *ci_cached_file_new(int size)
      body->readpos = 0;
      body->flags = 0;
      body->unlocked = 0;
+     body->attributes = NULL;
      return body;
 }
 
@@ -250,6 +312,10 @@ void ci_cached_file_reset(ci_cached_file_t * body, int new_size)
      body->unlocked = 0;
      body->fd = -1;
 
+     if (body->attributes)
+         ci_array_destroy(body->attributes);
+     body->attributes = NULL;
+
      if (!resize_buffer(body, new_size)) {
           /*free memory and open a file. */
      }
@@ -262,14 +328,17 @@ void ci_cached_file_destroy(ci_cached_file_t * body)
      if (!body)
           return;
      if (body->buf)
-          free(body->buf);
+          ci_buffer_free(body->buf);
 
      if (body->fd >= 0) {
           do_close(body->fd);
           unlink(body->filename);       /*Comment out for debuging reasons */
      }
 
-     free(body);
+    if (body->attributes)
+        ci_array_destroy(body->attributes);
+
+     ci_object_pool_free(body);
 }
 
 
@@ -278,12 +347,16 @@ void ci_cached_file_release(ci_cached_file_t * body)
      if (!body)
           return;
      if (body->buf)
-          free(body->buf);
+          ci_buffer_free(body->buf);
 
      if (body->fd >= 0) {
           do_close(body->fd);
      }
-     free(body);
+
+    if (body->attributes)
+        ci_array_destroy(body->attributes);
+
+     ci_object_pool_free(body);
 }
 
 
@@ -402,7 +475,7 @@ ci_simple_file_t *ci_simple_file_new(ci_off_t maxsize)
 {
      ci_simple_file_t *body;
 
-     if (!(body = malloc(sizeof(ci_simple_file_t))))
+     if (!(body = ci_object_pool_alloc(SIMPLE_FILE_POOL)))
           return NULL;
 
      if ((body->fd =
@@ -410,7 +483,7 @@ ci_simple_file_t *ci_simple_file_new(ci_off_t maxsize)
           ci_debug_printf(1,
                           "ci_simple_file_new: Can not open temporary filename in directory:%s\n",
                           CI_TMPDIR);
-          free(body);
+          ci_object_pool_free(body);
           return NULL;
      }
      body->endpos = 0;
@@ -420,6 +493,7 @@ ci_simple_file_t *ci_simple_file_new(ci_off_t maxsize)
      body->max_store_size = (maxsize>0?maxsize:0);
      body->bytes_in = 0;
      body->bytes_out = 0;
+     body->attributes = NULL;
 
      return body;
 }
@@ -430,7 +504,7 @@ ci_simple_file_t *ci_simple_file_named_new(char *dir, char *filename,ci_off_t ma
 {
      ci_simple_file_t *body;
 
-     if (!(body = malloc(sizeof(ci_simple_file_t))))
+     if (!(body = ci_object_pool_alloc(SIMPLE_FILE_POOL)))
           return NULL;
 
      if (filename) {
@@ -439,7 +513,7 @@ ci_simple_file_t *ci_simple_file_named_new(char *dir, char *filename,ci_off_t ma
                do_open(body->filename, O_CREAT | O_RDWR | O_EXCL)) < 0) {
                ci_debug_printf(1, "Can not open temporary filename: %s\n",
                                body->filename);
-               free(body);
+               ci_object_pool_free(body);
                return NULL;
           }
      }
@@ -448,7 +522,7 @@ ci_simple_file_t *ci_simple_file_named_new(char *dir, char *filename,ci_off_t ma
           ci_debug_printf(1,
                           "Can not open temporary filename in directory: %s\n",
                           dir);
-          free(body);
+          ci_object_pool_free(body);
           return NULL;
      }
      body->endpos = 0;
@@ -458,6 +532,7 @@ ci_simple_file_t *ci_simple_file_named_new(char *dir, char *filename,ci_off_t ma
      body->max_store_size = (maxsize>0?maxsize:0);
      body->bytes_in = 0;
      body->bytes_out = 0;
+     body->attributes = NULL;
 
      return body;
 }
@@ -473,7 +548,10 @@ void ci_simple_file_destroy(ci_simple_file_t * body)
           unlink(body->filename);       /*Comment out for debuging reasons */
      }
 
-     free(body);
+     if (body->attributes)
+        ci_array_destroy(body->attributes);
+
+     ci_object_pool_free(body);
 }
 
 
@@ -486,7 +564,10 @@ void ci_simple_file_release(ci_simple_file_t * body)
           do_close(body->fd);
      }
 
-     free(body);
+     if (body->attributes)
+        ci_array_destroy(body->attributes);
+
+     ci_object_pool_free(body);
 }
 
 
@@ -601,13 +682,13 @@ int ci_simple_file_read(ci_simple_file_t * body, char *buf, int len)
 
 struct ci_ring_buf *ci_ring_buf_new(int size)
 {
-  struct ci_ring_buf *buf = malloc(sizeof(struct ci_ring_buf));
+  struct ci_ring_buf *buf = ci_object_pool_alloc(RING_BUF_POOL);
   if (!buf)
       return NULL;
 
-  buf->buf = malloc(size);
+  buf->buf = ci_buffer_alloc(size);
   if (!buf->buf) {
-      free(buf);
+      ci_object_pool_free(buf);
       return NULL;
   }
 
@@ -620,8 +701,8 @@ struct ci_ring_buf *ci_ring_buf_new(int size)
 
 void ci_ring_buf_destroy(struct ci_ring_buf *buf)
 {
-    free(buf->buf);
-    free(buf);
+    ci_buffer_free(buf->buf);
+    ci_object_pool_free(buf);
 }
 
 int ci_ring_buf_is_empty(struct ci_ring_buf *buf)

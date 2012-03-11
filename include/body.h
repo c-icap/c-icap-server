@@ -24,6 +24,7 @@
 #include "c-icap.h"
 #include <stdio.h>
 #include "util.h"
+#include "array.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -37,6 +38,7 @@ typedef struct ci_membuf{
      int bufsize;
      int hasalldata;
      char *buf;
+    ci_array_t *attributes;
 } ci_membuf_t;
 
 CI_DECLARE_FUNC(struct ci_membuf) * ci_membuf_new();
@@ -44,6 +46,8 @@ CI_DECLARE_FUNC(struct ci_membuf) * ci_membuf_new_sized(int size);
 CI_DECLARE_FUNC(void) ci_membuf_free(struct ci_membuf *);
 CI_DECLARE_FUNC(int) ci_membuf_write(struct ci_membuf *body, const char *buf,int len, int iseof);
 CI_DECLARE_FUNC(int) ci_membuf_read(struct ci_membuf *body,char *buf,int len);
+CI_DECLARE_FUNC(int) ci_membuf_attr_add(struct ci_membuf *body,const char *attr, const void *val, size_t val_size);
+CI_DECLARE_FUNC(const void *) ci_membuf_attr_get(struct ci_membuf *body,const char *attr);
 
 
 /*****************************************************************/
@@ -62,6 +66,7 @@ typedef struct ci_cached_file{
      char *buf;
      int fd;
      char filename[CI_FILENAME_LEN+1];
+    ci_array_t *attributes;
 } ci_cached_file_t;
 
 
@@ -98,6 +103,7 @@ typedef struct ci_simple_file{
      ci_off_t unlocked;
      int fd;
      char filename[CI_FILENAME_LEN+1];
+    ci_array_t *attributes;
 } ci_simple_file_t;
 
 
