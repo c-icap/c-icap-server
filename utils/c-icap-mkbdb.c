@@ -374,7 +374,8 @@ int main(int argc, char **argv)
 
     if (!open_db(outfile)) {
 	ci_debug_printf(1, "Error opening bdb file %s\n", outfile);
-	fclose(f);
+        if (f)
+            fclose(f);
 	return -1;
     }
 
