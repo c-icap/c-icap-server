@@ -31,6 +31,7 @@ struct ci_lookup_table_type dnsbl_table_type={
     dnsbl_table_close,
     dnsbl_table_search,
     dnsbl_table_release_result,
+    NULL,
     "dnsbl"
 };
 

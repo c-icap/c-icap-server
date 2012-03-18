@@ -21,7 +21,6 @@
 #include "lookup_table.h"
 #include "debug.h"
 #include "mem.h"
-//#include <string.h>
 
 
 /***********************************************************/
@@ -66,7 +65,7 @@ const struct ci_lookup_table_type *ci_lookup_table_type_search(const char *type)
     return NULL;
 }
 
-
+static const void * lookup_table_get_row(struct ci_lookup_table *table, const void *key, const char *columns[], void ***vals);
 struct ci_lookup_table *ci_lookup_table_create_ext(const char *table,
 						   ci_type_ops_t *key_ops,
 						   ci_type_ops_t *val_ops, 
@@ -133,8 +132,10 @@ struct ci_lookup_table *ci_lookup_table_create_ext(const char *table,
     lt->open = lt_type->open;
     lt->close = lt_type->close;
     lt->search = lt_type->search;
+    lt->get_row = lookup_table_get_row;
     lt->release_result = lt_type->release_result;
     lt->allocator = allocator;
+    lt->_lt_type = lt_type;
     lt->data = NULL; 
 
     return lt;    
@@ -168,6 +169,71 @@ void ci_lookup_table_destroy(struct ci_lookup_table *lt)
     free(lt);
 }
 
+void * ci_lookup_table_open(struct ci_lookup_table *table)
+{
+     if (!table->_lt_type || !table->open) {
+        ci_debug_printf(1, "lookup_table of type  %s is corrupted (\"open\" method missing)!\n", table->type);
+        return NULL;
+    }
+    return table->open(table);
+}
+
+const char * ci_lookup_table_search(struct ci_lookup_table *table, const char *key, char ***vals)
+{
+    if (!table->_lt_type || !table->search) {
+        ci_debug_printf(1, "lookup_table of type  %s is corrupted (\"search\" method missing)!\n", table->type);
+        return NULL;
+    }
+
+    if (!ci_type_ops_is_string(table->key_ops) ||  !ci_type_ops_is_string(table->val_ops)) {
+        ci_debug_printf(1, "lookup_table of type  %s does not support search with string like keys!\n", table->type);
+        return NULL;
+    }
+
+    return table->search(table, (void *)key, (void ***)vals);
+}
+
+void  ci_lookup_table_release_result(struct ci_lookup_table *table, void **val)
+{
+    if (!table->_lt_type || !table->release_result) {
+        ci_debug_printf(1, "lookup_table of type  %s is corrupted (\"release_result\" method missing)!\n", table->type);
+        return;
+    }
+    return table->release_result(table, (void **)val);
+}
+
+const void * lookup_table_get_row(struct ci_lookup_table *table, const void *key, const char *columns[], void ***vals)
+{
+    int i;
+    if (!table->_lt_type) {
+        ci_debug_printf(1, "lookup_table of type  %s is corrupted!\n", table->type);
+        return NULL;
+    }
+
+    if (!table->col_names || table->_lt_type->get_row) {
+        ci_debug_printf(1, "lookup_table :%s does not support lookup on named columns\n", table->type);
+        return NULL;
+    }
+
+    for (i=0; i < 1024 && columns[i] != NULL; i++) {
+        if (NULL == ci_str_vector_search(table->col_names, columns[i])) {
+            ci_debug_printf(1, "lookup_table :%s does not has column %s\n", table->type, columns[i]);
+            return NULL;
+        }
+    }
+
+    return table->_lt_type->get_row(table, key, columns, vals);
+}
+
+const char * ci_lookup_table_get_row(struct ci_lookup_table *table, const char *key, const char *columns[], char ***vals)
+{
+    if ( !ci_type_ops_is_string(table->key_ops) ||  !ci_type_ops_is_string(table->val_ops)) {
+        ci_debug_printf(1, "lookup_table of type  %s does not support search with string like keys!\n", table->type);
+        return NULL;
+    }
+    
+    return (const char *) lookup_table_get_row(table, (const void *)key, columns, (void ***)vals);
+}
 
 extern struct ci_lookup_table_type file_table_type;
 extern struct ci_lookup_table_type hash_table_type;

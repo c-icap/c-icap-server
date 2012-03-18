@@ -23,6 +23,7 @@
 #include "c-icap.h"
 #include "mem.h"
 #include "types_ops.h"
+#include "array.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -45,6 +46,7 @@ struct ci_lookup_table_type {
     void  (*close)(struct ci_lookup_table *table);
     void *(*search)(struct ci_lookup_table *table, void *key, void ***vals);
     void  (*release_result)(struct ci_lookup_table *table_data, void **val);
+    const void * (*get_row)(struct ci_lookup_table *table, const void *key, const char *columns[], void ***vals);
     char *type;
 };
 
@@ -53,44 +55,20 @@ struct ci_lookup_table_type {
  * \ingroup LOOKUPTABLE
  */
 struct ci_lookup_table {
-    /**
-     * \brief This method initializes the lookup table.
-     *
-     * \param table The lookup table object
-     */
     void *(*open)(struct ci_lookup_table *table); 
-
-    /**
-     * \brief This method closing the lookup table.
-     *
-     * \param table The lookup table object
-     */
     void  (*close)(struct ci_lookup_table *table);
-
-    /**
-     * \brief Used to search for an object in the lookup table which matches a key.
-     *
-     * \param table The lookup table object
-     * \param key The key value to search for
-     * \param vals In this variable stored a 2d array which contains the return values 
-     * \return NULL if none object matches, pointer to the object key value.
-     */
     void *(*search)(struct ci_lookup_table *table, void *key, void ***vals);
-
-    /**
-     * \brief Used to release the data values returned from the search method.
-     *
-     * \param table The lookup tabke object
-     * \param val The 2d array returned from the search method
-     */
     void  (*release_result)(struct ci_lookup_table *table, void **val);
+    const void * (*get_row)(struct ci_lookup_table *table, const void *key, const char *columns[], void ***vals);
     char *type;
     char *path;
     char *args;
     int cols;
+    ci_str_vector_t *col_names;
     ci_type_ops_t *key_ops;
     ci_type_ops_t *val_ops;
     ci_mem_allocator_t *allocator;
+    const struct ci_lookup_table_type *_lt_type;
     void *data;
 };
 
@@ -114,6 +92,44 @@ CI_DECLARE_FUNC(struct ci_lookup_table *) ci_lookup_table_create(const char *tab
  \param lt Pointer to the lookup table will be destroyed.
  */
 CI_DECLARE_FUNC(void) ci_lookup_table_destroy(struct ci_lookup_table *lt);
+
+/**
+ * \brief Initializes the lookup table.
+ *
+ * \param table The lookup table object
+ */
+CI_DECLARE_FUNC(void *) ci_lookup_table_open(struct ci_lookup_table *table); 
+
+
+/**
+ * \brief Search for an object in the lookup table which matches a key.
+ *
+ * \param table The lookup table object
+ * \param key The key value to search for
+ * \param vals In this variable stored a 2d array which contains the return values 
+ * \return NULL if none object matches, pointer to the object key value.
+ */
+CI_DECLARE_FUNC(const char *) ci_lookup_table_search(struct ci_lookup_table *table, const char *key, char ***vals);
+
+/**
+ * \brief Releases the data values returned from the search method.
+ *
+ * \param table The lookup table object
+ * \param val The 2d array returned from the search method
+ */
+CI_DECLARE_FUNC(void)  ci_lookup_table_release_result(struct ci_lookup_table *table, void **val);
+
+/**
+ * \brief Search for an object in the lookup table which supports named columns.
+ *
+ * \param table The lookup table object
+ * \param key The key value to search for
+ * \param columns NULL terminated array with the names of the columns to retrieve.
+ * \param vals In this variable stored a 2d array which contains the requested row
+ * \return NULL if none object matches, pointer to the object key value.
+ */
+
+CI_DECLARE_FUNC(const char *) ci_lookup_table_get_row(struct ci_lookup_table *table, const char *key, const char *columns[], char ***vals);
 
 #ifdef __cplusplus
 }

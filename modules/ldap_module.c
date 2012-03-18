@@ -33,12 +33,14 @@ void *ldap_table_open(struct ci_lookup_table *table);
 void  ldap_table_close(struct ci_lookup_table *table);
 void *ldap_table_search(struct ci_lookup_table *table, void *key, void ***vals);
 void  ldap_table_release_result(struct ci_lookup_table *table_data,void **val);
+const void *ldap_table_get_row(struct ci_lookup_table *table, const void *key, const char *columns[], void ***vals);
 
 struct ci_lookup_table_type ldap_table_type={
     ldap_table_open,
     ldap_table_close,
     ldap_table_search,
     ldap_table_release_result,
+    NULL,
     "ldap"
 };
 
@@ -518,7 +520,7 @@ void *store_val(void *val,int *val_size, ci_mem_allocator_t *allocator)
 
 void *read_val(void *val, int val_size, ci_mem_allocator_t *allocator)
 {
-    char *data = (char *)malloc(MAX_DATA_SIZE);
+    char *data = (char *)ci_buffer_alloc(MAX_DATA_SIZE);;
     char **indx;
     memcpy(data, val, val_size);
     indx=(char **)data;
@@ -638,7 +640,6 @@ int create_filter(char *filter,int size, char *frmt,char *key)
 
 void *ldap_table_search(struct ci_lookup_table *table, void *key, void ***vals)
 {
-    //struct ci_mem_allocator *allocator = table->allocator;
     struct ldap_table_data *data = (struct ldap_table_data *)table->data;
     LDAPMessage *msg, *entry;
     BerElement *aber;
@@ -681,7 +682,7 @@ void *ldap_table_search(struct ci_lookup_table *table, void *key, void ***vals)
 
 	ci_debug_printf(4, "Contacting LDAP server: %s\n", ldap_err2string(ret));
 	if(ret == LDAP_SUCCESS) {
-	    indx_values = (char *)malloc(MAX_DATA_SIZE);
+	    indx_values = (char *)ci_buffer_alloc(MAX_DATA_SIZE);
 	    data_values = indx_values + DATA_START;
 	    packer = ci_create_pack_allocator(data_values,DATA_SIZE);
 	    *vals=(void * *)indx_values;
@@ -756,7 +757,5 @@ void *ldap_table_search(struct ci_lookup_table *table, void *key, void ***vals)
 
 void  ldap_table_release_result(struct ci_lookup_table *table,void **val)
 {
-//    struct ci_mem_allocator *allocator = table->allocator;
-//    allocator->free(allocator, val);
-    free(val);
+    ci_buffer_free(val);
 }

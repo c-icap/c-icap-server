@@ -36,6 +36,7 @@ struct ci_lookup_table_type file_table_type={
     file_table_close,
     file_table_search,
     file_table_release_result,
+    NULL,
     "file"
 };
 
@@ -331,6 +332,7 @@ struct ci_lookup_table_type hash_table_type={
     hash_table_close,
     hash_table_search,
     hash_table_release_result,
+    NULL,
     "hash"
 };
 
@@ -409,6 +411,7 @@ struct ci_lookup_table_type regex_table_type={
     regex_table_close,
     regex_table_search,
     regex_table_release_result,
+    NULL,
     "regex"
 };
 

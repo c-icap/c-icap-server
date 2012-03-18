@@ -30,6 +30,7 @@ struct ci_lookup_table_type bdb_table_type={
     bdb_table_close,
     bdb_table_search,
     bdb_table_release_result,
+    NULL,
     "bdb"
 };
 
@@ -135,7 +136,6 @@ void command_real_open_table(const char *name, int type, void *data)
 
 void *bdb_table_open(struct ci_lookup_table *table)
 {
-//    struct ci_mem_allocator *allocator = table->allocator;
     struct bdb_data *dbdata = malloc(sizeof(struct bdb_data));
     if(!dbdata)
 	return NULL;
@@ -153,7 +153,6 @@ void *bdb_table_open(struct ci_lookup_table *table)
 
 void  bdb_table_close(struct ci_lookup_table *table)
 {
-    //  struct ci_mem_allocator *allocator = table->allocator;
     struct bdb_data *dbdata;
     dbdata = table->data;
     if(dbdata && dbdata->db && dbdata->env_db) {
@@ -178,7 +177,6 @@ void *bdb_table_search(struct ci_lookup_table *table, void *key, void ***vals)
     void *endstore;
     DBT db_key, db_data;
     int ret, i, parse_error=0;
-    struct ci_mem_allocator *allocator = table->allocator;
     struct bdb_data *dbdata = (struct bdb_data *)table->data;
 
     if(!dbdata) {
@@ -197,8 +195,7 @@ void *bdb_table_search(struct ci_lookup_table *table, void *key, void ***vals)
     db_key.data = key;
     db_key.size = table->key_ops->size(key);
 
-    /*A pool allocator should used here.... */
-    db_data.data = allocator->alloc(allocator, DATA_SIZE);
+    db_data.data = ci_buffer_alloc(DATA_SIZE);
     db_data.size = DATA_SIZE;
 
     if ((ret = dbdata->db->get(dbdata->db, NULL, &db_key, &db_data, 0)) != 0){
@@ -227,6 +224,5 @@ void *bdb_table_search(struct ci_lookup_table *table, void *key, void ***vals)
 
 void  bdb_table_release_result(struct ci_lookup_table *table,void **val)
 {
-    struct ci_mem_allocator *allocator = table->allocator;
-    allocator->free(allocator, val);
+    ci_buffer_free(val);
 }
