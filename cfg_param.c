@@ -672,8 +672,8 @@ struct ci_conf_entry *find_action(char *str, char **arg)
 
 char **split_args(char *args)
 {
-     int len, i = 0;
-     char **argv = NULL, *str, *end;
+    int len, i = 0, brkt;
+    char **argv = NULL, *str, *end, *p;
      argv = malloc((MAX_ARGS + 1) * sizeof(char *));
      end = args;
      do {
@@ -681,12 +681,23 @@ char **split_args(char *args)
           if (*end == '"') {
                end++;
                str = end;
-               while (*end != '\0' && *end != '"')
-                    end++;
+               while (*end != '\0' && *end != '"') {
+                   /*support escaped \" */
+                   if (*end == '\\' && *(end+1) == '"') {
+                       for (p = end; *p != '\0'; p++) 
+                           *p = *(p+1); 
+                   }
+                   end++;
+               }
           }
           else {
-               while (*end != '\0' && !isspace(*end))
+              /*Support arguments in the form arg{a, b...}*/
+              brkt = 0;
+              while (*end != '\0' && (!isspace(*end) || brkt)) {
+                    if (*end == '{') brkt = 1;
+                    else if (brkt && *end == '}') brkt = 0;
                     end++;
+              }
           }
           len = end - str;
 
