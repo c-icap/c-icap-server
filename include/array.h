@@ -403,6 +403,10 @@ CI_DECLARE_FUNC(void *) ci_vector_pop(ci_vector_t *vector);
  */
 #define ci_vector_get(vector, i) (i < vector->count ? (const void *)vector->items[i]:  (const void *)NULL)
 
+
+const void **ci_vector_cast_to_voidvoid(ci_vector_t *vector);
+ci_vector_t *ci_vector_cast_from_voidvoid(const void **p);
+
 /**
  \defgroup STR_VECTORS  Vectors of strings
  \ingroup VECTORS
@@ -423,6 +427,8 @@ typedef ci_vector_t ci_str_vector_t;
 #define ci_str_vector_add(vect, string) ((const char *)ci_vector_add(vect, string, (strlen(string)+1)))
 #define ci_str_vector_get(vector, i) (i < vector->count ? (const char *)vector->items[i]:  (const char *)NULL)
 #define ci_str_vector_pop(vect)  ((const char *)ci_vector_pop(vect))
+#define ci_str_vector_cast_to_charchar(vector) ((const char **)ci_vector_cast_to_voidvoid(vector))
+#define ci_str_vector_cast_from_charchar(p) (ci_vector_cast_from_voidvoid((void **)p))
 
 /**
  * Run the given function for each string vector item

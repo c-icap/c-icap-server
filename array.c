@@ -361,6 +361,23 @@ ci_vector_t * ci_vector_create(size_t max_size)
 
 }
 
+const void **ci_vector_cast_to_voidvoid(ci_vector_t *vector)
+{
+    return (const void **)vector->items;
+}
+
+ci_vector_t *ci_vector_cast_from_voidvoid(const void **p)
+{
+    const void *buf;
+    ci_vector_t *v;
+    v = (ci_vector_t *)((void *)p - _CI_ALIGN(sizeof(ci_vector_t)));
+    buf = (void *)v - ci_pack_allocator_required_size();
+    /*Check if it is a valid vector. The ci_buffer_blocksize will return 0, if buf  is not a ci_buffer object*/
+    assert(v->mem == buf);
+    assert(ci_buffer_blocksize(buf) != 0);
+    return v;
+}
+
 void ci_vector_destroy(ci_vector_t *vector)
 {
     void *buffer = vector->mem;

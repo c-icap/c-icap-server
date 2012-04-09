@@ -113,6 +113,16 @@ int main(int argc,char *argv[])
             if (!strdata)
                 ci_debug_printf(2, "Can not add: %s\n", value);
         }
+
+        /*Check if casting works*/
+        ci_debug_printf(1, "Test casting for vectors:");
+        const char **p = ci_str_vector_cast_to_charchar(vect_str);
+        const char **s;
+        for(s = p; *s!=NULL; s++) {
+            ci_debug_printf(2, "from charchar value: %s\n", *s);
+        }
+        ci_str_vector_t *v = ci_str_vector_cast_from_charchar(p);
+        ci_debug_printf(1, "Returned vector max size: %d, itmes %d\n", v->max_size, v->count);
         
         while((strdata = ci_str_vector_pop(vect_str)) != NULL) {
             ci_debug_printf(2, "Popped value: %s\n", strdata);

@@ -97,8 +97,8 @@ int main(int argc,char *argv[]) {
 	    for(v=vals[0],i=0;v!=NULL;v=vals[++i]) {
 		printf("%s ",(char *)v);
 	    }
-	    printf("\n");
 	}
+        printf("\n");
     }
     else {
 	printf("Not found\n");

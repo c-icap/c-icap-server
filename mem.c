@@ -632,6 +632,7 @@ void ci_pack_allocator_reset(ci_mem_allocator_t *allocator)
   assert(allocator->type == PACK_ALLOC);
   pack_alloc = (pack_allocator_t *)allocator->data;
   pack_alloc->curpos = pack_alloc->memchunk;
+  pack_alloc->endpos = pack_alloc->end;
 }
 
 void ci_pack_allocator_destroy(ci_mem_allocator_t *allocator)
@@ -713,7 +714,8 @@ int ci_pack_allocator_data_size(ci_mem_allocator_t *allocator)
 {
    assert(allocator->type == PACK_ALLOC);
    pack_allocator_t *pack_alloc = (pack_allocator_t *)allocator->data;
-   return (int) (pack_alloc->curpos - pack_alloc->memchunk);
+   return (int) (pack_alloc->curpos - pack_alloc->memchunk) + 
+                (pack_alloc->end - pack_alloc->endpos);
 }
 
 size_t  ci_pack_allocator_required_size()

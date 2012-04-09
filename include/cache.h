@@ -79,6 +79,15 @@ CI_DECLARE_FUNC(void *) ci_cache_search(struct ci_cache *cache,void *key, void *
 CI_DECLARE_FUNC(int) ci_cache_update(struct ci_cache *cache, void *key, void *val);
 CI_DECLARE_FUNC(void) ci_cache_destroy(struct ci_cache *cache);
 
+
+/*
+  Only for internal use only:
+  cb functions to store/retrieve vectors from cache....
+*/
+CI_DECLARE_FUNC(void *)ci_cache_store_vector_val(void *val, int *val_size, ci_mem_allocator_t *allocator);
+CI_DECLARE_FUNC(void *)ci_cache_read_vector_val(void *val, int val_size, ci_mem_allocator_t *allocator);
+
+
 #ifdef __cplusplus
 }
 #endif

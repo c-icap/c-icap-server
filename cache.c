@@ -22,6 +22,7 @@
 #include "debug.h"
 #include "ci_threads.h"
 #include "lookup_table.h"
+#include "array.h"
 #include "cache.h"
 #include <assert.h>
 
@@ -165,7 +166,7 @@ void ci_cache_destroy(struct ci_cache *cache)
 	cache->first_queue_entry = cache->first_queue_entry->qnext;
 	if (e->key)
 	    cache->key_ops->free(e->key, cache->allocator);
-	if (e->val)
+	if (e->val && e->val_size > 0)
 	    cache->allocator->free(cache->allocator, e->val);
 	cache->allocator->free(cache->allocator, e);
 	e = cache->first_queue_entry;
@@ -291,4 +292,75 @@ int ci_cache_update(struct ci_cache *cache, void *key, void *val) {
     return 1;
 }
 
+
+void *ci_cache_store_vector_val(void *val, int *val_size, ci_mem_allocator_t *allocator)
+{
+    int  vector_data_size, vector_indx_size, i;
+    void *vector_data_start;
+    void *vector_data_end;
+    void *data, **data_indx;
+    ci_vector_t *v = (ci_vector_t *)val;
+
+    if (!val) {
+        *val_size = 0;
+        return NULL;
+    }
+
+    /*The vector data stored in a continue memory block which filled from 
+      bottom to up. So the last elements stored at the beggining of the 
+      memory block. */
+    vector_data_start = (void *)(v->items[v->count -1]);
+    vector_data_end = v->mem +v->max_size;
+    /*Assert that the vector stored in one memory block (eg it is not a ci_ptr_vector_t object)*/
+    assert(vector_data_start < vector_data_end && vector_data_start > (void *)v->mem);
+
+    /*compute the required memory for storing the vector*/
+    vector_data_size = vector_data_end - vector_data_start;
+    vector_indx_size = (v->count+1) * sizeof(void *);
+    *val_size = sizeof(size_t) + vector_indx_size + vector_data_size ;
+    
+    data = allocator->alloc(allocator, *val_size);
+    if (!data) {
+        ci_debug_printf(1, "store_str_vector_val: error allocation memory of size %d\n", *val_size);
+        return NULL;
+    }
+
+    /*store the size of vector*/
+    memcpy(data, &(v->max_size), sizeof(size_t));
+    data_indx = data + sizeof(size_t);
+    memcpy((void *)data_indx+vector_indx_size, vector_data_start, vector_data_size);
+
+    /*Store the relative position of the vector item to the index part*/
+    for(i = 0; v->items[i]!= NULL; i++)
+        data_indx[i] = (void *)(v->items[i] - vector_data_start + vector_indx_size);
+    data_indx[i] = NULL;
+
+    return data;
+}
+
+void *ci_cache_read_vector_val(void *val, int val_size, ci_mem_allocator_t *allocator)
+{
+    size_t vector_size, item_size;
+    int i;
+    ci_vector_t *v;
+    void **data_indx;
+
+    if (!val)
+        return NULL;
+
+    data_indx = (void **)(val + sizeof(size_t));
+    vector_size = *((size_t *)val);
+    v= ci_vector_create(vector_size);
+    
+    /*The items stores from bottom to top.
+      Compute the size of first item, which stored at the end of *val*/
+    item_size = val_size - sizeof(size_t) - (size_t)data_indx[0];
+    for(i=0; data_indx[i] != NULL; i++) {
+        ci_vector_add(v, (void *)((void *)data_indx+(size_t)data_indx[i]), item_size);
+        /*compute the item size of the next item*/
+        item_size = data_indx[i] - data_indx[i+1];
+    }
+
+    return v;
+}
 
