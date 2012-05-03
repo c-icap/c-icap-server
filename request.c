@@ -460,7 +460,7 @@ static int read_preview_data(ci_request_t * req)
      return CI_ERROR;
 }
 
-static void ec_responce(ci_request_t * req, int ec)
+static void ec_responce_simple(ci_request_t * req, int ec)
 {
      char buf[256];
      int len;
@@ -470,14 +470,16 @@ static void ec_responce(ci_request_t * req, int ec)
      len = strlen(buf);
      ci_write(req->connection->fd, buf, len, TIMEOUT);
      req->bytes_out += len;
+     req->return_code = ec;
 }
 
-static int ec_responce_with_istag(ci_request_t * req, int ec)
+static int ec_responce(ci_request_t * req, int ec)
 {
      char buf[256];
-     ci_service_xdata_t *srv_xdata;
+     ci_service_xdata_t *srv_xdata = NULL;
      int len;
-     srv_xdata = service_data(req->current_service_mod);
+     if (req->current_service_mod)
+         srv_xdata = service_data(req->current_service_mod);
      ci_headers_reset(req->response_header);
      snprintf(buf, 256, "ICAP/1.0 %d %s",
               ci_error_code(ec), ci_error_code_string(ec));
@@ -488,13 +490,16 @@ static int ec_responce_with_istag(ci_request_t * req, int ec)
      else
           ci_headers_add(req->response_header, "Connection: close");
 
-     ci_service_data_read_lock(srv_xdata);
-     ci_headers_add(req->response_header, srv_xdata->ISTag);
-     ci_service_data_read_unlock(srv_xdata);
+     if (srv_xdata) {
+         ci_service_data_read_lock(srv_xdata);
+         ci_headers_add(req->response_header, srv_xdata->ISTag);
+         ci_service_data_read_unlock(srv_xdata);
+     }
      if (!ci_headers_is_empty(req->xheaders)) {
 	  ci_headers_addheaders(req->response_header, req->xheaders);
      }
      ci_headers_pack(req->response_header);
+     req->return_code = ec;
 
      len = ci_write(req->connection->fd, 
 		    req->response_header->buf, req->response_header->bufused, 
@@ -955,6 +960,7 @@ static void options_responce(ci_request_t * req)
      int preview, allow204, allow206, max_conns, xlen;
      int hastransfer = 0;
      int ttl;
+     req->return_code = EC_200;
      head = req->response_header;
      srv_xdata = service_data(req->current_service_mod);
      ci_headers_reset(head);
@@ -1129,8 +1135,8 @@ static int do_request_preview(ci_request_t *req){
     else if ((preview_read_status = read_preview_data(req)) == CI_ERROR) {
         ci_debug_printf(5,
                         "An error occured while reading preview data (propably timeout)\n");
+        req->keepalive = 0;
         ec_responce(req, EC_408);
-        req->return_code = EC_408;
         return CI_ERROR;
     }
     
@@ -1149,9 +1155,10 @@ static int do_request_preview(ci_request_t *req){
     }
 
     if (res == CI_MOD_ALLOW204) {
-        req->return_code = EC_204;
-        if (ec_responce_with_istag(req, EC_204) < 0)
+        if (ec_responce(req, EC_204) < 0) {
+            req->keepalive = 0; /*close the connection*/
             return CI_ERROR;
+        }
 
         ci_debug_printf(5,"Preview handler return allow 204 response\n");
         /*we are finishing here*/
@@ -1169,13 +1176,13 @@ static int do_request_preview(ci_request_t *req){
         ci_debug_printf(5, "An error occured in preview handler!"
                         " return code: %d , req->allow204=%d, req->allow206=%d\n",
                         res, req->allow204, req->allow206);
+        req->keepalive = 0;
         ec_responce(req, EC_500);
-        req->return_code = EC_500;
         return CI_ERROR;
     }
 
     if (preview_read_status != CI_EOF)  {
-        ec_responce(req, EC_100);     /*if 100 Continue and not "0;ieof"*/
+        ec_responce_simple(req, EC_100);     /*if 100 Continue and not "0;ieof"*/
     }
     /* else 100 Continue and "0;ieof" received. Do not send "100 Continue"*/
 
@@ -1211,9 +1218,10 @@ static int do_fake_preview(ci_request_t * req)
      */
     if (res == CI_MOD_ALLOW204 && req->allow204) {
         ci_debug_printf(5,"Preview handler return allow 204 response, and allow204 outside preview supported\n");
-        req->return_code = EC_204;
-        if (ec_responce_with_istag(req, EC_204) < 0)
+        if (ec_responce(req, EC_204) < 0) {
+            req->keepalive = 0; /*close the connection*/
             return CI_ERROR;
+        }
 
         /*And now parse body data we have read and data the client going to send us,
           but do not pass them to the service (second argument of the get_send_body)*/
@@ -1244,8 +1252,8 @@ static int do_fake_preview(ci_request_t * req)
     ci_debug_printf(1, "An error occured in preview handler (outside preview)!"
                     " return code: %d, req->allow204=%d, req->allow206=%d\n", 
                     res, req->allow204, req->allow206);
+    req->keepalive = 0;
     ec_responce(req, EC_500);
-    req->return_code = EC_500;
     return CI_ERROR;
 }
 
@@ -1265,8 +1273,7 @@ static int do_end_of_data(ci_request_t * req) {
      }
 */
     if (res == CI_MOD_ALLOW204 && req->allow204 && !ci_req_sent_data(req)) {
-        req->return_code = EC_204;
-        if (ec_responce_with_istag(req, EC_204) < 0) {
+        if (ec_responce(req, EC_204) < 0) {
             ci_debug_printf(5, "An error occured while sending allow 204 response\n");
             return CI_ERROR;
         }
@@ -1285,8 +1292,8 @@ static int do_end_of_data(ci_request_t * req) {
                         res, req->allow204, req->allow206);
 
         if (!ci_req_sent_data(req)) {
+            req->keepalive = 0;
             ec_responce(req, EC_500);
-            req->return_code = EC_500;
         }
         return CI_ERROR;
     }
@@ -1304,10 +1311,10 @@ static int do_request(ci_request_t * req)
      if (res != EC_100) {
          /*if read some data, bad request or Service not found or Server error or what else,
            else connection timeout, or client closes the connection*/
-          if (res >= EC_100 && req->request_header->bufused > 0)
-               ec_responce(req, res);
           req->return_code = res;
           req->keepalive = 0;   // Error occured, close the connection ......
+          if (res > EC_100 && req->request_header->bufused > 0)
+               ec_responce(req, res);
           ci_debug_printf(5, "Error %d while parsing headers :(%d)\n",
 			  res ,req->request_header->bufused);
           return CI_ERROR;
@@ -1316,18 +1323,18 @@ static int do_request(ci_request_t * req)
      srv_xdata = service_data(req->current_service_mod);
      if (!srv_xdata || srv_xdata->status != CI_SERVICE_OK) {
          ci_debug_printf(2, "Service %s not initialized\n", req->current_service_mod->mod_name);
+         req->keepalive = 0;
          ec_responce(req, EC_500);
+         return CI_ERROR;
      }
 
      auth_status = req->access_type;
      if ((auth_status = access_check_request(req)) == CI_ACCESS_DENY) {
 	 if (req->auth_required) {
-	      ec_responce_with_istag(req, EC_407);     /*Responce with bad request */
-	      req->return_code = EC_407;
+	      ec_responce(req, EC_407); /*Responce with authentication required */
 	 }
 	 else {
-	      ec_responce(req, EC_401);
-	      req->return_code = EC_401;
+             ec_responce(req, EC_403); /*Forbitten*/
 	 }
           return CI_ERROR;      /*Or something that means authentication error */
      }
@@ -1347,7 +1354,6 @@ static int do_request(ci_request_t * req)
      switch (req->type) {
      case ICAP_OPTIONS:
           options_responce(req);
-	  req->return_code = EC_200;
           ret_status = CI_OK;
           break;
      case ICAP_REQMOD:
@@ -1355,25 +1361,37 @@ static int do_request(ci_request_t * req)
           preview_status = CI_NO_STATUS;
           if (req->preview >= 0) /*we are inside preview*/
               preview_status = do_request_preview(req);
-          else
+          else {
               preview_status = do_fake_preview(req);
+              /*do_fake_preview return CI_OK or CI_ERROR.
+                We did not send any "100 Continue" response, but wee need 
+                to simulate that we sent...*/
+              if (preview_status == CI_OK) 
+                  req->return_code = EC_100;
+          }
           
           if (preview_status == CI_ERROR) {
               ret_status = CI_ERROR;
               break;
           }
+          else if (preview_status == CI_EOF)
+              req->return_code = EC_100; /*Equivalent to "100 Continue"*/
 
           if (req->return_code == EC_204) /*Allow 204,  Stop processing here*/
               break;
-          /*else 100 continue or 206  response*/
+          /*else 100 continue or 206  response or Internal error*/
+          else if (req->return_code != EC_100 && req->return_code != EC_206) {
+              ec_responce(req, EC_500);
+              ret_status = CI_ERROR;
+              break;
+          }
           
-	  if (req->return_code == -1) /*Still not initialized, means no response yet, or "100 Continue" */
-	       req->return_code = EC_200;
-
-          if (req->return_code == EC_200 && req->hasbody && preview_status != CI_EOF) {
+          if (req->return_code == EC_100 && req->hasbody && preview_status != CI_EOF) {
+               req->return_code = EC_200; /*We have to repsond with "200 OK"*/
                ci_debug_printf(9, "Going to get/send body data.....\n");
                ret_status = get_send_body(req, 0);
                if (ret_status == CI_ERROR) {
+                    req->keepalive = 0; /*close the connection*/
                     ci_debug_printf(5,
                                     "An error occured. Parse error or the client closed the connection (res:%d, preview status:%d)\n",
                                     ret_status, preview_status);
@@ -1383,8 +1401,10 @@ static int do_request(ci_request_t * req)
 
           /*We have received all data from the client. Call the end-of-data service handler and process*/
           ret_status = do_end_of_data(req);
-          if (ret_status == CI_ERROR)
+          if (ret_status == CI_ERROR) {
+              req->keepalive = 0; /*close the connection*/
               break;
+          }
           
           if (req->return_code == EC_204)
               break;  /* Nothing to be done, stop here*/
@@ -1393,12 +1413,14 @@ static int do_request(ci_request_t * req)
 
           unlock_data(req); /*unlock data if locked so that it can be send to the client*/
           ret_status = send_remaining_response(req);
-          if (ret_status == CI_ERROR)
+          if (ret_status == CI_ERROR) {
+              req->keepalive = 0; /*close the connection*/
               ci_debug_printf(5, "Error while sending rest responce or client closed the connection\n");
-
+          }
           /*We are finished here*/
           break;
      default:
+          req->keepalive = 0; /*close the connection*/
           ret_status = CI_ERROR;
           break;
      }
