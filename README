@@ -27,13 +27,18 @@ following syndax:
 Currently the following commands are implemented:
   "stop":        The c-icap will shutdown
   "reconfigure": The service will reread the config file without the need 
-	         for stop and restart the c-icap server. Te services will
+	         for stop and restart the c-icap server. The services will
 		 be reinitialized
+  "relog":       This command causes c_icap to close and reopen the log files.
+                 This is very useful for log rotation if you have services that
+                 take a long time to start, such as srv_classify can.
   "srv_clamav:dbreload"
 	       : It reloads the clamav virus database
 
 Examples:
  - To reconfigure c-icap:
       echo -n "reconfigure" > /var/run/c-icap.ctl
+ - To close and reopen all log files (for log rotation, etc.)
+      echo -n "relog" > /var/run/c-icap.ctl
  - To reload clamav virusdb without stoping the c-icap:
-     echo -n "srv_clamav:dbreload" > /var/run/c-icap.ctl
+      echo -n "srv_clamav:dbreload" > /var/run/c-icap.ctl

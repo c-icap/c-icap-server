@@ -31,7 +31,9 @@
 #include "txt_format.h"
 #include "acl.h"
 #include "proc_threads_queues.h"
+#include "commands.h"
 #include <errno.h>
+#include <assert.h>
 
 logger_module_t *default_logger = NULL;
 
@@ -179,6 +181,7 @@ int file_log_open();
 void file_log_close();
 void file_log_access(ci_request_t *req);
 void file_log_server(const char *server, const char *format, va_list ap);
+void file_log_relog(const char *name, int type, const char **argv);
 
 /*char *LOGS_DIR=LOGDIR;*/
 char *SERVER_LOG_FILE = LOGDIR "/cicap-server.log";
@@ -192,6 +195,7 @@ struct logfile {
     struct logfile *next;
 };
 struct logfile *ACCESS_LOG_FILES = NULL;
+static ci_thread_rwlock_t log_rwlock;
 
 
 logger_module_t file_logger = {
@@ -209,10 +213,23 @@ FILE *server_log = NULL;
 
 const char *DEFAULT_LOG_FORMAT = "%tl, %la %a %im %iu %is";
 
+FILE *logfile_open(const char *fname)
+{
+    FILE *f = fopen(fname, "a+");
+    if (f)
+        setvbuf(f, NULL, _IONBF, 0);
+    return f;
+}
+
 int file_log_open()
 {
-     int error=0;
+    int error=0, ret = 0;
      struct logfile *lf;
+
+     ret = ci_thread_rwlock_init(&log_rwlock); // Initialize log_rwlock
+     assert(ret == 0);
+     register_command("relog", MONITOR_PROC_CMD | CHILDS_PROC_CMD, file_log_relog);
+
      for (lf = ACCESS_LOG_FILES; lf != NULL; lf = lf->next) {
           if (!lf->file) {
 	       ci_debug_printf (1, "This is a bug! lf->file==NULL\n");
@@ -221,20 +238,16 @@ int file_log_open()
 	  if (lf->log_fmt == NULL)
 	      lf->log_fmt = (char *)DEFAULT_LOG_FORMAT;
 
-	  lf->access_log = fopen(lf->file, "a+");
+	  lf->access_log = logfile_open(lf->file);
 	  if (!lf->access_log) {
 	      error = 1;
 	      ci_debug_printf (1, "WARNING! Can not open log file: %s\n", lf->file);
-	  }
-	  else {
-	      setvbuf(lf->access_log, NULL, _IONBF, 0);
-	  }
+          }
      }
 
-     server_log = fopen(SERVER_LOG_FILE, "a+");
+     server_log = logfile_open(SERVER_LOG_FILE);
      if (!server_log)
           return 0;
-     setvbuf(server_log, NULL, _IONBF, 0);
 
      if (error)
          return 0;
@@ -263,14 +276,38 @@ void file_log_close()
      if (server_log)
           fclose(server_log);
      server_log = NULL;
+
+     ci_thread_rwlock_destroy(&log_rwlock); // destroy rwlock
 }
 
+void file_log_relog(const char *name, int type, const char **argv)
+{
+     struct logfile *lf;
+
+     ci_thread_rwlock_wrlock(&log_rwlock); /*obtain a write lock. When this function returns all file_log_access will block until write unlock*/
+
+     /* This code should match the appropriate code from file_log_close */
+     for (lf = ACCESS_LOG_FILES; lf != NULL; lf = lf->next) {
+          if (lf->access_log)
+	      fclose(lf->access_log);
+	  lf->access_log = logfile_open(lf->file);
+	  if (!lf->access_log)
+	      ci_debug_printf (1, "WARNING! Can not open log file: %s\n", lf->file);
+     }
+
+     if (server_log)
+          fclose(server_log);
+     server_log = logfile_open(SERVER_LOG_FILE);
+     /*if !server_log ???*/
+     ci_thread_rwlock_unlock(&log_rwlock); // release write lock
+}
 
 void file_log_access(ci_request_t *req)
 {
     struct logfile *lf;
     char logline[4096];
 
+    ci_thread_rwlock_rdlock(&log_rwlock); /*obtain a read lock*/
     for (lf = ACCESS_LOG_FILES; lf != NULL; lf = lf->next) {
          if (lf->access_log) {
 	     if (lf->access_list && !(ci_access_entry_match_request(lf->access_list, req) == CI_ACCESS_ALLOW)) {
@@ -282,6 +319,7 @@ void file_log_access(ci_request_t *req)
 	     fprintf(lf->access_log,"%s\n", logline); 
 	 }
     }
+    ci_thread_rwlock_unlock(&log_rwlock); /*release a read lock*/
 }
 
 
@@ -293,8 +331,10 @@ void file_log_server(const char *server, const char *format, va_list ap)
           return;
 
      ci_strtime(buf);
+     ci_thread_rwlock_rdlock(&log_rwlock); /*obtain a read lock*/
      fprintf(server_log, "%s, %s, ", buf, server);
      vfprintf(server_log, format, ap);
+     ci_thread_rwlock_unlock(&log_rwlock); /*release a read lock*/
 //     fprintf(server_log,"\n");
 }
 
