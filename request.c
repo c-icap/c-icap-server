@@ -1375,12 +1375,12 @@ static int do_request(ci_request_t * req)
               break;
           }
           else if (preview_status == CI_EOF)
-              req->return_code = EC_100; /*Equivalent to "100 Continue"*/
+              req->return_code = EC_200; /*Equivalent to "100 Continue"*/
 
           if (req->return_code == EC_204) /*Allow 204,  Stop processing here*/
               break;
           /*else 100 continue or 206  response or Internal error*/
-          else if (req->return_code != EC_100 && req->return_code != EC_206) {
+          else if (req->return_code != EC_100 && req->return_code != EC_200 && req->return_code != EC_206) {
               ec_responce(req, EC_500);
               ret_status = CI_ERROR;
               break;
