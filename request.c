@@ -498,12 +498,19 @@ static int ec_responce(ci_request_t * req, int ec)
      if (!ci_headers_is_empty(req->xheaders)) {
 	  ci_headers_addheaders(req->response_header, req->xheaders);
      }
+     /*
+       TODO: Release req->entities (ci_request_release_entity())
+      */
      ci_headers_pack(req->response_header);
      req->return_code = ec;
 
      len = ci_write(req->connection->fd, 
 		    req->response_header->buf, req->response_header->bufused, 
 		    TIMEOUT);
+
+     /*We are finishing sending*/
+     req->status = SEND_EOF;
+
      if (len < 0)
 	 return -1;
 
@@ -581,7 +588,7 @@ static int send_current_block_data(ci_request_t * req)
      if ((bytes =
           ci_write_nonblock(req->connection->fd, req->pstrblock_responce,
                             req->remain_send_block_bytes)) < 0) {
-          ci_debug_printf(5, "Error writing to server (errno:%d)", errno);
+         ci_debug_printf(5, "Error writing to socket (errno:%d, bytes:%d. string:\"%s\")", errno, req->remain_send_block_bytes, req->pstrblock_responce);
           return CI_ERROR;
      }
 
