@@ -415,6 +415,8 @@ const char *ci_headers_replace(ci_headers_list_t * h, const char *header, const 
      return NULL;
 }
 
+#define eoh(s) ((*s == '\r' && *(s+1) == '\n' && *(s+2) != '\t' && *(s+2) != ' ') || (*s == '\n' && *(s+1) != '\t' && *(s+1) != ' '))
+
 int ci_headers_iterate(ci_headers_list_t * h, void *data, void (*fn)(void *, const char  *head, const char  *value))
 {
     char header[256];
@@ -429,8 +431,8 @@ int ci_headers_iterate(ci_headers_list_t * h, void *data, void (*fn)(void *, con
         j = 0;
         if (*s == ':') {
             s++;
-            while (*s == ' ' && *s != '\0' && *s != '\r' && *s!='\n') s++;
-            for (j = 0;  j < sizeof(value)-1 &&  *s != '\0' && *s != '\r' && *s!='\n'; s++, j++)
+            while (*s == ' ') s++;
+            for (j = 0;  j < sizeof(value)-1 &&  *s != '\0' && !eoh(s); s++, j++)
                 value[j] = *s;
         }
         value[j] = '\0';
