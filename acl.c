@@ -471,7 +471,7 @@ int request_match_specslist(ci_request_t *req, const struct ci_specs_list *spec_
 {
     const ci_acl_spec_t *spec;
     const ci_acl_type_t *type;
-    int ret, negate;
+    int ret, negate, check_result;
     void *test_data;
 
     ret = 1;
@@ -485,9 +485,10 @@ int request_match_specslist(ci_request_t *req, const struct ci_specs_list *spec_
 	    return 0;
 	}
 
-	if (spec_data_check(spec, test_data)==0 && negate==0)
+        check_result = spec_data_check(spec, test_data);
+	if (check_result==0 && negate==0)
 	    ret = 0;
-	else if (spec_data_check(spec, test_data)!=0 && negate!=0)
+	else if (check_result!=0 && negate!=0)
 	    ret = 0;
 
 	if (type->free_test_data)
