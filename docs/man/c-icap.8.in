@@ -55,12 +55,20 @@ The c-icap will shutdown
 The service will reread the config file without the need to stop and restart 
 the c-icap server. The services will be reinitialized
 .RE
+.IP "relog"
+.RS
+This command causes c-icap to close and reopen the log files.
+This is very useful for log rotation.
+.RE
 .PP
 Services and modules can define their own commands.
 .PP
 \fBExamples:\fR
 .IP "To reconfigure c-icap:"
       echo -n "reconfigure" > /var/run/c-icap.ctl
+.IP "To rotate access log:"
+      mv /var/log/c-icap/access.log /var/log/c-icap/access.log.1
+      echo -n "relog" > /var/run/c-icap.ctl
 .RE
 .SS Lookup tables
 Lookup tables are simple read-only databases. 
