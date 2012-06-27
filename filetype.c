@@ -612,6 +612,13 @@ int ci_uncompress(int compress_method, const char *buf, int len, char *unzipped_
           return CI_ERROR;
      }
 
+     /*If the data was not enough to get decompressed data
+       return error
+     */
+     if (*unzipped_buf_len == strm.avail_out)
+         return CI_ERROR;
+     
+     *unzipped_buf_len = *unzipped_buf_len - strm.avail_out;
      return CI_OK;
 }
 #endif
