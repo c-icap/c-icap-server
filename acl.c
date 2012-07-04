@@ -645,13 +645,13 @@ const char *get_header(ci_headers_list_t *headers, char *head)
     if (!headers->packed) /*The headers are not packed, so it is NULL terminated*/
 	return val;
 
-    /*assume that an 1024 buffer is enough for a header value*/
-    if (!(buf = ci_buffer_alloc(1024)))
+    /*assume that an 8k buffer is enough for a header value*/
+    if (!(buf = ci_buffer_alloc(8192)))
 	return NULL;
 
-     for(i=0;i<1023 && *val!= '\0' && *val != '\r' && *val!='\n'; i++,val++) 
+     for(i=0;i<8191 && *val!= '\0' && *val != '\r' && *val!='\n'; i++,val++) 
         buf[i] = *val;
-     buf[1023]='\0';
+     buf[8191]='\0';
 
      return buf;
 }
