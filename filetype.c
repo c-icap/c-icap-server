@@ -537,10 +537,10 @@ int ci_filetype(struct ci_magics_db *db, const char *buf, int buflen)
           return ret;
 
 /*At the feature the check_ascii and check_unicode must be merged ....*/
-     if ((ret = check_ascii((unsigned char *) buf, buflen)) > 0)
+     if ((ret = check_ascii((unsigned char *) buf, buflen)) >= 0)
           return ret;
 
-     if ((ret = check_unicode((unsigned char *) buf, buflen)) > 0) {
+     if ((ret = check_unicode((unsigned char *) buf, buflen)) >= 0) {
           return CI_UTF_DATA;
      }
 
@@ -615,7 +615,7 @@ int ci_uncompress(int compress_method, const char *buf, int len, char *unzipped_
      /*If the data was not enough to get decompressed data
        return error
      */
-     if (*unzipped_buf_len == strm.avail_out)
+     if (*unzipped_buf_len == strm.avail_out && ret != Z_STREAM_END)
          return CI_ERROR;
      
      *unzipped_buf_len = *unzipped_buf_len - strm.avail_out;
