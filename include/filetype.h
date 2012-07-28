@@ -76,7 +76,6 @@ struct ci_magics_db{
 
 enum {CI_ASCII_DATA,CI_ISO8859_DATA,CI_XASCII_DATA,CI_UTF_DATA,CI_HTML_DATA,CI_BIN_DATA};
 enum {CI_TEXT_DATA,CI_OCTET_DATA};
-enum {CI_ENCODE_NONE=0,CI_ENCODE_GZIP,CI_ENCODE_DEFLATE,CI_ENCODE_UNKNOWN};
 
 /*low level functions should not used by users*/
 CI_DECLARE_FUNC(struct ci_magics_db) *ci_magics_db_build(const char *filename);

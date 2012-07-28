@@ -26,6 +26,9 @@
 #ifdef HAVE_ZLIB
 #include <zlib.h>
 #endif
+#ifdef HAVE_BZLIB
+#include <bzlib.h>
+#endif
 
 #include "simple_api.h"
 #include "debug.h"
@@ -537,93 +540,23 @@ int ci_filetype(struct ci_magics_db *db, const char *buf, int buflen)
           return ret;
 
 /*At the feature the check_ascii and check_unicode must be merged ....*/
-     if ((ret = check_ascii((unsigned char *) buf, buflen)) > 0)
+     if ((ret = check_ascii((unsigned char *) buf, buflen)) >= 0)
           return ret;
 
-     if ((ret = check_unicode((unsigned char *) buf, buflen)) > 0) {
+     if ((ret = check_unicode((unsigned char *) buf, buflen)) >= 0) {
           return CI_UTF_DATA;
      }
 
      return CI_BIN_DATA;        /*binary data */
 }
 
-
-#ifdef HAVE_ZLIB
-/*
-  ci_uncompress function currently copied from the gzip module.
-  This code is duplicated, I did not decide yet the design:
-  Unzipped functionality must implemented as a service or must exists
-  hardcoded in c-icap?
-  However, the zip api must be improved and extended for use from modules.
-  Must be moved to its own file, and I must implement an c-icap memory alocator for it.
-
-  Deflate encoding is not yet implemented. Is not dificult I will setup an lighttp 
-  server just to test it.
-
-*/
-
-#define ZIP_HEAD_CRC     0x02   /* bit 1 set: header CRC present */
-#define ZIP_EXTRA_FIELD  0x04   /* bit 2 set: extra field present */
-#define ZIP_ORIG_NAME    0x08   /* bit 3 set: original file name present */
-#define ZIP_COMMENT      0x10   /* bit 4 set: file comment present */
-
-void *alloc_a_buffer(void *op, unsigned int items, unsigned int size)
-{
-    return ci_buffer_alloc(items*size);
-}
-
-void free_a_buffer(void *op, void *ptr)
-{
-    ci_buffer_free(ptr);
-}
-
-int ci_uncompress(int compress_method, const char *buf, int len, char *unzipped_buf,
-                  int *unzipped_buf_len)
-{
-     int ret;
-     z_stream strm;
-     strm.zalloc = alloc_a_buffer;
-     strm.zfree = free_a_buffer;
-     strm.opaque = Z_NULL;
-     strm.avail_in = 0;
-     strm.next_in = Z_NULL;
-
-     ret = inflateInit2(&strm, 32 + 15);        /*MAX_WBITS + 32 for both deflate and gzip decompress */
-     if (ret != Z_OK) {
-          ci_debug_printf(1,
-                          "Error initializing  zlib (inflateInit2 return:%d)\n",
-                          ret);
-          return CI_ERROR;
-     }
-
-     strm.next_in = (Bytef *) buf;
-     strm.avail_in = len;
-
-     strm.avail_out = *unzipped_buf_len;
-     strm.next_out = (Bytef *) unzipped_buf;
-     ret = inflate(&strm, Z_NO_FLUSH);
-     inflateEnd(&strm);
-
-     switch (ret) {
-     case Z_NEED_DICT:
-     case Z_DATA_ERROR:
-     case Z_MEM_ERROR:
-
-          return CI_ERROR;
-     }
-
-     return CI_OK;
-}
-#endif
-
 int extend_object_type(struct ci_magics_db *db, ci_headers_list_t *headers, const char *buf,
                        int len, int *iscompressed)
 {
      int file_type;
-#ifdef HAVE_ZLIB
+     int unzip_error = 0;
      int unzipped_buf_len = 0;
      char *unzipped_buf = NULL;
-#endif
      const char *checkbuf = buf;
      const char *content_type = NULL;
      const char *content_encoding = NULL;
@@ -637,7 +570,6 @@ int extend_object_type(struct ci_magics_db *db, ci_headers_list_t *headers, cons
           content_encoding = ci_headers_value(headers, "Content-Encoding");
           if (content_encoding) {
                ci_debug_printf(8, "Content-Encoding :%s\n", content_encoding);
-#ifdef HAVE_ZLIB
                /*the following must be faster in the feature...... */
                if (strstr(content_encoding, "gzip") != NULL) {
                     *iscompressed = CI_ENCODE_GZIP;
@@ -646,13 +578,25 @@ int extend_object_type(struct ci_magics_db *db, ci_headers_list_t *headers, cons
                     *iscompressed = CI_ENCODE_DEFLATE;
                }
                else
-                    *iscompressed = CI_ENCODE_UNKNOWN;
+                   if (strstr(content_encoding, "bzip2") != NULL) {
+                       *iscompressed = CI_ENCODE_BZIP2;
+                   }
+                   else
+                       *iscompressed = CI_ENCODE_UNKNOWN;
 
+/*
+  Bzip2 comressed data are not usefull on preview data, because ci_uncompress_preview 
+  in most cases will not be able to decompress preview data window, because requires
+  large blocks of data to start decompression.
+*/
                if (*iscompressed == CI_ENCODE_GZIP
+#if 0
+                   || *iscompressed == CI_ENCODE_BZIP2
+#endif
                    || *iscompressed == CI_ENCODE_DEFLATE) {
                     unzipped_buf = ci_buffer_alloc(len); /*Will I implement memory pools? when????? */
                     unzipped_buf_len = len;
-                    if (ci_uncompress
+                    if (ci_uncompress_preview
                         (*iscompressed, buf, len, unzipped_buf,
                          &unzipped_buf_len) != CI_ERROR) {
                          /* 1) unzip and 
@@ -663,15 +607,13 @@ int extend_object_type(struct ci_magics_db *db, ci_headers_list_t *headers, cons
                          len = unzipped_buf_len;
                     }
                     else {
-                         ci_debug_printf(2,
-                                         "Error uncompressing gzip encoded obejct\n");
+                         ci_debug_printf(3,
+                                         "Error uncompressing encoded object\n");
                          ci_buffer_free(unzipped_buf);
                          unzipped_buf = NULL;
+                         unzip_error = 1;
                     }
                }
-#else
-               *iscompressed = CI_ENCODE_UNKNOWN;
-#endif
           }
      }
 

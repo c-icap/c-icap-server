@@ -138,6 +138,27 @@ extern "C"
  */
 CI_DECLARE_FUNC(int)                ci_base64_decode(const char *str,char *result,int len);
 
+enum {
+    CI_ENCODE_NONE=0, 
+    CI_ENCODE_GZIP,
+    CI_ENCODE_DEFLATE,
+    CI_ENCODE_BZIP2,
+    CI_ENCODE_UNKNOWN
+};
+
+/**
+ * Uncompress a zipped string.
+ \ingroup UTILITY
+ *
+ \param compress_method CI_ENCODE_GZIP, CI_ENCODED_DEFLATE or CI_CI_ENCODE_BZIP2
+ \param buf   is a buffer which holds the zipped data
+ \param len is the length of the buffer buf
+ \param unzipped_buf  is the buffer where to store unzipped data
+ \param unzipped_buf_len  is the length of the buffer to store unzipped data, and updated with the length of unzipped data
+ \return CI_OK on success CI_ERROR on error
+ */
+CI_DECLARE_FUNC(int) ci_uncompress_preview(int compress_method, const char *buf, int len, char *unzipped_buf, int *unzipped_buf_len);
+
 /**
  * Decodes a base64 encoded string, and also allocate memory for the result.
  \ingroup UTILITY

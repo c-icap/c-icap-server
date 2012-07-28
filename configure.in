@@ -248,6 +248,44 @@ if test a"$zlib" = "ano"; then
     AC_MSG_WARN("zlib required for the c-icap's internal filetype recognizer!")
 fi
 
+AC_ARG_WITH(bzlib,
+[	--with-bzlib	Path to bzlib library],
+[
+case "$withval" in
+     yes)
+	bzlib=yes;
+     ;;
+     no)
+	bzlib=no;
+     ;;
+     *)
+	bzlib=$withval;
+     ;;
+     esac
+],
+[ bzlib=yes]
+)
+
+if test a"$bzlib" != "ano"; then
+   if test a"$bzlib" != "ayes"; then
+        OLDCFLAGS=$CFLAGS
+        OLDLDFLAGS=$LDFLAGS
+        CFLAGS="$CFLAGS -I$bzlib/include"
+        LDFLAGS="$LDFLAGS -L$bzlib/lib"
+	AC_CHECK_LIB(bz2,BZ2_bzDecompressInit,[BZLIB_ADD_LDFLAG="-L$bzlib/lib -lbz2";BZLIB_ADD_FLAG="-I$bzlib/include";AC_DEFINE(HAVE_BZLIB,1,[Define HAVE_BZLIB if bzlib installed])],[bzlib=no])
+        CFLAGS=$OLDCFLAGS
+        LDFLAGS=$OLDLDFLAGS
+	AC_SUBST(BZLIB_ADD_LDFLAG)
+	AC_SUBST(BZLIB_ADD_FLAG)	
+   else
+	AC_CHECK_LIB(bz2,BZ2_bzDecompressInit,[BZLIB_ADD_LDFLAG=" -lbz2";AC_DEFINE(HAVE_BZLIB,1,[Define HAVE_BZLIB if bzlib installed])],[bzlib=no])
+	AC_SUBST(BZLIB_ADD_LDFLAG)
+   fi
+fi
+if test a"$bzlib" = "ano"; then
+    AC_MSG_WARN("bzlib required for the c-icap's internal filetype recognizer!")
+fi
+
 libdb="yes"
 libdbpath=""
 AC_ARG_WITH(bdb,

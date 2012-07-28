@@ -21,6 +21,15 @@
 #include "common.h"
 #include "c-icap.h"
 #include "simple_api.h"
+#include "debug.h"
+
+#ifdef HAVE_ZLIB
+#include <zlib.h>
+#endif
+#ifdef HAVE_BZLIB
+#include <bzlib.h>
+#endif
+
 
 unsigned char base64_table[] = {
      255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
@@ -150,4 +159,132 @@ int url_decoder2(char *input)
     }
     input[k] = '\0';
     return 1;
+}
+
+#ifdef HAVE_ZLIB
+#define ZIP_HEAD_CRC     0x02   /* bit 1 set: header CRC present */
+#define ZIP_EXTRA_FIELD  0x04   /* bit 2 set: extra field present */
+#define ZIP_ORIG_NAME    0x08   /* bit 3 set: original file name present */
+#define ZIP_COMMENT      0x10   /* bit 4 set: file comment present */
+
+static void *alloc_a_buffer(void *op, unsigned int items, unsigned int size)
+{
+    return ci_buffer_alloc(items*size);
+}
+
+static void free_a_buffer(void *op, void *ptr)
+{
+    ci_buffer_free(ptr);
+}
+
+static int zlib_inflate(const char *buf, int len, char *unzipped_buf, int *unzipped_buf_len)
+{
+     int ret;
+     z_stream strm;
+     strm.zalloc = alloc_a_buffer;
+     strm.zfree = free_a_buffer;
+     strm.opaque = Z_NULL;
+     strm.avail_in = 0;
+     strm.next_in = Z_NULL;
+
+     ret = inflateInit2(&strm, 32 + 15);        /*MAX_WBITS + 32 for both deflate and gzip decompress */
+     if (ret != Z_OK) {
+          ci_debug_printf(1,
+                          "Error initializing  zlib (inflateInit2 return:%d)\n",
+                          ret);
+          return CI_ERROR;
+     }
+
+     strm.next_in = (Bytef *) buf;
+     strm.avail_in = len;
+
+     strm.avail_out = *unzipped_buf_len;
+     strm.next_out = (Bytef *) unzipped_buf;
+     ret = inflate(&strm, Z_NO_FLUSH);
+     inflateEnd(&strm);
+
+     switch (ret) {
+     case Z_NEED_DICT:
+     case Z_DATA_ERROR:
+     case Z_MEM_ERROR:
+
+          return CI_ERROR;
+     }
+
+     /*If the data was not enough to get decompressed data
+       return error
+     */
+     if (*unzipped_buf_len == strm.avail_out && ret != Z_STREAM_END)
+         return CI_ERROR;
+     
+     *unzipped_buf_len = *unzipped_buf_len - strm.avail_out;
+     return CI_OK;
+}
+#endif
+#ifdef HAVE_BZLIB
+static void *bzalloc_a_buffer(void *op, int items, int size)
+{
+    return ci_buffer_alloc(items*size);
+}
+
+static void bzfree_a_buffer(void *op, void *ptr)
+{
+    ci_buffer_free(ptr);
+}
+
+static int bzlib_uncompress(const char *buf, int len, char *unzipped_buf, int *unzipped_buf_len)
+{
+    /*we can use  BZ2_bzBuffToBuffDecompress but we need to use our buffer_alloc interface...*/
+     int ret;
+     bz_stream strm;
+     strm.bzalloc = bzalloc_a_buffer;
+     strm.bzfree = bzfree_a_buffer;
+     strm.opaque = NULL;
+     strm.avail_in = 0;
+     strm.next_in = NULL;
+     ret = BZ2_bzDecompressInit(&strm, 0, 0);
+     if (ret != BZ_OK) {
+          ci_debug_printf(1,
+                          "Error initializing  bzlib (BZ2_bzDeompressInit return:%d)\n",
+                          ret);
+          return CI_ERROR;
+     }
+
+     strm.next_in = (char *)buf;
+     strm.avail_in = len;
+     strm.avail_out = *unzipped_buf_len;
+     strm.next_out = unzipped_buf;
+     ret = BZ2_bzDecompress(&strm);
+     BZ2_bzDecompressEnd(&strm);
+     switch (ret) {
+     case BZ_PARAM_ERROR:
+     case BZ_DATA_ERROR:
+     case BZ_DATA_ERROR_MAGIC:
+     case BZ_MEM_ERROR:
+         return CI_ERROR;
+     }
+
+     /*If the data was not enough to get decompressed data
+       return error
+      */
+     if (*unzipped_buf_len == strm.avail_out && ret != BZ_STREAM_END)
+         return CI_ERROR;
+
+     *unzipped_buf_len = *unzipped_buf_len - strm.avail_out;
+     return CI_OK;
+}
+#endif
+
+int ci_uncompress_preview(int compress_method, const char *buf, int len, char *unzipped_buf,
+                  int *unzipped_buf_len)
+{
+#ifdef HAVE_BZLIB
+    if (compress_method == CI_ENCODE_BZIP2)
+        return  bzlib_uncompress(buf, len, unzipped_buf, unzipped_buf_len);
+    else
+#endif
+#ifdef HAVE_ZLIB
+        return zlib_inflate(buf, len, unzipped_buf, unzipped_buf_len);
+#endif
+    return CI_ERROR;
 }
