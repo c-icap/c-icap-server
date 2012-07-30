@@ -244,16 +244,22 @@ void * ci_buffer_realloc(void *data, int block_size)
 
     buffer_size = ci_buffer_blocksize(data);
     assert(buffer_size > 0);
-    ci_debug_printf(10, "Current block size for realloc: %d, requested block size: %d. The initial size: %d\n",
+    ci_debug_printf(8, "Current block size for realloc: %d, requested block size: %d. The initial size: %d\n",
                     buffer_size, block_size, block->ID);
 
      /*If no block_size created than our buffer actual size probably requires a realloc.....*/
      if (block_size > buffer_size) {
+         ci_debug_printf(10, "We are going to allocate a bigger block of size: %d\n", block_size);
          data = ci_buffer_alloc(block_size);
          if (!data)
              return NULL;
+         ci_debug_printf(10, "Preserve data of size: %d\n", block->ID);
          memcpy(data, block->data.ptr, block->ID);
          ci_buffer_free(block->data.ptr);
+     }
+     else {
+         /*we neeed to update block->ID to the new requested size...*/
+         block->ID = block_size;
      }
      
      return data;
