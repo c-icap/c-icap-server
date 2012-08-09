@@ -75,6 +75,7 @@ do_subst=sed -e 's%[@]SYSCONFDIR[@]%$(CONFIGDIR)%g' \
              -e 's%[@]PKGDATADIR[@]%$(pkgdatadir)%g' \
              -e 's%[@]CFLAGS[@]%$(CFLAGS)%g' \
              -e 's%[@]MODULES_LIBADD[@]%$(MODULES_LIBADD)%g' \
+             -e 's%[@]MODULES_CFLAGS[@]%$(MODULES_CFLAGS)%g' \
              -e 's%[@]EXT_PROGRAMS_LIBADD[@]%$(EXT_PROGRAMS_MKLIB)%g' \
              -e 's%[@]SOCKDIR[@]%$(SOCKDIR)%g'
 

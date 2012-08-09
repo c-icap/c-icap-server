@@ -37,13 +37,41 @@ case "$host_os" in
 #	  TEST_LIBS=" -lrt"
       ;;
       cygwin*)
-	MODULES_LIBADD="-L../../ -licapapi"
-	AC_SUBST(MODULES_LIBADD)
 	iscygwin="yes"
       ;;
 esac
 
 CFLAGS="$CFLAGS -Wall"
+
+AC_CACHE_CHECK([for __attribute__((visibility("default")))],
+    ac_cv_default_visibility_attribute, [
+    echo 'int __attribute__ ((visibility ("default"))) foo_visible (void) { return 1; } int foo_invisible(void) {return 1;}' > conftest.c
+    ac_cv_default_visibility_attribute=no
+    if AC_TRY_COMMAND(${CC-cc} -fvisibility=hidden -Werror -S conftest.c -o conftest.s 1>&AS_MESSAGE_LOG_FD);
+    then
+        if grep '\.hidden.*foo_invisible' conftest.s >/dev/null && ! grep '\.hidden.*foo_visible' conftest.s >/dev/null;
+        then
+            ac_cv_default_visibility_attribute=yes
+        fi
+# Else try to detect visibility for Sun solaris:
+#    CC -xldscope={global|hidden}
+# and use __global/__hidden inside C code
+#   elif
+    fi
+    rm -f conftest.*
+    ])
+
+INVISIBILITY_CFLAG=""
+VISIBILITY_ATTR="0"
+if test $ac_cv_default_visibility_attribute = yes;
+then
+    AC_DEFINE(HAVE_VISIBILITY_ATTRIBUTE, 1,
+          [Define if __attribute__((visibility("default"))) is supported.])
+    INVISIBILITY_CFLAG="-fvisibility=hidden"
+    VISIBILITY_ATTR="1"
+fi
+AC_SUBST(INVISIBILITY_CFLAG)
+AC_SUBST(VISIBILITY_ATTR)
 
 
 dnl Checking for posix threads libraries.....
@@ -650,6 +678,15 @@ AC_SUBST(PTHREADS_RWLOCK)
 
 #We are pouting back real LIBS variable
 LIBS=$OLD_LIBS
+
+#Configure common flags
+MODULES_LIBADD=""
+if test a"$iscygwin" != a; then
+     MODULES_LIBADD="-L../../ -licapapi"
+fi
+MODULES_CFLAGS="$INVISIBILITY_CFLAG -DCI_BUILD_MODULE"
+AC_SUBST(MODULES_LIBADD)
+AC_SUBST(MODULES_CFLAGS)
 
 #general parameters
 AM_CONDITIONAL(ISCYGWIN,[test a"$iscygwin" != a])

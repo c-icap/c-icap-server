@@ -71,9 +71,16 @@
 
 #else
 
+/*
+  
+*/
 #define CI_DECLARE_FUNC(type) type
 #define CI_DECLARE_DATA
+#if defined (USE_VISIBILITY_ATTRIBUTE)
+#define CI_DECLARE_MOD_DATA __attribute__ ((visibility ("default")))
+#else
 #define CI_DECLARE_MOD_DATA
+#endif
 #endif
 
 /*

@@ -106,4 +106,8 @@ typedef unsigned long long uint64_t;
 typedef long long int64_t;
 #endif
 
+#if @VISIBILITY_ATTR@
+#define USE_VISIBILITY_ATTRIBUTE
+#endif
+
 #endif

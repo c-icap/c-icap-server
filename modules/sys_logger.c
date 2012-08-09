@@ -75,7 +75,7 @@ static struct ci_conf_entry conf_variables[] = {
 
 
 
-CI_DECLARE_DATA logger_module_t module = {
+CI_DECLARE_MOD_DATA logger_module_t module = {
      "sys_logger",
      NULL,
      sys_log_open,
