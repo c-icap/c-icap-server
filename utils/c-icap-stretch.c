@@ -274,7 +274,7 @@ int do_req(ci_request_t *req, char *url, int *keepalive, int transparent)
      if (ret <= 0) {
           ci_debug_printf(1, "Error sending requests \n");
 	  *keepalive = 0;
-	  return 0;
+	  return -1;
      }
 
      *keepalive=req->keepalive;
@@ -393,7 +393,7 @@ int do_file(ci_request_t *req, char *input_file, int *keepalive)
      if (ret<= 0) {
           ci_debug_printf(1, "Error sending requests \n");
 	  *keepalive = 0;
-	  return 0;
+	  return -1;
      }
 
      *keepalive=req->keepalive;
@@ -424,8 +424,6 @@ int threadjobsendfiles()
 	    exit(-1);
 	  }
 	  req = ci_client_request(conn, servername, service);
-          req->type = ICAP_RESPMOD;
-	  req->preview = 512;
 
           for (;;) {
                ci_thread_mutex_lock(&filemtx);
@@ -443,6 +441,8 @@ int threadjobsendfiles()
                    ci_icap_append_xheaders(req, xheaders);
 
                keepalive = 0;
+               req->type = ICAP_RESPMOD;
+               req->preview = 512;
                if ((ret = do_file(req, FILES[indx], &keepalive)) <= 0) {
 		    ci_thread_mutex_lock(&statsmtx);
 		    if (ret == 0) 
@@ -618,6 +618,19 @@ static struct ci_options_entry options[] = {
      {NULL, NULL, NULL, NULL}
 };
 
+void log_errors(ci_request_t * req, const char *format, ...)
+{
+     va_list ap;
+     va_start(ap, format);
+     vfprintf(stderr, format, ap);
+     va_end(ap);
+}
+
+void vlog_errors(ci_request_t * req, const char *format, va_list ap)
+{
+     vfprintf(stderr, format, ap);
+}
+
 int main(int argc, char **argv)
 {
      int i;
@@ -631,6 +644,12 @@ int main(int argc, char **argv)
          ci_args_usage(argv[0], options);
          exit(-1);
      }
+
+     #if ! defined(_WIN32)
+     __log_error = (void (*)(void *, const char *,...)) log_errors;     /*set c-icap library log  function */
+#else
+     __vlog_error = vlog_errors;        /*set c-icap library  log function for win32..... */
+#endif
 
      signal(SIGPIPE, SIG_IGN);
      signal(SIGINT, sigint_handler);
