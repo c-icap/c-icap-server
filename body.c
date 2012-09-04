@@ -93,7 +93,7 @@ struct ci_membuf *ci_membuf_new_sized(int size)
      b->hasalldata = 0;
      b->buf = ci_buffer_alloc(size * sizeof(char));
      if (b->buf == NULL) {
-          free(b);
+          ci_object_pool_free(b);
           return NULL;
      }
      b->bufsize = size;
