@@ -33,12 +33,12 @@ perl_handler_la_LDFLAGS= -module -avoid-version @perlldflags@
 perl_handler_la_SOURCES = perl_handler.c
 
 
-bdb_tables_la_LIBADD = @MODULES_LIBADD@ @BDB_ADD_LDFLAG@
+bdb_tables_la_LIBADD = @MODULES_LIBADD@ @BDB_ADD_LDADD@
 bdb_tables_la_CFLAGS=  @MODULES_CFLAGS@ -I../include/  @BDB_ADD_FLAG@
 bdb_tables_la_LDFLAGS= -module -avoid-version
 bdb_tables_la_SOURCES = bdb_tables.c
 
-ldap_module_la_LIBADD = @MODULES_LIBADD@ @LDAP_ADD_LDFLAG@ $(top_srcdir)/libicapapi.la
+ldap_module_la_LIBADD = @MODULES_LIBADD@ @LDAP_ADD_LDADD@ $(top_srcdir)/libicapapi.la
 ldap_module_la_CFLAGS=  @MODULES_CFLAGS@ -I../include/ @LDAP_ADD_FLAG@
 ldap_module_la_LDFLAGS= -module -avoid-version
 ldap_module_la_SOURCES = ldap_module.c
