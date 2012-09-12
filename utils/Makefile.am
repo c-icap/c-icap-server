@@ -21,7 +21,7 @@ c_icap_client_LDFLAGS = -rdynamic -rpath @libdir@ @THREADS_LDFLAGS@
 
 c_icap_mkbdb_SOURCES = c-icap-mkbdb.c
 c_icap_mkbdb_CFLAGS= -I../include/  @BDB_ADD_FLAG@
-c_icap_mkbdb_LDADD= @THREADS_LDADD@ ../libicapapi.la @DL_ADD_FLAG@  @BDB_ADD_LDFLAG@
+c_icap_mkbdb_LDADD= @THREADS_LDADD@ ../libicapapi.la @DL_ADD_FLAG@  @BDB_ADD_LDADD@
 c_icap_mkbdb_LDFLAGS = -rdynamic -rpath @libdir@ @THREADS_LDFLAGS@ 
 
 c_icap_stretch_SOURCES = c-icap-stretch.c

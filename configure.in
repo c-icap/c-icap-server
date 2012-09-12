@@ -234,14 +234,14 @@ if test a"$zlib" != "ano"; then
         OLDLDFLAGS=$LDFLAGS
         CFLAGS="$CFLAGS -I$zlib/include"
         LDFLAGS="$LDFLAGS -L$zlib/lib"
-	AC_CHECK_LIB(z,inflate,[ZLIB_ADD_LDFLAG="-L$zlib/lib -lz";ZLIB_ADD_FLAG="-I$zlib/include";AC_DEFINE(HAVE_ZLIB,1,[Define HAVE_ZLIB if zlib installed])],[zlib=no])
+	AC_CHECK_LIB(z,inflate,[ZLIB_ADD_LDADD="-L$zlib/lib -lz";ZLIB_ADD_FLAG="-I$zlib/include";AC_DEFINE(HAVE_ZLIB,1,[Define HAVE_ZLIB if zlib installed])],[zlib=no])
         CFLAGS=$OLDCFLAGS
         LDFLAGS=$OLDLDFLAGS
-	AC_SUBST(ZLIB_ADD_LDFLAG)
+	AC_SUBST(ZLIB_ADD_LDADD)
 	AC_SUBST(ZLIB_ADD_FLAG)	
    else
-	AC_CHECK_LIB(z,inflate,[ZLIB_ADD_LDFLAG=" -lz";AC_DEFINE(HAVE_ZLIB,1,[Define HAVE_ZLIB if zlib installed])],[zlib=no])
-	AC_SUBST(ZLIB_ADD_LDFLAG)
+	AC_CHECK_LIB(z,inflate,[ZLIB_ADD_LDADD=" -lz";AC_DEFINE(HAVE_ZLIB,1,[Define HAVE_ZLIB if zlib installed])],[zlib=no])
+	AC_SUBST(ZLIB_ADD_LDADD)
    fi
 fi
 if test a"$zlib" = "ano"; then
@@ -269,9 +269,11 @@ AC_ARG_WITH(bdb,
 
 if test a"$libdb" != "ano"; then
    if test a"$libdbpath" = "a"; then
-#  Save old LDFLAGS
+#  Save old LDFLAGS and LIBS
       OLDLDFLAGS=$LDFLAGS
-      LDFLAGS="-ldb $LDFLAGS"
+      LDFLAGS="$LDFLAGS"
+      OLDLIBS=$LIBS
+      LIBS="-ldb $OLDLIBS"
       echo -n "checking for Berkeley DB under standard directories... "
       AC_LINK_IFELSE(
                      [
@@ -283,18 +285,21 @@ if test a"$libdb" != "ano"; then
                               return 0;
                          }
                      ],	
-	    	     [BDB_ADD_LDFLAG=" -ldb"; libdb="yes"; echo "yes"],
+	    	     [BDB_ADD_LDADD=" -ldb"; libdb="yes"; echo "yes"],
                      [libdb="no"; echo "no"]
        )
-      AC_SUBST(BDB_ADD_LDFLAG)
+      AC_SUBST(BDB_ADD_LDADD)
 #restore LDFLAGS
       LDFLAGS=$OLDLDFLAGS
+      LIBS=$OLDLIBS
    else
-#  Save old CFLAGS/LDFLAGS
+#  Save old CFLAGS/LDFLAGS/LIBS
       OLDCFLAGS=$CFLAGS
       OLDLDFLAGS=$LDFLAGS
+      OLDLIBS=$LIBS
       CFLAGS="-I$libdbpath/include $CFLAGS"
-      LDFLAGS="-L$libdbpath/lib -ldb $LDFLAGS"
+      LDFLAGS="-L$libdbpath/lib $LDFLAGS"
+      LIBS="-ldb $OLDLIBS"
       echo -n "checking for Berkeley DB under $libdbpath... "
       AC_LINK_IFELSE(
                 [
@@ -306,12 +311,13 @@ if test a"$libdb" != "ano"; then
                          return 0;
                     }
                 ],
-               [BDB_ADD_LDFLAG="-L$libdbpath/lib -ldb"; BDB_ADD_FLAG="-I$libdbpath/include";libdb="yes"; echo "yes"], 
+               [BDB_ADD_LDADD="-L$libdbpath/lib -ldb"; BDB_ADD_FLAG="-I$libdbpath/include";libdb="yes"; echo "yes"], 
                [libdb="no"; echo "no"]
       )
 #restore CFLAGS/LDFLAGS
      CFLAGS=$OLDCFLAGS
      LDFLAGS=$OLDLDFLAGS
+     LIBS=$OLDLIBS
    fi
 
    if test a"$libdb" = "ano"; then
@@ -326,11 +332,13 @@ if test a"$libdb" != "ano"; then
 #  Save old CFLAGS/LDFLAGS
      OLDCFLAGS=$CFLAGS
      OLDLDFLAGS=$LDFLAGS
-     for DBVER in 49 48 47 46 45 44 43 42; do
+     OLDLIBS=$LIBS
+     LIBS="-ldb $OLDLIBS"
+     for DBVER in 54 53 52 51 50 49 48 47 46 45 44 43 42; do
         if test -d $libdbpath/include/db$DBVER; then
            echo -n "checking for Berleley DB under $libdbpath/include/db$DBVER and $libdbpath/lib/db$DBVER... "
            CFLAGS="-I$libdbpath/include/db$DBVER $OLDCFLAGS"
-           LDFLAGS="-L$libdbpath/lib/db$DBVER -ldb $OLDLDFLAGS" 
+           LDFLAGS="-L$libdbpath/lib/db$DBVER $OLDLDFLAGS" 
            AC_LINK_IFELSE(
                   [
                      #include <db.h>
@@ -341,7 +349,7 @@ if test a"$libdb" != "ano"; then
                         return 0;
                      }
                   ],
-                  [echo yes;BDB_ADD_LDFLAG="-L$libdbpath/lib/db$DBVER -ldb"; BDB_ADD_FLAG="-I$libdbpath/include/db$DBVER";libdb="yes";], 
+                  [echo yes;BDB_ADD_LDADD="-L$libdbpath/lib/db$DBVER -ldb"; BDB_ADD_FLAG="-I$libdbpath/include/db$DBVER";libdb="yes";], 
                   [libdb="no"; echo "no";]
            )
         fi
@@ -352,8 +360,9 @@ if test a"$libdb" != "ano"; then
 #restore CFLAGS/LDFLAGS
      CFLAGS=$OLDCFLAGS
      LDFLAGS=$OLDLDFLAGS
+     LIBS=$OLDLIBS
    fi
-   AC_SUBST(BDB_ADD_LDFLAG)
+   AC_SUBST(BDB_ADD_LDADD)
    AC_SUBST(BDB_ADD_FLAG)
 fi
 
@@ -385,19 +394,19 @@ if test a"$libldap" != "ano"; then
         CFLAGS="$CFLAGS -I$libldap/include"
         LDFLAGS="$LDFLAGS -L$libldap/lib" 
         AC_CHECK_LIB(ldap,  ldap_search_ext_s,
-                     [LDAP_ADD_LDFLAG="-L$libldap/lib -lldap"; LDAP_ADD_FLAG="-I$libldap/include"; AC_DEFINE(HAVE_LDAP, 1, [Define HAVE_LDAP if LDAP libraries are installed])],
+                     [LDAP_ADD_LDADD="-L$libldap/lib -lldap"; LDAP_ADD_FLAG="-I$libldap/include"; AC_DEFINE(HAVE_LDAP, 1, [Define HAVE_LDAP if LDAP libraries are installed])],
                      [libldap="no"]
                      )
         CFLAGS=$OLDCFLAGS
         LDFLAGS=$OLDLDFLAGS
-        AC_SUBST(LDAP_ADD_LDFLAG)
+        AC_SUBST(LDAP_ADD_LDADD)
         AC_SUBST(LDAP_ADD_FLAG)
    else
         AC_CHECK_LIB(ldap,  ldap_search_ext_s,
-                     [LDAP_ADD_LDFLAG=" -lldap"; AC_DEFINE(HAVE_LDAP, 1, [Define HAVE_LDAP if LDAP libraries are installed])],
+                     [LDAP_ADD_LDADD="-lldap"; AC_DEFINE(HAVE_LDAP, 1, [Define HAVE_LDAP if LDAP libraries are installed])],
                      [libldap="no"]
                      )
-        AC_SUBST(LDAP_ADD_LDFLAG)
+        AC_SUBST(LDAP_ADD_LDADD)
    fi
 fi
 
