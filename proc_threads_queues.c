@@ -159,6 +159,8 @@ int create_childs_queue(struct childs_queue *q, int size)
      q->srv_stats->crashed_childs = 0;
 
      if ((ret = ci_proc_mutex_init(&(q->queue_mtx))) == 0) {
+         /*Release shared mem which is allocated */
+          ci_shared_mem_destroy(&(q->shmid), q->childs);
           log_server(NULL, "can't create children queue semaphore!");
           return 0;
      }
