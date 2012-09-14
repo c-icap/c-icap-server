@@ -71,6 +71,7 @@ struct info_req_data {
 };
 
 extern struct childs_queue *childs_queue;
+extern ci_proc_mutex_t accept_mutex;
 
 int build_statistics(struct info_req_data *info_data);
 
@@ -239,6 +240,8 @@ struct stats_tmpl {
    char *childs_tmpl;
    char *childsEnd;
    char *closingChildsHeader;
+   char *semaphores_tmpl;
+   char *sharedMem_tmpl;
    char *statline_tmpl_int;
    char *statline_tmpl_kbs;
 };
@@ -246,7 +249,7 @@ struct stats_tmpl {
 struct stats_tmpl txt_tmpl = {
   "Running Servers Statistics\n===========================\n"\
   "Childs number: %d\nFree Servers: %d\nUsed Servers: %d\n"\
-  "Started Processes: %u\nClosed Processes: %u\nCrashed Processes: %u"\
+  "Started Processes: %u\nClosed Processes: %u\nCrashed Processes: %u\n"\
   "Closing Processes: %u"\
   "\n\n",
   "\n%s Statistics\n==================\n",
@@ -255,6 +258,8 @@ struct stats_tmpl txt_tmpl = {
   " %d",
   "\n",
   "Closing childs pids:",
+  "%s semaphores in use: %s\n",
+  "%s shared mem in use: %s\n",
   "%s : %lld\n",
   "%s : %lld Kbs %d bytes\n"
 };
@@ -276,6 +281,8 @@ struct stats_tmpl html_tmpl = {
   "<TD> %d</TD>",
   "</TR></TABLE>\n",
   "<TABLE> <TR><TH>Closing childs pids:</TH>",
+  "<TR><TH>%s semaphores in use:</TH><TD>%s</TD>\n",
+  "<TR><TH>%s shared mem in use:</TH><TD>%s</TD>\n",
   "<TR><TH>%s:</TH><TD>  %lld</TD>\n",
   "<TR><TH>%s:</TH><TD>  %lld Kbs %d bytes</TD>\n"
 };
@@ -284,6 +291,7 @@ struct stats_tmpl html_tmpl = {
 int build_statistics(struct info_req_data *info_data)
 {    
      char buf[LOCAL_BUF_SIZE];
+     char buf2[LOCAL_BUF_SIZE];
      int sz, gid, k;
      char *stat_group;
      struct stats_tmpl *tmpl;
@@ -333,6 +341,36 @@ int build_statistics(struct info_req_data *info_data)
      } 
      ci_membuf_write(info_data->body, tmpl->childsEnd, strlen(tmpl->childsEnd), 0);
 
+     /*Print semaphores and shared mem info*/
+#if defined(USE_SYSV_IPC)
+     snprintf(buf2, LOCAL_BUF_SIZE, "%d %d", accept_mutex, childs_queue->queue_mtx);
+     sz = snprintf(buf, LOCAL_BUF_SIZE, tmpl->semaphores_tmpl, "IPC", buf2);
+     ci_membuf_write(info_data->body,buf, sz, 0);
+     snprintf(buf2, LOCAL_BUF_SIZE, "%d %d kbs", childs_queue->shmid, (childs_queue->shared_mem_size/1024));
+     sz = snprintf(buf, LOCAL_BUF_SIZE, tmpl->sharedMem_tmpl, "IPC", buf2);
+     ci_membuf_write(info_data->body,buf, sz, 0);
+#else
+#if defined(USE_POSIX_SEMAPHORES)
+     snprintf(buf2, LOCAL_BUF_SIZE, "%p %p", &accept_mutex, &childs_queue->queue_mtx);
+     sz = snprintf(buf, LOCAL_BUF_SIZE, tmpl->semaphores_tmpl, "POSIX", buf2);
+     ci_membuf_write(info_data->body,buf, sz, 0);
+#elif defined(USE_POSIX_FILE_LOCK)
+     snprintf(buf2, LOCAL_BUF_SIZE, "%s %s", accept_mutex.filename, &childs_queue->queue_mtx.filename);
+     sz = snprintf(buf, LOCAL_BUF_SIZE, tmpl->semaphores_tmpl, "Lockfile", buf2);
+     ci_membuf_write(info_data->body,buf, sz, 0);
+#else
+     sz = snprintf(buf, LOCAL_BUF_SIZE, tmpl->sharedMem_tmpl, "Unknown", "Unknown");
+     ci_membuf_write(info_data->body,buf, sz, 0);
+#endif
+#if defined(USE_POSIX_MAPPED_FILES)
+     snprintf(buf2, LOCAL_BUF_SIZE, "%p %d Kbs", childs_queue->shmid.mem, (childs_queue->shmid.size/1024));
+     sz = snprintf(buf, LOCAL_BUF_SIZE, tmpl->sharedMem_tmpl, "MMAP", buf2);
+     ci_membuf_write(info_data->body,buf, sz, 0);
+#else
+     sz = snprintf(buf, LOCAL_BUF_SIZE, tmpl->sharedMem_tmpl, "Unknown", "Unknown");
+     ci_membuf_write(info_data->body,buf, sz, 0);
+#endif
+#endif/*!USE_POSIX_SEMAPHORES*/
 
      for (gid = 0; gid < STAT_GROUPS.entries_num; gid++) {
           stat_group = STAT_GROUPS.groups[gid];
