@@ -987,9 +987,14 @@ int start_server()
           exit(0);
      }
 
-     ci_proc_mutex_init(&accept_mutex);
+     if (!ci_proc_mutex_init(&accept_mutex)) {
+          ci_debug_printf(1,
+                          "Can't init mutex for accepting conenctions. Fatal error, exiting!\n");
+          exit(0);
+     }
      childs_queue = malloc(sizeof(struct childs_queue));
      if (!create_childs_queue(childs_queue, 2 * MAX_CHILDS)) {
+          ci_proc_mutex_destroy(&accept_mutex);
           ci_debug_printf(1,
                           "Can't init shared memory. Fatal error, exiting!\n");
           exit(0);
