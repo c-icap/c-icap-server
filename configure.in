@@ -142,6 +142,17 @@ AC_ARG_ENABLE(ipv6,
 )
 AC_SUBST(USE_IPV6)
 
+AC_ARG_ENABLE(sysvipc,
+[  --enable-sysvipc	Enable SYSV/IPC for shared memory if supported],
+[ if test $enableval = "yes"; then
+    sysvipc="yes"
+  else
+    sysvipc="no"
+  fi
+],
+   [ sysvipc="yes" ]
+)
+
 USE_COMPAT="0"
 AC_MSG_CHECKING([Keep library compatibility])
 AC_ARG_ENABLE(lib_compat,
@@ -436,6 +447,17 @@ AC_CHECK_HEADERS(sys/ipc.h,
 SYSV_IPC="1"
 ]
 )
+
+if test "a$SYSV_IPC" = "a1"; then
+   AC_MSG_CHECKING([whether SYSV IPC should prefered as locking/shared memory mechanism])
+   if test "a$sysvipc" = "ayes"; then
+      SYSV_IPC="1"
+      AC_MSG_RESULT(yes)
+   else
+      SYSV_IPC="0"
+      AC_MSG_RESULT(no)
+   fi
+fi
 AC_SUBST(SYSV_IPC)
 
 AC_CHECK_HEADERS(regex.h,
