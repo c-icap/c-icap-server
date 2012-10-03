@@ -278,6 +278,7 @@ void init_extra_data(ci_service_xdata_t * srv_xdata, const char *service)
 {
      char buf[1024];
      char stat_group[1024];
+     memset(srv_xdata, 0, sizeof(ci_service_xdata_t));
      ci_thread_rwlock_init(&srv_xdata->lock);
      strcpy(srv_xdata->ISTag, "ISTag: ");
      strcat(srv_xdata->ISTag, ISTAG "-XXXXXXXXX");
@@ -292,6 +293,7 @@ void init_extra_data(ci_service_xdata_t * srv_xdata, const char *service)
      srv_xdata->max_connections = -1;
      srv_xdata->xopts = 0;
      srv_xdata->status = CI_SERVICE_NOT_INITIALIZED;
+     srv_xdata->options_ttl = -1;
 
      snprintf(stat_group, 1023, "Service %s", service);
      stat_group[1023] = '\0';
