@@ -971,6 +971,7 @@ ci_connection_t *ci_client_connect_to(char *servername, int port, int proto)
 
      if (!ci_host_to_sockaddr_t(servername, &(connection->srvaddr), proto)) {
 	  ci_debug_printf(1, "Error getting address info for host %s\n", servername);
+          close(connection->fd);
           __intl_free(connection);
           return NULL;
      }
@@ -983,6 +984,7 @@ ci_connection_t *ci_client_connect_to(char *servername, int port, int proto)
                                 CI_MAXHOSTNAMELEN);
           ci_debug_printf(1, "Error connecting to socket (host: %s) .....\n",
                           hostname);
+          close(connection->fd);
           __intl_free(connection);
           return NULL;
      }
