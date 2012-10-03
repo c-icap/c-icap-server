@@ -97,6 +97,7 @@ struct ci_membuf *ci_membuf_new_sized(int size)
           return NULL;
      }
      b->bufsize = size;
+     b->unlocked = -1;
      b->attributes = NULL;
      return b;
 }
@@ -149,7 +150,10 @@ int ci_membuf_write(struct ci_membuf *b, const char *data, int len, int iseof)
 int ci_membuf_read(struct ci_membuf *b, char *data, int len)
 {
      int remains, copybytes;
-     remains = b->endpos - b->readpos;
+     if (b->unlocked >= 0)
+          remains = b->unlocked - b->readpos;
+     else
+          remains = b->endpos - b->readpos;
      if (remains == 0 && b->hasalldata)
           return CI_EOF;
      copybytes = (len <= remains ? len : remains);

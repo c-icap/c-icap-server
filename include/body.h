@@ -36,6 +36,7 @@ typedef struct ci_membuf{
      int endpos;
      int readpos;
      int bufsize;
+     int unlocked;
      int hasalldata;
      char *buf;
     ci_array_t *attributes;
@@ -49,6 +50,10 @@ CI_DECLARE_FUNC(int) ci_membuf_read(struct ci_membuf *body,char *buf,int len);
 CI_DECLARE_FUNC(int) ci_membuf_attr_add(struct ci_membuf *body,const char *attr, const void *val, size_t val_size);
 CI_DECLARE_FUNC(const void *) ci_membuf_attr_get(struct ci_membuf *body,const char *attr);
 
+#define ci_membuf_lock_all(body)        ((body)->unlocked=0)
+#define ci_membuf_unlock(body, len)     ((body)->unlocked=len)
+#define ci_membuf_unlock_all(body)      ((body)->unlocked=-1)
+#define ci_membuf_size(body)            ((body)->endpos)
 
 /*****************************************************************/
 /* Cached file functions and structure                           */
