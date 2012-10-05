@@ -31,16 +31,16 @@
 #define  ci_thread_cond_t    pthread_cond_t
 #define  ci_thread_t         pthread_t
 
-#define  ci_thread_mutex_init(pmutex)  pthread_mutex_init(pmutex,NULL)
-#define ci_thread_mutex_destroy(pmutex) pthread_mutex_destroy(pmutex)
+CI_DECLARE_FUNC(int) ci_thread_mutex_init(ci_thread_mutex_t *pmutex);
+CI_DECLARE_FUNC(int) ci_thread_mutex_destroy(ci_thread_mutex_t *pmutex);
 #define ci_thread_mutex_lock(pmutex) pthread_mutex_lock(pmutex)
 #define ci_thread_mutex_unlock(pmutex) pthread_mutex_unlock(pmutex)
 #define ci_thread_self  pthread_self
 
 #ifdef USE_PTHREADS_RWLOCK
 #define ci_thread_rwlock_t pthread_rwlock_t
-#define ci_thread_rwlock_init(rwlock) pthread_rwlock_init(rwlock,NULL)
-#define ci_thread_rwlock_destroy(rwlock) pthread_rwlock_destroy(rwlock)
+CI_DECLARE_FUNC(int) ci_thread_rwlock_init(ci_thread_rwlock_t *);
+CI_DECLARE_FUNC(int) ci_thread_rwlock_destroy(ci_thread_rwlock_t *);
 #define ci_thread_rwlock_rdlock(rwlock) pthread_rwlock_rdlock(rwlock)
 #define ci_thread_rwlock_wrlock(rwlock) pthread_rwlock_wrlock(rwlock)
 #define ci_thread_rwlock_unlock(rwlock) pthread_rwlock_unlock(rwlock)
@@ -53,15 +53,14 @@ CI_DECLARE_FUNC(int) ci_thread_rwlock_wrlock(ci_thread_rwlock_t *);
 CI_DECLARE_FUNC(int) ci_thread_rwlock_unlock(ci_thread_rwlock_t *);
 #endif
 
-#define  ci_thread_cond_init(pcond)   pthread_cond_init(pcond,NULL)
-#define ci_thread_cond_destroy(pcond) pthread_cond_destroy(pcond)
+CI_DECLARE_FUNC(int) ci_thread_cond_init(ci_thread_cond_t *pcond);
+CI_DECLARE_FUNC(int) ci_thread_cond_destroy(ci_thread_cond_t *pcond);
 #define ci_thread_cond_wait(pcond,pmutex) pthread_cond_wait(pcond,pmutex)
 #define  ci_thread_cond_broadcast(pcond) pthread_cond_broadcast(pcond)
 #define ci_thread_cond_signal(pcond)   pthread_cond_signal(pcond)
 
-
-#define ci_thread_create(pthread_id,pfunc,parg) pthread_create(pthread_id, NULL,pfunc,parg)
-#define ci_thread_join(thread_id)  pthread_join(thread_id,NULL)
+CI_DECLARE_FUNC(int) ci_thread_create(ci_thread_t *pthread_id, void *(*pfunc)(void *), void *parg);
+CI_DECLARE_FUNC(int) ci_thread_join(ci_thread_t thread_id);
 
 #else /*ifdef _WIN32*/
 
