@@ -179,7 +179,7 @@ static void free_a_buffer(void *op, void *ptr)
 
 static int zlib_inflate(const char *buf, int len, char *unzipped_buf, int *unzipped_buf_len)
 {
-     int ret;
+     int ret, retriable;
      z_stream strm;
      strm.zalloc = alloc_a_buffer;
      strm.zfree = free_a_buffer;
@@ -188,6 +188,9 @@ static int zlib_inflate(const char *buf, int len, char *unzipped_buf, int *unzip
      strm.next_in = Z_NULL;
 
      ret = inflateInit2(&strm, 32 + 15);        /*MAX_WBITS + 32 for both deflate and gzip decompress */
+ 
+     retriable = 1;
+zlib_inflate_retry:
      if (ret != Z_OK) {
           ci_debug_printf(1,
                           "Error initializing  zlib (inflateInit2 return:%d)\n",
@@ -206,8 +209,12 @@ static int zlib_inflate(const char *buf, int len, char *unzipped_buf, int *unzip
      switch (ret) {
      case Z_NEED_DICT:
      case Z_DATA_ERROR:
+          if (retriable) {
+              ret = inflateInit2(&strm, -15);
+              retriable = 0;
+              goto zlib_inflate_retry;
+          }
      case Z_MEM_ERROR:
-
           return CI_ERROR;
      }
 
