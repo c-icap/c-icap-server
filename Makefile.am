@@ -37,8 +37,8 @@ c_icap_SOURCES = aserver.c request.c cfg_param.c \
 # libicapapi ......
 libicapapi_la_CFLAGS= -Iinclude/ @ZLIB_ADD_FLAG@ @BZLIB_ADD_FLAG@ -DCI_BUILD_LIB
 
-libicapapi_la_LIBADD = @ZLIB_ADD_LDADD@ @BZLIB_ADD_LDADD@
-libicapapi_la_LDFLAGS= -shared -version-info @CICAPLIB_VERSION@
+libicapapi_la_LIBADD = @ZLIB_ADD_LDADD@ @BZLIB_ADD_LDADD@ @DL_ADD_FLAG@ @THREADS_LDADD@
+libicapapi_la_LDFLAGS= -shared -version-info @CICAPLIB_VERSION@ @THREADS_LDFLAGS@
 
 
 #c_icap the main server 
