@@ -72,7 +72,7 @@ void register_command_extend(const char *name, int type, void *data,
 			     void (*command_action) (const char *name, int type,
 						     void *data))
 {
-     if (type != CHILD_START_CMD) {
+     if (type != CHILD_START_CMD && type != CHILD_STOP_CMD) {
           ci_debug_printf(1, "Can not register extend command %s ! wrong type\n", name );
           return;
      }
