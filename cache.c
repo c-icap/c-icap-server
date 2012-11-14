@@ -193,6 +193,7 @@ void *ci_cache_search(struct ci_cache *cache,void *key, void **val, ci_mem_alloc
 	    common_mutex_unlock(&cache->mtx);
 	    return key;
 	}
+        assert(e != e->hnext);
 	e = e->hnext;
     }
     common_mutex_unlock(&cache->mtx);
@@ -235,7 +236,7 @@ int ci_cache_update(struct ci_cache *cache, void *key, void *val) {
     }
 
     /*If it is in the hash table remove it...*/
-    if(e->hash) {
+    {
         assert(e->hash <= cache->hash_table_size);
 	tmp = cache->hash_table[e->hash];
 	if(tmp == e)
@@ -245,11 +246,11 @@ int ci_cache_update(struct ci_cache *cache, void *key, void *val) {
 	    if(tmp->hnext)
 		tmp->hnext = tmp->hnext->hnext;
 	}
-	e->hash = 0;
     }
     
     e->hnext = NULL;
     e->time = 0;
+    e->hash = 0;
 
     /*I should implement a ci_type_ops::clone method. Maybe the memcpy is not enough....*/
     key_size = cache->key_ops->size(key);
