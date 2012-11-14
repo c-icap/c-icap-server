@@ -37,7 +37,7 @@ c_icap_SOURCES = aserver.c request.c cfg_param.c \
 # libicapapi ......
 libicapapi_la_CFLAGS= -Iinclude/ @ZLIB_ADD_FLAG@ -DCI_BUILD_LIB
 
-libicapapi_la_LIBADD = @ZLIB_ADD_LDADD@
+libicapapi_la_LIBADD = @ZLIB_ADD_LDADD@ @DL_ADD_FLAG@
 libicapapi_la_LDFLAGS= -shared -version-info @CICAPLIB_VERSION@
 
 
