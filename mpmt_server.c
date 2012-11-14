@@ -105,7 +105,6 @@ void system_shutdown();
 
 static void term_handler_child(int sig)
 {
-     ci_debug_printf(5, "A termination signal received (%d).\n", sig);
      if (!child_data->father_said)
           child_data->to_be_killed = IMMEDIATELY;
      else
@@ -114,24 +113,19 @@ static void term_handler_child(int sig)
 
 static void sigpipe_handler(int sig)
 {
-     ci_debug_printf(5, "SIGPIPE signal received.\n");
 }
 
 static void empty(int sig)
 {
-     ci_debug_printf(10, "An empty signal handler (%d).\n", sig);
 }
 
 static void sigint_handler_main(int sig)
 {
      if (sig == SIGTERM) {
-          ci_debug_printf(5, "SIGTERM signal received for main server.\n");
      }
      else if (sig == SIGINT) {
-          ci_debug_printf(5, "SIGINT signal received for main server.\n");
      }
      else {
-          ci_debug_printf(5, "Signal %d received. Exiting ....\n", sig);
      }
 
      c_icap_going_to_term = 1;
@@ -289,27 +283,69 @@ static void cancel_all_threads()
      }
 }
 
+static void send_term_to_childs(struct childs_queue *q)
+{
+    int i, pid;
+    for (i = 0; i < q->size; i++) {
+        if ((pid = q->childs[i].pid) == 0)
+            continue;
+        /*listener thread will be interupted it is good to know 
+          that it will going down imediatelly */
+        q->childs[i].father_said = IMMEDIATELY;
+        kill(pid, SIGTERM);
+    }
+}
+
+static void wait_childs_to_exit(struct childs_queue *q)
+{
+    int i, status, pid;
+    for (i = 0; i < q->size; i++) {
+        ci_debug_printf(5, "Wait for childs step %d\n", i);
+        if (q->childs[i].pid == 0)
+            continue;
+        ci_debug_printf(5, "Wait for childs step %d pid:%d\n", i, q->childs[i].pid);
+        if (q->childs[i].to_be_killed != IMMEDIATELY) {
+            ci_debug_printf(5, "Child %d not signaled yet!\n", q->childs[i].pid);
+            continue;
+        }
+
+        do {
+            errno = 0;
+            pid = wait(&status);
+        } while (pid < 0 && errno == EINTR);
+
+        if (pid > 0)
+            remove_child(q, pid, 0);
+        ci_debug_printf(5, "Child %d died with status %d\n", pid, status);
+    }
+}
+
 static void kill_all_childs()
 {
-     int i = 0, status, pid;
+    int childs_running;
      ci_debug_printf(5, "Going to term children....\n");
-     for (i = 0; i < childs_queue->size; i++) {
-          if ((pid = childs_queue->childs[i].pid) == 0)
-               continue;
-          /*listener thread will be interupted it is good to know 
-             that it will going down imediatelly */
-          childs_queue->childs[i].father_said = IMMEDIATELY;
-          kill(pid, SIGTERM);
-     }
 
-     for (i = 0; i < childs_queue->size; i++) {
-          if (childs_queue->childs[i].pid == 0)
-               continue;
-          pid = wait(&status);
-          ci_debug_printf(5, "Child %d died with status %d\n", pid, status);
-     }
+     childs_running = 0;
+     do {
+         send_term_to_childs(childs_queue);
+         if (old_childs_queue)
+             send_term_to_childs(old_childs_queue);
+
+         /*wait for a milisecond for childs to take care*/
+         ci_usleep(1000);
+
+         wait_childs_to_exit(childs_queue);
+         childs_running = !childs_queue_is_empty(childs_queue);
+         if (old_childs_queue) {
+             wait_childs_to_exit(old_childs_queue);
+             childs_running += !childs_queue_is_empty(old_childs_queue);
+         }
+     } while(childs_running);
+
      ci_proc_mutex_destroy(&accept_mutex);
      destroy_childs_queue(childs_queue);
+     if (old_childs_queue)
+         destroy_childs_queue(old_childs_queue);
 }
 
 static void check_for_exited_childs()
@@ -817,8 +853,6 @@ void child_main(int sockfd, int pipefd)
                                    sizeof(server_decl_t *));
      con_queue = init_queue(START_SERVERS);
 
-     execure_start_child_commands ();
-
      for (i = 0; i < START_SERVERS; i++) {
           if ((threads_list[i] = newthread(con_queue)) == NULL) {
                exit(-1);        // FATAL error.....
@@ -839,7 +873,12 @@ void child_main(int sockfd, int pipefd)
      srand(((unsigned int)time(NULL)) + (unsigned int)getpid());
      /*I suppose that all my threads are up now. We can setup our signal handlers */
      child_signals();
-     for (;;) {
+     
+     /*start child commands may have non thread safe code but the worker threads
+      does not serving requests yet.*/
+     execure_start_child_commands ();
+
+     while (!child_data->to_be_killed) {
           char buf[512];
           int bytes;
           if ((ret = ci_wait_for_data(pipefd, 5, wait_for_read)) > 0) { /*data input */
@@ -848,11 +887,10 @@ void child_main(int sockfd, int pipefd)
                     ci_debug_printf(1,
                                     "Parent closed the pipe connection! Going to term immediately!\n");
                     child_data->to_be_killed = IMMEDIATELY;
-                    break;
+               } else {
+                    buf[bytes] = '\0';
+                    handle_child_process_commands(buf);
                }
-               buf[bytes] = '\0';
-               handle_child_process_commands(buf);
-//               ci_debug_printf(1, "Coming data: %s\n", buf);
           }
           else if (ret < 0) {
                ci_debug_printf(1,
@@ -864,17 +902,6 @@ void child_main(int sockfd, int pipefd)
                                "Ohh!! something happened to listener thread! Terminating\n");
                child_data->to_be_killed = GRACEFULLY;
           }
-/*
-          if (MAX_REQUESTS_PER_CHILD > 0
-              && child_data->requests > MAX_REQUESTS_PER_CHILD) {
-               ci_debug_printf(5,
-                               "Maximum number of requests reached.Going down\n");
-               child_data->to_be_killed = GRACEFULLY;
-          }
-*/
-          if (child_data->to_be_killed)
-               break;
-//          ci_debug_printf(5, "Do some tests\n");
      }
 
      ci_debug_printf(5, "Child :%d going down :%s\n", getpid(),
