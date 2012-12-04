@@ -161,6 +161,7 @@ CI_DECLARE_FUNC(int)   ci_buf_reset_size(struct ci_buf *buf,int req_size);
 /*API defines */
 #define ci_service_data(req) ((req)->service_data)
 #define ci_allow204(req)     ((req)->allow204)
+#define ci_allow206(req)     ((req)->allow206)
 /*API functions ......*/
 CI_DECLARE_FUNC(ci_request_t *)  ci_request_alloc(ci_connection_t *connection);
 CI_DECLARE_FUNC(void)         ci_request_reset(ci_request_t *req);

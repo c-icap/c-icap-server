@@ -717,8 +717,13 @@ static int client_create_request(ci_request_t * req, char *servername, char *ser
      buf[255] = '\0';
      ci_headers_add(req->request_header, buf);
      ci_headers_add(req->request_header, "User-Agent: C-ICAP-Client-Library/0.01");
-     if (ci_allow204(req))
+
+     if (ci_allow204(req) && ci_allow206(req))
+          ci_headers_add(req->request_header, "Allow: 204, 206");
+     else if (ci_allow204(req))
           ci_headers_add(req->request_header, "Allow: 204");
+     if (ci_allow206(req))
+          ci_headers_add(req->request_header, "Allow: 206");
 
      if (!ci_headers_is_empty(req->xheaders)) {
 	  ci_headers_addheaders(req->request_header, req->xheaders);
@@ -1332,5 +1337,9 @@ int ci_client_icapfilter(ci_request_t * req,
      ret =
          client_send_get_data(req, timeout, data_source, source_read, data_dest,
                               dest_write);
+
+     if (preview_status == 206 && ret == CI_OK)
+         return 206;
+
      return ret;
 }

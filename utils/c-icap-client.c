@@ -139,6 +139,15 @@ int filewrite(void *fd, char *buf, int len)
      return ret;
 }
 
+void copy_data(int fd_in, int fd_out, ci_off_t copy_from)
+{
+    char buf[4095];
+    size_t len;
+    lseek(fd_in, copy_from, SEEK_SET);
+    while((len = read(fd_in, buf ,sizeof(buf))) > 0)
+        write(fd_out, buf, len);
+}
+
 int add_xheader(const char *directive, const char **argv, void *setdata)
 {
     ci_headers_list_t **xh = (ci_headers_list_t **)setdata;
@@ -173,6 +182,7 @@ char *request_url = NULL;
 int send_headers = 1;
 int send_preview = 1;
 int allow204 = 1;
+int allow206 = 0;
 int verbose = 0;
 ci_headers_list_t *xheaders = NULL;
 ci_headers_list_t *http_xheaders = NULL;
@@ -193,6 +203,7 @@ static struct ci_options_entry options[] = {
       "Do not send reshdr headers"},
      {"-nopreview", NULL, &send_preview, ci_cfg_disable, "Do not send preview data"},
      {"-no204", NULL, &allow204, ci_cfg_disable, "Do not allow204 outside preview"},
+     {"-206", NULL, &allow206, ci_cfg_enable, "Support allow206"},
      {"-x", "xheader", &xheaders, add_xheader, "Include xheader in icap request headers"},
      {"-hx", "xheader", &http_xheaders, add_xheader, "Include xheader in http headers"},
      {"-w", "preview", &preview_size, ci_cfg_set_int, "Sets the maximum preview data size"},
@@ -301,6 +312,8 @@ int main(int argc, char **argv)
 	  req->type = ICAP_RESPMOD;
           if (allow204)
               req->allow204 = 1;
+          if (allow206)
+              req->allow206 = 1;
 
 	  if (xheaders)
 	      ci_icap_append_xheaders(req, xheaders);
@@ -329,6 +342,15 @@ int main(int argc, char **argv)
                                      (int (*)(void *, char *, int)) fileread,
                                      &fd_out,
                                      (int (*)(void *, char *, int)) filewrite);
+
+          if (ret == 206) {
+              ci_debug_printf(1, "Partial modification (Allow 206 response): "
+                              "use %ld from the original body data\n", 
+                              req->i206_use_original_body);
+              copy_data(fd_in, fd_out, req->i206_use_original_body);
+
+          }
+
           close(fd_in);
           close(fd_out);
 
