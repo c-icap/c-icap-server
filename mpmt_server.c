@@ -76,7 +76,7 @@ int listener_running = 0;
 ci_thread_cond_t free_server_cond;
 ci_thread_mutex_t counters_mtx;
 
-struct childs_queue *childs_queue;
+struct childs_queue *childs_queue = NULL;
 struct childs_queue *old_childs_queue = NULL;
 child_shared_data_t *child_data = NULL;
 struct connections_queue *con_queue;
@@ -105,6 +105,9 @@ void system_shutdown();
 
 static void term_handler_child(int sig)
 {
+     if (!child_data)
+         return; /*going down?*/
+
      if (!child_data->father_said)
           child_data->to_be_killed = IMMEDIATELY;
      else
@@ -183,10 +186,11 @@ void thread_signals(int islistener)
 
 static void exit_normaly()
 {
+     system_shutdown();
 #ifdef MULTICHILD
+     child_data = NULL;
      dettach_childs_queue(childs_queue);
 #endif
-     system_shutdown();
 }
 
 static void release_thread_i(int i)
@@ -289,10 +293,11 @@ static void send_term_to_childs(struct childs_queue *q)
     for (i = 0; i < q->size; i++) {
         if ((pid = q->childs[i].pid) == 0)
             continue;
-        /*listener thread will be interupted it is good to know 
-          that it will going down imediatelly */
-        q->childs[i].father_said = IMMEDIATELY;
-        kill(pid, SIGTERM);
+        if (q->childs[i].to_be_killed != IMMEDIATELY) {
+            /*Child did not informed yet*/
+            q->childs[i].father_said = IMMEDIATELY;
+            kill(pid, SIGTERM);
+        }
     }
 }
 
@@ -300,10 +305,9 @@ static void wait_childs_to_exit(struct childs_queue *q)
 {
     int i, status, pid;
     for (i = 0; i < q->size; i++) {
-        ci_debug_printf(5, "Wait for childs step %d\n", i);
         if (q->childs[i].pid == 0)
             continue;
-        ci_debug_printf(5, "Wait for childs step %d pid:%d\n", i, q->childs[i].pid);
+        ci_debug_printf(5, "Wait for child with pid:%d\n", q->childs[i].pid);
         if (q->childs[i].to_be_killed != IMMEDIATELY) {
             ci_debug_printf(5, "Child %d not signaled yet!\n", q->childs[i].pid);
             continue;
@@ -311,12 +315,13 @@ static void wait_childs_to_exit(struct childs_queue *q)
 
         do {
             errno = 0;
-            pid = wait(&status);
+            pid = waitpid(q->childs[i].pid, &status, WNOHANG);
         } while (pid < 0 && errno == EINTR);
 
-        if (pid > 0)
+        if (pid > 0) {
             remove_child(q, pid, 0);
-        ci_debug_printf(5, "Child %d died with status %d\n", pid, status);
+            ci_debug_printf(5, "Child %d died with status %d\n", pid, status);
+        }
     }
 }
 
@@ -331,8 +336,8 @@ static void kill_all_childs()
          if (old_childs_queue)
              send_term_to_childs(old_childs_queue);
 
-         /*wait for a milisecond for childs to take care*/
-         ci_usleep(1000);
+         /*wait for 30 milisecond for childs to take care*/
+         ci_usleep(30000);
 
          wait_childs_to_exit(childs_queue);
          childs_running = !childs_queue_is_empty(childs_queue);
@@ -344,8 +349,10 @@ static void kill_all_childs()
 
      ci_proc_mutex_destroy(&accept_mutex);
      destroy_childs_queue(childs_queue);
+     childs_queue = NULL;
      if (old_childs_queue)
          destroy_childs_queue(old_childs_queue);
+     old_childs_queue = NULL;
 }
 
 static void check_for_exited_childs()
@@ -693,6 +700,10 @@ void listener_thread(int *fd)
      int pid, sockfd;
      sockfd = *fd;
      thread_signals(1);
+     /*Wait main process to signal us to start accepting requests*/
+     ci_thread_mutex_lock(&counters_mtx);
+     ci_thread_cond_wait(&free_server_cond, &counters_mtx);
+     ci_thread_mutex_unlock(&counters_mtx);
      pid = getpid();
      for (;;) {                 //Global for
           if (child_data->to_be_killed) {
@@ -873,10 +884,20 @@ void child_main(int sockfd, int pipefd)
      srand(((unsigned int)time(NULL)) + (unsigned int)getpid());
      /*I suppose that all my threads are up now. We can setup our signal handlers */
      child_signals();
-     
+
+     /* A signal from parent may comes while we are starting.
+        Listener will not accept any request in this case, (it checks on 
+        the beggining of the accept loop for parent commands) so we can 
+        shutdown imediatelly even if the parent said gracefuly.*/
+     if (child_data->father_said)
+         child_data->to_be_killed = IMMEDIATELY;
+
      /*start child commands may have non thread safe code but the worker threads
-      does not serving requests yet.*/
+       does not serving requests yet.*/
      execure_start_child_commands ();
+
+     /*Signal listener to start accepting requests.*/
+     ci_thread_cond_signal(&free_server_cond);
 
      while (!child_data->to_be_killed) {
           char buf[512];
