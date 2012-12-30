@@ -207,7 +207,7 @@ int load_text_table(char *filename, struct ci_lookup_table *table) {
      struct text_table_entry *e, *l = NULL;
      int rows, ret;
      struct text_table *text_table = (struct text_table *)table->data;
-     if ((f = fopen(filename, "r+")) == NULL) {
+     if ((f = fopen(filename, "r")) == NULL) {
 	 ci_debug_printf(1, "Error opening file: %s\n", filename);
 	 return 0;
      }
