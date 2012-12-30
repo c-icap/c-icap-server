@@ -78,7 +78,7 @@ void register_command_extend(const char *name, int type, void *data,
      }
      check_commands_list();
      commands_list[commands_list_num].name = strdup(name);
-     commands_list[commands_list_num].type = CHILD_START_CMD;
+     commands_list[commands_list_num].type = type;
      commands_list[commands_list_num].data = data;
      commands_list[commands_list_num++].command_action_extend = command_action;
      ci_debug_printf(5, "Extend command %s registered\n", name);
