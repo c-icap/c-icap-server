@@ -19,7 +19,7 @@
 
 #include "common.h"
 #include "simple_api.h"
-
+#include <ctype.h>
 
 
 /*
@@ -238,11 +238,12 @@ int ci_icap_append_xheaders(ci_request_t *req,ci_headers_list_t *headers)
     return ci_headers_addheaders(req->xheaders, headers);
 }
 
+#define header_end(e) (e == '\0' || e == '\n' || e == '\r')
 int ci_http_request_url(ci_request_t * req, char *buf, int buf_size)
 {
    ci_headers_list_t *heads;
-   const char *str;
-   int i; 
+   const char *str, *host;
+   int i, bytes; 
    /*The request must have the form:
         GET url HTTP/X.X 
    */
@@ -260,11 +261,24 @@ int ci_http_request_url(ci_request_t * req, char *buf, int buf_size)
      while (*str == ' ') /*ignore spaces*/
           str++;
 
+     bytes = 0;
+     if (*str == '/' && (host = ci_headers_value(heads,"Host"))) {
+         /*Looks like a transparent proxy, we do not know the protocol lets try
+           to preserve the major part of the url....
+          */
+         for (i=0; (i < buf_size-1) && !header_end(host[i]) && !isspace(host[i]); i++) {
+             buf[i] = host[i]; 
+         }
+         buf += i;
+         buf_size -= i;
+         bytes = i;
+     }
+
      /*copy the url...*/
-     for (i=0; i < buf_size-1 && (str[i] !=' ' && str[i] != '\0' && str[i] != '\n' && str[i] != '\r' && str[i] != '?'); 
-             i++) {
+     for (i=0; (i < buf_size-1) && !header_end(str[i]) && !isspace(str[i]) && str[i] != '?'; i++) {
           buf[i] = str[i]; 
      }
      buf[i] = '\0';
-     return i;
+     bytes += i;
+     return bytes;
 }
