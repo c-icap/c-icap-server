@@ -41,6 +41,7 @@ extern int MAX_SECS_TO_LINGER;
 char MY_HOSTNAME[CI_MAXHOSTNAMELEN + 1];
 
 void init_conf_tables();
+int init_body_system();
 int config(int, char **);
 int init_server(char *address, int port, int *family);
 int start_server();

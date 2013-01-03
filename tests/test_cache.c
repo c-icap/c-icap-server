@@ -27,6 +27,7 @@ void *copy_from_str(void *val, int val_size, ci_mem_allocator_t *allocator)
     return (void *)ci_str_ops.dup((char *)val, allocator);
 }
 
+int mem_init();
 int main(int argc,char *argv[]) {
     int i;
     struct ci_cache *cache;

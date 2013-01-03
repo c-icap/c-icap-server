@@ -109,7 +109,7 @@ int bdb_table_do_real_open(struct ci_lookup_table *table)
     }
 
 
-#if(DB_VERSION_MINOR>=1)
+#if (DB_VERSION_MAJOR > 4) || (DB_VERSION_MAJOR == 4 && DB_VERSION_MINOR >= 1)
     if ((ret = dbdata->db->open( dbdata->db, NULL, table->path, NULL,
 				 DB_BTREE, DB_RDONLY|DB_THREAD, 0)) != 0) {
 #else
