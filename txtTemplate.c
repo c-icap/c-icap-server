@@ -27,6 +27,7 @@
 #include <sys/param.h>
 #include <assert.h>
 #include <stdlib.h>
+#include <ctype.h>
 
 #include "common.h" 
 #include "body.h"

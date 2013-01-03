@@ -47,10 +47,10 @@ c_icap_CFLAGS= -Iinclude/ -DCONFDIR=\"$(CONFIGDIR)\" -DMODSDIR=\"$(MODULESDIR)\"
                           -DSERVDIR=\"$(SERVICESDIR)\" -DLOGDIR=\"$(LOGDIR)\"  \
                           -DDATADIR=\"$(DATADIR)\"
 
-c_icap_LDADD = libicapapi.la @DL_ADD_FLAG@ @THREADS_LDADD@
+c_icap_LDADD = libicapapi.la
 c_icap_LDFLAGS = -rdynamic -rpath @libdir@ @THREADS_LDFLAGS@
 
-EXT_PROGRAMS_MKLIB = -licapapi @DL_ADD_FLAG@ @THREADS_LDADD@
+EXT_PROGRAMS_MKLIB = -licapapi
 
 
 INCS = access.h body.h cfg_param.h c-icap-conf.h c-icap.h ci_threads.h \

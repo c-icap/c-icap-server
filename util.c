@@ -20,7 +20,7 @@
 #include "common.h"
 #include "c-icap.h"
 #include "util.h"
-
+#include <ctype.h>
 
 #ifndef HAVE_STRNSTR
 const char *strnstr(const char *s, const char *find, size_t slen)
