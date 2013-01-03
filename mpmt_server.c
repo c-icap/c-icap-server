@@ -702,6 +702,7 @@ void listener_thread(int *fd)
      thread_signals(1);
      /*Wait main process to signal us to start accepting requests*/
      ci_thread_mutex_lock(&counters_mtx);
+     listener_running = 1;
      ci_thread_cond_wait(&free_server_cond, &counters_mtx);
      ci_thread_mutex_unlock(&counters_mtx);
      pid = getpid();
@@ -878,7 +879,6 @@ void child_main(int sockfd, int pipefd)
      ret = ci_thread_create(&thread, (void *(*)(void *)) listener_thread,
                             (void *) &sockfd);
      listener_thread_id = thread;
-     listener_running = 1;
      
      /*set srand for child......*/
      srand(((unsigned int)time(NULL)) + (unsigned int)getpid());
@@ -897,6 +897,14 @@ void child_main(int sockfd, int pipefd)
      execure_start_child_commands ();
 
      /*Signal listener to start accepting requests.*/
+     int doStart = 0;
+     do {
+         ci_thread_mutex_lock(&counters_mtx);
+         doStart = listener_running;
+         ci_thread_mutex_unlock(&counters_mtx);
+         if (!doStart)
+             ci_usleep(5);
+     } while(!doStart);
      ci_thread_cond_signal(&free_server_cond);
 
      while (!child_data->to_be_killed) {
