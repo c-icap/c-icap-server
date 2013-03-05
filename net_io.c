@@ -161,7 +161,7 @@ void ci_copy_connection(ci_connection_t * dest, ci_connection_t * src)
      ci_copy_sockaddr(&dest->srvaddr, &src->srvaddr);
 }
 
-int ci_host_to_sockaddr_t(char *servername, ci_sockaddr_t * addr, int proto)
+int ci_host_to_sockaddr_t(const char *servername, ci_sockaddr_t * addr, int proto)
 {
      int ret = 0;
      struct addrinfo hints, *res;
