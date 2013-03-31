@@ -138,6 +138,18 @@ extern "C"
  */
 CI_DECLARE_FUNC(int)                ci_base64_decode(const char *str,char *result,int len);
 
+/**
+ * Produces a base64 encoded string.
+ \ingroup UTILITY
+ *
+ \param data   is a buffer which holds the data to be encoded
+ \param datalen    is the length of the data buffer
+ \param out    is a buffer where the encoded data will be stored
+ \param outlen    is the length of the out buffer
+ \return the number of decoded bytes
+ */
+CI_DECLARE_FUNC(int) ci_base64_encode(const unsigned char *data, size_t datalen, char *out, size_t outlen);
+
 enum {
     CI_ENCODE_NONE=0, 
     CI_ENCODE_GZIP,

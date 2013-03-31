@@ -98,6 +98,34 @@ char *ci_base64_decode_dup(const char *encoded)
     return result;
 }
 
+/* byte1____ byte2____ byte3____ */
+/* 123456 78 1234 5678 12 345678 */
+/* b64_1_ b64_2__ b64_3__ b64_4_ */ 
+
+#define dobase64(s, b0, b1, b2)                                 \
+    s[k++] = base64_set[(b0 >> 2) & 0x3F];                      \
+    s[k++] = base64_set[((b0 << 4) | (b1 >> 4)) & 0x3F];        \
+    s[k++] = base64_set[((b1 << 2) | (b2 >> 6)) & 0x3F];        \
+    s[k++] = base64_set[b2 & 0x3F];
+
+int ci_base64_encode(const unsigned char *data, size_t len, char *out, size_t outlen)
+{
+    int i, k;
+    const char *base64_set = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"    \
+        "abcdefghijklmnopqrstuvwxyz"\
+        "0123456789"\
+        "+/";
+    for (i = 0, k=0; i < (len - 3) && k < (outlen - 4); i+=3) {
+        dobase64(out, data[i], data[i + 1], data[i + 2]);
+    }
+    /*if the outlen is enough big*/
+    if (k < (outlen -4) && i < len) {
+        dobase64(out, (i < len ? data[i] : 0), (i + 1 < len ? data[i + 1] : 0), (i + 2 < len ? data[i + 2] : 0));
+    }
+
+    out[k] = '\0';
+    return k;
+}
 
 /*url decoders  */
 int url_decoder(const char *input,char *output, int output_len)
