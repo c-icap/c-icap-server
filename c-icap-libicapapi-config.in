@@ -9,7 +9,8 @@ DATADIR=@PKGDATADIR@/
 #LOGDIR=
 SOCKDIR=@SOCKDIR@
 
-INCDIR=@PKGINCLUDEDIR@
+INCDIR=@INCLUDEDIR@
+INCDIR2=@PKGINCLUDEDIR@
 
 VERSION=@PACKAGE_VERSION@
 
@@ -33,7 +34,7 @@ EOTXT
 
 case $1 in
     '--cflags')
-        echo $CFLAGS" -I"$INCDIR;
+        echo $CFLAGS" -I"$INCDIR" -I"$INCDIR2;
         ;;
     '--libs')
        echo $LIBS;

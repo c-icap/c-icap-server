@@ -71,6 +71,7 @@ do_subst=sed -e 's%[@]SYSCONFDIR[@]%$(CONFIGDIR)%g' \
              -e 's%[@]prefix[@]%$(prefix)%g' \
              -e 's%[@]LIBDIR[@]%$(libdir)%g' \
              -e 's%[@]PKGINCLUDEDIR[@]%$(pkgincludedir)%g' \
+             -e 's%[@]INCLUDEDIR[@]%$(includedir)%g' \
              -e 's%[@]PKGLIBDIR[@]%$(pkglibdir)%g' \
              -e 's%[@]PKGDATADIR[@]%$(pkgdatadir)%g' \
              -e 's%[@]CFLAGS[@]%$(CFLAGS)%g' \
