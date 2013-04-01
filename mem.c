@@ -201,12 +201,12 @@ void *ci_buffer_alloc(int block_size)
      return (void *)block->data.ptr;
 }
 
-size_t ci_buffer_blocksize(void *data)
+size_t ci_buffer_blocksize(const void *data)
 {
-    struct mem_buffer_block *block;
+    const struct mem_buffer_block *block;
     int type;
     size_t buffer_block_size = 0;
-    block = (struct mem_buffer_block *)(data-PTR_OFFSET);
+    block = (const struct mem_buffer_block *)(data-PTR_OFFSET);
     if (block->sig != BUF_SIGNATURE) {
         ci_debug_printf(1,"ci_buffer_blocksize: ERROR, not internal buffer. This is a bug!!!!");
         return 0;

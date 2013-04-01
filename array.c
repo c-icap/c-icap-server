@@ -387,7 +387,7 @@ void ci_vector_destroy(ci_vector_t *vector)
     ci_buffer_free(buffer);
 }
 
-void * ci_vector_add(ci_vector_t *vector, void *value, size_t size)
+void * ci_vector_add(ci_vector_t *vector, const void *value, size_t size)
 {
     void *item, **indx;
     ci_mem_allocator_t *packer = vector->alloc;

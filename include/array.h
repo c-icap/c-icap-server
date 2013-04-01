@@ -377,7 +377,7 @@ CI_DECLARE_FUNC(void) ci_vector_destroy(ci_vector_t *vector);
  \param size the size of the new item.
  \return a pointer to the new  item on success, NULL otherwise
  */
-CI_DECLARE_FUNC(void *) ci_vector_add(ci_vector_t *vector, void *obj, size_t size);
+CI_DECLARE_FUNC(void *) ci_vector_add(ci_vector_t *vector, const void *obj, size_t size);
 
 /**
  * Run the given function for each vector item
