@@ -1,5 +1,5 @@
-#ifndef AV_MD5_H
-#define AV_MD5_H
+#ifndef CI_MD5_H
+#define CI_MD5_H
 
 #include "c-icap.h"
 
@@ -13,4 +13,4 @@ void ci_MD5Init(struct ci_MD5Context *ctx);
 void ci_MD5Update(struct ci_MD5Context *ctx, const unsigned char *buf, size_t len);
 void ci_MD5Final(unsigned char digest[16], struct ci_MD5Context *ctx);
 
-#endif /* !AV_MD5_H */
+#endif /* !CI_MD5_H */
