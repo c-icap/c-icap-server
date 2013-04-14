@@ -475,6 +475,125 @@ typedef ci_vector_t ci_ptr_vector_t;
  */
 CI_DECLARE_FUNC(void *) ci_ptr_vector_add(ci_vector_t *vector, void *pointer);
 
+/**
+ \defgroup LISTS Lists API
+ \ingroup ARRAYS
+ * Lists for storing items, and can grow unlimited.
+ *
+ */
+
+typedef struct ci_list_item{
+    void *item;
+    struct ci_list_item *next;
+} ci_list_item_t;
+
+/**
+ \typedef ci_list_t
+ \ingroup LISTS
+ * The ci_list_t objects can store a list of objects, with a predefined size.
+ * The list items can be removed.
+ * The memory RAM space of list can not be decreased before the ci_list destroyed.
+ * However the memory of removed items reused.
+ */
+typedef struct ci_list {
+    ci_list_item_t *items;
+    ci_list_item_t *last;
+    ci_list_item_t *trash;
+    size_t obj_size;
+    ci_mem_allocator_t *alloc;
+
+    int (*cmp_func)(const void *obj, const void *user_data, size_t user_data_size);
+    int (*copy_func)(void *newObj, const void *oldObj);
+    void (*free_func)(void *obj);
+} ci_list_t;
+
+/**
+ * Allocate the required memory and initialize a ci_list_t object 
+ \ingroup LISTS
+ \param init_size the initial memory size to use
+ \param obj_size the size of stored objects. If it is 0 then stores pointers to objects.
+ \return the allocated object on success, or NULL on failure
+ */
+CI_DECLARE_FUNC(ci_list_t *) ci_list_create(size_t init_size, size_t obj_size);
+
+/**
+ * Destroy an ci_list_t object 
+ \ingroup LISTS
+ \param list a pointer to ci_list_t object to be destroyed
+ */
+void ci_list_destroy(ci_list_t *list);
+
+/**
+ * Run the given function for each list item
+ \ingroup LISTS
+ \param list a pointer to the ci_list_t object
+ \param data a pointer to data which will be passed to the fn function
+ \param fn a pointer to the function which will be run for each vector item. The iteration will stop if the fn function return non zero value.
+ */
+CI_DECLARE_FUNC(void) ci_list_iterate(ci_list_t *list, void *data, int (*fn)(void *data, const void *obj));
+
+/**
+ * Add an item to the head of list.
+ \ingroup LISTS
+ \param list a pointer to the ci_list_t object
+ \param obj pointer to the object to add in vector
+ \return a pointer to the new  item on success, NULL otherwise
+ */
+CI_DECLARE_FUNC(const void *) ci_list_push(ci_list_t *list, const void *obj);
+
+/**
+ * Add an item to the tail of list.
+ \ingroup LISTS
+ \param list a pointer to the ci_list_t object
+ \param obj pointer to the object to add in vector
+ \return a pointer to the new  item on success, NULL otherwise
+ */
+CI_DECLARE_FUNC(const void *) ci_list_push_back(ci_list_t *list, const void *data);
+
+/**
+ * Remove the first item of the list.
+ \ingroup LISTS
+ \param list a pointer to the ci_list_t object
+ \param obj pointer to an object to store removed item
+ \return a pointer to the obj on success, NULL otherwise
+ */
+CI_DECLARE_FUNC(void *) ci_list_pop(ci_list_t *list, void *obj);
+
+/**
+ * Remove the last item of the list.
+ \ingroup LISTS
+ \param list a pointer to the ci_list_t object
+ \param obj pointer to an object to store removed item
+ \return a pointer to the obj on success, NULL otherwise
+ */
+CI_DECLARE_FUNC(void *) ci_list_pop_back(ci_list_t *list, void *obj);
+
+/**
+ * Remove the first found item equal to the obj.
+ \ingroup LISTS
+ \param list a pointer to the ci_list_t object
+ \param obj pointer to an object to remove
+ \return not 0 on success, 0 otherwise
+ */
+CI_DECLARE_FUNC(int) ci_list_remove(ci_list_t *list, const void *obj);
+
+/**
+ * Return the first found item equal to the obj.
+ \ingroup LISTS
+ \param list a pointer to the ci_list_t object
+ \param obj pointer to an object to remove
+ \return the found item on success, NULL otherwise
+ */
+CI_DECLARE_FUNC(const void *) ci_list_search(ci_list_t *list, const void *data);
+
+
+/*
+  The following three functions are undocumented. Probably will be removed or replaced 
+  by others.
+ */
+CI_DECLARE_FUNC(void) ci_list_cmp_handler(ci_list_t *list, int (*cmp_func)(const void *obj, const void *user_data, size_t user_data_size));
+CI_DECLARE_FUNC(void) ci_list_copy_handler(ci_list_t *list, int (*copy_func)(void *newObj, const void *oldObj));
+CI_DECLARE_FUNC(void) ci_list_free_handler(ci_list_t *list, void (*free_func)(void *obj));
 
 #ifdef __cplusplus
 }

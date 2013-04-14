@@ -483,3 +483,210 @@ void * ci_ptr_vector_add(ci_vector_t *vector, void *value)
     return value;
 }
 
+
+/****************/
+/* Lists API    */
+
+ci_list_t * ci_list_create(size_t init_size, size_t obj_size)
+{
+    ci_list_t *list = NULL;
+    ci_mem_allocator_t *alloc = NULL;
+    if (init_size < 1024)
+        init_size = 1024;
+
+    alloc = ci_create_serial_allocator(init_size);
+    list = alloc->alloc(alloc, sizeof(ci_list_t));
+    list->alloc = alloc;
+    list->items = NULL;
+    list->last = NULL;
+    list->trash = NULL;
+    list->obj_size = obj_size;
+
+    /*By default do not use any handler*/
+    list->cmp_func = NULL;
+    list->copy_func = NULL;
+    list->free_func = NULL;
+    return list;
+}
+
+void ci_list_destroy(ci_list_t *list)
+{
+    ci_mem_allocator_t *alloc = list->alloc;
+    ci_mem_allocator_destroy(alloc);
+}
+
+void ci_list_cmp_handler(ci_list_t *list, int (*cmp_func)(const void *obj, const void *user_data, size_t user_data_size))
+{
+    list->cmp_func = cmp_func;
+}
+
+void ci_list_free_handler(ci_list_t *list, void (*free_func)(void *obj))
+{
+    list->free_func = free_func;
+}
+
+void ci_list_copy_handler(ci_list_t *list, int (*copy_func)(void *newObj, const void *oldObj))
+{
+    list->copy_func = copy_func;
+}
+
+void ci_list_iterate(ci_list_t *list, void *data, int (*fn)(void *data, const void *obj))
+{
+    ci_list_item_t *it;
+    for (it = list->items; it != NULL; it = it->next) {
+        if ((*fn)(data, it->item))
+            return;
+    }
+}
+
+static ci_list_item_t *list_alloc_item(ci_list_t *list, const void *data)
+{
+   ci_list_item_t *it;
+    if (list->trash) {
+        it = list->trash;
+        list->trash = list->trash->next;
+    } else {
+        it = list->alloc->alloc(list->alloc, sizeof(ci_list_item_t)); 
+        if (!it)
+            return NULL;
+
+        it->item = list->alloc->alloc(list->alloc, list->obj_size); 
+        if (!it->item)
+            return NULL;
+    }
+    it->next = NULL;
+    memcpy(it->item, data, list->obj_size);
+    if (list->copy_func)
+        list->copy_func(it->item, data);
+    return it;
+}
+
+const void * ci_list_push(ci_list_t *list, const void *data)
+{
+    ci_list_item_t *it = list_alloc_item(list, data);
+    if (!it)
+        return NULL;
+    if (list->items) {
+        it->next = list->items;
+        list->items = it;
+    } else {
+        list->items = list->last = it;
+    }
+    return it->item;
+}
+
+const void * ci_list_push_back(ci_list_t *list, const void *data)
+{
+    ci_list_item_t *it = list_alloc_item(list, data);
+    if (!it)
+        return NULL;
+    if (list->last != NULL) {
+        list->last->next = it;
+        list->last = it;
+    } else {
+        list->items = list->last = it;
+    }
+    return it->item;
+}
+
+void *ci_list_pop(ci_list_t *list, void *data)
+{
+    ci_list_item_t *it = list->items;
+    if (list->items == NULL)
+        return NULL;
+
+    if (list->last == list->items) {
+        list->last = NULL;
+        list->items = NULL;
+    } else
+        list->items = list->items->next;
+
+    memcpy(data, it->item, list->obj_size);
+    if (list->copy_func)
+        list->copy_func(data, it->item);
+
+    it->next = list->trash;
+    list->trash = it;
+    if (list->free_func)
+        list->free_func(it->item);
+
+    return data;
+}
+
+void *ci_list_pop_back(ci_list_t *list, void *data)
+{
+    ci_list_item_t *tmp, *it = list->last;
+    if (list->items == NULL)
+        return NULL;
+
+    if (list->last == list->items) {
+        list->last = NULL;
+        list->items = NULL;
+    } else {
+        for (tmp = list->items; tmp != NULL && tmp->next != list->last; tmp = tmp->next);
+        assert(tmp != NULL);
+        list->last = tmp;
+        list->last->next = NULL;
+    }
+    memcpy(data, it->item, list->obj_size);
+    if (list->copy_func)
+        list->copy_func(data, it->item);
+
+    it->next = list->trash;
+    list->trash = it;
+    if (list->free_func)
+        list->free_func(it->item);
+
+    return data;
+}
+
+static int default_cmp(const void *obj1, const void *obj2, size_t size)
+{
+    return memcmp(obj1, obj2, size);
+}
+
+int ci_list_remove(ci_list_t *list, const void *obj)
+{
+    ci_list_item_t *it, *prev;
+    int (*cmp_func)(const void *, const void *, size_t);
+
+    if (list->cmp_func)
+        cmp_func = list->cmp_func;
+    else
+        cmp_func = default_cmp;
+    
+    prev = NULL;
+    for (it = list->items; it != NULL; prev = it,it = it->next) {
+        if (cmp_func(it->item, obj, list->obj_size) == 0) {
+            if (prev) {
+                prev->next = it->next;
+            } else { /*it is the first item*/
+                list->items = it->next;
+            }
+            it->next = list->trash;
+            list->trash = it;
+            if (list->free_func)
+                list->free_func(it->item);
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+const void * ci_list_search(ci_list_t *list, const void *data)
+{
+    ci_list_item_t *it;
+    int (*cmp_func)(const void *, const void *, size_t);
+
+    if (list->cmp_func)
+        cmp_func = list->cmp_func;
+    else
+        cmp_func = default_cmp;
+
+    for (it = list->items; it != NULL; it = it->next) {
+        if (cmp_func(it->item, data, list->obj_size) == 0)
+            return it->item;
+    }
+    return NULL;
+}
