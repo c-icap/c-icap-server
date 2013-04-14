@@ -51,11 +51,12 @@ typedef struct ci_command{
 CI_DECLARE_FUNC(void) register_command(const char *name,int type, void (*command_action)(const char *name,int type, const char **argv));
 CI_DECLARE_FUNC(void) register_command_extend(const char *name, int type, void *data,
                                               void (*command_action) (const char *name, int type, void *data));
-CI_DECLARE_FUNC(void) reset_commands();
-CI_DECLARE_FUNC(int) execute_command(ci_command_t *command,char *cmdline,int exec_type);
-CI_DECLARE_FUNC(ci_command_t) *find_command(const char *cmd_line);
-CI_DECLARE_FUNC(int) execure_start_child_commands();
-CI_DECLARE_FUNC(int) execute_stop_child_commands();
+
+void reset_commands();
+int execute_command(ci_command_t *command,char *cmdline,int exec_type);
+ci_command_t *find_command(const char *cmd_line);
+int execute_start_child_commands();
+int execute_stop_child_commands();
 
 #ifdef __cplusplus
 }

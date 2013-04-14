@@ -894,7 +894,7 @@ void child_main(int sockfd, int pipefd)
 
      /*start child commands may have non thread safe code but the worker threads
        does not serving requests yet.*/
-     execure_start_child_commands ();
+     execute_start_child_commands ();
 
      /*Signal listener to start accepting requests.*/
      int doStart = 0;

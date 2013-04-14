@@ -154,7 +154,7 @@ static int execute_child_commands (int cmd_type)
     return 1;
 }
 
-int execure_start_child_commands ()
+int execute_start_child_commands ()
 {
     return execute_child_commands(CHILD_START_CMD);
 }
