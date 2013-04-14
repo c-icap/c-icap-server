@@ -12,12 +12,13 @@ int main(int argc, char *argv[]) {
     }
     else
         str = "Good morning"; 
-    ci_base64_encode(str, strlen(str), encoded, 1024);
+    ci_base64_encode((unsigned char *)str, (size_t)strlen(str), encoded, 1024);
     l = ci_base64_decode(encoded, decoded, 1024);
     decoded[l] = '\0';
     printf("Input string: \'%s\'\n", str);
     printf("Base64 encoded string: \'%s\'\n", encoded);
     printf("Decoded string: \'%s\'\n", decoded);
+    return 0;
 }
 
 
