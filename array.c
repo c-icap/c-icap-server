@@ -61,8 +61,8 @@ ci_array_t * ci_array_new2(size_t items, size_t item_size)
 {
     size_t array_size;
     array_size = ci_pack_allocator_required_size() +
-        _CI_ALIGN(sizeof(ci_dyn_array_t)) +
-        items * (_CI_ALIGN(item_size) + _CI_ALIGN(sizeof(ci_dyn_array_item_t)));
+        _CI_ALIGN(sizeof(ci_array_t)) +
+        items * (_CI_ALIGN(item_size) + _CI_ALIGN(sizeof(ci_array_item_t)));
     return ci_array_new(array_size);
 }
 
@@ -238,18 +238,18 @@ const ci_dyn_array_item_t * ci_dyn_array_add(ci_dyn_array_t *array, const char *
     }
     item->next = NULL;
     name_size = strlen(name) + 1;
-    item->name = ci_pack_allocator_alloc(packer, name_size);
+    item->name = packer->alloc(packer, name_size);
     if (size > 0)
-        item->value = ci_pack_allocator_alloc(packer, size);
+        item->value = packer->alloc(packer, size);
     else
         item->value = NULL;
 
     if (!item->name || (!item->value && size > 0)) {
         ci_debug_printf(2, "Not enough space to add the new item %s to array!\n", name);
         /*packer->free does not realy free anything bug maybe in the future will be able to release memory*/
-        if (item->name) ci_pack_allocator_free(packer, item->name);
-        if (item->value) ci_pack_allocator_free(packer, item->value);
-        ci_pack_allocator_free(packer, item);
+        if (item->name) packer->free(packer, item->name);
+        if (item->value) packer->free(packer, item->value);
+        packer->free(packer, item);
         return NULL;
     }
 
@@ -297,6 +297,7 @@ const ci_dyn_array_item_t * ci_ptr_dyn_array_add(ci_ptr_dyn_array_t *array, cons
    return ci_dyn_array_add(array, name, value, 0);
 }
 
+/*This function should removed.*/
 void *ci_ptr_dyn_array_pop_head(ci_ptr_dyn_array_t *array, char *name, size_t name_size)
 {
     ci_dyn_array_item_t *item;
@@ -315,8 +316,8 @@ void *ci_ptr_dyn_array_pop_head(ci_ptr_dyn_array_t *array, char *name, size_t na
         name[name_size-1] = '\0';
     }
     /*Does not really needed*/
-    ci_pack_allocator_free(array->alloc, item->name);
-    ci_pack_allocator_free(array->alloc, item);
+    array->alloc->free(array->alloc, item->name);
+    array->alloc->free(array->alloc, item);
 
     return value;
 }
