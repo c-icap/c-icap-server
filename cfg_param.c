@@ -32,6 +32,7 @@
 #include "acl.h"
 #include "txtTemplate.h"
 
+#define MAX_INCLUDE_LEVEL 5
 #define LINESIZE 8192
 #define MAX_DIRECTIVE_SIZE 80
 #define MAX_ARGS 50
@@ -773,8 +774,9 @@ int parse_file(const char *conf_file)
      char line[LINESIZE];
      int line_count, ret_value;
 
-     if (PARSE_LEVEL >= 3) {
-          ci_debug_printf(1, "Parse level >3. I will not parse file:%s\n",
+     if (PARSE_LEVEL >= MAX_INCLUDE_LEVEL) {
+          ci_debug_printf(1, "Include level > %d. I will not parse file:%s\n",
+                          MAX_INCLUDE_LEVEL,
                           conf_file);
           return 0;
      }
