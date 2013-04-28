@@ -1310,7 +1310,9 @@ int ci_client_icapfilter(ci_request_t * req,
           sscanf(req->response_header->buf, "ICAP/%d.%d %d", &v1, &v2, &preview_status);
           ci_debug_printf(3, "Preview response was with status: %d \n",
                           preview_status);
-          if ((req->eof_received && preview_status == 200) || preview_status == 206) {
+          if (preview_status == 204)
+              ci_headers_unpack(req->response_header);
+          else if ((req->eof_received && preview_status == 200) || preview_status == 206) {
                ci_headers_unpack(req->response_header);
                if ((val = ci_headers_search(req->response_header, "Encapsulated")) == NULL) {
                     ci_debug_printf(1, "No encapsulated entities!\n");
