@@ -42,7 +42,6 @@ void printhead(void *d, const char *head, const char *value)
 
 void print_headers(ci_request_t * req)
 {
-     int i;
      int type;
      ci_headers_list_t *headers;
      ci_debug_printf(1, "\nICAP HEADERS:\n");
@@ -91,14 +90,14 @@ void build_respmod_headers(int fd, ci_headers_list_t *headers)
 }
 
 
-void build_reqmod_headers(char *url, int fd, ci_headers_list_t *headers)
+void build_reqmod_headers(char *url, const char *method, int fd, ci_headers_list_t *headers)
 {
      struct stat filestat;
      int filesize;
      char lbuf[1024];
      time_t ltimet;
      
-     snprintf(lbuf,1024, "GET %s HTTP/1.0", url);
+     snprintf(lbuf,1024, "%s %s HTTP/1.0", method, url);
      lbuf[1023] = '\0';
      ci_headers_add(headers, lbuf);
 
@@ -179,6 +178,7 @@ char *service = "echo";
 char *input_file = NULL;
 char *output_file = NULL;
 char *request_url = NULL;
+char *method_str = "GET";
 int send_headers = 1;
 int send_preview = 1;
 int allow204 = 1;
@@ -196,6 +196,7 @@ static struct ci_options_entry options[] = {
       "Send this file to the icap server.\nDefault is to send an options request"},
      {"-o", "filename", &output_file, ci_cfg_set_str,
       "Save output to this file.\nDefault is to send to stdout"},
+     {"-method", "method", &method_str, ci_cfg_set_str,"Use 'method' as method of the request modification"},
      {"-req","url",&request_url,ci_cfg_set_str,"Send a request modification instead of response modification"},
      {"-d", "level", &CI_DEBUG_LEVEL, ci_cfg_set_int,
       "debug level info to stdout"},
@@ -320,7 +321,8 @@ int main(int argc, char **argv)
 
 	  if (request_url) {
 	       headers = ci_headers_create();
-	       build_reqmod_headers(request_url, fd_in, headers);
+               if (request_url)
+	           build_reqmod_headers(request_url, method_str, fd_in, headers);
 	       req->type = ICAP_REQMOD;
 	  }
           else if (send_headers) {
