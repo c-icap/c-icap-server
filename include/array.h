@@ -120,7 +120,7 @@ CI_DECLARE_FUNC(const void *) ci_array_search(ci_array_t *array, const char *nam
  \param data a pointer to data which will be passed on fn function
  \param fn a pointer to the function which will be run for each array item. The iteration will stop if the fn function return non zero value
  */
-CI_DECLARE_FUNC(void) ci_array_iterate(ci_array_t *array, void *data, int (*fn)(void *data, const char *name, const void *));
+CI_DECLARE_FUNC(void) ci_array_iterate(const ci_array_t *array, void *data, int (*fn)(void *data, const char *name, const void *));
 
 /**
  \defgroup STR_ARRAYS   Arrays of strings related API
@@ -169,6 +169,14 @@ typedef ci_array_t ci_ptr_array_t;
 #define ci_ptr_array_new ci_array_new
 
 /**
+ * Create and initialize an ci_ptr_array_t object for the given number of items
+ \ingroup PTR_ARRAYS
+ \param items the maximum aray items
+ \return the allocated object on success, or NULL on failure
+ */
+CI_DECLARE_FUNC(ci_ptr_array_t *) ci_ptr_array_new2(size_t items);
+
+/**
  \def ci_ptr_array_destroy(ptr_array)
  \ingroup PTR_ARRAYS
  * Destroy a ci_ptr_array_t object. Similar to the ci_array_destroy function
@@ -176,12 +184,14 @@ typedef ci_array_t ci_ptr_array_t;
 #define ci_ptr_array_destroy(ptr_array) ci_array_destroy(ptr_array)
 
 /**
- \def ci_ptr_array_search(ptr_array, name)
+ * Search in an array for an item with the given name
  \ingroup PTR_ARRAYS
- * Search for a name/value pair item in a ci_ptr_array_t object. Similar to 
- * the ci_array_search function
+ \param array a pointer to the ci_ptr_array_t object
+ \param name the item to be search for.
+ \return pointer to the value pair of the array item if found, NULL otherwise
  */
-#define ci_ptr_array_search(ptr_array, name) ci_array_search(ptr_array, name)
+CI_DECLARE_FUNC(void *) ci_ptr_array_search(ci_ptr_array_t *array, const char *name);
+
 
 /**
  \def ci_ptr_array_iterate(ptr_array, data, fn)
@@ -299,7 +309,7 @@ CI_DECLARE_FUNC(const void *) ci_dyn_array_search(ci_dyn_array_t *array, const c
  \param data a pointer to data which will be passed on fn function
  \param fn a pointer to the function which will be run for each array item.  The iteration will stop if the fn function return non zero value.
  */
-CI_DECLARE_FUNC(void) ci_dyn_array_iterate(ci_dyn_array_t *array, void *data, int (*fn)(void *data, const char *name, const void *));
+CI_DECLARE_FUNC(void) ci_dyn_array_iterate(const ci_dyn_array_t *array, void *data, int (*fn)(void *data, const char *name, const void *));
 
 /**
  \defgroup PTR_DYNAMIC_ARRAYS   Dynamic arrays of pointers related API
@@ -330,7 +340,7 @@ typedef ci_dyn_array_t ci_ptr_dyn_array_t;
  \param pointer the pointer part of the name/value pair item to be added
  \return a pointer to the new array item on success, NULL otherwise
  */
-CI_DECLARE_FUNC(const ci_dyn_array_item_t *) ci_dyn_ptr_array_add(ci_ptr_dyn_array_t *ptr_array, const char *name, void *pointer);
+CI_DECLARE_FUNC(const ci_dyn_array_item_t *) ci_ptr_dyn_array_add(ci_ptr_dyn_array_t *ptr_array, const char *name, void *pointer);
 
 
 /**
@@ -386,7 +396,7 @@ CI_DECLARE_FUNC(void *) ci_vector_add(ci_vector_t *vector, const void *obj, size
  \param data a pointer to data which will be passed to the fn function
  \param fn a pointer to the function which will be run for each vector item. The iteration will stop if the fn function return non zero value.
  */
-CI_DECLARE_FUNC(void) ci_vector_iterate(ci_vector_t *vector, void *data, int (*fn)(void *data, const void *));
+CI_DECLARE_FUNC(void) ci_vector_iterate(const ci_vector_t *vector, void *data, int (*fn)(void *data, const void *));
 
 /**
  * Delete the last element of a vector.
@@ -437,7 +447,7 @@ typedef ci_vector_t ci_str_vector_t;
  \param data a pointer to data which will be passed to the fn function
  \param fn a pointer to the function which will be run for each string vector item. The iteration will stop if the fn function return non zero value.
  */
-CI_DECLARE_FUNC(void) ci_str_vector_iterate(ci_str_vector_t *vector, void *data, int (*fn)(void *data, const char *));
+CI_DECLARE_FUNC(void) ci_str_vector_iterate(const ci_str_vector_t *vector, void *data, int (*fn)(void *data, const char *));
 
 /**
  * Search for a string in a string vector.
@@ -530,7 +540,7 @@ void ci_list_destroy(ci_list_t *list);
  \param data a pointer to data which will be passed to the fn function
  \param fn a pointer to the function which will be run for each vector item. The iteration will stop if the fn function return non zero value.
  */
-CI_DECLARE_FUNC(void) ci_list_iterate(ci_list_t *list, void *data, int (*fn)(void *data, const void *obj));
+CI_DECLARE_FUNC(void) ci_list_iterate(const ci_list_t *list, void *data, int (*fn)(void *data, const void *obj));
 
 /**
  * Add an item to the head of list.

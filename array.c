@@ -113,7 +113,7 @@ const void * ci_array_search(ci_array_t *array, const char *name)
     return NULL;
 }
 
-void ci_array_iterate(ci_array_t *array, void *data, int (*fn)(void *data, const char *name, const void *))
+void ci_array_iterate(const ci_array_t *array, void *data, int (*fn)(void *data, const char *name, const void *))
 {
     int i, ret = 0;
     for (i=0; i < array->count && ret == 0; i++) {
@@ -139,6 +139,20 @@ const ci_array_item_t *ci_array_pop(ci_array_t *array)
         ci_pack_allocator_set_end_pos(array->alloc, MIN_P(array->items[array->count-1].name, array->items[array->count-1].value) );
 
     return item;
+}
+
+ci_ptr_array_t * ci_ptr_array_new2(size_t items)
+{
+    size_t array_size;
+    array_size = ci_pack_allocator_required_size() +
+        _CI_ALIGN(sizeof(ci_ptr_array_t)) +
+        items * (_CI_ALIGN(sizeof(void *)) + _CI_ALIGN(sizeof(ci_array_item_t)));
+    return ci_ptr_array_new(array_size);
+}
+
+void * ci_ptr_array_search(ci_ptr_array_t *array, const char *name)
+{
+    return (void *)ci_array_search(array, name);
 }
 
 const ci_array_item_t * ci_ptr_array_add(ci_ptr_array_t *ptr_array, const char *name, void *value)
@@ -284,7 +298,7 @@ const void * ci_dyn_array_search(ci_dyn_array_t *array, const char *name)
     return NULL;
 }
 
-void ci_dyn_array_iterate(ci_dyn_array_t *array, void *data, int (*fn)(void *data, const char *name, const void *value))
+void ci_dyn_array_iterate(const ci_dyn_array_t *array, void *data, int (*fn)(void *data, const char *name, const void *value))
 {
     ci_dyn_array_item_t *item;
     int i, ret = 0;
@@ -433,7 +447,7 @@ void * ci_vector_pop(ci_vector_t *vector)
     return p;
 }
 
-void ci_vector_iterate(ci_vector_t *vector, void *data, int (*fn)(void *data, const void *))
+void ci_vector_iterate(const ci_vector_t *vector, void *data, int (*fn)(void *data, const void *))
 {
     int i, ret = 0;
     for (i=0; vector->items[i] != NULL && ret == 0; i++)
@@ -442,7 +456,7 @@ void ci_vector_iterate(ci_vector_t *vector, void *data, int (*fn)(void *data, co
 
 
 /*ci_str_vector functions */
-void ci_str_vector_iterate(ci_str_vector_t *vector, void *data, int (*fn)(void *data, const char *))
+void ci_str_vector_iterate(const ci_str_vector_t *vector, void *data, int (*fn)(void *data, const char *))
 {
     ci_vector_iterate(vector, data, (int(*)(void *, const void *))fn);
 }
@@ -530,7 +544,7 @@ void ci_list_copy_handler(ci_list_t *list, int (*copy_func)(void *newObj, const 
     list->copy_func = copy_func;
 }
 
-void ci_list_iterate(ci_list_t *list, void *data, int (*fn)(void *data, const void *obj))
+void ci_list_iterate(const ci_list_t *list, void *data, int (*fn)(void *data, const void *obj))
 {
     ci_list_item_t *it;
     for (it = list->items; it != NULL; it = it->next) {
