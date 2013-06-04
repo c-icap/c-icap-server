@@ -27,7 +27,7 @@ libicapapi_la_SOURCES=  header.c body.c decode.c simple_api.c request_common.c \
                         filetype.c debug.c cfg_lib.c mem.c  service_lib.c \
                         cache.c lookup_table.c lookup_file_table.c hash.c \
 			txt_format.c stats.c types_ops.c acl.c txtTemplate.c \
-			array.c md5.c $(UTIL_SOURCES)
+			array.c registry.c md5.c $(UTIL_SOURCES)
 c_icap_SOURCES = aserver.c request.c cfg_param.c \
                    proc_threads_queues.c http_auth.c \
                    access.c log.c service.c module.c \
@@ -57,7 +57,7 @@ INCS = access.h body.h cfg_param.h c-icap-conf.h c-icap.h ci_threads.h \
 	commands.h debug.h dlib.h filetype.h header.h log.h mem.h module.h \
 	net_io.h proc_mutex.h proc_threads_queues.h request.h service.h \
 	shared_mem.h simple_api.h util.h lookup_table.h hash.h stats.h acl.h \
-        cache.h txt_format.h types_ops.h txtTemplate.h array.h md5.h
+        cache.h txt_format.h types_ops.h txtTemplate.h array.h registry.h md5.h
 
 ALL_INCS=$(INCS:%.h=include/%.h)
 
