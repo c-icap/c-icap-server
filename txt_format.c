@@ -558,6 +558,9 @@ int fmt_icap_res_head(ci_request_t *req, char *buf,int len, const char *param)
           s = req->response_header->headers[0];
   } else {
       s = ci_headers_value(req->response_header, param);
+      /*if not found try xheaders which will also sent to user*/
+      if (!s && req->xheaders)
+          s = ci_headers_value(req->xheaders, param);
   }
 
   if (s) {
