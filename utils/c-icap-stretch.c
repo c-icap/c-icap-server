@@ -74,6 +74,7 @@ char **xclient_headers = NULL;
 int xclient_headers_num =0;
 ci_headers_list_t *xheaders = NULL;
 ci_headers_list_t *http_xheaders = NULL;
+ci_headers_list_t *http_resp_xheaders = NULL;
 
 ci_thread_mutex_t statsmtx;
 
@@ -130,6 +131,28 @@ static void sigint_handler(int sig)
      exit(0);
 }
 
+void str_trim(char *str)
+{
+    char *s, *e;
+
+    if (!str)
+        return;
+
+    s = str;
+    e = NULL;
+    while (*s == ' ' && s != '\0'){
+        e = s;
+        while (*e != '\0'){
+            *e = *(e+1);
+            e++;
+        }
+    }
+
+    /*if (e) e--;  else */
+    e = str+strlen(str);
+    while(*(--e) == ' ' && e >= str) *e = '\0';
+}
+
 int load_urls(char *filename)
 {
     FILE *f;
@@ -146,8 +169,11 @@ int load_urls(char *filename)
     
     while (fgets(line,URL_SIZE,f)!= NULL && URLS_COUNT != MAX_URLS) {
         line[strlen(line)-1] = '\0';
-        URLS[URLS_COUNT] = strdup(line);
-        URLS_COUNT++;
+        str_trim(line);
+        if (line[0] != '#' && line[0] != '\0') {
+            URLS[URLS_COUNT] = strdup(line);
+            URLS_COUNT++;
+        }
     }
     
     fclose(f);
@@ -170,6 +196,7 @@ void build_headers(int fd, ci_headers_list_t *headers)
      char lbuf[512];
      time_t ltimet;
      
+     ci_headers_add(headers, "200 OK HTTP/1.1");
      ci_headers_add(headers, "Filetype: Unknown");
      ci_headers_add(headers, "User: chtsanti");
 
@@ -189,9 +216,29 @@ void build_headers(int fd, ci_headers_list_t *headers)
 
      sprintf(lbuf, "Content-Length: %d", filesize);
      ci_headers_add(headers, lbuf);
+     if (http_resp_xheaders)
+         ci_headers_addheaders(headers, http_resp_xheaders);
 
 }
 
+void build_request_headers(const char *url, const char *method, ci_headers_list_t *headers)
+{
+    char lbuf[1024];
+    time_t ltimet;
+     
+    snprintf(lbuf,1024, "%s %s HTTP/1.0", method, url);
+    lbuf[1023] = '\0';
+    ci_headers_add(headers, lbuf);
+
+    strcpy(lbuf, "Date: ");
+    time(&ltimet);
+    ctime_r(&ltimet, lbuf + strlen(lbuf));
+    lbuf[strlen(lbuf) - 1] = '\0';
+    ci_headers_add(headers, lbuf);
+    ci_headers_add(headers, "User-Agent: C-ICAP-Client/x.xx");
+    if(http_xheaders)
+        ci_headers_addheaders(headers, http_xheaders);
+}
 
 
 int fileread(void *fd, char *buf, int len)
@@ -254,11 +301,15 @@ int do_req(ci_request_t *req, char *url, int *keepalive, int transparent)
      lbuf[strlen(lbuf) - 1] = '\0';
      ci_headers_add(headers, lbuf);
      ci_headers_add(headers, "User-Agent: C-ICAP-Stretch/x.xx");
+     if(http_xheaders)
+         ci_headers_addheaders(headers, http_xheaders);
+
      req->type = ICAP_REQMOD;
 
      ret = ci_client_icapfilter(req,
 				CONN_TIMEOUT,
 				headers,
+                                NULL,
 				NULL,
 				(int (*)(void *, char *, int)) fileread,
 				&fd_out,
@@ -305,6 +356,8 @@ int threadjobreqmod()
 	  req = ci_client_request(conn, servername, service);
           req->type = ICAP_RESPMOD;
 	  req->preview = 512;
+          req->allow206 = 1;
+          req->allow204 = 1;
 
 	  for(;;) {
               xh = xclient_header();
@@ -363,8 +416,19 @@ int threadjobreqmod()
 int do_file(ci_request_t *req, char *input_file, int *keepalive)
 {
      int fd_in,fd_out;
-     int ret;
-     ci_headers_list_t *headers;
+     int ret, arand;
+     int indx;
+     ci_headers_list_t *headers, *request_headers = NULL;
+     const char *useUrl = NULL;
+
+     if (URLS_COUNT > 0) {
+         ci_thread_mutex_lock(&statsmtx);
+         arand = rand();  /*rand is not thread safe .... */
+         ci_thread_mutex_unlock(&statsmtx);
+
+         indx = (int) ((((double) arand) / (double) RAND_MAX) * (double)URLS_COUNT);
+         useUrl = URLS[indx];
+     }
 
      if ((fd_in = open(input_file, O_RDONLY)) < 0) {
           ci_debug_printf(1, "Error opening file %s\n", input_file);
@@ -374,9 +438,14 @@ int do_file(ci_request_t *req, char *input_file, int *keepalive)
 
      headers = ci_headers_create();     
      build_headers(fd_in, headers);
+     if (useUrl) {
+         request_headers = ci_headers_create();
+         build_request_headers(useUrl, "GET", request_headers);
+     }
 
      ret = ci_client_icapfilter(req,
 				CONN_TIMEOUT,
+                                request_headers,
 				headers,
 				&fd_in,
 				(int (*)(void *, char *, int)) fileread,
@@ -443,6 +512,8 @@ int threadjobsendfiles()
                keepalive = 0;
                req->type = ICAP_RESPMOD;
                req->preview = 512;
+               req->allow206 = 1;
+               req->allow204 = 1;
                if ((ret = do_file(req, FILES[indx], &keepalive)) <= 0) {
 		    ci_thread_mutex_lock(&statsmtx);
 		    if (ret == 0) 
@@ -599,7 +670,7 @@ static struct ci_options_entry options[] = {
       "The ICAP server name"},
      {"-p", "port", &PORT, ci_cfg_set_int, "The ICAP server port"},
      {"-s", "service", &service, ci_cfg_set_str, "The service name"},
-     {"-f", "filename", &urls_file, ci_cfg_set_str,
+     {"-urls", "filename", &urls_file, ci_cfg_set_str,
       "File with urls to use for reqmod stress test"},
      {"-req", NULL, &DoReqmod, ci_cfg_enable,
       "Send a request modification instead of response modification requests"},
@@ -611,7 +682,8 @@ static struct ci_options_entry options[] = {
       "debug level info to stdout"},
 //     {"-nopreview", NULL, &send_preview, ci_cfg_disable, "Do not send preview data"},
      {"-x", "xheader", &xheaders, add_xheader, "Include xheader in icap request headers"},
-     {"-hx", "xheader", &http_xheaders, add_xheader, "Include xheader in http headers"},
+     {"-hx", "xheader", &http_xheaders, add_xheader, "Include xheader in http request headers"},
+     {"-rhx", "xheader", &http_resp_xheaders, add_xheader, "Include xheader in http response headers"},
      {"-hcx", "X-Client-IP", &xclient_headers, add_xclient_headers, "Include this X-Client-IP header in request"},
 //     {"-w", "preview", &preview_size, ci_cfg_set_int, "Sets the maximum preview data size"},
      {"$$", NULL, &FILES, cfg_files_to_use, "files to send"},

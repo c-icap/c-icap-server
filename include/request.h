@@ -182,7 +182,8 @@ CI_DECLARE_FUNC(int)          ci_client_get_server_options(ci_request_t *req,int
 CI_DECLARE_FUNC(ci_connection_t *)  ci_client_connect_to(char *servername,int port,int proto);
 CI_DECLARE_FUNC(int)          ci_client_icapfilter(ci_request_t *req,
 						   int timeout,
-						   ci_headers_list_t *headers,
+						   ci_headers_list_t *req_headers,
+                                                   ci_headers_list_t *resp_headers,
 						   void *data_source,
 						   int (*source_read)(void *,char *,int),
 						   void *data_dest,  

@@ -1234,11 +1234,32 @@ static int client_send_get_data(ci_request_t * req,
      return CI_OK;
 }
 
+static int client_build_headers(ci_request_t *req, int has_reqhdr, int has_reshdr, int has_body)
+{
+     int i = 0;
 
+     for (i = 0; i < 4; i++) {
+          if (req->entities[i]) {
+               ci_request_release_entity(req, i);
+          }
+     }
+     i = 0;
+
+     if (has_reqhdr)
+         req->entities[i++] = ci_request_alloc_entity(req, ICAP_REQ_HDR, 0);
+     if (has_reshdr)
+          req->entities[i++] = ci_request_alloc_entity(req, ICAP_RES_HDR, 0);
+     if (has_body)
+          req->entities[i] = ci_request_alloc_entity(req, ICAP_RES_BODY, 0);
+     else
+          req->entities[i] = ci_request_alloc_entity(req, ICAP_NULL_BODY, 0);
+     return 1;
+}
 
 int ci_client_icapfilter(ci_request_t * req,
                          int timeout,
-                         ci_headers_list_t * headers,
+                         ci_headers_list_t * req_headers,
+                         ci_headers_list_t * resp_headers,
                          void *data_source, int (*source_read) (void *, char *,
                                                                 int),
                          void *data_dest, int (*dest_write) (void *, char *,
@@ -1276,21 +1297,25 @@ int ci_client_icapfilter(ci_request_t * req,
      if (pre_eof)
           req->eof_received = 1;
 
+     /*Bulid client request structure*/
+     if (!client_build_headers(req, (req_headers != NULL), (resp_headers != NULL), (data_source != NULL)))
+         return CI_ERROR;
+
      /*Add the user supplied headers */
-     if (req->type == ICAP_REQMOD && headers) {
-          ci_http_request_create(req, (data_source!= NULL));
-          for (i = 0; i < headers->used; i++) {
-               ci_http_request_add_header(req, headers->headers[i]);
+     if (req_headers) {
+         ci_debug_printf(5, "Going to add %d request headers\n", req_headers->used);
+          for (i = 0; i < req_headers->used; i++) {
+              ci_debug_printf(8, "Add request header: %s\n", req_headers->headers[i]);
+               ci_http_request_add_header(req, req_headers->headers[i]);
           }
      }
-     else if (headers) {
-          ci_http_response_create(req, 1, 1);
-          for (i = 0; i < headers->used; i++) {
-               ci_http_response_add_header(req, headers->headers[i]);
+     if (resp_headers) {
+         ci_debug_printf(5, "Going to add %d response headers\n", resp_headers->used);
+          for (i = 0; i < resp_headers->used; i++) {
+              ci_debug_printf(8, "Add resp header: %s\n", resp_headers->headers[i]);
+               ci_http_response_add_header(req, resp_headers->headers[i]);
           }
      }
-     else
-          ci_http_response_create(req, 0, 1);
 
      if ((ret = client_send_request_headers(req, pre_eof, timeout)) < 0) {
           return CI_ERROR;

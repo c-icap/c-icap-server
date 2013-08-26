@@ -178,6 +178,7 @@ char *service = "echo";
 char *input_file = NULL;
 char *output_file = NULL;
 char *request_url = NULL;
+char *resp_url = NULL;
 char *method_str = "GET";
 int send_headers = 1;
 int send_preview = 1;
@@ -186,6 +187,7 @@ int allow206 = 0;
 int verbose = 0;
 ci_headers_list_t *xheaders = NULL;
 ci_headers_list_t *http_xheaders = NULL;
+ci_headers_list_t *http_resp_xheaders = NULL;
 
 static struct ci_options_entry options[] = {
      {"-i", "icap_servername", &icap_server, ci_cfg_set_str,
@@ -198,6 +200,7 @@ static struct ci_options_entry options[] = {
       "Save output to this file.\nDefault is to send to stdout"},
      {"-method", "method", &method_str, ci_cfg_set_str,"Use 'method' as method of the request modification"},
      {"-req","url",&request_url,ci_cfg_set_str,"Send a request modification instead of response modification"},
+     {"-resp","url",&resp_url,ci_cfg_set_str,"Send a responce modification request with request url the 'url'"},
      {"-d", "level", &CI_DEBUG_LEVEL, ci_cfg_set_int,
       "debug level info to stdout"},
      {"-noreshdr", NULL, &send_headers, ci_cfg_disable,
@@ -206,7 +209,8 @@ static struct ci_options_entry options[] = {
      {"-no204", NULL, &allow204, ci_cfg_disable, "Do not allow204 outside preview"},
      {"-206", NULL, &allow206, ci_cfg_enable, "Support allow206"},
      {"-x", "xheader", &xheaders, add_xheader, "Include xheader in icap request headers"},
-     {"-hx", "xheader", &http_xheaders, add_xheader, "Include xheader in http headers"},
+     {"-hx", "xheader", &http_xheaders, add_xheader, "Include xheader in http request headers"},
+     {"-rhx", "xheader", &http_resp_xheaders, add_xheader, "Include xheader in http response headers"},
      {"-w", "preview", &preview_size, ci_cfg_set_int, "Sets the maximum preview data size"},
      {"-v", NULL, &verbose, ci_cfg_enable, "Print response headers"},     
      {NULL, NULL, NULL, NULL}
@@ -232,7 +236,8 @@ int main(int argc, char **argv)
      char ip[CI_IPLEN];
      ci_connection_t *conn;
      ci_request_t *req;
-     ci_headers_list_t *headers;
+     ci_headers_list_t *req_headers = NULL;
+     ci_headers_list_t *resp_headers = NULL;
 
      CI_DEBUG_LEVEL = 1;        /*Default debug level is 1 */
      ci_cfg_lib_init();
@@ -275,7 +280,7 @@ int main(int argc, char **argv)
      if (!req->allow204)
          allow204 = 0;
      
-     if (!input_file && !request_url) {
+     if (!input_file && !request_url && !resp_url) {
           ci_debug_printf(1, "OPTIONS:\n");
           ci_debug_printf(1,
                           "\tAllow 204: %s\n\tPreview: %d\n\tKeep alive: %s\n",
@@ -320,26 +325,29 @@ int main(int argc, char **argv)
 	      ci_icap_append_xheaders(req, xheaders);
 
 	  if (request_url) {
-	       headers = ci_headers_create();
-               if (request_url)
-	           build_reqmod_headers(request_url, method_str, fd_in, headers);
+	       req_headers = ci_headers_create();
+               build_reqmod_headers(request_url, method_str, fd_in, req_headers);
 	       req->type = ICAP_REQMOD;
 	  }
           else if (send_headers) {
-               headers = ci_headers_create();
-	       build_respmod_headers(fd_in, headers);
-	       //               ci_headers_add(headers, "Filetype: Unknown");
-	       //               ci_headers_add(headers, "User: chtsanti");
+               resp_headers = ci_headers_create();
+	       build_respmod_headers(fd_in, resp_headers);
+               if (resp_url) {
+                   req_headers = ci_headers_create();
+	           build_reqmod_headers(resp_url, method_str, 0, req_headers);
+               }
           }
-          else
-               headers = NULL;
 
-	  if(headers && http_xheaders)
-	      ci_headers_addheaders(headers, http_xheaders);
+	  if(req_headers && http_xheaders)
+	      ci_headers_addheaders(req_headers, http_xheaders);
+
+          if (resp_headers && http_resp_xheaders)
+	      ci_headers_addheaders(resp_headers, http_resp_xheaders);
 
           ret = ci_client_icapfilter(req,
                                      CONN_TIMEOUT,
-                                     headers,
+                                     req_headers,
+                                     resp_headers,
                                      (fd_in > 0 ? (&fd_in): NULL),
                                      (int (*)(void *, char *, int)) fileread,
                                      &fd_out,
