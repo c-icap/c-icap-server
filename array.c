@@ -494,6 +494,7 @@ void * ci_ptr_vector_add(ci_vector_t *vector, void *value)
     /*And create a new NULL terminated item: */
     vector->last = indx;
     *(vector->last) = NULL;
+    vector->count++;
     return value;
 }
 
