@@ -21,7 +21,8 @@
 #include "debug.h"
 #include "registry.h"
 
-ci_ptr_array_t *registries = NULL;
+static ci_ptr_array_t *REGISTRIES = NULL;
+static int32_t REG_ITEMS_COUNT = 0; 
 
 int ci_registry_create(const char *name)
 {
@@ -29,36 +30,40 @@ int ci_registry_create(const char *name)
       Build space for 1024 different registries.
       It should be enough.
      */
-    if (!registries)
-        registries = ci_ptr_array_new2(1024);
-    else if (ci_ptr_array_search(registries, name)) {
+    if (!REGISTRIES)
+        REGISTRIES = ci_ptr_array_new2(1024);
+    else if (ci_ptr_array_search(REGISTRIES, name)) {
         ci_debug_printf(1, "Registry '%s' already exist!\n", name);
         return -1;
     }
 
     ci_ptr_dyn_array_t *registry = ci_ptr_dyn_array_new(1024);
 
-    ci_ptr_dyn_array_add(registry, name, registry);
+    ci_ptr_array_add(REGISTRIES, name, registry);
     ci_debug_printf(4, "Registry '%s' added and is ready to store new registry entries\n", name);
-    return (registries->count - 1); /*Return the pos in the registries array*/
+    return (REGISTRIES->count - 1); /*Return the pos in the REGISTRIES array*/
 }
 
 void ci_registry_clean()
 {
     ci_ptr_dyn_array_t *registry = NULL;
     char buf[1024];
-    while((registry = (ci_ptr_dyn_array_t *)ci_ptr_array_pop_value(registries, buf, sizeof(buf))) != NULL) {
+
+    if (!REGISTRIES)
+        return;
+
+    while((registry = (ci_ptr_dyn_array_t *)ci_ptr_array_pop_value(REGISTRIES, buf, sizeof(buf))) != NULL) {
         ci_debug_printf(4, "Registry %s removed\n", buf);
         ci_ptr_dyn_array_destroy(registry);
     }
-    ci_ptr_array_destroy(registries);
-    registries = NULL;
+    ci_ptr_array_destroy(REGISTRIES);
+    REGISTRIES = NULL;
 }
 
 int ci_registry_iterate(const char *name, void *data, int (*fn)(void *data, const char *label, const void *))
 {
     const ci_ptr_dyn_array_t *registry = NULL;
-    if ((registry = ci_ptr_array_search(registries, name)) == NULL) {
+    if (!REGISTRIES || (registry = ci_ptr_array_search(REGISTRIES, name)) == NULL) {
         ci_debug_printf(1, "Registry '%s' does not exist!\n", name);
         return 0;
     }
@@ -69,12 +74,14 @@ int ci_registry_iterate(const char *name, void *data, int (*fn)(void *data, cons
 int ci_registry_add_item(const char *name, const char *label, const void *obj)
 {
     ci_ptr_dyn_array_t *registry = NULL;
-    if ((registry = ci_ptr_array_search(registries, name)) == NULL) {
-        ci_debug_printf(1, "Registry '%s' does not exist!\n", name);
-        return 0;
+    if (!REGISTRIES || (registry = ci_ptr_array_search(REGISTRIES, name)) == NULL) {
+        ci_debug_printf(3, "Registry '%s' does not exist create it\n", name);
+        if (ci_registry_create(name) < 0)
+            return 0;
+        registry = ci_ptr_array_search(REGISTRIES, name);
     }
     if (ci_ptr_dyn_array_add(registry, label, (void *)obj))
-        return 1;
+        return ++REG_ITEMS_COUNT;
 
     return 0;
 }
@@ -82,7 +89,7 @@ int ci_registry_add_item(const char *name, const char *label, const void *obj)
 const void * ci_registry_get_item(const char *name, const char *label)
 {
     ci_ptr_dyn_array_t *registry = NULL;
-    if ((registry = ci_ptr_array_search(registries, name)) == NULL) {
+    if (!REGISTRIES || (registry = ci_ptr_array_search(REGISTRIES, name)) == NULL) {
         ci_debug_printf(1, "Registry '%s' does not exist!\n", name);
         return NULL;
     }
