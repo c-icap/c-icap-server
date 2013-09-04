@@ -31,6 +31,7 @@
 #include "commands.h"
 #include "acl.h"
 #include "txtTemplate.h"
+#include "registry.h"
 
 #define MAX_INCLUDE_LEVEL 5
 #define LINESIZE 8192
@@ -879,8 +880,13 @@ void system_shutdown()
     /*
       - reset commands table
     */
+    commands_reset();
 
-    reset_commands();
+    /*
+     - clean registry
+    */
+    ci_registry_clean();
+
     /*
       - close/release services and modules
     */

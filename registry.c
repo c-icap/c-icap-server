@@ -17,6 +17,8 @@
  *  MA  02110-1301  USA.
  */
 
+#include "common.h"
+#include "c-icap.h"
 #include "array.h"
 #include "debug.h"
 #include "registry.h"
@@ -97,4 +99,58 @@ const void * ci_registry_get_item(const char *name, const char *label)
     return ci_ptr_dyn_array_search(registry, label);
 }
 
+struct check_reg_data {
+    const char *name;
+    int found;
+    int count;
+};
 
+static int check_reg(void *data, const char *name, const void *val)
+{
+    struct check_reg_data *rdata = (struct check_reg_data *) data;
+    rdata->count++;
+    if (strcmp(rdata->name, name) == 0) {
+        rdata->found = 1;
+        return 1; /*Found the registry, return !=0 to stop iteration*/
+    }
+    return 0;
+}
+
+int ci_registry_get_id(const char *name)
+{
+    struct check_reg_data rdata;
+    rdata.name = name;
+    rdata.found = 0;
+    rdata.count = 0;
+
+    if (REGISTRIES)
+        ci_ptr_array_iterate(REGISTRIES, &rdata, check_reg);
+
+    if (rdata.found)
+        return (rdata.count - 1);
+    else
+        return -1;
+}
+
+int ci_registry_id_iterate(int reg_id, void *data, int (*fn)(void *data, const char *label, const void *))
+{
+    const ci_ptr_dyn_array_t *registry = NULL;
+    const ci_array_item_t *ai; 
+    if (!REGISTRIES || (ai = ci_ptr_array_get_item(REGISTRIES, reg_id)) == NULL || (registry = ai->value) == NULL) {
+        ci_debug_printf(1, "Registry with id='%d' does not exist!\n", reg_id);
+        return 0;
+    }
+    ci_ptr_dyn_array_iterate(registry, data, fn);
+    return 1;
+}
+
+const void * ci_registry_id_get_item(int reg_id, const char *label)
+{
+    const ci_ptr_dyn_array_t *registry = NULL;
+    const ci_array_item_t *ai; 
+    if (!REGISTRIES || (ai = ci_ptr_array_get_item(REGISTRIES, reg_id)) == NULL || (registry = ai->value) == NULL) {
+        ci_debug_printf(1, "Registry with id='%d' does not exist!\n", reg_id);
+        return 0;
+    }
+    return ci_ptr_dyn_array_search(registry, label);
+}

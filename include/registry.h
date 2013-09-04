@@ -28,9 +28,15 @@ extern "C"
 #endif
 
 CI_DECLARE_FUNC(int) ci_registry_create(const char *name);
-    CI_DECLARE_FUNC(int) ci_registry_iterate(const char *name, void *data, int (*fn)(void *data, const char *label, const void *));
+CI_DECLARE_FUNC(void) ci_registry_clean();
+
+CI_DECLARE_FUNC(int) ci_registry_iterate(const char *name, void *data, int (*fn)(void *data, const char *label, const void *));
 CI_DECLARE_FUNC(int) ci_registry_add_item(const char *name, const char *label, const void *obj);
 CI_DECLARE_FUNC(const void *) ci_registry_get_item(const char *name, const char *label);
+
+CI_DECLARE_FUNC(int) ci_registry_get_id(const char *name);
+CI_DECLARE_FUNC(int) ci_registry_id_iterate(int reg_id, void *data, int (*fn)(void *data, const char *label, const void *));
+CI_DECLARE_FUNC(const void *) ci_registry_id_get_item(int reg_id, const char *label);
 
 
 #ifdef __cplusplus
