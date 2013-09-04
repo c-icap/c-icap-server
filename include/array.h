@@ -123,6 +123,15 @@ CI_DECLARE_FUNC(const void *) ci_array_search(ci_array_t *array, const char *nam
 CI_DECLARE_FUNC(void) ci_array_iterate(const ci_array_t *array, void *data, int (*fn)(void *data, const char *name, const void *));
 
 /**
+ * Get an item of the array.
+ \ingroup SIMPLE_ARRAYS
+ \param array a pointer to the ci_array_t object
+ \param pos The position of the item in array
+ \return a pointer to the array item on success, NULL otherwise
+ */
+CI_DECLARE_FUNC(const ci_array_item_t *)ci_array_get_item(ci_array_t *array, int pos);
+
+/**
  \defgroup STR_ARRAYS   Arrays of strings related API
  \ingroup SIMPLE_ARRAYS
  * Arrays which store  name/value pair items
@@ -142,6 +151,7 @@ typedef ci_array_t ci_str_array_t;
 #define ci_str_array_destroy ci_array_destroy
 #define ci_str_array_add(array, name, value) ci_array_add(array, name, value, (strlen(value)+1))
 #define ci_str_array_pop(array) ci_array_pop(array)
+#define ci_str_array_get_item(array, pos) ci_array_get_item(array, pos)
 #define ci_str_array_search(array, name) (const char *)ci_array_search(array, name)
 #define ci_str_array_iterate ci_array_iterate
 
@@ -229,6 +239,13 @@ CI_DECLARE_FUNC(const ci_array_item_t *) ci_ptr_array_pop(ci_ptr_array_t *ptr_ar
  \return a pointer to the value of the popped item
 */
 CI_DECLARE_FUNC(void *) ci_ptr_array_pop_value(ci_ptr_array_t *ptr_array, char *name, size_t name_size);
+
+/**
+ \def ci_ptr_array_get_item()
+ \ingroup PTR_ARRAYS
+ * Get an array item. Wrapper to the ci_array_get_item() function.
+ */
+#define ci_ptr_array_get_item(array, pos) ci_array_get_item(array, pos)
 
 /**
  \defgroup DYNAMIC_ARRAYS Dynamic arrays related API
@@ -509,6 +526,7 @@ typedef struct ci_list {
     ci_list_item_t *items;
     ci_list_item_t *last;
     ci_list_item_t *trash;
+    ci_list_item_t *cursor;
     size_t obj_size;
     ci_mem_allocator_t *alloc;
 
@@ -540,7 +558,7 @@ void ci_list_destroy(ci_list_t *list);
  \param data a pointer to data which will be passed to the fn function
  \param fn a pointer to the function which will be run for each vector item. The iteration will stop if the fn function return non zero value.
  */
-CI_DECLARE_FUNC(void) ci_list_iterate(const ci_list_t *list, void *data, int (*fn)(void *data, const void *obj));
+CI_DECLARE_FUNC(void) ci_list_iterate(ci_list_t *list, void *data, int (*fn)(void *data, const void *obj));
 
 /**
  * Add an item to the head of list.

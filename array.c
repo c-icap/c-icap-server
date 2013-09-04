@@ -141,6 +141,13 @@ const ci_array_item_t *ci_array_pop(ci_array_t *array)
     return item;
 }
 
+const ci_array_item_t *ci_array_get_item(ci_array_t *array, int pos)
+{
+    if (pos >= array->count)
+        return NULL;
+    return &(array->items[pos]);
+}
+
 ci_ptr_array_t * ci_ptr_array_new2(size_t items)
 {
     size_t array_size;
@@ -515,6 +522,7 @@ ci_list_t * ci_list_create(size_t init_size, size_t obj_size)
     list->items = NULL;
     list->last = NULL;
     list->trash = NULL;
+    list->cursor = NULL;
     list->obj_size = obj_size;
 
     /*By default do not use any handler*/
@@ -545,10 +553,12 @@ void ci_list_copy_handler(ci_list_t *list, int (*copy_func)(void *newObj, const 
     list->copy_func = copy_func;
 }
 
-void ci_list_iterate(const ci_list_t *list, void *data, int (*fn)(void *data, const void *obj))
+void ci_list_iterate(ci_list_t *list, void *data, int (*fn)(void *data, const void *obj))
 {
     ci_list_item_t *it;
-    for (it = list->items; it != NULL; it = it->next) {
+    for (list->cursor = list->items; list->cursor != NULL; ) {
+        it = list->cursor;
+        list->cursor = list->cursor->next;
         if ((*fn)(data, it->item))
             return;
     }
@@ -613,8 +623,12 @@ void *ci_list_pop(ci_list_t *list, void *data)
     if (list->last == list->items) {
         list->last = NULL;
         list->items = NULL;
-    } else
+        list->cursor = NULL;
+    } else {
+        if (list->cursor == list->items)
+            list->cursor = list->items->next;
         list->items = list->items->next;
+    }
 
     memcpy(data, it->item, list->obj_size);
     if (list->copy_func)
@@ -637,7 +651,10 @@ void *ci_list_pop_back(ci_list_t *list, void *data)
     if (list->last == list->items) {
         list->last = NULL;
         list->items = NULL;
+        list->cursor = NULL;
     } else {
+        if (list->cursor == list->last)
+            list->cursor = NULL;
         for (tmp = list->items; tmp != NULL && tmp->next != list->last; tmp = tmp->next);
         assert(tmp != NULL);
         list->last = tmp;
@@ -678,6 +695,8 @@ int ci_list_remove(ci_list_t *list, const void *obj)
             } else { /*it is the first item*/
                 list->items = it->next;
             }
+            if (list->cursor == it)
+                list->cursor = list->cursor->next;
             it->next = list->trash;
             list->trash = it;
             if (list->free_func)

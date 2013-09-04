@@ -62,6 +62,22 @@ int check_obj(void *data, const void *obj)
     return 0;
 }
 
+struct cb_rm_data {
+    ci_list_t *list;
+    char item;
+};
+
+int cb_remove_anobj(void *data, const void *obj)
+{
+   struct obj *o = (struct obj *)obj;
+   struct cb_rm_data *rd = (struct cb_rm_data *)data;
+   if (o->c == rd->item) {
+       ci_list_remove(rd->list, o);
+   }
+   ci_debug_printf(5, "item->%c %s\n", o->c, (o->c == rd->item ? "rm" : ""));
+   return 0;
+}
+
 int main(int argc,char *argv[])
 {
     ci_list_t *list;
@@ -115,6 +131,13 @@ int main(int argc,char *argv[])
         }
         ci_debug_printf(1, "Removed %d objects\n", k);
 
+        ci_debug_printf(1, "Check obj removal on iterate\n");
+        struct cb_rm_data rd;
+        rd.list = list;
+        rd.item = 'l';
+        ci_list_iterate(list, (void *)&rd, cb_remove_anobj);
+        ci_debug_printf(1, "done\n");
+
         k = 0;
         ci_debug_printf(1, "Check list...\n");
         ci_list_iterate(list, (void *)&k, check_obj);
@@ -155,6 +178,14 @@ int main(int argc,char *argv[])
         ci_list_iterate(list, (void *)&k, check_obj);
         ci_debug_printf(1, "Counted %d valid items\n", k);
 
+        fill_obj(&o, 'l');
+        ci_debug_printf(1, "Find one object of '%c'\n", 'l');
+        if (!ci_list_search(list, &o)) {
+            ci_debug_printf(1, "\t Not Found (correct)\n");
+        } else {
+            ci_debug_printf(1, "\t Found! (wrong!)\n");
+        }
+
         fill_obj(&o, 's');
         ci_debug_printf(1, "Find one object of '%c'\n", 's');
         if (!ci_list_search(list, &o)) {
@@ -185,6 +216,6 @@ int main(int argc,char *argv[])
     }
 
     ci_list_destroy(list);
-    ci_debug_printf(1, "Test finished!\n", k);
+    ci_debug_printf(1, "Test finished!\n");
     return 0;
 }

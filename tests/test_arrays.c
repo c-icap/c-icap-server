@@ -63,6 +63,15 @@ int main(int argc,char *argv[])
     ci_debug_printf(2, "\n\nArray of strings:\n");
     ci_str_array_iterate(arr_str, NULL, print_str);
 
+    ci_debug_printf(2, "\nTest random access:\n");
+    for (i = 0; i< 128; i++) {
+        item = ci_str_array_get_item(arr_str, i);
+        if (item) {
+            ci_debug_printf(2, "\t%s:%s\n", item->name, (char *)item->value);
+        }
+    }
+    ci_debug_printf(1, "done\n");
+
     ci_debug_printf(1, "Test pop1: \n");
     for (i = 0; i < 64; i++)
         ci_str_array_pop(arr_str);
