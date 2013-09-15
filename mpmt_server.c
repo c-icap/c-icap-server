@@ -894,7 +894,7 @@ void child_main(int sockfd, int pipefd)
 
      /*start child commands may have non thread safe code but the worker threads
        does not serving requests yet.*/
-     execute_start_child_commands ();
+     commands_execute_start_child();
 
      /*Signal listener to start accepting requests.*/
      int doStart = 0;
@@ -910,7 +910,7 @@ void child_main(int sockfd, int pipefd)
      while (!child_data->to_be_killed) {
           char buf[512];
           int bytes;
-          if ((ret = ci_wait_for_data(pipefd, 5, wait_for_read)) > 0) { /*data input */
+          if ((ret = ci_wait_for_data(pipefd, 1, wait_for_read)) > 0) { /*data input */
                bytes = ci_read_nonblock(pipefd, buf, 511);
                if (bytes == 0) {
                     ci_debug_printf(1,
@@ -931,6 +931,7 @@ void child_main(int sockfd, int pipefd)
                                "Ohh!! something happened to listener thread! Terminating\n");
                child_data->to_be_killed = GRACEFULLY;
           }
+          commands_exec_scheduled();
      }
 
      ci_debug_printf(5, "Child :%d going down :%s\n", getpid(),
@@ -938,7 +939,7 @@ void child_main(int sockfd, int pipefd)
                      "IMMEDIATELY" : "GRACEFULLY");
      
      cancel_all_threads();
-     execute_stop_child_commands();
+     commands_execute_stop_child();
      exit_normaly();
 }
 

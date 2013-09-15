@@ -28,6 +28,7 @@
 #include "filetype.h"
 #include "acl.h"
 #include "txtTemplate.h"
+#include "commands.h"
 
 /*
 extern char *PIDFILE;
@@ -104,6 +105,7 @@ int main(int argc, char **argv)
      }
      ci_txt_template_init();
      ci_txt_template_set_dir(DATADIR"templates");
+     commands_init();
 
      if (!(CONF.MAGIC_DB = ci_magic_db_load(CONF.magics_file))) {
           ci_debug_printf(1, "Can not load magic file %s!!!\n",
