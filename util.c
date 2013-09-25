@@ -39,6 +39,24 @@ const char *strnstr(const char *s, const char *find, size_t slen)
 }
 #endif
 
+#ifndef HAVE_STRCASESTR
+const char *strcasestr(const char *str, const char *find)
+{
+    const char *s, *c, *f;
+    for (s = str; *s != '\0'; ++s) {
+        for (f = find, c = s; ; ++f, ++c) {
+            if (*f == '\0') /*find matched s*/
+                return s;
+            if (*c == '\0') /*find is longer than the remaining string */
+                return NULL;
+            if (tolower(*c) != tolower(*f))
+                break;
+        }
+    }
+    return NULL;
+}
+#endif
+
 #ifndef HAVE_STRNCASESTR
 const char *strncasestr(const char *s, const char *find, size_t slen)
 {

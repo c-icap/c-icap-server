@@ -49,6 +49,10 @@ CI_DECLARE_FUNC(const char *) strnstr(const char *s, const char *find, size_t sl
 CI_DECLARE_FUNC(const char *) strncasestr(const char *s, const char *find, size_t slen);
 #endif
 
+#ifndef HAVE_STRCASESTR
+CI_DECLARE_FUNC(const char *) strcasestr(const char *str, const char *find);
+#endif
+
 #ifdef __cplusplus
 }
 #endif

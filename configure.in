@@ -42,6 +42,10 @@ case "$host_os" in
       ;;
 esac
 
+if test "x$GCC" != "x" ; then
+        AC_USE_SYSTEM_EXTENSIONS
+fi
+
 CFLAGS="$CFLAGS -Wall"
 
 AC_CACHE_CHECK([for __attribute__((visibility("default")))],
@@ -595,6 +599,10 @@ AC_DEFINE(HAVE_INET_ATON,1,[Define HAVE_INET_ATON if inet_aton exists])
 
 AC_CHECK_FUNCS(strnstr,
 AC_DEFINE(HAVE_STRNSTR,1,[Define HAVE_STRNSTR if strnstr exists])
+)
+
+AC_CHECK_FUNCS(strcasestr,
+AC_DEFINE(HAVE_STRCASESTR,1,[Define HAVE_STRCASESTR if strcasestr exists])
 )
 
 AC_CHECK_FUNCS(strncasestr,

@@ -571,14 +571,14 @@ int extend_object_type(struct ci_magics_db *db, ci_headers_list_t *headers, cons
           if (content_encoding) {
                ci_debug_printf(8, "Content-Encoding :%s\n", content_encoding);
                /*the following must be faster in the feature...... */
-               if (strstr(content_encoding, "gzip") != NULL) {
+               if (strcasestr(content_encoding, "gzip") != NULL) {
                     *iscompressed = CI_ENCODE_GZIP;
                }
-               else if (strstr(content_encoding, "deflate") != NULL) {
+               else if (strcasestr(content_encoding, "deflate") != NULL) {
                     *iscompressed = CI_ENCODE_DEFLATE;
                }
                else
-                   if (strstr(content_encoding, "bzip2") != NULL) {
+                   if (strcasestr(content_encoding, "bzip2") != NULL) {
                        *iscompressed = CI_ENCODE_BZIP2;
                    }
                    else
@@ -626,17 +626,17 @@ int extend_object_type(struct ci_magics_db *db, ci_headers_list_t *headers, cons
      if (ci_belongs_to_group(db, file_type, CI_TEXT_DATA)
 	 && headers
          && (content_type = ci_headers_value(headers, "Content-Type")) != NULL) {
-          if (strstr(content_type, "text/html")
-              || strstr(content_type, "text/css")
-              || strstr(content_type, "text/javascript"))
+          if (strcasestr(content_type, "text/html")
+              || strcasestr(content_type, "text/css")
+              || strcasestr(content_type, "text/javascript"))
                file_type = CI_HTML_DATA;
      }
 #ifndef HAVE_ZLIB               /*if we do not have a zlib try to get file info from headers....... */
      else if (file_type == ci_get_data_type_id(db, "GZip")
               && content_encoding != NULL) {
-          if (content_type && (strstr(content_type, "text/html")
-                               || strstr(content_type, "text/css")
-                               || strstr(content_type, "text/javascript")))
+          if (content_type && (strcasestr(content_type, "text/html")
+                               || strcasestr(content_type, "text/css")
+                               || strcasestr(content_type, "text/javascript")))
                file_type = CI_HTML_DATA;
      }
 #endif
