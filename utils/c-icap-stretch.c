@@ -140,7 +140,7 @@ void str_trim(char *str)
 
     s = str;
     e = NULL;
-    while (*s == ' ' && s != '\0'){
+    while (*s == ' '){
         e = s;
         while (*e != '\0'){
             *e = *(e+1);
