@@ -185,6 +185,21 @@ const void * ci_membuf_attr_get(struct ci_membuf *body,const char *attr)
     return NULL;
 }
 
+int ci_membuf_truncate(struct ci_membuf *body, int new_size)
+{
+    if (body->endpos < new_size)
+        return 0;
+    body->endpos = new_size;
+
+    if (body->readpos > body->endpos)
+        body->readpos = body->endpos;
+
+    if (body->unlocked > body->endpos)
+        body->unlocked = body->endpos;
+
+    return 1;
+}
+
 /****/
 int do_write(int fd, const void *buf, size_t count) {
     int bytes;
@@ -624,7 +639,7 @@ int ci_simple_file_write(ci_simple_file_t * body, const char *buf, int len, int 
      if (iseof && ret == len) {
           body->flags |= CI_FILE_HAS_EOF;
           ci_debug_printf(9, "Body data size=%" PRINTF_OFF_T "\n ",
-                          (CAST_OFF_T) body->bytes_in);
+                          (CAST_OFF_T) body->endpos);
      }
 
      return ret;
@@ -679,7 +694,30 @@ int ci_simple_file_read(ci_simple_file_t * body, char *buf, int len)
 
 }
 
+int ci_simple_file_truncate(ci_simple_file_t *body, ci_off_t new_size)
+{
+    if (new_size > body->endpos)
+        return 0;
 
+    if (new_size == 0) {
+        new_size = lseek(body->fd, 0, SEEK_END);
+        if (new_size > body->endpos) /* ????? */
+            return 0;
+    } else {
+        if (ftruncate(body->fd, new_size) != 0)
+            return 0; /*failed to resize*/
+    }
+
+    body->endpos = new_size;
+
+    if (body->readpos > new_size)
+        body->readpos = new_size;
+
+    if (body->unlocked > new_size)
+        body->unlocked = new_size;
+
+    return 1;
+}
 
 /*******************************************************************/
 /*ring memory buffer implementation                                */

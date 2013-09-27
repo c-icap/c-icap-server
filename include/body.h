@@ -49,6 +49,7 @@ CI_DECLARE_FUNC(int) ci_membuf_write(struct ci_membuf *body, const char *buf,int
 CI_DECLARE_FUNC(int) ci_membuf_read(struct ci_membuf *body,char *buf,int len);
 CI_DECLARE_FUNC(int) ci_membuf_attr_add(struct ci_membuf *body,const char *attr, const void *val, size_t val_size);
 CI_DECLARE_FUNC(const void *) ci_membuf_attr_get(struct ci_membuf *body,const char *attr);
+CI_DECLARE_FUNC(int) ci_membuf_truncate(struct ci_membuf *body, int new_size);
 
 #define ci_membuf_lock_all(body)        ((body)->unlocked=0)
 #define ci_membuf_unlock(body, len)     ((body)->unlocked=len)
@@ -120,7 +121,7 @@ CI_DECLARE_FUNC(void) ci_simple_file_destroy(ci_simple_file_t *body);
 CI_DECLARE_FUNC(int) ci_simple_file_write(ci_simple_file_t *body,
 					  const char *buf,int len, int iseof);
 CI_DECLARE_FUNC(int) ci_simple_file_read(ci_simple_file_t *body,char *buf,int len);
-
+CI_DECLARE_FUNC(int) ci_simple_file_truncate(ci_simple_file_t *body, ci_off_t new_size);
 
 #define ci_simple_file_lock_all(body)            (body->flags|=CI_FILE_USELOCK,body->unlocked=0)
 #define ci_simple_file_unlock(body, len)     (body->unlocked=len)
