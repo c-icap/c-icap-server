@@ -192,10 +192,11 @@ struct logfile {
     FILE *access_log;
     const char *log_fmt;
     ci_access_entry_t *access_list;
+    ci_thread_rwlock_t rwlock;
     struct logfile *next;
 };
 struct logfile *ACCESS_LOG_FILES = NULL;
-static ci_thread_rwlock_t log_rwlock;
+static ci_thread_rwlock_t systemlog_rwlock;
 
 
 logger_module_t file_logger = {
@@ -226,7 +227,6 @@ int file_log_open()
     int error=0, ret = 0;
      struct logfile *lf;
 
-     ret = ci_thread_rwlock_init(&log_rwlock); // Initialize log_rwlock
      assert(ret == 0);
      register_command("relog", MONITOR_PROC_CMD | CHILDS_PROC_CMD, file_log_relog);
 
@@ -243,8 +243,10 @@ int file_log_open()
 	      error = 1;
 	      ci_debug_printf (1, "WARNING! Can not open log file: %s\n", lf->file);
           }
+          ret = ci_thread_rwlock_init(&(lf->rwlock)); // Initialize logfile::rwlock
      }
 
+     ret = ci_thread_rwlock_init(&systemlog_rwlock);
      server_log = logfile_open(SERVER_LOG_FILE);
      if (!server_log)
           return 0;
@@ -266,7 +268,7 @@ void file_log_close()
 	  free(lf->file);
 	  if (lf->access_list)
 	      ci_access_entry_release(lf->access_list);
-
+          ci_thread_rwlock_destroy(&(lf->rwlock)); // Initialize logfile::rwlock
 	  tmp = lf;
 	  lf = lf->next;
 	  ACCESS_LOG_FILES = lf;
@@ -276,30 +278,31 @@ void file_log_close()
      if (server_log)
           fclose(server_log);
      server_log = NULL;
-
-     ci_thread_rwlock_destroy(&log_rwlock); // destroy rwlock
+     ci_thread_rwlock_destroy(&systemlog_rwlock); // destroy rwlock
 }
 
 void file_log_relog(const char *name, int type, const char **argv)
 {
      struct logfile *lf;
 
-     ci_thread_rwlock_wrlock(&log_rwlock); /*obtain a write lock. When this function returns all file_log_access will block until write unlock*/
-
      /* This code should match the appropriate code from file_log_close */
      for (lf = ACCESS_LOG_FILES; lf != NULL; lf = lf->next) {
-          if (lf->access_log)
-	      fclose(lf->access_log);
-	  lf->access_log = logfile_open(lf->file);
-	  if (!lf->access_log)
-	      ci_debug_printf (1, "WARNING! Can not open log file: %s\n", lf->file);
+         ci_thread_rwlock_wrlock(&(lf->rwlock)); /*obtain a write lock. When this function returns all file_log_access will block until write unlock*/
+         if (lf->access_log)
+             fclose(lf->access_log);
+         lf->access_log = logfile_open(lf->file);
+         ci_thread_rwlock_unlock(&(lf->rwlock));
+
+         if (!lf->access_log)
+             ci_debug_printf (1, "WARNING! Can not open log file: %s\n", lf->file);
      }
 
+     ci_thread_rwlock_wrlock(&systemlog_rwlock);
      if (server_log)
-          fclose(server_log);
+         fclose(server_log);
      server_log = logfile_open(SERVER_LOG_FILE);
+     ci_thread_rwlock_unlock(&systemlog_rwlock);
      /*if !server_log ???*/
-     ci_thread_rwlock_unlock(&log_rwlock); // release write lock
 }
 
 void file_log_access(ci_request_t *req)
@@ -307,19 +310,19 @@ void file_log_access(ci_request_t *req)
     struct logfile *lf;
     char logline[4096];
 
-    ci_thread_rwlock_rdlock(&log_rwlock); /*obtain a read lock*/
     for (lf = ACCESS_LOG_FILES; lf != NULL; lf = lf->next) {
-         if (lf->access_log) {
-	     if (lf->access_list && !(ci_access_entry_match_request(lf->access_list, req) == CI_ACCESS_ALLOW)) {
-		 ci_debug_printf(6, "access log file %s does not match, skiping\n", lf->file);
-		 continue;
-	     }
-	     ci_debug_printf(6, "Log request to access log file %s\n", lf->file);
-             ci_format_text(req, lf->log_fmt, logline, sizeof(logline), NULL);
-	     fprintf(lf->access_log,"%s\n", logline); 
-	 }
+        if (lf->access_list && !(ci_access_entry_match_request(lf->access_list, req) == CI_ACCESS_ALLOW)) {
+            ci_debug_printf(6, "access log file %s does not match, skiping\n", lf->file);
+            continue;
+        }
+        ci_debug_printf(6, "Log request to access log file %s\n", lf->file);
+        ci_format_text(req, lf->log_fmt, logline, sizeof(logline), NULL);
+
+        ci_thread_rwlock_rdlock(&lf->rwlock); /*obtain a read lock*/
+        if (lf->access_log)
+            fprintf(lf->access_log,"%s\n", logline); 
+        ci_thread_rwlock_unlock(&lf->rwlock); /*obtain a read lock*/
     }
-    ci_thread_rwlock_unlock(&log_rwlock); /*release a read lock*/
 }
 
 
@@ -331,10 +334,10 @@ void file_log_server(const char *server, const char *format, va_list ap)
           return;
 
      ci_strtime(buf);
-     ci_thread_rwlock_rdlock(&log_rwlock); /*obtain a read lock*/
+     ci_thread_rwlock_rdlock(&systemlog_rwlock); /*obtain a read lock*/
      fprintf(server_log, "%s, %s, ", buf, server);
      vfprintf(server_log, format, ap);
-     ci_thread_rwlock_unlock(&log_rwlock); /*release a read lock*/
+     ci_thread_rwlock_unlock(&systemlog_rwlock); /*release a read lock*/
 //     fprintf(server_log,"\n");
 }
 
