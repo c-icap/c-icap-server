@@ -1250,7 +1250,7 @@ static int client_build_headers(ci_request_t *req, int has_reqhdr, int has_reshd
      if (has_reshdr)
           req->entities[i++] = ci_request_alloc_entity(req, ICAP_RES_HDR, 0);
      if (has_body)
-          req->entities[i] = ci_request_alloc_entity(req, ICAP_RES_BODY, 0);
+          req->entities[i] = ci_request_alloc_entity(req, req->type == ICAP_RESPMOD ? ICAP_RES_BODY : ICAP_REQ_BODY, 0);
      else
           req->entities[i] = ci_request_alloc_entity(req, ICAP_NULL_BODY, 0);
      return 1;
