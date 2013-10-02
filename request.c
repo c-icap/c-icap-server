@@ -249,86 +249,169 @@ static int read_encaps_header(ci_request_t * req, ci_headers_list_t * h, int siz
      return EC_100;
 }
 
+static int get_method(char *buf, char **end)
+{
+     if (!strncmp(buf, "OPTIONS", 7)) {
+          *end = buf + 7;
+          return ICAP_OPTIONS;
+     }
+     else if (!strncmp(buf, "REQMOD", 6)) {
+          *end = buf + 6;
+          return ICAP_REQMOD;
+     }
+     else if (!strncmp(buf, "RESPMOD", 7)) {
+          *end = buf + 7;
+          return ICAP_RESPMOD;
+     }
+     else {
+          *end = buf;
+          return -1;
+     }
+}
 
 static int parse_request(ci_request_t * req, char *buf)
 {
      char *start, *end;
      int servnamelen, len, args_len;
+     int vmajor, vminor;
      ci_service_module_t *service = NULL;
      service_alias_t *salias = NULL;
 
-     if ((start = strstr(buf, "icap://")) != NULL) {
-          start = start + 7;
-          if ((end = strchr(start, '/')) != NULL || (end = strchr(start, ' ')) != NULL) {       /*server */
-               len = end - start;
-               servnamelen =
-                   (CI_MAXHOSTNAMELEN > len ? len : CI_MAXHOSTNAMELEN);
-               memcpy(req->req_server, start, servnamelen);
-               req->req_server[servnamelen] = '\0';
-               if (*end == '/') {       /*service */
-                    start = ++end;
-                    while (*end != ' ' && *end != '?')
-                         end++;
-                    len = end - start;
-                    if (len > 0) {
-                         len =
-                             (len < MAX_SERVICE_NAME ? len : MAX_SERVICE_NAME);
-                         strncpy(req->service, start, len);
-                         req->service[len] = '\0';
-                         if (!(service = find_service(req->service))) { /*else search for an alias */
-                              if (!(salias = find_service_alias(req->service)))
-                                   return EC_404;       /* Service not found ..... */
-                              service = salias->service;
-                              if (salias->args)
-                                   strcpy(req->args, salias->args);
-                         }
-                         req->current_service_mod = service;
-                         if (*end == '?') {     /*args */
-                              start = ++end;
-                              if ((end = strchr(start, ' ')) != NULL) {
-                                   args_len = strlen(req->args);
-                                   len = end - start;
-                                   if (args_len && len) {
-                                        req->args[args_len] = '&';
-                                        args_len++;
-                                   }
-                                   len = (len < (MAX_SERVICE_ARGS - args_len) ?
-                                          len : (MAX_SERVICE_ARGS - args_len));
-                                   strncpy(req->args + args_len, start, len);
-                                   req->args[args_len + len] = '\0';
-                              }
-                         }      /*end of parsing args */
-                         if (!ci_method_support
-                             (req->current_service_mod->mod_type, req->type)
-                             && req->type != ICAP_OPTIONS) {
-                              return EC_405;    /* Method not allowed for service. */
-			 }
-                    }
-                    else {
-                         return EC_400;
-                    }
-               }                //service
+     if ((req->type = get_method(buf, &end)) < 0)
+         return EC_400;
 
-          }                     //server
+     while (*end == ' ') end++;
+     start = end;
+
+     if (strncasecmp(start, "icap://", 7) != 0)
+         return EC_400;
+
+     start = start + 7;
+
+     len = strcspn(start, "/ ");
+     end = start + len;
+     servnamelen =
+         (CI_MAXHOSTNAMELEN > len ? len : CI_MAXHOSTNAMELEN);
+     memcpy(req->req_server, start, servnamelen);
+     req->req_server[servnamelen] = '\0';
+     if (*end == '/') { /*we are expecting service name*/
+         start = ++end;
+         while (*end && *end != ' ' && *end != '?')
+             end++;
+         len = end - start;
+
+         len =
+             (len < MAX_SERVICE_NAME ? len : MAX_SERVICE_NAME);
+         if (len) {
+             strncpy(req->service, start, len);
+             req->service[len] = '\0';
+             if (!(service = find_service(req->service))) { /*else search for an alias */
+                 if ((salias = find_service_alias(req->service))) {
+                     service = salias->service;
+                     if (salias->args)
+                         strcpy(req->args, salias->args);
+                 }
+             }
+         }
+         req->current_service_mod = service;
+
+         if (*end == '?') {     /*args */
+             start = ++end;
+             if ((end = strchr(start, ' ')) != NULL) {
+                 args_len = strlen(req->args);
+                 len = end - start;
+                 if (args_len && len) {
+                     req->args[args_len] = '&';
+                     args_len++;
+                 }
+                 len = (len < (MAX_SERVICE_ARGS - args_len) ?
+                        len : (MAX_SERVICE_ARGS - args_len));
+                 strncpy(req->args + args_len, start, len);
+                 req->args[args_len + len] = '\0';
+             }
+         }      /*end of parsing args */
      }
+
+     while (*end == ' ')
+         end++;
+     start = end;
+
+     vminor = vmajor = -1;
+     if (strncmp(start, "ICAP/", 5) == 0) {
+         start += 5;
+         vmajor = strtol(start, &end, 10);
+         if (vmajor > 0 && *end == '.') {
+             start = end + 1;
+             vminor = strtol(start, &end, 10);
+             if (end == start) /*no chars parsed*/
+                 vminor = -1;
+         }
+     }
+
+     if (vminor == -1 || vmajor < 1)
+         return EC_400;
+
+     if (!req->current_service_mod)
+         return EC_404; /*Service not found*/
+
+     if (!ci_method_support
+         (req->current_service_mod->mod_type, req->type)
+         && req->type != ICAP_OPTIONS) {
+         return EC_405;    /* Method not allowed for service. */
+     }
+
      return EC_100;
 }
 
-
-static int get_method(char *buf)
+static int check_request(ci_request_t *req)
 {
-     if (!strncmp(buf, "OPTIONS", 7)) {
-          return ICAP_OPTIONS;
-     }
-     else if (!strncmp(buf, "REQMOD", 6)) {
-          return ICAP_REQMOD;
-     }
-     else if (!strncmp(buf, "RESPMOD", 7)) {
-          return ICAP_RESPMOD;
-     }
-     else {
-          return -1;
-     }
+    /*Check encapsulated header*/
+    if (req->entities[0] == NULL) /*No encapsulated header*/
+        return EC_400;
+
+    printf("\n type:%d Entities: %d %d %d %d \n",
+           req->type,
+           req->entities[0]->type,
+           req->entities[1] ? req->entities[1]->type : -1,
+           req->entities[2] ? req->entities[2]->type : -1,
+           req->entities[3] ? req->entities[3]->type : -1
+        );
+    if (req->type == ICAP_REQMOD) {
+        if (req->entities[2] != NULL)
+            return EC_400;
+        else if (req->entities[1] != NULL) {
+            if (req->entities[0]->type != ICAP_REQ_HDR)
+                return EC_400;
+            if (req->entities[1]->type != ICAP_REQ_BODY && req->entities[1]->type != ICAP_NULL_BODY)
+                return EC_400;
+        } else {
+            /*If it has only one encapsulated object it must be body data*/
+            if (req->entities[0]->type != ICAP_REQ_BODY)
+                return EC_400;
+
+        }
+    } else if (req->type == ICAP_RESPMOD) {
+        if (req->entities[3] != NULL)
+            return EC_400;
+        else if (req->entities[2] != NULL) {
+            if (req->entities[0]->type != ICAP_REQ_HDR)
+                return EC_400;
+            if (req->entities[1]->type != ICAP_RES_HDR)
+                return EC_400;
+            if (req->entities[2]->type != ICAP_RES_BODY && req->entities[2]->type != ICAP_NULL_BODY)
+                return EC_400;
+        } else if (req->entities[1] != NULL) {
+            if (req->entities[0]->type != ICAP_RES_HDR && req->entities[0]->type != ICAP_REQ_HDR)
+                return EC_400;
+            if (req->entities[1]->type != ICAP_RES_BODY && req->entities[1]->type != ICAP_NULL_BODY)
+                return EC_400;
+        } else {
+            /*If it has only one encapsulated object it must be body data*/
+            if (req->entities[0]->type != ICAP_RES_BODY)
+                return EC_400;
+        }
+    }
+    return EC_100;
 }
 
 static int parse_header(ci_request_t * req)
@@ -340,18 +423,12 @@ static int parse_header(ci_request_t * req)
      if ((request_status = ci_read_icap_header(req, h, TIMEOUT)) != EC_100)
           return request_status;
 
-     if ((result = get_method(h->buf)) >= 0) {
-          req->type = result;
-          if ((request_status = parse_request(req, h->buf)) != EC_100)
-	      return request_status;
-	 
-     }
-     else
-          return EC_400;
-
      if ((request_status = ci_headers_unpack(h)) != EC_100)
-          return request_status;
+         return request_status;
 
+     if ((request_status = parse_request(req, h->headers[0])) != EC_100)
+         return request_status;
+	 
      for (i = 1; i < h->used && request_status == EC_100; i++) {
           if (strncasecmp("Preview:", h->headers[i], 8) == 0) {
                result = strtol(h->headers[i] + 9, NULL, 10);
@@ -377,7 +454,10 @@ static int parse_header(ci_request_t * req)
           }
      }
 
-     return request_status;
+     if (request_status != EC_100)
+         return request_status;
+
+     return check_request(req);
 }
 
 
@@ -1346,8 +1426,13 @@ static int do_request(ci_request_t * req)
           return CI_ERROR;      /*Or something that means authentication error */
      }
 
-     if (res == EC_100)
+     if (res == EC_100) {
           res = parse_encaps_headers(req);
+          if (res != EC_100) {
+              ec_responce(req, EC_400);
+              return CI_ERROR;
+          }
+     }
 
      if (req->current_service_mod->mod_init_request_data)
           req->service_data =
