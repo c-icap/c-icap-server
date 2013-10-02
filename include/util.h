@@ -34,24 +34,16 @@ CI_DECLARE_FUNC(int)  ci_usleep(unsigned long usec);
 
 
 #ifdef _WIN32
-CI_DECLARE_FUNC(int) strcasecmp(const char *s1, const char *s2);
-CI_DECLARE_FUNC(int) strncasecmp(const char *s1, const char *s2, size_t n);
 CI_DECLARE_FUNC(int) mkstemp(char *filename);
 CI_DECLARE_FUNC(struct tm*) localtime_r(const time_t *t, struct tm *tm);
 CI_DECLARE_FUNC(struct tm*) gmtime_r(const time_t *t, struct tm *tm);
 #endif
 
-#ifndef HAVE_STRNSTR
-CI_DECLARE_FUNC(const char *) strnstr(const char *s, const char *find, size_t slen);
-#endif
+CI_DECLARE_FUNC(const char *) ci_strnstr(const char *s, const char *find, size_t slen);
 
-#ifndef HAVE_STRNCASESTR
-CI_DECLARE_FUNC(const char *) strncasestr(const char *s, const char *find, size_t slen);
-#endif
+CI_DECLARE_FUNC(const char *) ci_strncasestr(const char *s, const char *find, size_t slen);
 
-#ifndef HAVE_STRCASESTR
-CI_DECLARE_FUNC(const char *) strcasestr(const char *str, const char *find);
-#endif
+CI_DECLARE_FUNC(const char *) ci_strcasestr(const char *str, const char *find);
 
 #ifdef __cplusplus
 }

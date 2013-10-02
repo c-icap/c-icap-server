@@ -49,4 +49,16 @@
 #include <stdint.h>
 #endif
 
+#ifndef HAVE_STRNSTR
+#define strnstr(s, find, slen) ci_strnstr(s, find, slen)
+#endif
+
+#ifndef HAVE_STRNCASESTR
+#define strncasestr(s, find, slen) ci_strncasestr(s, find, slen)
+#endif
+
+#ifndef HAVE_STRCASESTR
+#define strcasestr(str, find) ci_strcasestr(str, find)
+#endif
+
 #endif
