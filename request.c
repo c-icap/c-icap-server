@@ -366,15 +366,15 @@ static int parse_request(ci_request_t * req, char *buf)
 static int check_request(ci_request_t *req)
 {
     /*Check encapsulated header*/
-    if (req->entities[0] == NULL) /*No encapsulated header*/
+    if (req->entities[0] == NULL && !req->type == ICAP_OPTIONS) /*No encapsulated header*/
         return EC_400;
 
-    printf("\n type:%d Entities: %d %d %d %d \n",
-           req->type,
-           req->entities[0]->type,
-           req->entities[1] ? req->entities[1]->type : -1,
-           req->entities[2] ? req->entities[2]->type : -1,
-           req->entities[3] ? req->entities[3]->type : -1
+    ci_debug_printf(6, "\n type:%d Entities: %d %d %d %d \n",
+                    req->type,
+                    req->entities[0] ? req->entities[0]->type : -1,
+                    req->entities[1] ? req->entities[1]->type : -1,
+                    req->entities[2] ? req->entities[2]->type : -1,
+                    req->entities[3] ? req->entities[3]->type : -1
         );
     if (req->type == ICAP_REQMOD) {
         if (req->entities[2] != NULL)
