@@ -238,7 +238,7 @@ const char * ci_lookup_table_get_row(struct ci_lookup_table *table, const char *
 extern struct ci_lookup_table_type file_table_type;
 extern struct ci_lookup_table_type hash_table_type;
 extern struct ci_lookup_table_type regex_table_type;
-void init_internal_lookup_tables(){
+CI_DECLARE_FUNC(void) init_internal_lookup_tables(){
     ci_lookup_table_type_register(&file_table_type);
     ci_lookup_table_type_register(&hash_table_type);
     ci_lookup_table_type_register(&regex_table_type);

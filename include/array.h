@@ -431,8 +431,8 @@ CI_DECLARE_FUNC(void *) ci_vector_pop(ci_vector_t *vector);
 #define ci_vector_get(vector, i) (i < vector->count ? (const void *)vector->items[i]:  (const void *)NULL)
 
 
-const void **ci_vector_cast_to_voidvoid(ci_vector_t *vector);
-ci_vector_t *ci_vector_cast_from_voidvoid(const void **p);
+CI_DECLARE_FUNC(const void **) ci_vector_cast_to_voidvoid(ci_vector_t *vector);
+CI_DECLARE_FUNC(ci_vector_t *)ci_vector_cast_from_voidvoid(const void **p);
 
 /**
  \defgroup STR_VECTORS  Vectors of strings
@@ -549,7 +549,7 @@ CI_DECLARE_FUNC(ci_list_t *) ci_list_create(size_t init_size, size_t obj_size);
  \ingroup LISTS
  \param list a pointer to ci_list_t object to be destroyed
  */
-void ci_list_destroy(ci_list_t *list);
+    CI_DECLARE_FUNC(void) ci_list_destroy(ci_list_t *list);
 
 /**
  * Run the given function for each list item

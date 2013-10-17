@@ -103,6 +103,8 @@ CI_DECLARE_FUNC(int) ci_extend_filetype(struct ci_magics_db *db,
  */
 CI_DECLARE_FUNC(struct ci_magics_db) *ci_magic_db_load(const char *filename);
 
+CI_DECLARE_FUNC(void) ci_magic_db_free();
+
 /**
  * Return the type of data of an c-icap request object.
  * \ingroup DATATYPE

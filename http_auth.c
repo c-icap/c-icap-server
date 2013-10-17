@@ -255,9 +255,23 @@ int check_user_group(const char *user, const char *group)
 /* The group acl implementation                       */
 
 /*defined in types_ops*/
-void *stringdup(const char *str, ci_mem_allocator_t *allocator);
-void stringfree(void *key, ci_mem_allocator_t *allocator);
-size_t stringlen(const void *key);
+static void *group_dup(const char *str, ci_mem_allocator_t *allocator)
+{
+    char *new_s = allocator->alloc(allocator,strlen(str)+1);
+    if(new_s)
+        strcpy(new_s, str);
+    return new_s;
+}
+
+static void group_free(void *key, ci_mem_allocator_t *allocator)
+{
+    allocator->free(allocator, key);
+}
+
+static size_t group_len(const void *key)
+{
+    return strlen((const char *)key)+1;
+}
 
 int group_cmp(const void *key1,const void *key2)
 {
@@ -281,10 +295,10 @@ int group_equal(const void *key1,const void *key2)
 }
 
 ci_type_ops_t  ci_group_ops = {
-    stringdup,
-    stringfree,
+    group_dup,
+    group_free,
     group_cmp,
-    stringlen,
+    group_len,
     group_equal,
 };
 

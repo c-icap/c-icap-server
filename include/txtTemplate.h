@@ -41,6 +41,11 @@ CI_DECLARE_FUNC (void) ci_txt_template_close(void);
 CI_DECLARE_FUNC (void) ci_txt_template_set_dir(const char *dir);
 CI_DECLARE_FUNC (void) ci_txt_template_set_default_lang(const char *lang);
 
+CI_DECLARE_DATA extern const char *TEMPLATE_DIR;
+CI_DECLARE_DATA extern const char *TEMPLATE_DEF_LANG;
+CI_DECLARE_DATA extern int TEMPLATE_RELOAD_TIME; // Default time is one hour, this variable is in seconds
+CI_DECLARE_DATA extern int TEMPLATE_CACHE_SIZE; // How many templates can be cached
+CI_DECLARE_DATA extern int TEMPLATE_MEMBUF_SIZE; // Max memory for txtTemplate to expand template into txt
 #ifdef __cplusplus
 }
 #endif

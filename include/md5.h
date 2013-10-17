@@ -9,8 +9,8 @@ struct ci_MD5Context {
         unsigned char in[64];
 };
 typedef struct ci_MD5Context ci_MD5_CTX;
-void ci_MD5Init(struct ci_MD5Context *ctx);
-void ci_MD5Update(struct ci_MD5Context *ctx, const unsigned char *buf, size_t len);
-void ci_MD5Final(unsigned char digest[16], struct ci_MD5Context *ctx);
+CI_DECLARE_FUNC(void) ci_MD5Init(struct ci_MD5Context *ctx);
+CI_DECLARE_FUNC(void) ci_MD5Update(struct ci_MD5Context *ctx, const unsigned char *buf, size_t len);
+CI_DECLARE_FUNC(void) ci_MD5Final(unsigned char digest[16], struct ci_MD5Context *ctx);
 
 #endif /* !CI_MD5_H */

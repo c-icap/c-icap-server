@@ -128,7 +128,7 @@ int ci_base64_encode(const unsigned char *data, size_t len, char *out, size_t ou
 }
 
 /*url decoders  */
-int url_decoder(const char *input,char *output, int output_len)
+CI_DECLARE_FUNC(int) url_decoder(const char *input,char *output, int output_len)
 {
     int i, k;
     char str[3];
@@ -161,7 +161,7 @@ int url_decoder(const char *input,char *output, int output_len)
     return 1;
 }
 
-int url_decoder2(char *input)
+CI_DECLARE_FUNC(int) url_decoder2(char *input)
 {
     int i, k;
     char str[3];    

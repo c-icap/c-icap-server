@@ -42,7 +42,7 @@ static int CACHED_FILE_POOL = -1;
 static int SIMPLE_FILE_POOL = -1;
 static int RING_BUF_POOL = -1;
 
-int init_body_system()
+CI_DECLARE_FUNC(int) init_body_system()
 {
     MEMBUF_POOL = ci_object_pool_register("ci_membuf_t", 
                                           sizeof(ci_membuf_t));

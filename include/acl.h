@@ -203,6 +203,7 @@ CI_DECLARE_FUNC(void) ci_acl_init();
 CI_DECLARE_FUNC(void) ci_acl_reset();
 
 CI_DECLARE_FUNC(const ci_acl_spec_t *) ci_acl_search(const char *name);
+CI_DECLARE_FUNC(int) ci_acl_add_data(const char *name, const char *type, const char *data);
 
 /**
    \brief Search for an acl type

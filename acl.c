@@ -28,13 +28,6 @@
 #include "mem.h"
 #include "filetype.h"
 
-
-int cfg_acl_add(const char *directive, const char **argv, void *setdata);
-struct ci_conf_entry acl_conf_variables[] = {
-     {"acl", NULL, cfg_acl_add, NULL},
-     {NULL, NULL, NULL, NULL}
-};
-
 /*standard acl types */
 
 /*Spec types:
@@ -572,58 +565,48 @@ int ci_acl_type_add(const ci_acl_type_t *type)
     return ci_acl_typelist_add(&types_list, type);
 }
 
-int cfg_acl_add(const char *directive, const char **argv, void *setdata)
+int ci_acl_add_data(const char *name, const char *type, const char *data)
 {
-     const char *acl_name;
-     char *s, *acl_type, *param=NULL;
-     int argc;
-     ci_acl_spec_t *spec;
-     const ci_acl_type_t *spec_type;
+    ci_acl_spec_t *spec;
+    const ci_acl_type_t *spec_type;
+    char *s, *param = NULL, *acl_type;
 
-     if (!argv[0] || !argv[1] || !argv[2]) /* at least an argument */
-	 return 0;
-     
-     
-     acl_name = argv[0];
-     acl_type = strdup(argv[1]);
-     if (!acl_type) {
-         ci_debug_printf(1, "cfg_acl_add: error strduping!\n"); 
-         return 0;
-     }
-     s = acl_type;
-     if ((s=strchr(s,'{')) != NULL) {
-	 *s='\0';
-	 param=s+1;
-	 if((s=strchr(param,'}')) != NULL)
-	     *s= '\0';
-     }
+    acl_type = strdup(type);
+    if (!acl_type) {
+        ci_debug_printf(1, "cfg_acl_add: error strduping!\n"); 
+        return 0;
+    }
 
-     if ((spec=ci_acl_spec_search(specs_list, acl_name)) != NULL){
-	  spec_type = ci_acl_typelist_search(&types_list, acl_type);
-	  if(spec_type != spec->type){
-	       ci_debug_printf(1, "The acl type:%s does not much with type of existing acl \"%s\"", 
-			       acl_type,acl_name);
-               free(acl_type);
-	       return 0;
-	  }
-     }
-     else {
-	 ci_debug_printf(2, "New ACL with name:%s and  ACL Type: %s{%s}\n", argv[0], argv[1],param?param:"NULL");
-	  spec = ci_acl_spec_new(acl_name, acl_type, param, &types_list, &specs_list);
-     }
+    s = acl_type;
+    if ((s=strchr(s,'{')) != NULL) {
+        *s='\0';
+        param=s+1;
+        if((s=strchr(param,'}')) != NULL)
+            *s= '\0';
+    }
 
-     if (!spec){
-	  ci_debug_printf(1, "Error in acl:%s! Maybe the acl type \"%s\" does not exists!\n",
-			  acl_name,acl_type);
-          free(acl_type);
-	  return 0;
-     }
-     for (argc = 2; argv[argc] != NULL; argc++){
-	  ci_debug_printf(2, "Adding to acl %s the data %s\n", acl_name, argv[argc]);
-	  ci_acl_spec_new_data(spec, argv[argc]);
-     }
-     free(acl_type);
-     return 1;
+    if ((spec = ci_acl_spec_search(specs_list, name)) != NULL){
+        spec_type = ci_acl_type_search(acl_type);
+        if(spec_type != spec->type){
+            ci_debug_printf(1, "The acl type:%s does not match with type of existing acl \"%s\"", 
+                            acl_type, name);
+            free(acl_type);
+            return 0;
+        }
+    }
+    else {
+        spec = ci_acl_spec_new(name, acl_type, param, &types_list, &specs_list);
+    }
+    free(acl_type);
+
+    if (!spec){
+        ci_debug_printf(1, "Error in acl:%s! Maybe the acl type \"%s\" does not exists!\n",
+                        name, acl_type);
+        return 0;
+    }
+    ci_acl_spec_new_data(spec, data);
+
+    return 1;
 }
 
 /******************************************************/

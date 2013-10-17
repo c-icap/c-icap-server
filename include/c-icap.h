@@ -67,6 +67,7 @@
 
 # if defined (CI_BUILD_MODULE)
 #   define CI_DECLARE_MOD_DATA   __declspec(dllexport)
+#   define CI_DECLARE_MOD_FUNC(type)   __declspec(dllexport) type
 # endif
 
 #else
@@ -74,9 +75,9 @@
 /*
   
 */
-#define CI_DECLARE_FUNC(type) type
-#define CI_DECLARE_DATA
 #if defined (USE_VISIBILITY_ATTRIBUTE)
+#define CI_DECLARE_FUNC(type) __attribute__ ((visibility ("default"))) type
+#define CI_DECLARE_DATA __attribute__ ((visibility ("default")))
 #define CI_DECLARE_MOD_DATA __attribute__ ((visibility ("default")))
 #else
 #define CI_DECLARE_MOD_DATA

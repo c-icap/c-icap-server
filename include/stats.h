@@ -67,12 +67,12 @@ struct stat_groups_list {
     int entries_num;
 };
 
-extern struct stat_entry_list STAT_INT64;
-extern struct stat_entry_list STAT_KBS;
-extern struct stat_groups_list STAT_GROUPS;
+CI_DECLARE_DATA extern struct stat_entry_list STAT_INT64;
+CI_DECLARE_DATA extern struct stat_entry_list STAT_KBS;
+CI_DECLARE_DATA extern struct stat_groups_list STAT_GROUPS;
 
 enum ci_stat_type {STAT_INT64_T, STAT_KBS_T};
-extern struct stat_area *STATS;
+CI_DECLARE_DATA extern struct stat_area *STATS;
 
 CI_DECLARE_FUNC(int) ci_stat_memblock_size(void);
 CI_DECLARE_FUNC(int) ci_stat_entry_register(char *label, int type, char *group);

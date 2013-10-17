@@ -40,7 +40,7 @@ CI_DECLARE_FUNC(void) __ldebug_printf(int i,const char *format, ...);
 #define ci_debug_printf __ldebug_printf
 
 #else
- extern void (*__log_error)(void *req, const char *format,... );
+CI_DECLARE_DATA extern void (*__log_error)(void *req, const char *format,... );
 #define ci_debug_printf(i, args...) if(i<=CI_DEBUG_LEVEL){ if(__log_error) (*__log_error)(NULL,args); if(CI_DEBUG_STDOUT) printf(args);}
 #endif
 

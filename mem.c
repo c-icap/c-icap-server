@@ -37,7 +37,7 @@ int PACK_ALLOCATOR_POOL = -1;
 static size_t sizeof_pack_allocator();
 ci_mem_allocator_t *ci_create_pool_allocator(int items_size);
 
-int mem_init()
+CI_DECLARE_FUNC(int) mem_init()
 {
     int ret = -1;
     ret = ci_buffers_init();

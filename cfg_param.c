@@ -581,6 +581,25 @@ int cfg_set_auth_method(const char *directive, const char **argv, void *setdata)
      return set_method_authenticators(method, (const char **)argv + 1);
 }
 
+int cfg_acl_add(const char *directive, const char **argv, void *setdata)
+{
+    const char *acl_name, *acl_type;
+    int argc, ok;
+ 
+    if (!argv[0] || !argv[1] || !argv[2]) /* at least an argument */
+        return 0;
+     
+     
+    acl_name = argv[0];
+    acl_type = argv[1];
+    for (argc = 2, ok =1; argv[argc] != NULL && ok; argc++){
+        ci_debug_printf(2, "Adding to acl %s the data %s\n", acl_name, argv[argc]);
+        ok = ci_acl_add_data(acl_name, acl_type, argv[argc]);
+    }
+    ci_debug_printf(2, "New ACL with name:%s and  ACL Type: %s\n", argv[0], argv[1]);
+    return ok;
+}
+
 int cfg_include_config_file(const char *directive, const char **argv, void *setdata)
 {
     char path[CI_MAX_PATH];
