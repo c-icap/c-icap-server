@@ -60,7 +60,12 @@ struct ci_server_conf CONF = {
      SERVDIR,                   /*SERVICES_DIR */
      MODSDIR,                   /*MODULES_DIR */
      NULL,                      /*SERVER_ADMIN*/
-     NULL                       /*SERVER_NAME*/
+     NULL,                      /*SERVER_NAME*/
+     5,                         /*START_SERVERS*/
+     10,                        /*MAX_SERVERS*/
+     30,                        /*THREADS_PER_CHILD*/
+     30,                        /*MIN_SPARE_THREADS*/
+     60                        /*MAX_SPARE_THREADS*/
 };
 
 
@@ -68,11 +73,6 @@ int TIMEOUT = 300;
 int KEEPALIVE_TIMEOUT = 15;
 int MAX_KEEPALIVE_REQUESTS = 100;
 int MAX_SECS_TO_LINGER = 5;
-int START_CHILDS = 5;
-int MAX_CHILDS = 10;
-int START_SERVERS = 30;
-int MIN_FREE_SERVERS = 30;
-int MAX_FREE_SERVERS = 60;
 int MAX_REQUESTS_BEFORE_REALLOCATE_MEM = 100;
 int MAX_REQUESTS_PER_CHILD = 0;
 int DAEMON_MODE = 1;
@@ -138,11 +138,11 @@ static struct ci_conf_entry conf_variables[] = {
      {"KeepAlive", NULL, NULL, NULL},
      {"MaxKeepAliveRequests", &MAX_KEEPALIVE_REQUESTS, intl_cfg_set_int, NULL},
      {"KeepAliveTimeout", &KEEPALIVE_TIMEOUT, intl_cfg_set_int, NULL},
-     {"StartServers", &START_CHILDS, intl_cfg_set_int, NULL},
-     {"MaxServers", &MAX_CHILDS, intl_cfg_set_int, NULL},
-     {"MinSpareThreads", &MIN_FREE_SERVERS, intl_cfg_set_int, NULL},
-     {"MaxSpareThreads", &MAX_FREE_SERVERS, intl_cfg_set_int, NULL},
-     {"ThreadsPerChild", &START_SERVERS, intl_cfg_set_int, NULL},
+     {"StartServers", &CONF.START_SERVERS, intl_cfg_set_int, NULL},
+     {"MaxServers", &CONF.MAX_SERVERS, intl_cfg_set_int, NULL},
+     {"MinSpareThreads", &CONF.MIN_SPARE_THREADS, intl_cfg_set_int, NULL},
+     {"MaxSpareThreads", &CONF.MAX_SPARE_THREADS, intl_cfg_set_int, NULL},
+     {"ThreadsPerChild", &CONF.THREADS_PER_CHILD, intl_cfg_set_int, NULL},
      {"MaxRequestsPerChild", &MAX_REQUESTS_PER_CHILD, intl_cfg_set_int, NULL},
      {"MaxRequestsReallocateMem", &MAX_REQUESTS_BEFORE_REALLOCATE_MEM,
       intl_cfg_set_int, NULL},

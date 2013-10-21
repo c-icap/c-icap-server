@@ -59,6 +59,11 @@ struct ci_server_conf{
      char *MODULES_DIR;
      char *SERVER_ADMIN;
      char *SERVER_NAME;
+     int START_SERVERS;
+     int MAX_SERVERS;
+     int THREADS_PER_CHILD;
+     int MIN_SPARE_THREADS;
+     int MAX_SPARE_THREADS;
 };
 
 /**
