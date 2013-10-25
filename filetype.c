@@ -176,13 +176,11 @@ void free_records_group(struct ci_magic_record *record)
 }
 
 #define RECORD_LINE 32768
-int read_record(FILE * f, struct ci_magic_record *record)
+static int parse_record(char *line, struct ci_magic_record *record)
 {
-     char line[RECORD_LINE], *s, *end, num[4];
+     char *s, *end, num[4];
      int len, c, i;
 
-     if (fgets(line, RECORD_LINE, f) == NULL)
-          return -1;
      if ((len = strlen(line)) < 4)      /*must have at least 4 ':' */
           return 0;
      if (line[0] == '#')        /*Comment ....... */
@@ -304,8 +302,9 @@ void ci_magics_db_release(struct ci_magics_db *db)
 int ci_magics_db_file_add(struct ci_magics_db *db, const char *filename)
 {
      int type;
-     int ret, group, i;
+     int ret, group, i, lineNum;
      int groups[MAX_GROUPS + 1];
+     char line[RECORD_LINE];
      struct ci_magic_record record;
      FILE *f;
 
@@ -313,9 +312,16 @@ int ci_magics_db_file_add(struct ci_magics_db *db, const char *filename)
           ci_debug_printf(1, "Error opening magic file: %s\n", filename);
           return 0;
      }
-     while ((ret = read_record(f, &record)) >= 0) {
+
+     lineNum = 0;
+     ret = 0;
+     while (fgets(line, RECORD_LINE, f) != NULL) {
+          lineNum ++;
+          ret = parse_record(line, &record);
           if (!ret)
                continue;
+          if (ret < 0)
+               break;
           if ((type = ci_get_data_type_id(db, record.type)) < 0) {
                i = 0;
                while (record.groups[i] != NULL && i < MAX_GROUPS) {
@@ -338,8 +344,8 @@ int ci_magics_db_file_add(struct ci_magics_db *db, const char *filename)
           free_records_group(&record);
      }
      fclose(f);
-     if (ret < -1) {            /*An error occured ..... */
-          ci_debug_printf(1, "Error reading magic file (%d)\n", ret);
+     if (ret < 0) {            /*An error occured ..... */
+          ci_debug_printf(1, "Error reading magic file (%d), line number: %d\nBuggy line: %s\n", ret, lineNum, line);
           return 0;
      }
      ci_debug_printf(3, "In database: magic: %d, types: %d, groups: %d\n",
