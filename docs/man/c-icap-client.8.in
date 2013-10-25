@@ -22,16 +22,34 @@ c-icap-client - simple ICAP client
 .B \-req "url"
 ]
 [
+.B \-resp "url"
+]
+[
 .B \-d "debug level"
 ]
 [
 .B \-noreshdr
 ]
 [
+.B \-nopreview
+]
+[
+.B \-no204
+]
+[
+.B \-206
+]
+[
 .B \-x "icap-header"
 ]
 [
-.B \-hx "http-header"
+.B \-hx "http-request-header"
+]
+[
+.B \-rhx "http-response-header"
+]
+[
+.B \-w preview_size
 ]
 [
 .B \-v
@@ -52,14 +70,26 @@ Send this file to the icap server. Default is to send an options request
 Save output to this file. Default is to send to stdout
 .IP "-req url"
 Send a request modification instead of response modification, using as http url the url provided with this option.
+.IP "-resp url"
+Send a response modification with http request headers, using as http url the url provided with this option.
 .IP "-d level"
 debug level info to stdout
 .IP "-noreshdr"
 Do not send reshdr headers
+.IP "-nopreview"
+Do not send preview request data
+.IP "-no204"
+Do not allow204 outside preview
+.IP "-206"
+Support 206 responses
 .IP "-x icap-header"
 Include the icap-header in icap request headers
-.IP "-hx http-header"
-Include the http-header in http headers
+.IP "-hx http-request-header"
+Include the http-request-header in http request headers
+.IP "-rhx http-response-header"
+Include the http-response-header in http response headers
+.IP "-w preview"
+Sets the maximum preview data size to preview
 .IP "-v"
 Print response headers
 .SH SEE ALSO
