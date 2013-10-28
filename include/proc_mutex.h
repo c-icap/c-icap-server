@@ -22,7 +22,7 @@
 #define __PROC_MUTEX_H
 
 #include "c-icap.h"
-#if defined (USE_SYSV_IPC)
+#if defined (USE_SYSV_IPC_MUTEX)
 #include <sys/ipc.h>
 #include <sys/sem.h>
 #elif defined (USE_POSIX_SEMAPHORES)
@@ -38,7 +38,7 @@ extern "C"
 {
 #endif
 
-#if defined (USE_SYSV_IPC)
+#if defined (USE_SYSV_IPC_MUTEX)
 
 #define ci_proc_mutex_t int
 

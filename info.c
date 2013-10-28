@@ -341,36 +341,33 @@ int build_statistics(struct info_req_data *info_data)
      } 
      ci_membuf_write(info_data->body, tmpl->childsEnd, strlen(tmpl->childsEnd), 0);
 
-     /*Print semaphores and shared mem info*/
-#if defined(USE_SYSV_IPC)
+     /*Print semaphores*/ /*Print shared mem info*/
+#if defined(USE_SYSV_IPC_MUTEX)
      snprintf(buf2, LOCAL_BUF_SIZE, "%d %d", accept_mutex, childs_queue->queue_mtx);
      sz = snprintf(buf, LOCAL_BUF_SIZE, tmpl->semaphores_tmpl, "IPC", buf2);
-     ci_membuf_write(info_data->body,buf, sz, 0);
-     snprintf(buf2, LOCAL_BUF_SIZE, "%d %d kbs", childs_queue->shmid, (childs_queue->shared_mem_size/1024));
-     sz = snprintf(buf, LOCAL_BUF_SIZE, tmpl->sharedMem_tmpl, "IPC", buf2);
-     ci_membuf_write(info_data->body,buf, sz, 0);
-#else
-#if defined(USE_POSIX_SEMAPHORES)
+#elif defined(USE_POSIX_SEMAPHORES)
      snprintf(buf2, LOCAL_BUF_SIZE, "%p %p", &accept_mutex, &childs_queue->queue_mtx);
      sz = snprintf(buf, LOCAL_BUF_SIZE, tmpl->semaphores_tmpl, "POSIX", buf2);
-     ci_membuf_write(info_data->body,buf, sz, 0);
 #elif defined(USE_POSIX_FILE_LOCK)
      snprintf(buf2, LOCAL_BUF_SIZE, "%s %s", accept_mutex.filename, &childs_queue->queue_mtx.filename);
      sz = snprintf(buf, LOCAL_BUF_SIZE, tmpl->semaphores_tmpl, "Lockfile", buf2);
-     ci_membuf_write(info_data->body,buf, sz, 0);
 #else
      sz = snprintf(buf, LOCAL_BUF_SIZE, tmpl->sharedMem_tmpl, "Unknown", "Unknown");
-     ci_membuf_write(info_data->body,buf, sz, 0);
 #endif
-#if defined(USE_POSIX_MAPPED_FILES)
+     ci_membuf_write(info_data->body,buf, sz, 0);
+
+/*Print shared mem*/
+#if defined(USE_SYSV_IPC)
+     snprintf(buf2, LOCAL_BUF_SIZE, "%d %d kbs", childs_queue->shmid, (childs_queue->shared_mem_size/1024));
+     sz = snprintf(buf, LOCAL_BUF_SIZE, tmpl->sharedMem_tmpl, "IPC", buf2);
+#elif defined(USE_POSIX_MAPPED_FILES)
      snprintf(buf2, LOCAL_BUF_SIZE, "%p %d Kbs", childs_queue->shmid.mem, (childs_queue->shmid.size/1024));
      sz = snprintf(buf, LOCAL_BUF_SIZE, tmpl->sharedMem_tmpl, "MMAP", buf2);
-     ci_membuf_write(info_data->body,buf, sz, 0);
 #else
      sz = snprintf(buf, LOCAL_BUF_SIZE, tmpl->sharedMem_tmpl, "Unknown", "Unknown");
-     ci_membuf_write(info_data->body,buf, sz, 0);
 #endif
-#endif/*!USE_POSIX_SEMAPHORES*/
+     ci_membuf_write(info_data->body,buf, sz, 0);
+
 
      for (gid = 0; gid < STAT_GROUPS.entries_num; gid++) {
           stat_group = STAT_GROUPS.groups[gid];
