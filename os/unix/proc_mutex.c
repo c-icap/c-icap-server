@@ -26,7 +26,7 @@
 
 
 
-#if defined(USE_SYSV_IPC)
+#if defined(USE_SYSV_IPC_MUTEX)
 
 #define  SEMKEY 888888L         /*A key but what key;The IPC_PRIVATE must used instead ..... */
 #define  PERMS 0600

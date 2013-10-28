@@ -255,7 +255,7 @@ AC_CHECK_LIB(dl,dlopen,DL_ADD_FLAG=" -ldl")
 AC_SUBST(DL_ADD_FLAG)
 
 AC_ARG_WITH(zlib,
-[	--with-zlib	Path to zlib library],
+[  --with-zlib	Path to zlib library],
 [
 case "$withval" in
      yes)
@@ -293,7 +293,7 @@ if test a"$zlib" = "ano"; then
 fi
 
 AC_ARG_WITH(bzlib,
-[	--with-bzlib	Path to bzlib library],
+[  --with-bzlib	Path to bzlib library],
 [
 case "$withval" in
      yes)
@@ -492,6 +492,41 @@ if test a"$libldap" != "ano"; then
    fi
 fi
 
+FORCE_IPC_MUTEX=0
+FORCE_POSIX_MUTEX=0
+FORCE_FILE_MUTEX=0
+process_mutexes=none
+AC_ARG_WITH(process-mutexes,
+[  --with-process-mutexes        Process mutexes scheme to use: ipc, posix or file ],
+[ case "$withval" in
+    ipc)
+         if test a"$sysvipc" = "no"; then
+            AC_MSG_WARN([--enable-sysvipc set to 'no' but --with-process-mutexes needs sysv IPC!]);
+            exit -1;
+         fi
+         FORCE_IPC_MUTEX=1
+         process_mutexes=ipc
+    ;;
+    posix)
+        FORCE_POSIX_MUTEX=1
+        process_mutexes=posix
+    ;;
+    file)
+        FORCE_FILE_MUTEX=1
+        process_mutexes=file
+    ;;
+    * )
+        AC_MSG_WARN([Use ipc, posix or file with --with-process-mutexes argument!])
+        exit -1;
+    ;;
+  esac
+],
+)
+AC_SUBST(FORCE_IPC_MUTEX)
+AC_SUBST(FORCE_POSIX_MUTEX)
+AC_SUBST(FORCE_FILE_MUTEX)
+
+
 # Check for header files
 AC_HEADER_STDC
 AC_CHECK_HEADERS(strings.h unistd.h sys/stat.h)
@@ -631,57 +666,57 @@ AC_MSG_RESULT(yes),
 AC_MSG_RESULT(no),
 )
 
-dnl Checking if interprocess posix semaphores works....
-AC_CACHE_CHECK([if posix 1003.1b interprocess semaphores works], ac_cv_10031b_ipc_sem,
-[AC_TRY_RUN([
-#include <semaphore.h>
-#include <sys/wait.h>
+if test a"$process_mutexes" = a"none"; then
+   dnl Checking if interprocess posix semaphores works....
+   AC_CACHE_CHECK([if posix 1003.1b interprocess semaphores works], ac_cv_10031b_ipc_sem,
+   [AC_TRY_RUN([
+   #include <semaphore.h>
+   #include <sys/wait.h>
 
-int main(int argc,char **argv){
-      sem_t s;
-      pid_t pid;
-      int status;
-      if(sem_init(&s,1,1)!=0){
-        return -1;
-      }
-     if((pid=fork())==0){
-	  if(sem_post(&s)<0){
-	       exit(-1);
-	  }
-	  exit(0);
-     }
-     else{
-	waitpid(pid,&status,0);
-	if(WEXITSTATUS(status)!=0)
-	       exit(-1);
-     }
-      sem_destroy(&s);
-      exit(0);
-}
-],
-ac_cv_10031b_ipc_sem=yes,
-ac_cv_10031b_ipc_sem=no,
-[AC_MSG_ERROR([cross-compiling,
-	presetting ac_cv_10031b_ipc_sem=(yes|no) will help])]
-)
-])
-AS_IF(
- [test $ac_cv_10031b_ipc_sem = yes],
- [AC_DEFINE(HAVE_POSIX_SEMAPHORES,1,[Define HAVE_POSIX_SEMAPHORES if posix 1003.1b semaphores works])
-  POSIX_SEMAPHORES="1"
- ],[
-  POSIX_SEMAPHORES="0"
- ])
-AC_SUBST(POSIX_SEMAPHORES)
+   int main(int argc,char **argv){
+         sem_t s;
+         pid_t pid;
+         int status;
+         if(sem_init(&s,1,1)!=0){
+              return -1;
+         }
+         if((pid=fork())==0){
+	     if(sem_post(&s)<0){
+	          exit(-1);
+	     }
+	     exit(0);
+         } else {
+	    waitpid(pid,&status,0);
+	    if(WEXITSTATUS(status)!=0)
+	         exit(-1);
+         }
+         sem_destroy(&s);
+         exit(0);
+   }
+   ],
+   ac_cv_10031b_ipc_sem=yes,
+   ac_cv_10031b_ipc_sem=no,
+   [AC_MSG_ERROR([cross-compiling,
+	setting --with-process-mutexes or presetting ac_cv_10031b_ipc_sem=(yes|no) will help])]
+        )
+   ])
+   AS_IF(
+      [test $ac_cv_10031b_ipc_sem = yes],
+      [AC_DEFINE(HAVE_POSIX_SEMAPHORES,1,[Define HAVE_POSIX_SEMAPHORES if posix 1003.1b semaphores works])
+      POSIX_SEMAPHORES="1"
+      ],[
+      POSIX_SEMAPHORES="0"
+   ])
+   AC_SUBST(POSIX_SEMAPHORES)
 
-dnl Checking for file locking
-AC_CACHE_CHECK([if fcntl file locking works], ac_cv_fcntl,
-[AC_TRY_RUN([
-#include <unistd.h>
-#include <fcntl.h>
+   dnl Checking for file locking
+   AC_CACHE_CHECK([if fcntl file locking works], ac_cv_fcntl,
+   [AC_TRY_RUN([
+   #include <unistd.h>
+   #include <fcntl.h>
 
 
-int main(int argc,char **argv){
+   int main(int argc,char **argv){
      struct flock fl;
      int fd;
 
@@ -695,25 +730,27 @@ int main(int argc,char **argv){
      if(fcntl(fd,F_SETLKW,&fl)<0){
          close(fd);
           return -1;
-    }
+     }
      close(fd);
      return 0;
-}
-],
-ac_cv_fcntl=yes,
-ac_cv_fcntl=no,
-[AC_MSG_ERROR([cross-compiling,
-	presetting ac_cv_fcntl=(yes|no) will help])]
-)
-])
-AS_IF(
- [test $ac_cv_fcntl = yes],
- [AC_DEFINE(HAVE_POSIX_FILE_LOCK,1,[Define HAVE_POSIX_FILE_LOCK if posix fcntl file locking works])
-  POSIX_FILE_LOCK="1"
- ],[
-  POSIX_FILE_LOCK="0"
- ])
-AC_SUBST(POSIX_FILE_LOCK)
+   }
+   ],
+   ac_cv_fcntl=yes,
+   ac_cv_fcntl=no,
+   [AC_MSG_ERROR([cross-compiling,
+	setting --with-process-mutexes or presetting ac_cv_fcntl=(yes|no) will help])]
+        )
+   ])
+   AS_IF(
+        [test $ac_cv_fcntl = yes],
+        [AC_DEFINE(HAVE_POSIX_FILE_LOCK,1,[Define HAVE_POSIX_FILE_LOCK if posix fcntl file locking works])
+        POSIX_FILE_LOCK="1"
+        ],[
+        POSIX_FILE_LOCK="0"
+   ])
+   AC_SUBST(POSIX_FILE_LOCK)
+
+fi
 
 #pthread_rwlock
 PTHREADS_RWLOCK="0"
