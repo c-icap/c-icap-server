@@ -355,7 +355,12 @@ int main(int argc, char **argv)
 	ci_debug_printf(1, "Error allocating mem allocator!\n");
 	return -1;
     }
-    
+
+    if (DUMP_MODE && !dbfile) {
+        ci_debug_printf(1, "\nError: You need to specify the database to dump ('-o file.db')\n\n");
+        ci_args_usage(argv[0], options);
+        exit(-1);
+    }
 
     if(!dbfile) {
 	strncpy(outfile, txtfile, CI_MAX_PATH);
