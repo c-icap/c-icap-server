@@ -36,15 +36,15 @@ typedef struct ci_type_ops {
     int (*equal)(const void *ref_key,const void *check_key);
 } ci_type_ops_t;
 
-CI_DECLARE_DATA extern ci_type_ops_t ci_str_ops;
-CI_DECLARE_DATA extern ci_type_ops_t ci_str_ext_ops;
-CI_DECLARE_DATA extern ci_type_ops_t ci_int32_ops;
-CI_DECLARE_DATA extern ci_type_ops_t ci_uint64_ops;
-CI_DECLARE_DATA extern ci_type_ops_t ci_ip_ops;
-CI_DECLARE_DATA extern ci_type_ops_t ci_ip_sockaddr_ops;
-CI_DECLARE_DATA extern ci_type_ops_t  ci_datatype_ops;
+CI_DECLARE_DATA extern const ci_type_ops_t ci_str_ops;
+CI_DECLARE_DATA extern const ci_type_ops_t ci_str_ext_ops;
+CI_DECLARE_DATA extern const ci_type_ops_t ci_int32_ops;
+CI_DECLARE_DATA extern const ci_type_ops_t ci_uint64_ops;
+CI_DECLARE_DATA extern const ci_type_ops_t ci_ip_ops;
+CI_DECLARE_DATA extern const ci_type_ops_t ci_ip_sockaddr_ops;
+CI_DECLARE_DATA extern const ci_type_ops_t  ci_datatype_ops;
 #ifdef USE_REGEX
-CI_DECLARE_DATA extern ci_type_ops_t  ci_regex_ops;
+CI_DECLARE_DATA extern const ci_type_ops_t  ci_regex_ops;
 #define ci_type_ops_is_string(tops) ((tops) == &ci_str_ops || (tops) == &ci_str_ext_ops || (tops) == &ci_regex_ops)
 #else
 #define ci_type_ops_is_string(tops) ((tops) == &ci_str_ops || (tops) == &ci_str_ext_ops)

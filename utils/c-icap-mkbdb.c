@@ -14,8 +14,8 @@
 
 DB_ENV *env_db=NULL;
 DB *db=NULL;
-ci_type_ops_t *key_ops = &ci_str_ops;
-ci_type_ops_t *val_ops = &ci_str_ops;
+const ci_type_ops_t *key_ops = &ci_str_ops;
+const ci_type_ops_t *val_ops = &ci_str_ops;
 
 #define MAXLINE 65535
 
@@ -284,7 +284,7 @@ void store_db(void *key, int keysize, void *val, int  valsize)
 
 int cfg_set_type(const char *directive, const char **argv, void *setdata)
 {
-    ci_type_ops_t *ops = &ci_str_ops;
+    const ci_type_ops_t *ops = &ci_str_ops;
 
     if(argv[0] == NULL) {
 	ci_debug_printf(1, "error not argument for %s argument\n", argv[0]);

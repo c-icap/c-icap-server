@@ -62,7 +62,7 @@ void stringfree(void *key, ci_mem_allocator_t *allocator)
     allocator->free(allocator, key);
 }
 
-ci_type_ops_t  ci_str_ops = {
+const ci_type_ops_t  ci_str_ops = {
     stringdup,
     stringfree,
     stringcmp,
@@ -93,7 +93,7 @@ int string_ext_equal(const void *key1,const void *key2)
 }
 
 
-ci_type_ops_t ci_str_ext_ops = {
+const ci_type_ops_t ci_str_ext_ops = {
     stringdup,
     stringfree,
     string_ext_cmp,
@@ -146,7 +146,7 @@ void int32_free(void *key, ci_mem_allocator_t *allocator)
     allocator->free(allocator, key);
 }
 
-ci_type_ops_t  ci_int32_ops = {
+const ci_type_ops_t  ci_int32_ops = {
     int32_dup,
     int32_free,
     int32_cmp,
@@ -195,7 +195,7 @@ size_t uint64_len(const void *key)
     return (size_t)sizeof(uint64_t);
 }
 
-ci_type_ops_t  ci_uint64_ops = {
+const ci_type_ops_t  ci_uint64_ops = {
     uint64_dup,
     uint64_free,
     uint64_cmp,
@@ -315,7 +315,7 @@ void regex_free(void *key, ci_mem_allocator_t *allocator)
 }
 
 
-ci_type_ops_t  ci_regex_ops = {
+const ci_type_ops_t  ci_regex_ops = {
     regex_dup,
     regex_free,
     regex_cmp,
@@ -391,7 +391,7 @@ void datatype_free(void *key, ci_mem_allocator_t *allocator)
      allocator->free(allocator, key);
 }
    
-ci_type_ops_t  ci_datatype_ops = {
+const ci_type_ops_t  ci_datatype_ops = {
     datatype_dup,
     datatype_free,
     datatype_cmp,
@@ -608,7 +608,7 @@ int ip_sockaddr_equal(const void *ref_key, const void *key_check) {
 
 
 
-ci_type_ops_t  ci_ip_ops = {
+const ci_type_ops_t  ci_ip_ops = {
     ip_dup,
     ip_free,
     ip_cmp,
@@ -618,7 +618,7 @@ ci_type_ops_t  ci_ip_ops = {
 
 
 
-ci_type_ops_t ci_ip_sockaddr_ops = {
+const ci_type_ops_t ci_ip_sockaddr_ops = {
     ip_dup,
     ip_free,
     ip_sockaddr_cmp,

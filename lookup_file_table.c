@@ -106,8 +106,8 @@ int read_row(FILE *f, int cols, struct text_table_entry **e,
      char *s,*val,*end;
      int row_cols,line_len,i;
      ci_mem_allocator_t *allocator = table->allocator;
-     ci_type_ops_t *key_ops = table->key_ops;
-     ci_type_ops_t *val_ops = table->val_ops;
+     const ci_type_ops_t *key_ops = table->key_ops;
+     const ci_type_ops_t *val_ops = table->val_ops;
 
      (*e)=NULL;
 

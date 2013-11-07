@@ -65,8 +65,8 @@ struct ci_lookup_table {
     char *args;
     int cols;
     ci_str_vector_t *col_names;
-    ci_type_ops_t *key_ops;
-    ci_type_ops_t *val_ops;
+    const ci_type_ops_t *key_ops;
+    const ci_type_ops_t *val_ops;
     ci_mem_allocator_t *allocator;
     const struct ci_lookup_table_type *_lt_type;
     void *data;

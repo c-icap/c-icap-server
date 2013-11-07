@@ -67,8 +67,8 @@ const struct ci_lookup_table_type *ci_lookup_table_type_search(const char *type)
 
 static const void * lookup_table_get_row(struct ci_lookup_table *table, const void *key, const char *columns[], void ***vals);
 struct ci_lookup_table *ci_lookup_table_create_ext(const char *table,
-						   ci_type_ops_t *key_ops,
-						   ci_type_ops_t *val_ops, 
+						   const ci_type_ops_t *key_ops,
+						   const ci_type_ops_t *val_ops, 
 						   ci_mem_allocator_t *allocator)
 {
     char *ttype,*path,*args,*s;

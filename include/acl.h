@@ -75,7 +75,7 @@ typedef struct ci_acl_type{
     /**
        \brief Pointer to the ci_types_ops_t struct which implements basic operations for the acl test data
      */
-     ci_type_ops_t *type;
+     const ci_type_ops_t *type;
 } ci_acl_type_t;
 
 struct ci_acl_type_list{
