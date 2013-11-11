@@ -366,6 +366,14 @@ CI_DECLARE_FUNC(const char *)              ci_http_request(ci_request_t *req);
 CI_DECLARE_FUNC(int) ci_http_request_url(ci_request_t * req, char *buf, int buf_size);
 
 /**
+   \ingroup HTTP
+   \brief Return the http client ip address if this information is available
+   \param req is a pointer to the current ICAP request object.
+   \return A const pointer to a ci_ip_t object contain the client ip address or NULL
+ */
+CI_DECLARE_FUNC(const ci_ip_t *) ci_http_client_ip(ci_request_t * req);
+
+/**
  \ingroup REQUEST
  \brief Add an icap X-header to the icap response headers 
  *

@@ -282,3 +282,41 @@ int ci_http_request_url(ci_request_t * req, char *buf, int buf_size)
      bytes += i;
      return bytes;
 }
+
+const ci_ip_t * ci_http_client_ip(ci_request_t * req)
+{
+    const char *ip;
+    if (!req)
+        return NULL;
+
+    if (req->xclient_ip.family == -1) /*Already check and failed to read it*/
+        return NULL;
+
+    if (req->xclient_ip.family != 0)  /*Already check, return cached*/
+        return &req->xclient_ip;
+
+    if (!(ip = ci_headers_value(req->request_header, "X-Client-IP")))
+        return NULL;
+
+#ifdef HAVE_IPV6
+    if(strchr(ip, ':')) {
+        if (ci_inet_aton(AF_INET6, ip, &(req->xclient_ip.address))) {
+            req->xclient_ip.family = AF_INET6;
+            ci_ipv6_inaddr_hostnetmask(req->xclient_ip.netmask);
+        } else
+            req->xclient_ip.family = -1;
+    } else
+#endif
+    {
+        if (ci_inet_aton(AF_INET, ip, &(req->xclient_ip.address))) {
+            req->xclient_ip.family = AF_INET;
+            ci_ipv4_inaddr_hostnetmask(req->xclient_ip.netmask);
+        } else
+            req->xclient_ip.family = -1;
+    }
+
+    if (req->xclient_ip.family == -1) /*Failed to read correctly*/
+        return NULL;
+
+    return &req->xclient_ip;
+}

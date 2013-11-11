@@ -133,6 +133,7 @@ typedef struct ci_request{
      /* added flags/variables*/
      int allow206;
      int64_t i206_use_original_body;
+     ci_ip_t xclient_ip;
 } ci_request_t;
 
 #define lock_data(req) (req->data_locked=1)

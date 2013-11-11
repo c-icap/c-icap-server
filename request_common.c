@@ -281,6 +281,7 @@ ci_request_t *ci_request_alloc(ci_connection_t * connection)
      
      req->log_str = NULL;
      req->attributes = NULL;
+     memset(&(req->xclient_ip), 0, sizeof(ci_ip_t));
 
      req->bytes_in = 0;
      req->bytes_out = 0;
@@ -348,6 +349,7 @@ void ci_request_reset(ci_request_t * req)
      if (req->attributes)
          ci_array_destroy(req->attributes);
      req->attributes = NULL;
+     memset(&(req->xclient_ip), 0, sizeof(ci_ip_t));
 
      req->bytes_in = 0;
      req->bytes_out = 0;

@@ -27,6 +27,8 @@
 #include "access.h"
 #include "mem.h"
 #include "filetype.h"
+#include <ctype.h>
+#include <time.h>
 
 /*standard acl types */
 
@@ -61,6 +63,10 @@ void *get_client_ip(ci_request_t *req, char *param){
 
 void *get_srv_ip(ci_request_t *req, char *param){
     return &(req->connection->srvaddr);
+}
+
+void *get_http_client_ip(ci_request_t *req, char *param){
+    return (void *)ci_http_client_ip(req);
 }
 
 #if HAVE_REGEX
@@ -122,6 +128,13 @@ ci_acl_type_t acl_tcp_srvip={
      &ci_ip_sockaddr_ops
 };
 
+ci_acl_type_t acl_tcp_xclientip={
+     "http_client_ip",
+     get_http_client_ip,
+     NULL,
+     &ci_ip_ops
+};
+
 #if HAVE_REGEX
 ci_acl_type_t acl_icap_header = {
      "icap_header",
@@ -158,6 +171,246 @@ ci_acl_type_t acl_data_type={
      free_data_type,
      &ci_datatype_ops
 };
+
+struct acl_cmp_uint64_data {
+    uint64_t data;
+    int operator;
+};
+
+/**** Content-Length acl ****/
+
+void *acl_cmp_uint64_dup(const char *str, ci_mem_allocator_t *allocator)
+{
+    return ci_uint64_ops.dup(str, allocator);
+}
+
+int acl_cmp_uint64_equal(const void *key1, const void *key2)
+{
+    uint64_t k1 = *(uint64_t *)key1;
+    struct acl_cmp_uint64_data *data = (struct acl_cmp_uint64_data *)key2;
+    ci_debug_printf(8, "Acl content length check %llu %c %llu\n",
+           (long long int)data->data, data->operator == 1 ? '>' : data->operator == 2 ? '<' : '=', (long long int)k1);
+    if (data->operator == 1) { /* > */
+        return data->data > k1;
+    } else if (data->operator == 2) { /* < */
+        return data->data < k1;
+    } else {  /* = */
+        return k1 == data->data;
+    }
+}
+
+void acl_cmp_uint64_free(void *key, ci_mem_allocator_t *allocator)
+{
+    ci_uint64_ops.free(key, allocator);
+}
+
+static const ci_type_ops_t acl_cmp_uint64_ops = {
+    acl_cmp_uint64_dup,
+    acl_cmp_uint64_free,
+    NULL, // compare, not used here
+    NULL, // length, not used here
+    acl_cmp_uint64_equal
+};
+
+void free_cmp_uint64_data(ci_request_t *req,void *param);
+void *get_content_length(ci_request_t *req, char *param);
+static ci_acl_type_t acl_content_length={
+    "content_length",
+    get_content_length,
+    free_cmp_uint64_data,
+    &acl_cmp_uint64_ops
+};
+
+/**** Time acl  ****/
+/* Acl in the form:
+       [DAY[,DAY,[..]]][/][HH:MM-HH:MM]
+   DAY:
+   S - Sunday
+   M - Monday
+   T - Tuesday
+   W - Wednesday
+   H - Thursday
+   F - Friday
+   A - Saturday
+
+   acl time WorkingDays M,T,W,H,F/9:00-18:00
+   acl time ChildTime Saturday,Sunday/8:30-20:00
+   acl time ParentsTime 20:00-24:00 00:00-8:30
+ */
+
+/*Acl ci_types_ops_t */
+void *acl_time_dup(const char *str, ci_mem_allocator_t *allocator);
+int acl_time_equal(const void *key1, const void *key2);
+void acl_time_free(void *key, ci_mem_allocator_t *allocator);
+
+static const ci_type_ops_t acl_time_ops = {
+    acl_time_dup,
+    acl_time_free,
+    NULL, // compare, not used here
+    NULL, // length, not used here
+    acl_time_equal
+};
+
+/*The acl type*/
+void free_time_data(ci_request_t *req,void *param);
+void *get_time_data(ci_request_t *req, char *param);
+static ci_acl_type_t acl_time={
+    "time",
+    get_time_data,
+    free_time_data,
+    &acl_time_ops
+};
+
+struct acl_time_data {
+    unsigned int days;
+    unsigned int start_time;
+    unsigned int end_time;
+};
+
+void *acl_time_dup(const char *str, ci_mem_allocator_t *allocator)
+{
+    struct {const char *day; int id;} days[] = {
+        {"Sunday", 0}, {"Monday", 1}, {"Tuesday", 2}, {"Wednesday", 3},
+        {"Thursday", 4}, {"Friday", 5}, {"Saturday", 6},
+        {"S", 0}, {"M", 1}, {"T", 2}, {"W", 3}, {"H", 4}, {"F", 5}, {"A", 6},
+        {NULL, -1}
+    };
+    int h1, m1, h2, m2, i;
+    char *s, *e;
+    const char *error;
+    char buf[1024];
+    struct acl_time_data *tmd = allocator->alloc(allocator, sizeof(struct acl_time_data));
+    tmd->days = 0;
+    /*copy string in order to parse it*/
+    strncpy(buf, str, sizeof(buf));
+    buf[sizeof(buf) - 1] = '\0';
+    s = buf;
+    if (!isdigit(*s)) {
+        do {
+            if (*s == ',') ++s;
+            for (i = 0; days[i].day != NULL; ++i) {
+                if (strncasecmp(s, days[i].day, strlen(days[i].day)) == 0) {
+                    tmd->days |= 1 << days[i].id;
+                    break;
+                }
+            }
+            if (days[i].day == NULL) {
+                /*not found*/
+                error = s;
+                goto acl_time_dup_fail;
+            }
+            s += strlen(days[i].day);
+
+        } while(*s == ',');
+
+        if (*s != '/') {
+            error = s;
+            goto acl_time_dup_fail;
+        }
+        if (*s) ++s;
+    }
+
+    /* Time region specification*/
+    /*We are expecting hour region in the form 'HH:MM-HH:MM' */
+    if (!isdigit(*s)) {
+        error = s;
+        goto acl_time_dup_fail;
+    }
+
+    h1 = strtol(s, &e, 10);
+    if (h1 < 0 || h1 > 24) {
+        error = s;
+        goto acl_time_dup_fail;
+    }
+    if (*e != ':' || !isdigit(e[1])) {
+        error = e;
+        goto acl_time_dup_fail;
+    }
+    s = e + 1;
+    m1 = strtol(s, &e, 10);
+    if (m1 < 0 || m1 > 59) {
+        error = s;
+        goto acl_time_dup_fail;
+    }
+    if (*e != '-' || !isdigit(e[1])) {
+        error = e;
+        goto acl_time_dup_fail;
+    }
+
+    s = e + 1;
+    h2 = strtol(s, &e, 10);
+    if (h2 < 0 || h2 > 24) {
+        error = s;
+        goto acl_time_dup_fail;
+    }
+    if (*e != ':' || !isdigit(e[1])) {
+        error = e;
+        goto acl_time_dup_fail;
+    }
+    s = e + 1;
+    m2 = strtol(s, &e, 10);
+    if (m2 < 0 || m2 > 59) {
+        error = s;
+        goto acl_time_dup_fail;
+    }
+    tmd->start_time = h1 * 60 + m1;
+    tmd->end_time = h2 * 60 + m2;
+
+    if (tmd->start_time <= tmd->end_time) {
+        ci_debug_printf(5, "Acl time, adding days: %x,  start time %d, end time: %d!\n", tmd->days, tmd->start_time, tmd->end_time);
+        return tmd;
+    }
+
+    ci_debug_printf(1, "Acl '%s': end time is smaller than the start time!\n", str);
+    error = str;
+
+acl_time_dup_fail:
+    ci_debug_printf(1, "Failed to parse acl time: %s (error on pos '...%s')\n", str, error);
+    allocator->free(allocator, (void *)tmd);
+    return NULL;
+}
+
+int acl_time_equal(const void *key1, const void *key2)
+{
+    struct acl_time_data *tmd_acl = (struct acl_time_data *)key1;
+    struct acl_time_data *tmd_request = (struct acl_time_data *)key2;
+    ci_debug_printf(9, "acl_time_equal(key1=%p, key2=%p)\n", key1, key2);
+    int matches = (tmd_acl->days & tmd_request->days) &&
+        (tmd_request->start_time >= tmd_acl->start_time) &&
+        (tmd_request->start_time <= tmd_acl->end_time);
+    ci_debug_printf(8, "acl_time_equal: %x/%d-%d <> %x/%d-%d -> %d\n",
+                    tmd_acl->days, tmd_acl->start_time, tmd_acl->end_time,
+                    tmd_request->days, tmd_request->start_time, tmd_request->end_time,
+                    matches
+                      );
+    return matches;
+}
+
+void acl_time_free(void *tmd, ci_mem_allocator_t *allocator)
+{
+    allocator->free(allocator, (void *)tmd);
+}
+
+void free_time_data(ci_request_t *req,void *param)
+{
+    /*Nothing to do*/
+    ci_debug_printf(5, "free_time_data(req=%p, param=%p)", req, param);
+    ci_buffer_free(param);
+}
+
+void *get_time_data(ci_request_t *req, char *param)
+{
+    struct acl_time_data *tmd_req = ci_buffer_alloc(sizeof(struct acl_time_data));
+    struct tm br_tm;
+    time_t tm;
+    time(&tm);
+    localtime_r(&tm, &br_tm);
+    tmd_req->days = 0;
+    tmd_req->days |= (1 << br_tm.tm_wday);
+    tmd_req->start_time = (br_tm.tm_hour) * 60 + br_tm.tm_min;
+    tmd_req->end_time = 0;
+    return (void *)tmd_req;
+}
 
 
 /********************************************************************************/
@@ -533,6 +786,9 @@ static int acl_load_defaults()
      ci_acl_typelist_add(&types_list, &acl_http_req_header);
      ci_acl_typelist_add(&types_list, &acl_http_resp_header);
      ci_acl_typelist_add(&types_list, &acl_data_type);
+     ci_acl_typelist_add(&types_list, &acl_content_length);
+     ci_acl_typelist_add(&types_list, &acl_time);
+     ci_acl_typelist_add(&types_list, &acl_tcp_xclientip);
 
      return 1;
 }
@@ -720,3 +976,23 @@ void *get_data_type(ci_request_t *req, char *param){
 void free_data_type(ci_request_t *req,void *param){
     free(param);
 }
+
+void *get_content_length(ci_request_t *req, char *param)
+{
+    struct acl_cmp_uint64_data *clen_p = (struct acl_cmp_uint64_data *)ci_buffer_alloc(sizeof(struct acl_cmp_uint64_data));
+    clen_p->data = (uint64_t)ci_http_content_length(req);
+    if (param[0] == '=') {
+        clen_p->operator = 0;
+    } else if (param[0] == '>') {
+        clen_p->operator = 1;
+    } else if (param[0] == '<') {
+        clen_p->operator = 2;
+    }
+    return clen_p;
+}
+
+void free_cmp_uint64_data(ci_request_t *req, void *param)
+{
+    ci_buffer_free(param);
+}
+
