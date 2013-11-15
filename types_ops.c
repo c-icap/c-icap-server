@@ -107,9 +107,17 @@ const ci_type_ops_t ci_str_ext_ops = {
 void *int32_dup(const char *str, ci_mem_allocator_t *allocator)
 {
     int32_t *i;
+    char *e = NULL;
     i = allocator->alloc(allocator, sizeof(int32_t));
-    if (i)
-        *i = strtol(str, NULL, 10);    
+    if (i) {
+        *i = strtol(str, &e, 10);
+        if (*e == 'K' || *e == 'k')
+            *i = *i * 1000;
+        else if (*e == 'M' || *e == 'm')
+            *i = *i * 1000000;
+        else if (*e == 'G' || *e == 'g')
+            *i = *i * 1000000000;
+    }
     return (void *)i;
 
 }
@@ -158,9 +166,17 @@ const ci_type_ops_t  ci_int32_ops = {
 void *uint64_dup(const char *str, ci_mem_allocator_t *allocator)
 {
     uint64_t *i;
+    char *e = NULL;
     i = allocator->alloc(allocator, sizeof(uint64_t));
-    if (i)
-        *i = strtoll(str, NULL, 10);    
+    if (i) {
+        *i = strtoll(str, &e, 10);
+        if (*e == 'K' || *e == 'k')
+            *i = *i * 1000;
+        else if (*e == 'M' || *e == 'm')
+            *i = *i * 1000000;
+        else if (*e == 'G' || *e == 'g')
+        *i = *i * 1000000000;
+    }
     return (void *)i;
 }
 
