@@ -47,12 +47,12 @@ The type of the values. The "string" is the default.
 Do not update the database just dump it to the screen.
 .SH EXAMPLES
 .TP 
-c-icap-mkbdb -o keys -i keys.txt
+c-icap-mkbdb \-o keys \-i keys.txt
 It builds the
 .B keys 
 Berkeley DB database, using string type for keys and values.
 .TP
-c-icap-mkbdb -o keys --dump
+c-icap-mkbdb \-o keys \-\-dump
 Dump the contents of the keys database
 .SH SEE ALSO
 .BR c-icap "(8)"
