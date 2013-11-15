@@ -114,7 +114,7 @@ int wait_for_queue(struct connections_queue *q)
 
 /***********************************************************************************/
 /*                                                                                 */
-/*  Childs queue......                                                             */
+/*  Children queue......                                                             */
 
 int create_childs_queue(struct childs_queue *q, int size)
 {
@@ -441,7 +441,7 @@ void dump_queue_statistics(struct childs_queue *q)
 				 copy_stats.counterskbs[k].bytes);
           }
      }
-     ci_debug_printf(1, "\nChilds:%d\tFree Servers:%d\tUsed Servers:%d\tRequests:%d\n",
+     ci_debug_printf(1, "\nChildren:%d\tFree Servers:%d\tUsed Servers:%d\tRequests:%d\n",
 		     childs, freeservers, used, requests);
      ci_debug_printf(1,"\nHistory\n");
      for (k=0; k < q->stats_history->counters64_size && k < STAT_INT64.entries_num; k++)

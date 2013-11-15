@@ -702,7 +702,7 @@ int check_for_died_child(DWORD msecs)
                break;
      }
      if (count == 0) {
-          ci_debug_printf(1, "Oups no childs! waiting for a while.....\n!");
+          ci_debug_printf(1, "Oups no children! waiting for a while.....\n!");
           Sleep(1000);
           return 0;
      }
@@ -774,7 +774,7 @@ int start_server()
           childs_queue_stats(&childs_queue, &childs, &freeservers, &used,
                              &maxrequests);
           ci_debug_printf(1,
-                          "Server stats: \n\t Childs:%d\n\t Free servers:%d\n\tUsed servers:%d\n\tRequests served:%d\n",
+                          "Server stats: \n\t Children:%d\n\t Free servers:%d\n\tUsed servers:%d\n\tRequests served:%d\n",
                           childs, freeservers, used, maxrequests);
 
           if ((freeservers <= CONF.MIN_SPARE_THREADS && childs < CONF.MAX_SERVERS)

@@ -248,7 +248,7 @@ struct stats_tmpl {
 
 struct stats_tmpl txt_tmpl = {
   "Running Servers Statistics\n===========================\n"\
-  "Childs number: %d\nFree Servers: %d\nUsed Servers: %d\n"\
+  "Children number: %d\nFree Servers: %d\nUsed Servers: %d\n"\
   "Started Processes: %u\nClosed Processes: %u\nCrashed Processes: %u\n"\
   "Closing Processes: %u"\
   "\n\n",
@@ -257,7 +257,7 @@ struct stats_tmpl txt_tmpl = {
   "Child pids:",
   " %d",
   "\n",
-  "Closing childs pids:",
+  "Closing children pids:",
   "%s semaphores in use: %s\n",
   "%s shared mem in use: %s\n",
   "%s : %lld\n",
@@ -267,7 +267,7 @@ struct stats_tmpl txt_tmpl = {
 struct stats_tmpl html_tmpl = {
   "<H1>Running Servers Statistics</H1>\n"\
   "<TABLE>"                                     \
-  "<TR><TH>Childs number:</TH><TD> %d<TD>"                     \
+  "<TR><TH>Children number:</TH><TD> %d<TD>"                     \
   "<TR><TH>Free Servers:</TH><TD> %d<TD>"                      \
   "<TR><TH>Used Servers:</TH><TD> %d<TD>"                      \
   "<TR><TH>Started Processes :</TH><TD> %u<TD>"                \
@@ -280,7 +280,7 @@ struct stats_tmpl html_tmpl = {
   "<TABLE> <TR><TH>Child pids:</TH>",
   "<TD> %d</TD>",
   "</TR></TABLE>\n",
-  "<TABLE> <TR><TH>Closing childs pids:</TH>",
+  "<TABLE> <TR><TH>Closing children pids:</TH>",
   "<TR><TH>%s semaphores in use:</TH><TD>%s</TD>\n",
   "<TR><TH>%s shared mem in use:</TH><TD>%s</TD>\n",
   "<TR><TH>%s:</TH><TD>  %lld</TD>\n",
