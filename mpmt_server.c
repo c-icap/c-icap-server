@@ -445,7 +445,7 @@ int ci_named_pipe_create(char *name)
 {
      int status, pipe;
      errno = 0;
-     status = mkfifo(name, S_IRWXU | S_IRGRP | S_IROTH);
+     status = mkfifo(name, S_IRUSR | S_IWUSR | S_IWGRP);
      if (status < 0 && errno != EEXIST)
           return -1;
      pipe = open(name, O_RDONLY | O_NONBLOCK);
