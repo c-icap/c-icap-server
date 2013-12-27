@@ -77,13 +77,31 @@ void compute_my_hostname()
 #if ! defined(_WIN32)
 void run_as_daemon()
 {
-     int pid;
-     if ((pid = fork()) < 0) {
-          ci_debug_printf(1, "Can not fork. exiting...");
+     int pid, sid;
+     pid = fork();
+     if (pid < 0) {
+          ci_debug_printf(1, "Unable to fork. exiting...");
           exit(-1);
      }
-     if (pid)
+     if (pid > 0)
           exit(0);
+     /* Change the file mode mask */
+     umask(0);
+     /* Create a new SID for the child process */
+     sid = setsid();
+     if (sid < 0) {
+          ci_debug_printf(1, "Unable to create a new SID for the main process. exiting...");
+          exit(-1);
+     }
+     /* Change the current working directory */
+     if ((chdir("/")) < 0) {
+          ci_debug_printf(1, "Unable to change the working directory. exiting...");
+          exit(-1);
+     }
+     /* Close out the standard file descriptors */
+     close(STDIN_FILENO);
+     close(STDOUT_FILENO);
+     close(STDERR_FILENO);
 }
 #endif
 
@@ -119,6 +137,11 @@ int main(int argc, char **argv)
      compute_my_hostname();
      ci_debug_printf(2, "My hostname is:%s\n", MY_HOSTNAME);
 
+     if (!log_open()) {
+          ci_debug_printf(1, "Can not init loggers. Exiting.....\n");
+          exit(-1);
+     }
+
 #if ! defined(_WIN32)
      if (is_icap_running(CONF.PIDFILE)) {
           ci_debug_printf(1, "c-icap server already running!\n");
@@ -131,10 +154,6 @@ int main(int argc, char **argv)
      store_pid(CONF.PIDFILE);
 #endif
 
-     if (!log_open()) {
-          ci_debug_printf(1, "Can not init loggers. Exiting.....\n");
-          exit(-1);
-     }
      if (!init_server(CONF.ADDRESS, CONF.PORT, &(CONF.PROTOCOL_FAMILY)))
           return -1;
      post_init_modules();
