@@ -534,7 +534,7 @@ void handle_child_process_commands(char *cmd_line)
 
 
 /*************************************************************************************/
-/*Childs  functions                                                                  */
+/*Children  functions                                                                  */
 
 server_decl_t *newthread(struct connections_queue *con_queue)
 {
