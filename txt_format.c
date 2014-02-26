@@ -253,7 +253,7 @@ int ci_format_text(
    lb = NULL;
    s = fmt;
    b = buffer;
-   remains = len;
+   remains = len - 1;
    while (*s && remains > 0) {
      if (*s == '%') {
        fmte = check_tables(s, user_table, &directive_len, 
