@@ -308,7 +308,7 @@ static int parse_request(ci_request_t * req, char *buf)
              if (!(service = find_service(req->service))) { /*else search for an alias */
                  if ((salias = find_service_alias(req->service))) {
                      service = salias->service;
-                     if (salias->args)
+                     if (salias->args[0] != '\0')
                          strcpy(req->args, salias->args);
                  }
              }
