@@ -724,3 +724,13 @@ const void * ci_list_search(ci_list_t *list, const void *data)
     }
     return NULL;
 }
+
+const void * ci_list_search2(ci_list_t *list, const void *data, int (*cmp_func)(const void *obj, const void *user_data, size_t user_data_size))
+{
+    ci_list_item_t *it;
+    for (it = list->items; it != NULL; it = it->next) {
+        if (cmp_func(it->item, data, list->obj_size) == 0)
+            return it->item;
+    }
+    return NULL;
+}

@@ -527,6 +527,7 @@ typedef struct ci_list {
     ci_list_item_t *last;
     ci_list_item_t *trash;
     ci_list_item_t *cursor;
+    ci_list_item_t *tmp;
     size_t obj_size;
     ci_mem_allocator_t *alloc;
 
@@ -543,6 +544,42 @@ typedef struct ci_list {
  \return the allocated object on success, or NULL on failure
  */
 CI_DECLARE_FUNC(ci_list_t *) ci_list_create(size_t init_size, size_t obj_size);
+
+/**
+ \def ci_list_first(ci_list_t *list)
+ * Gets the first item of the list and updates the list cursor to the next item.
+ * WARNING: do not mix this macro with ci_list_iterate. Use the ci_list_head/ci_list_tail macros instead
+ \ingroup LISTS
+ \param list  a pointer to the ci_list_t object
+ \return The first item if exist, NULL otherwise
+ */
+#define ci_list_first(list) ((list)->items && (((list)->cursor = (list)->items->next) != NULL || 1) ? (list)->items->item : NULL)
+
+
+/**
+ \def ci_list_next()
+ * Return the next item of the list and updates the list cursor to the next item.
+ * WARNING: do not mix this macro with ci_list_iterate!
+ \ingroup LISTS
+ \param list  a pointer to the ci_list_t object
+ \return The next item if exist, NULL otherwise
+*/
+#define ci_list_next(list) (((list)->tmp = (list)->cursor) != NULL && (((list)->cursor = (list)->cursor->next) != NULL || 1) ? (list)->tmp->item : NULL)
+
+
+/**
+ \def ci_list_head(list)
+ \ingroup LISTS
+ * Return the head of the list
+ */
+#define ci_list_head(list) (list->items != NULL ? list->items->item : NULL)
+
+/**
+ \def ci_list_tail(list)
+ \ingroup LISTS
+ * Return last item of the list.
+ */
+#define ci_list_tail(list) (list->last != NULL ? list->last->item : NULL)
 
 /**
  * Destroy an ci_list_t object 
@@ -613,6 +650,16 @@ CI_DECLARE_FUNC(int) ci_list_remove(ci_list_t *list, const void *obj);
  \return the found item on success, NULL otherwise
  */
 CI_DECLARE_FUNC(const void *) ci_list_search(ci_list_t *list, const void *data);
+
+/**
+ * Return the first found item equal to the obj, using the cmp_func as comparison function.
+ \ingroup LISTS
+ \param list a pointer to the ci_list_t object
+ \param obj pointer to an object to remove
+ \param cmp_func the comparison function to use
+ \return the found item on success, NULL otherwise
+ */
+CI_DECLARE_FUNC(const void *) ci_list_search2(ci_list_t *list, const void *data, int (*cmp_func)(const void *obj, const void *user_data, size_t user_data_size));
 
 
 /*

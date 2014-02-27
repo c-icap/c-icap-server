@@ -82,6 +82,7 @@ int main(int argc,char *argv[])
 {
     ci_list_t *list;
     struct obj o;
+    struct obj *pO;
     int i, k, l;
     char c;
 
@@ -210,10 +211,40 @@ int main(int argc,char *argv[])
             ci_debug_printf(1, "\t Found! (correct)\n");
         }
 
+        for (pO = ci_list_first(list), i = 0; pO != NULL; pO = ci_list_next(list)) {
+            if (pO->c == 'v') {
+                ci_list_remove(list, pO);
+                i++;
+                ci_debug_printf(5, "%d, an item->%c removed\n", i, pO->c);
+            }
+        }
+        ci_debug_printf(1, "removed %d 'v' items (list should have %d items)\n", i, k - i);
+
         k = 0;
         while (ci_list_pop(list, &o)) k++;
         ci_debug_printf(1, "Removed %d items\n", k);
     }
+
+    /* Check removing items in list*/
+    for (k=0, c = 'a'; c <= 'c'; c++) {
+        for (i = 0; i < 3; i++) {
+            fill_obj(&o, c);
+            ci_list_push_back(list, &o);
+            k++;
+        }
+    }
+    ci_debug_printf(1, "OK added %d items\n", k);
+    for (pO = ci_list_first(list), i = 0; pO != NULL; pO = ci_list_next(list)) {
+        if (pO->c == 'c') {
+            ci_list_remove(list, pO);
+            i++;
+            ci_debug_printf(5, "%d, an item->%c removed\n", i, pO->c);
+        }
+    }
+    ci_debug_printf(1, "removed %d 'c' items (list should have %d items)\n", i, k - i);
+    k = 0;
+    while (ci_list_pop(list, &o)) k++;
+    ci_debug_printf(1, "Removed %d items\n", k);
 
     ci_list_destroy(list);
     ci_debug_printf(1, "Test finished!\n");
