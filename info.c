@@ -104,7 +104,7 @@ void *info_init_request_data(ci_request_t * req)
      info_data->closed_childs = 0;
      info_data->crashed_childs = 0;
      info_data->txt_mode = 0;
-     if (req->args) {
+     if (req->args[0] != '\0') {
           if (strstr(req->args, "view=text"))
               info_data->txt_mode = 1;
      }
