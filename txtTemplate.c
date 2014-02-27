@@ -400,7 +400,7 @@ ci_membuf_t *ci_txt_template_build_content(const ci_request_t *req, const char *
      char templpath[CI_MAX_PATH];
      txtTemplate_t *template = NULL;
 
-     content = ci_membuf_new(TEMPLATE_MEMBUF_SIZE);
+     content = ci_membuf_new_sized(TEMPLATE_MEMBUF_SIZE);
      if (!content) {
          ci_debug_printf(1, "Failed to allocate buffer to load template!");
          return NULL;

@@ -93,7 +93,7 @@ void *info_init_request_data(ci_request_t * req)
 
      info_data = malloc(sizeof(struct info_req_data));
 
-     info_data->body = ci_membuf_new(4096);
+     info_data->body = ci_membuf_new();
      info_data->childs = 0;
      info_data->child_pids = malloc(childs_queue->size * sizeof(int));
      info_data->free_servers = 0;
