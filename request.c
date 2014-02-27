@@ -833,6 +833,7 @@ static int get_send_body(ci_request_t * req, int parse_only)
      int (*service_io) (char *rbuf, int *rlen, char *wbuf, int *wlen, int iseof,
                         ci_request_t *);
      int action = 0, rchunkisfull = 0, service_eof = 0, wbytes, rbytes;
+     int lock_status;
      int no_io;
 
      if (parse_only)
@@ -880,6 +881,10 @@ static int get_send_body(ci_request_t * req, int parse_only)
                     return CI_ERROR;
                // if(update_send_status==CI_EOF)/*earlier responce from icap server???...*/
           }
+
+          /*Store lock status. If it is changed during module io, we need
+            to update send status.*/
+          lock_status = req->data_locked;
 
           /*In the following loop, parses the chunks from readed data
              and try to write data to the service.
@@ -967,7 +972,7 @@ static int get_send_body(ci_request_t * req, int parse_only)
                action = action | wait_for_write;
           }
 	  
-     } while ((!req->eof_received || (req->eof_received && req->write_to_module_pending)) && action);
+     } while ((!req->eof_received || (req->eof_received && req->write_to_module_pending)) && (action || lock_status != req->data_locked));
 
      if (req->eof_received)
           return CI_OK;
