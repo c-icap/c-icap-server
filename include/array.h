@@ -254,12 +254,6 @@ CI_DECLARE_FUNC(void *) ci_ptr_array_pop_value(ci_ptr_array_t *ptr_array, char *
  *
  */
 
-typedef struct ci_dyn_array_item{
-    char *name;
-    void *value;
-    struct ci_dyn_array_item *next;
-} ci_dyn_array_item_t;
-
 /**
  \typedef ci_dyn_array_t
  \ingroup DYNAMIC_ARRAYS
@@ -268,20 +262,48 @@ typedef struct ci_dyn_array_item{
  * before the ci_dyn_array destroyed.
  */
 typedef struct ci_dyn_array {
-    ci_dyn_array_item_t *items;
-    ci_dyn_array_item_t *last;
-    size_t max_size;
+    ci_array_item_t **items;
+    int count;
+    int max_items;
     ci_mem_allocator_t *alloc;
 } ci_dyn_array_t;
 
 /**
+ \def ci_dyn_array_get_item(array, pos)
+ \ingroup DYNAMIC_ARRAYS
+ * Return the ci_array_item_t item on position 'pos'
+ */
+#define ci_dyn_array_get_item(array, pos) (pos < (array)->count ? (array)->items[pos] : NULL)
+
+/**
+ \def ci_dyn_array_value(array, pos)
+ \ingroup DYNAMIC_ARRAYS
+ * Return the value of item on position 'pos'
+ */
+#define ci_dyn_array_value(array, pos) ((pos < (array)->count && (array)->items[pos] != NULL) ?  (array)->items[pos]->value : NULL)
+
+/**
+ \def ci_dyn_array_name(array, pos)
+ \ingroup DYNAMIC_ARRAYS
+ * Return the name of item on position 'pos'
+ */
+#define ci_dyn_array_name(array, pos) ((pos < (array)->count && (array)->items[pos] != NULL) ?  (array)->items[pos]->name : NULL)
+
+/**
+ \def ci_dyn_array_size(array)
+ \ingroup DYNAMIC_ARRAYS
+ * Return the size of array 'array'
+ */
+#define ci_dyn_array_size(array) ((array)->count)
+
+/**
  * Allocate the required memory and initialize an ci_dyn_array_t object 
  \ingroup DYNAMIC_ARRAYS
- \param max_mem_size the maximum memory to use
+ \param mem_size the initial size to use for dyn_array
  \return the allocated object on success, or NULL on failure
  *
  */
-CI_DECLARE_FUNC(ci_dyn_array_t *) ci_dyn_array_new(size_t max_mem_size);
+CI_DECLARE_FUNC(ci_dyn_array_t *) ci_dyn_array_new(size_t mem_size);
 
 /**
  * Create and initialize an ci_dyn_array_t object for the given number of items
@@ -308,7 +330,7 @@ CI_DECLARE_FUNC(void) ci_dyn_array_destroy(ci_dyn_array_t *array);
  \param size the size of the value part of the new item.
  \return a pointer to the new array item on success, NULL otherwise
  */
-CI_DECLARE_FUNC(const ci_dyn_array_item_t *) ci_dyn_array_add(ci_dyn_array_t *array, const char *name, const void *value, size_t size);
+CI_DECLARE_FUNC(const ci_array_item_t *) ci_dyn_array_add(ci_dyn_array_t *array, const char *name, const void *value, size_t size);
 
 /**
  * Search in an dynamic array for an item with the given name
@@ -344,10 +366,16 @@ CI_DECLARE_FUNC(void) ci_dyn_array_iterate(const ci_dyn_array_t *array, void *da
  * functions with the required typecasting.
  */
 typedef ci_dyn_array_t ci_ptr_dyn_array_t;
-#define ci_ptr_dyn_array_new ci_dyn_array_new
+#define ci_ptr_dyn_array_new(size) ci_dyn_array_new(size)
+#define ci_ptr_dyn_array_new2(items, item_size) ci_dyn_array_new2(items, item_size)
 #define ci_ptr_dyn_array_destroy(ptr_array) ci_dyn_array_destroy(ptr_array)
 #define ci_ptr_dyn_array_search(ptr_array, name) ci_dyn_array_search(ptr_array, name)
 #define ci_ptr_dyn_array_iterate(ptr_array, data, fn) ci_dyn_array_iterate(ptr_array, data, fn)
+
+#define ci_ptr_dyn_array_get_item(array, pos) ci_dyn_array_get_item(array, pos)
+#define ci_ptr_dyn_array_value(array, pos) ci_dyn_array_value(array, pos)
+#define ci_ptr_dyn_array_name(array, pos) ci_dyn_array_name(array, pos)
+#define ci_ptr_dyn_array_size(array) ci_dyn_array_size(array)
 
 /**
  * Add an name/value pair item to the array.
@@ -357,7 +385,7 @@ typedef ci_dyn_array_t ci_ptr_dyn_array_t;
  \param pointer the pointer part of the name/value pair item to be added
  \return a pointer to the new array item on success, NULL otherwise
  */
-CI_DECLARE_FUNC(const ci_dyn_array_item_t *) ci_ptr_dyn_array_add(ci_ptr_dyn_array_t *ptr_array, const char *name, void *pointer);
+CI_DECLARE_FUNC(const ci_array_item_t *) ci_ptr_dyn_array_add(ci_ptr_dyn_array_t *ptr_array, const char *name, void *pointer);
 
 
 /**

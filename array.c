@@ -211,10 +211,32 @@ void * ci_ptr_array_pop_value(ci_ptr_array_t *ptr_array, char *name, size_t name
 
 ci_dyn_array_t * ci_dyn_array_new(size_t size)
 {
+    /*use 25% of memory for index.*/
+    size_t index_memory = size / 4;
+    size_t items_memory = size - index_memory;
+    size_t items_count = index_memory / sizeof(ci_array_item_t *);
+    size_t item_size = items_memory / items_count;
+    if (item_size < sizeof(ci_array_item_t))
+        item_size = sizeof(ci_array_item_t);
+
+    return ci_dyn_array_new2(items_count, item_size);
+}
+
+ci_dyn_array_t * ci_dyn_array_new2(size_t items, size_t item_size)
+{
     ci_dyn_array_t *array;
     ci_mem_allocator_t *packer;
+    size_t array_size;
 
-    packer = ci_create_serial_allocator(size);
+    /*
+      Items of size = item_size + sizeof(ci_array_item)+sizeof(name)
+      for sizeof(name) assume a size of 16 bytes.
+      We can not be accurate here....
+     */
+    array_size = _CI_ALIGN(sizeof(ci_dyn_array_t)) +
+        items * (_CI_ALIGN(item_size) + _CI_ALIGN(sizeof(ci_array_item_t)) + _CI_ALIGN(16));
+
+    packer = ci_create_serial_allocator(array_size);
     if (!packer) {
         return NULL;
     }
@@ -225,39 +247,46 @@ ci_dyn_array_t * ci_dyn_array_new(size_t size)
         return NULL;
     }
 
-    array->max_size = size;
-    array->items = NULL;
-    array->last = NULL;
+    if (items < 32)
+        items = 32;
+
+    array->max_items = items;
+    array->items = ci_buffer_alloc(items*sizeof(ci_array_item_t *));
+    array->count = 0;
     array->alloc = packer;
     return array;
 }
 
-ci_dyn_array_t * ci_dyn_array_new2(size_t items, size_t item_size)
-{
-    size_t array_size;
-    array_size = _CI_ALIGN(sizeof(ci_dyn_array_t)) +
-        items * (_CI_ALIGN(item_size) + _CI_ALIGN(sizeof(ci_dyn_array_item_t)));
-    return ci_dyn_array_new(array_size);
-}
-
 void ci_dyn_array_destroy(ci_dyn_array_t *array)
 {
+    if (array->items)
+        ci_buffer_free(array->items);
+
     if (array->alloc)
         ci_mem_allocator_destroy(array->alloc);
 }
 
-const ci_dyn_array_item_t * ci_dyn_array_add(ci_dyn_array_t *array, const char *name, const void *value, size_t size)
+const ci_array_item_t * ci_dyn_array_add(ci_dyn_array_t *array, const char *name, const void *value, size_t size)
 {
-    ci_dyn_array_item_t *item;
+    ci_array_item_t *item;
+    ci_array_item_t **items_space;
     ci_mem_allocator_t *packer = array->alloc;
     int name_size;
+
+    if (array->count == array->max_items) {
+        items_space = ci_buffer_realloc(array->items, (array->max_items + 32)*sizeof(ci_array_item_t *));
+        if (!items_space)
+            return NULL;
+        array->items = items_space;
+        array->max_items += 32;
+    }
+
     assert(packer);
-    item = packer->alloc(packer, sizeof(ci_dyn_array_item_t));
+    item = packer->alloc(packer, sizeof(ci_array_item_t));
     if (!item) {
         ci_debug_printf(2, "Not enough space to add the new item %s to array!\n", name);
         return NULL;
     }
-    item->next = NULL;
     name_size = strlen(name) + 1;
     item->name = packer->alloc(packer, name_size);
     if (size > 0)
@@ -281,25 +310,17 @@ const ci_dyn_array_item_t * ci_dyn_array_add(ci_dyn_array_t *array, const char *
     else
         item->value = (void *)value;
 
-    if (array->items == NULL) {
-        array->items = item;
-        array->last = array->items;
-    }
-    else {
-        assert(array->last);
-        array->last->next = item;
-        array->last = array->last->next; 
-    }
-
+    array->items[array->count++] = item;
     return item;
 }
 
 const void * ci_dyn_array_search(ci_dyn_array_t *array, const char *name)
 {
-    ci_dyn_array_item_t *item;
-    for (item = array->items; item != NULL; item = item->next)
-        if (strcmp(item->name, name) == 0)
-            return item->value;
+    ci_array_item_t *item;
+    int i;
+    for (i = 0; i < array->count; ++i)
+        if (strcmp(array->items[i]->name, name) == 0)
+            return array->items[i]->value;
 
     /*did not found anything*/
     return NULL;
@@ -307,40 +328,14 @@ const void * ci_dyn_array_search(ci_dyn_array_t *array, const char *name)
 
 void ci_dyn_array_iterate(const ci_dyn_array_t *array, void *data, int (*fn)(void *data, const char *name, const void *value))
 {
-    ci_dyn_array_item_t *item;
     int i, ret = 0;
-    for (i=0, item = array->items; item != NULL && ret == 0; item = item->next, i++)
-        ret = (*fn)(data, item->name, item->value);
+    for (i=0; i < array->count && ret == 0; i++)
+        ret = (*fn)(data, array->items[i]->name, array->items[i]->value);
 }
 
-const ci_dyn_array_item_t * ci_ptr_dyn_array_add(ci_ptr_dyn_array_t *array, const char *name, void *value)
+const ci_array_item_t * ci_ptr_dyn_array_add(ci_ptr_dyn_array_t *array, const char *name, void *value)
 {
    return ci_dyn_array_add(array, name, value, 0);
-}
-
-/*This function should removed.*/
-void *ci_ptr_dyn_array_pop_head(ci_ptr_dyn_array_t *array, char *name, size_t name_size)
-{
-    ci_dyn_array_item_t *item;
-    void *value;
-    item = array->items;
-    if (!item)
-        return NULL;
-
-    array->items = array->items->next;
-    if (array->items == NULL)
-        array->last = NULL;
-
-    value = item->value;
-    if (name && name_size > 0) {
-        strncpy(name, item->name, name_size);
-        name[name_size-1] = '\0';
-    }
-    /*Does not really needed*/
-    array->alloc->free(array->alloc, item->name);
-    array->alloc->free(array->alloc, item);
-
-    return value;
 }
 
 /**************/

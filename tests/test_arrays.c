@@ -37,6 +37,7 @@ int main(int argc,char *argv[])
     ci_ptr_array_t *arr_ptr;
     ci_vector_t *vect_str;
     ci_vector_t *vect_ptr;
+    ci_dyn_array_t *dyn_arr;
     const ci_array_item_t *item;
     int i, j;
     char name[128];
@@ -140,6 +141,34 @@ int main(int argc,char *argv[])
 
     ci_str_vector_destroy(vect_str);
 
+
+    ci_debug_printf(1, "\nTest for dynamic arrays\n");
+    dyn_arr = ci_dyn_array_new(1024);
+    for (i = 0, j = 0; i < 1024; ++i) {
+        sprintf(name, "name%d", i);
+        sprintf(value, "value%d", i);
+        if (ci_dyn_array_add(dyn_arr, name, value, strlen(value) + 1) == NULL) {
+            ci_debug_printf(1, "Failed to add : %s/%s!\n", name, value);
+        } else
+            j += strlen(name) + strlen(value) + 2;
+    }
+    ci_debug_printf(1, "Size of dynamic array: %d, of key/value pairs size: %d\n", ci_dyn_array_size(dyn_arr), j);
+    for (i = 0, j = 0; i < ci_dyn_array_size(dyn_arr); ++i) {
+        char *v = ci_dyn_array_value(dyn_arr, i);
+        char *n = ci_dyn_array_name(dyn_arr, i);
+        j += strlen(n) + strlen(v) + 2;
+        ci_debug_printf(5, "%i = %p:%s/%s\n", i, ci_dyn_array_get_item(dyn_arr, i), ci_dyn_array_name(dyn_arr, i), (char *)ci_dyn_array_value(dyn_arr, i));
+    }
+    ci_debug_printf(1, "%d computed key/value pairs of summary size: %d\n", i, j);
+
+    ci_debug_printf(1, "Search for %s: %s\n", "name123", (char *)ci_dyn_array_search(dyn_arr, "name123"));
+    ci_debug_printf(1, "Search for %s: %s\n", "name1023", (char *)ci_dyn_array_search(dyn_arr, "name1023"));
+    ci_debug_printf(1, "Search for %s: %s\n", "name0", (char *)ci_dyn_array_search(dyn_arr, "name0"));
+
+    ci_debug_printf(1, "Search for %s: %s\n", "nameNotExist", (char *)ci_dyn_array_search(dyn_arr, "nameNotExist"));
+
+    ci_dyn_array_destroy(dyn_arr);
+    ci_debug_printf(1, "\nEnd of dynamic arrays test\n");
 
     return 0;
 }
