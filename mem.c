@@ -461,6 +461,9 @@ static serial_allocator_t *serial_allocator_build(int size)
          return NULL;
      buffer = ci_buffer_alloc(size);
      serial_alloc = buffer;
+     /*The allocated block size maybe is larger, than the requested.
+       Lets fix size to actual block size: */
+     size = ci_buffer_blocksize(buffer);
 
      serial_alloc->memchunk = buffer + sizeof(serial_allocator_t);
      size -= sizeof(serial_allocator_t);
