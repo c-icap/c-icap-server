@@ -420,21 +420,24 @@ const char *ci_headers_replace(ci_headers_list_t * h, const char *header, const 
 int ci_headers_iterate(ci_headers_list_t * h, void *data, void (*fn)(void *, const char  *head, const char  *value))
 {
     char header[256];
-    char value[8124];
+    char value[8196];
     char *s;
     int i, j;
     for (i = 0; i < h->used; i++) {
         s = h->headers[i];
-        for (j = 0;  j < sizeof(header)-1 && *s != ':' &&  *s != '\0' && *s != '\r' && *s!='\n'; s++, j++)
+        for (j = 0;  j < sizeof(header)-1 && *s != ':' && *s != ' ' &&  *s != '\0' && *s != '\r' && *s!='\n'; s++, j++)
             header[j] = *s;
         header[j] = '\0';
         j = 0;
         if (*s == ':') {
             s++;
-            while (*s == ' ') s++;
-            for (j = 0;  j < sizeof(value)-1 &&  *s != '\0' && !eoh(s); s++, j++)
-                value[j] = *s;
-        }
+        } else {
+            header[0] = '\0';
+            s = h->headers[i];
+        } 
+        while (*s == ' ') s++;
+        for (j = 0;  j < sizeof(value)-1 &&  *s != '\0' && !eoh(s); s++, j++)
+            value[j] = *s;
         value[j] = '\0';
         fn(data, header, value);
     }

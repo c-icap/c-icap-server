@@ -37,7 +37,11 @@ int CONN_TIMEOUT = 300;
 
 void printhead(void *d, const char *head, const char *value)
 {
-    ci_debug_printf(1, "\t%s:%s\n", head, value);
+    if (!head || !*head) {
+        ci_debug_printf(1, "\t%s\n", value);
+    } else {
+        ci_debug_printf(1, "\t%s: %s\n", head, value);
+    }
 }
 
 void print_headers(ci_request_t * req)
@@ -69,7 +73,8 @@ void build_respmod_headers(int fd, ci_headers_list_t *headers)
      char lbuf[512];
 //     struct tm ltime;
      time_t ltimet;
-     
+
+     ci_headers_add(headers, "HTTP/1.0 200 OK"); 
      fstat(fd, &filestat);
      filesize = filestat.st_size;
 
