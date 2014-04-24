@@ -60,6 +60,27 @@ typedef struct ci_array {
 } ci_array_t;
 
 /**
+ \def ci_array_value(array, pos)
+ \ingroup SIMPLE_ARRAYS
+ * Return the value of item on position 'pos'
+ */
+#define ci_array_value(array, pos) (pos < (array)->count ?  (array)->items[pos].value : NULL)
+
+/**
+ \def ci_array_name(array, pos)
+ \ingroup SIMPLE_ARRAYS
+ * Return the name of item on position 'pos'
+ */
+#define ci_array_name(array, pos) (pos < (array)->count ?  (array)->items[pos].name : NULL)
+
+/**
+ \def ci_array_size(array)
+ \ingroup SIMPLE_ARRAYS
+ * Return the size of array 'array'
+ */
+#define ci_array_size(array) ((array)->count)
+
+/**
  * Allocate the required memory and initialize an ci_array_t object 
  \ingroup SIMPLE_ARRAYS
  \param max_mem_size the maximum memory to use
@@ -154,6 +175,9 @@ typedef ci_array_t ci_str_array_t;
 #define ci_str_array_get_item(array, pos) ci_array_get_item(array, pos)
 #define ci_str_array_search(array, name) (const char *)ci_array_search(array, name)
 #define ci_str_array_iterate ci_array_iterate
+#define ci_str_array_value(array, pos) ci_array_value(array, pos)
+#define ci_str_array_name(array, pos) ci_array_name(array, pos)
+#define ci_str_array_size(array) ci_array_size(array)
 
 
 /**
@@ -170,6 +194,27 @@ typedef ci_array_t ci_str_array_t;
  * but a pointer to the value.
  */
 typedef ci_array_t ci_ptr_array_t;
+
+/**
+ \def ci_ptr_array_value(ptr_array, pos)
+ \ingroup PTR_ARRAYS
+ * Return the value of item at position 'pos'
+ */
+#define ci_ptr_array_value(array, pos) ci_array_value(array, pos)
+
+/**
+ \def ci_ptr_array_value(ptr_array, pos)
+ \ingroup PTR_ARRAYS
+ * Return the name of item at position 'pos'
+ */
+#define ci_ptr_array_name(array, pos) ci_array_name(array, pos)
+
+/**
+ \def ci_ptr_array_value(ptr_array)
+ \ingroup PTR_ARRAYS
+ * Return the size of ptr_array
+ */
+#define ci_ptr_array_size(array) ci_array_size(array)
 
 /**
  \def ci_ptr_array_new()
