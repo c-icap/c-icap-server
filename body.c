@@ -30,6 +30,10 @@
 #include <io.h>
 #include <fcntl.h>
 #endif
+#if defined USE_POSIX_MAPPED_FILES
+#include <sys/mman.h>
+#endif
+
 
 #define STARTLEN 8192           /*8*1024*1024 */
 #define INCSTEP  4096
@@ -87,10 +91,9 @@ struct ci_membuf *ci_membuf_new_sized(int size)
      if (!b)
           return NULL;
 
-     b->len = 0;
      b->endpos = 0;
      b->readpos = 0;
-     b->hasalldata = 0;
+     b->flags = 0;
      b->buf = ci_buffer_alloc(size * sizeof(char));
      if (b->buf == NULL) {
           ci_object_pool_free(b);
@@ -102,48 +105,120 @@ struct ci_membuf *ci_membuf_new_sized(int size)
      return b;
 }
 
+struct ci_membuf *ci_membuf_from_content(char *buf, size_t buf_size, size_t content_size, unsigned int flags)
+{
+     struct ci_membuf *b;
+
+     if (!buf || buf_size <= 0 || buf_size < content_size) {
+         ci_debug_printf(1, "ci_membuf_from_content: Wrong arguments: %p, of size=%u and content size=%u\n", buf, (unsigned int)buf_size, (unsigned int)content_size);
+         return NULL;
+     }
+
+     if ((flags & CI_MEMBUF_FROM_CONTENT_FLAGS) != flags) {
+         ci_debug_printf(1, "ci_membuf_from_content: Wrong flags: %u\n", flags);
+         return NULL;
+     }
+
+     if ((flags & CI_MEMBUF_NULL_TERMINATED)) {
+         if (buf[content_size - 1] == '\0')
+             content_size--; 
+         else if (content_size >= buf_size || buf[content_size] != '\0') {
+             ci_debug_printf(1, "ci_membuf_from_content: content is not NULL terminated!\n");
+             return NULL;
+         }
+     }
+
+     b = ci_object_pool_alloc(MEMBUF_POOL);
+     if (!b) {
+         ci_debug_printf(1, "ci_membuf_from_content: memory allocation failed\n");
+         return NULL;
+     }
+
+     b->flags = CI_MEMBUF_FOREIGN_BUF | flags;
+     b->endpos = content_size;
+     b->readpos = 0;
+     b->buf = buf;
+     b->bufsize = buf_size;
+     b->unlocked = -1;
+     b->attributes = NULL;
+     return b;
+}
 
 void ci_membuf_free(struct ci_membuf *b)
 {
     if (!b)
         return;
-    if (b->buf)
+    if (b->buf && !(b->flags & CI_MEMBUF_FOREIGN_BUF))
         ci_buffer_free(b->buf);
     if (b->attributes)
         ci_array_destroy(b->attributes);
     ci_object_pool_free(b);
 }
 
+unsigned int ci_membuf_set_flag(struct ci_membuf *body, unsigned int flag)
+{
+    if (!(flag & CI_MEMBUF_USER_FLAGS))
+        return 0;
+
+    body->flags |= flag;
+    return body->flags;
+}
 
 int ci_membuf_write(struct ci_membuf *b, const char *data, int len, int iseof)
 {
      int remains, newsize;
      char *newbuf;
+     int terminate = b->flags & CI_MEMBUF_NULL_TERMINATED;
+
+     if ((b->flags & CI_MEMBUF_RO) || (b->flags & CI_MEMBUF_CONST)) {
+         ci_debug_printf( 1, "ci_membuf_write: can not write: buffer is read-only!\n");
+         return 0;
+     }
+
+     if ((b->flags & CI_MEMBUF_HAS_EOF)) {
+         ci_debug_printf( 1, "Cannot write to membuf: the eof flag is set!\n");
+         return 0;
+     }
+
      if (iseof) {
-          b->hasalldata = 1;
+          b->flags |= CI_MEMBUF_HAS_EOF;
 /*	  ci_debug_printf(10,"Buffer size=%d, Data size=%d\n ",
 		       ((struct membuf *)b)->bufsize,((struct membuf *)b)->endpos);
 */
      }
 
-     remains = b->bufsize - b->endpos;
+     remains = b->bufsize - b->endpos - (terminate ? 1 : 0);
+     assert(remains >= -1); /*can be -1 when NULL_TERMINATED flag just set by user and no space to*/
+
      while (remains < len) {
           newsize = b->bufsize + INCSTEP;
           newbuf = ci_buffer_realloc(b->buf, newsize);
           if (newbuf == NULL) {
-               if (remains)
-                    memcpy(b->buf + b->endpos, data, remains);
-               b->endpos = b->bufsize;
+               ci_debug_printf( 1, "ci_membuf_write: Failed to grow membuf for new data!\n");
+               if (remains >= 0) {
+                   if (remains)
+                       memcpy(b->buf + b->endpos, data, remains);
+                    if (terminate) {
+                        b->endpos = b->bufsize  - 1;
+                        b->buf[b->endpos] = '\0';
+                    } else
+                        b->endpos = b->bufsize;
+               } else {
+                   ci_debug_printf( 1, "ci_membuf_write: Failed to NULL terminate membuf!\n");
+               }
                return remains;
           }
           b->buf = newbuf;
           b->bufsize = newsize;
-          remains = b->bufsize - b->endpos;
+          remains = b->bufsize - b->endpos - (terminate ? 1 : 0);
      }                          /*while remains<len */
      if (len) {
           memcpy(b->buf + b->endpos, data, len);
           b->endpos += len;
      }
+     if (terminate)
+         b->buf[b->endpos] = '\0';
+
      return len;
 }
 
@@ -154,7 +229,7 @@ int ci_membuf_read(struct ci_membuf *b, char *data, int len)
           remains = b->unlocked - b->readpos;
      else
           remains = b->endpos - b->readpos;
-     if (remains == 0 && b->hasalldata)
+     if (remains == 0 && (b->flags & CI_MEMBUF_HAS_EOF))
           return CI_EOF;
      copybytes = (len <= remains ? len : remains);
      if (copybytes) {
@@ -190,6 +265,9 @@ int ci_membuf_truncate(struct ci_membuf *body, int new_size)
     if (body->endpos < new_size)
         return 0;
     body->endpos = new_size;
+
+    if (body->flags & CI_MEMBUF_NULL_TERMINATED)
+        body->buf[body->endpos] = '\0';
 
     if (body->readpos > body->endpos)
         body->readpos = body->endpos;
@@ -552,6 +630,10 @@ ci_simple_file_t *ci_simple_file_named_new(char *dir, char *filename,ci_off_t ma
      body->bytes_in = 0;
      body->bytes_out = 0;
      body->attributes = NULL;
+#if defined(USE_POSIX_MAPPED_FILES)
+     body->mmap_addr = NULL;
+     body->mmap_size = 0;
+#endif
 
      return body;
 }
@@ -570,6 +652,11 @@ void ci_simple_file_destroy(ci_simple_file_t * body)
      if (body->attributes)
         ci_array_destroy(body->attributes);
 
+#if defined(USE_POSIX_MAPPED_FILES)
+     if (body->mmap_addr)
+         munmap(body->mmap_addr, body->mmap_size);
+#endif
+
      ci_object_pool_free(body);
 }
 
@@ -586,6 +673,11 @@ void ci_simple_file_release(ci_simple_file_t * body)
      if (body->attributes)
         ci_array_destroy(body->attributes);
 
+#if defined(USE_POSIX_MAPPED_FILES)
+     if (body->mmap_addr)
+         munmap(body->mmap_addr, body->mmap_size);
+#endif
+
      ci_object_pool_free(body);
 }
 
@@ -594,6 +686,13 @@ int ci_simple_file_write(ci_simple_file_t * body, const char *buf, int len, int 
 {
      int ret;
      int wsize = 0;
+
+     if (body->flags & CI_FILE_HAS_EOF) {
+         if (len > 0) {
+             ci_debug_printf( 1, "Cannot write to file: '%s', the eof flag is set!\n", body->filename);
+         }
+         return 0;
+     }
 
      if(len <= 0) {
 	 if (iseof)
@@ -718,6 +817,44 @@ int ci_simple_file_truncate(ci_simple_file_t *body, ci_off_t new_size)
 
     return 1;
 }
+
+#if defined(USE_POSIX_MAPPED_FILES)
+
+const char * ci_simple_file_to_const_string(ci_simple_file_t *body)
+{
+    ci_off_t map_size;
+    char *addr = NULL;
+    if (!(body->flags & CI_FILE_HAS_EOF)) {
+        ci_debug_printf( 1, "mmap to file: '%s' failed, the eof flag is not set!\n", body->filename);
+        return NULL;
+    }
+
+    /* We need one more byte for string termination*/
+    map_size = body->endpos + 1;
+    if (body->mmap_addr == NULL) {
+        addr = mmap(NULL, map_size,  PROT_READ | PROT_WRITE, MAP_PRIVATE, body->fd, 0);
+        if (!addr)
+            return 0;
+        /*Terminate buffer */
+        addr[map_size - 1] = '\0';
+        body->mmap_addr = addr;
+        body->mmap_size = map_size;
+    }
+    return body->mmap_addr;
+}
+
+#define CI_MEMBUF_SF_FLAGS (CI_MEMBUF_CONST | CI_MEMBUF_RO | CI_MEMBUF_NULL_TERMINATED)
+ci_membuf_t *ci_simple_file_to_membuf(ci_simple_file_t *body, unsigned int flags)
+{
+    assert((CI_MEMBUF_SF_FLAGS & flags) ==flags);
+    assert(flags & CI_MEMBUF_CONST);
+    void *addr = (void *)ci_simple_file_to_const_string(body);
+    if (!addr)
+        return NULL;
+    return ci_membuf_from_content(body->mmap_addr, body->mmap_size, body->endpos, CI_MEMBUF_CONST | CI_MEMBUF_RO | CI_MEMBUF_NULL_TERMINATED | CI_MEMBUF_HAS_EOF);
+}
+
+#endif
 
 /*******************************************************************/
 /*ring memory buffer implementation                                */

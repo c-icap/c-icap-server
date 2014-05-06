@@ -31,30 +31,42 @@ extern "C"
 {
 #endif
 
+#define CI_MEMBUF_NULL_TERMINATED     0x01
+#define CI_MEMBUF_HAS_EOF             0x02
+#define CI_MEMBUF_RO                  0x04
+#define CI_MEMBUF_CONST               0x08
+#define CI_MEMBUF_FOREIGN_BUF         0x10
+
+/*Flags can be set by user: */
+#define CI_MEMBUF_USER_FLAGS (CI_MEMBUF_NULL_TERMINATED | CI_MEMBUF_RO)
+#define CI_MEMBUF_FROM_CONTENT_FLAGS (CI_MEMBUF_NULL_TERMINATED | CI_MEMBUF_RO | CI_MEMBUF_CONST | CI_MEMBUF_HAS_EOF)
+
 typedef struct ci_membuf{
-     int len;
      int endpos;
      int readpos;
      int bufsize;
      int unlocked;
-     int hasalldata;
+     unsigned int flags;
      char *buf;
     ci_array_t *attributes;
 } ci_membuf_t;
 
-CI_DECLARE_FUNC(struct ci_membuf) * ci_membuf_new();
-CI_DECLARE_FUNC(struct ci_membuf) * ci_membuf_new_sized(int size);
+CI_DECLARE_FUNC(struct ci_membuf *) ci_membuf_new();
+CI_DECLARE_FUNC(struct ci_membuf *) ci_membuf_new_sized(int size);
+CI_DECLARE_FUNC(struct ci_membuf *) ci_membuf_from_content(char *buf, size_t buf_size, size_t content_size, unsigned int flags);
 CI_DECLARE_FUNC(void) ci_membuf_free(struct ci_membuf *);
 CI_DECLARE_FUNC(int) ci_membuf_write(struct ci_membuf *body, const char *buf,int len, int iseof);
 CI_DECLARE_FUNC(int) ci_membuf_read(struct ci_membuf *body,char *buf,int len);
 CI_DECLARE_FUNC(int) ci_membuf_attr_add(struct ci_membuf *body,const char *attr, const void *val, size_t val_size);
 CI_DECLARE_FUNC(const void *) ci_membuf_attr_get(struct ci_membuf *body,const char *attr);
 CI_DECLARE_FUNC(int) ci_membuf_truncate(struct ci_membuf *body, int new_size);
+CI_DECLARE_FUNC(unsigned int) ci_membuf_set_flag(struct ci_membuf *body, unsigned int flag);
 
 #define ci_membuf_lock_all(body)        ((body)->unlocked=0)
 #define ci_membuf_unlock(body, len)     ((body)->unlocked=len)
 #define ci_membuf_unlock_all(body)      ((body)->unlocked=-1)
 #define ci_membuf_size(body)            ((body)->endpos)
+#define ci_membuf_flag(body, flag)      ((body)->flags & flag)
 
 /*****************************************************************/
 /* Cached file functions and structure                           */
@@ -110,6 +122,10 @@ typedef struct ci_simple_file{
      int fd;
      char filename[CI_FILENAME_LEN+1];
     ci_array_t *attributes;
+#if defined(USE_POSIX_MAPPED_FILES)
+    char *mmap_addr;
+    ci_off_t mmap_size;
+#endif
 } ci_simple_file_t;
 
 
@@ -122,6 +138,14 @@ CI_DECLARE_FUNC(int) ci_simple_file_write(ci_simple_file_t *body,
 					  const char *buf,int len, int iseof);
 CI_DECLARE_FUNC(int) ci_simple_file_read(ci_simple_file_t *body,char *buf,int len);
 CI_DECLARE_FUNC(int) ci_simple_file_truncate(ci_simple_file_t *body, ci_off_t new_size);
+
+#if defined(USE_POSIX_MAPPED_FILES)
+/*Currently it is just creates a MAP_PRIVATE memory.
+  Only CI_MEMBUF_CONST flag is supported.
+*/
+CI_DECLARE_FUNC(ci_membuf_t *) ci_simple_file_to_membuf(ci_simple_file_t *body, unsigned int flags);
+CI_DECLARE_FUNC(const char *) ci_simple_file_to_const_string(ci_simple_file_t *body);
+#endif
 
 #define ci_simple_file_lock_all(body)            (body->flags|=CI_FILE_USELOCK,body->unlocked=0)
 #define ci_simple_file_unlock(body, len)     (body->unlocked=len)
