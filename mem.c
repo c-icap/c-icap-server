@@ -697,7 +697,7 @@ ci_mem_allocator_t *ci_create_pack_allocator(char *memblock, size_t size)
       return NULL;
   }
   
-  return   init_pack_allocator(allocator, pack_alloc, memblock, size, 1);
+  return   init_pack_allocator(allocator, pack_alloc, memblock, size, 2);
 }
 
 /*similar to the above but allocates required space for pack_allocator on the given memblock*/
