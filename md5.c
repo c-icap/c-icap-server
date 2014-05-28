@@ -108,6 +108,7 @@ void ci_MD5Final(unsigned char digest[16], struct ci_MD5Context *ctx)
 {
     unsigned count;
     unsigned char *p;
+    uint32_t *uin;
 
     /* Compute number of bytes mod 64 */
     count = (ctx->bits[0] >> 3) & 0x3F;
@@ -136,8 +137,9 @@ void ci_MD5Final(unsigned char digest[16], struct ci_MD5Context *ctx)
     byteReverse(ctx->in, 14);
 
     /* Append length in bits and transform */
-    ((uint32_t *) ctx->in)[14] = ctx->bits[0];
-    ((uint32_t *) ctx->in)[15] = ctx->bits[1];
+    uin = (uint32_t *) ctx->in;
+    uin[14] = ctx->bits[0];
+    uin[15] = ctx->bits[1];
 
     MD5Transform(ctx->buf, (uint32_t *) ctx->in);
     byteReverse((unsigned char *) ctx->buf, 4);
