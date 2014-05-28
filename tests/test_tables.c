@@ -14,7 +14,7 @@
 void init_internal_lookup_tables();
 
 char *path;
-char *key;
+char **keys = NULL;
 
 void log_errors(void *unused, const char *format, ...)
 {                                                     
@@ -52,6 +52,27 @@ int load_module(const char *directive,const char **argv,void *setdata)
     return 1;
 }
 
+int cfg_set_str_list(const char *directive, const char **argv, void *setdata)
+{
+     int i;
+     char ***list = (char ***)setdata;
+     if (setdata == NULL)
+          return 0;
+
+     if (argv == NULL || argv[0] == NULL) {
+          return 0;
+     }
+
+     if (!*list)
+         *list = calloc(1024, sizeof(char *));
+
+     for (i = 0; i < 1023 && (*list)[i]; ++i);
+     if ((*list)[i] == NULL)
+         (*list)[i] = strdup(argv[0]);
+     ci_debug_printf(2, "Setting parameter :%s=%s\n", directive, argv[0]);
+     return 1;
+}
+
 static struct ci_options_entry options[] = {
     {"-d", "debug_level", &CI_DEBUG_LEVEL, ci_cfg_set_int,
      "The debug level"},
@@ -59,7 +80,7 @@ static struct ci_options_entry options[] = {
      "The path of the table"},
     {"-p", "table_path", &path, ci_cfg_set_str,
      "The path of the table"},
-    {"-k", "key", &key, ci_cfg_set_str,
+    {"-k", "key", &keys, cfg_set_str_list,
      "The key to search"},
     {NULL,NULL,NULL,NULL,NULL}
 };
@@ -68,13 +89,15 @@ static struct ci_options_entry options[] = {
 int main(int argc,char *argv[]) {
     struct ci_lookup_table *table;
     void *e,*v,**vals;
-    int i;
+    char *key;
+    int i, k;
 
     ci_cfg_lib_init();
+    mem_init();
     init_internal_lookup_tables();
     __log_error = (void (*)(void *, const char *,...)) log_errors;     /*set c-icap library log  function */                                                    
 
-    if (!ci_args_apply(argc, argv, options) || !path || !key) {
+    if (!ci_args_apply(argc, argv, options) || !path || !keys) {
         ci_args_usage(argv[0], options);
         exit(-1);
     }
@@ -90,18 +113,21 @@ int main(int argc,char *argv[]) {
          return -1;
     }
 
-    e = table->search(table,key,&vals);
-    if(e) {
-	printf("Result :\n\t%s:",key);
-	if(vals) {
-	    for(v=vals[0],i=0;v!=NULL;v=vals[++i]) {
-		printf("%s ",(char *)v);
+    for (k = 0; keys[k] != NULL && k < 1024; ++k) {
+        key = keys[k];
+        e = table->search(table,key,&vals);
+        if (e) {
+	    printf("Result :\n\t%s:",key);
+	    if (vals) {
+	        for (v=vals[0],i=0;v!=NULL;v=vals[++i]) {
+                    printf("%s ",(char *)v);
+	        }
 	    }
-	}
-        printf("\n");
-    }
-    else {
-	printf("Not found\n");
+            printf("\n");
+        }
+        else {
+  	    printf("Key '%s' not found\n", key);
+        }
     }
 
     ci_lookup_table_destroy(table);
