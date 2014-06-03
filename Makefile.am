@@ -84,11 +84,11 @@ do_subst=sed -e 's%[@]SYSCONFDIR[@]%$(CONFIGDIR)%g' \
 
 CLEANFILES = c-icap-config c-icap-libicapapi-config
 
-c-icap-config: c-icap-config.in
+c-icap-config: c-icap-config.in configure
 	$(do_subst) < c-icap-config.in > $@
 	chmod 755 $@
 
-c-icap-libicapapi-config:  c-icap-libicapapi-config.in
+c-icap-libicapapi-config:  c-icap-libicapapi-config.in configure
 	$(do_subst) < c-icap-libicapapi-config.in > $@
 	chmod 755 $@
 
@@ -115,5 +115,6 @@ EXTRA_DIST = RECONF config-w32.h makefile.w32 c-icap.conf \
              os/win32/net_io.c os/win32/proc_mutex.c \
              os/win32/shared_mem.c os/win32/threads.c os/win32/utilfunc.c \
              common.h \
-             c-icap-config.in c-icap-libicapapi-config.in c-icap.dox
+             c-icap-config.in c-icap-libicapapi-config.in c-icap.dox \
+             build/c_icap_version.awk
 

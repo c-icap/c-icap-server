@@ -1,4 +1,4 @@
-echo `date +"%d%m%y"` > VERSION.m4
+echo trunk-`svnversion | cut -d ':' -f 2` > VERSION.m4
 autoreconf -f -i -v  
 #aclocal
 #autoconf
