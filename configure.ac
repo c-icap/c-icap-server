@@ -33,61 +33,12 @@ dnl Define c-icap version
 C_ICAP_HEX_VERSION=`echo $PACKAGE_VERSION | $AWK -f $srcdir/build/c_icap_version.awk`
 AC_SUBST(C_ICAP_HEX_VERSION)
 
-dnl AC_CANONICAL_HOST
+AC_CANONICAL_HOST
+AC_CANONICAL_TARGET
 
-dnl Checks for OS specific flags
+dnl Checks for OS specific flags and posix threads libraries.....
 
-case "$host_os" in
-     solaris2.*)
-          LIBS="-lsocket -lnsl -lrt"
-#	  TEST_LIBS=" -lrt"
-      ;;
-      cygwin*)
-	iscygwin="yes"
-      ;;
-esac
-
-if test "x$GCC" != "x" ; then
-        AC_USE_SYSTEM_EXTENSIONS
-fi
-
-CFLAGS="$CFLAGS -Wall"
-
-AC_CACHE_CHECK([for __attribute__((visibility("default")))],
-    ac_cv_default_visibility_attribute, [
-    echo 'int __attribute__ ((visibility ("default"))) foo_visible (void) { return 1; } int foo_invisible(void) {return 1;}' > conftest.c
-    ac_cv_default_visibility_attribute=no
-    if AC_TRY_COMMAND(${CC-cc} -fvisibility=hidden -Werror -S conftest.c -o conftest.s 1>&AS_MESSAGE_LOG_FD);
-    then
-        if grep '\.hidden.*foo_invisible' conftest.s >/dev/null && ! grep '\.hidden.*foo_visible' conftest.s >/dev/null;
-        then
-            ac_cv_default_visibility_attribute=yes
-        fi
-# Else try to detect visibility for Sun solaris:
-#    CC -xldscope={global|hidden}
-# and use __global/__hidden inside C code
-#   elif
-    fi
-    rm -f conftest.*
-    ])
-
-INVISIBILITY_CFLAG=""
-VISIBILITY_ATTR="0"
-if test $ac_cv_default_visibility_attribute = yes;
-then
-    AC_DEFINE(HAVE_VISIBILITY_ATTRIBUTE, 1,
-          [Define if __attribute__((visibility("default"))) is supported.])
-    INVISIBILITY_CFLAG="-fvisibility=hidden"
-    VISIBILITY_ATTR="1"
-fi
-AC_SUBST(INVISIBILITY_CFLAG)
-AC_SUBST(VISIBILITY_ATTR)
-
-
-dnl Checking for posix threads libraries.....
-
-
-case "$host_os" in
+case "$target_os" in
      linux*)
 	CFLAGS="-D_REENTRANT $CFLAGS"
 	THREADS_LDADD="-lpthread"
@@ -95,6 +46,7 @@ case "$host_os" in
      ;;
      solaris2.*)
      	  CFLAGS="-D_REENTRANT -D_POSIX_PTHREAD_SEMANTICS $CFLAGS"
+          LIBS="-lsocket -lnsl -lrt $LIBS"
 	  THREADS_LDADD="-lpthread"
 	  THREADS_LDFLAGS=""
       ;;
@@ -134,6 +86,7 @@ case "$host_os" in
 	CFLAGS="-D_REENTRANT $CFLAGS"
 	THREADS_LDADD="-lpthread"
 	THREADS_LDFLAGS="";
+	iscygwin="yes"
       ;;
       *)
       	CFLAGS="-D_REENTRANT $CFLAGS"
@@ -146,6 +99,41 @@ TEST_LIBS="$TEST_LIBS $THREADS_LDADD"
 AC_SUBST(THREADS_LDADD)
 AC_SUBST(THREADS_LDFLAGS)
 
+if test "x$GCC" != "x" ; then
+        AC_USE_SYSTEM_EXTENSIONS
+fi
+
+CFLAGS="$CFLAGS -Wall"
+
+AC_CACHE_CHECK([for __attribute__((visibility("default")))],
+    ac_cv_default_visibility_attribute, [
+    echo 'int __attribute__ ((visibility ("default"))) foo_visible (void) { return 1; } int foo_invisible(void) {return 1;}' > conftest.c
+    ac_cv_default_visibility_attribute=no
+    if AC_TRY_COMMAND(${CC-cc} -fvisibility=hidden -Werror -S conftest.c -o conftest.s 1>&AS_MESSAGE_LOG_FD);
+    then
+        if grep '\.hidden.*foo_invisible' conftest.s >/dev/null && ! grep '\.hidden.*foo_visible' conftest.s >/dev/null;
+        then
+            ac_cv_default_visibility_attribute=yes
+        fi
+# Else try to detect visibility for Sun solaris:
+#    CC -xldscope={global|hidden}
+# and use __global/__hidden inside C code
+#   elif
+    fi
+    rm -f conftest.*
+    ])
+
+INVISIBILITY_CFLAG=""
+VISIBILITY_ATTR="0"
+if test $ac_cv_default_visibility_attribute = yes;
+then
+    AC_DEFINE(HAVE_VISIBILITY_ATTRIBUTE, 1,
+          [Define if __attribute__((visibility("default"))) is supported.])
+    INVISIBILITY_CFLAG="-fvisibility=hidden"
+    VISIBILITY_ATTR="1"
+fi
+AC_SUBST(INVISIBILITY_CFLAG)
+AC_SUBST(VISIBILITY_ATTR)
 
 AC_ARG_ENABLE(large_files,
 [  --enable-large-files	Enable large files support],
