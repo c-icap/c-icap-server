@@ -6,6 +6,7 @@
 #include "lookup_table.h"
 #include "cache.h"
 #include "debug.h"
+#include <assert.h>
 
 #define MAX_LDAP_FILTER_SIZE 1024
 #define MAX_DATA_SIZE        32768
@@ -483,67 +484,12 @@ int parse_ldap_str(struct ldap_table_data *fields)
     return 1;
 }
 
-struct cache_val {
-    int keys;
-    int size;
-    void *data;
-};
-
-void *store_val(void *val,int *val_size, ci_mem_allocator_t *allocator)
-{
-    int i, indx_size;
-    void *data, *data_start;
-    void **val_data, **data_indx;
-    struct cache_val *cache_val = (struct cache_val *)val;
-
-    indx_size = (cache_val->keys+1)*sizeof(char *);
-    *val_size = indx_size + cache_val->size;
-
-    data = allocator->alloc(allocator, *val_size);
-    if (!data) {
-        ci_debug_printf(1, "Memory allocation failed inside ldap_module.c:store_val() \n");
-        return NULL;
-    }
-    data_start = data + indx_size;
-    data_indx = data;
-    val_data = cache_val->data;
-
-    memcpy(data_start, val_data[0], cache_val->size);
-    i=0;
-    while(val_data[i]!=NULL) {
-	data_indx[i]=(char *)(val_data[i] - val_data[0] + indx_size);
-	i++;
-    }
-    data_indx[i] = NULL;
-    return data;
-}
-
-void *read_val(void *val, int val_size, ci_mem_allocator_t *allocator)
-{
-    char *data = (char *)ci_buffer_alloc(MAX_DATA_SIZE);;
-    char **indx;
-    memcpy(data, val, val_size);
-    indx=(char **)data;
-    // reindex index of data. Currently it contains the relative position of values
-    // inside the data.
-    while(*indx){
-#if SIZEOF_VOID_P == 8
-	*indx = (char *) ((uint64_t)*indx+(uint64_t)data);
-#else
-	*indx = (char *) ((unsigned int)*indx+(unsigned int)data);
-#endif
-	indx++;
-    }
-    return (void *)data;
-}
-
-
 void *ldap_table_open(struct ci_lookup_table *table)
 {
     char *path;
     struct ldap_table_data *ldapdata;
     int use_cache = 1;
-    
+
     path = strdup(table->path);
     if (!path) {
        ci_debug_printf(1, "ldap_table_open: error allocating memory!\n");
@@ -580,14 +526,14 @@ void *ldap_table_open(struct ci_lookup_table *table)
     }
     ldapdata->pool = ldap_pool_create(ldapdata->server, ldapdata->port, 
 				      ldapdata->user, ldapdata->password);
-    ldapdata->cache = ci_cache_build(65536, 512, 1024, 60, 
-				     &ci_str_ops,
-				     store_val,
-				     read_val
-	);
-    if(!ldapdata->cache) {
-	ci_debug_printf(1, "ldap_table_open: can not create cache! cache is disabled");
-    }
+    if (use_cache) {
+        ldapdata->cache = ci_cache_build("local_cache", 65536, 2048, 60, 
+                                         &ci_str_ops);
+        if(!ldapdata->cache) {
+            ci_debug_printf(1, "ldap_table_open: can not create cache! cache is disabled");
+        }
+    } else
+        ldapdata->cache = NULL;
 
     table->data = ldapdata;
     return table->data;
@@ -634,7 +580,7 @@ int create_filter(char *filter,int size, char *frmt,char *key)
 	i++;
     }
     filter[i] = '\0';
-    ci_debug_printf(5,"Table ldap search filter is \"%s\"\n", filter);
+    ci_debug_printf(5,"Table ldap search filterar  is \"%s\"\n", filter);
     return 1;
 }
 
@@ -644,22 +590,24 @@ void *ldap_table_search(struct ci_lookup_table *table, void *key, void ***vals)
     LDAPMessage *msg, *entry;
     BerElement *aber;
     LDAP *ld;
-    struct berval **attrs, **a;
+    struct berval **attrs;
     void *return_value=NULL;
     char *attrname;
-    int ret = 0,memory_exhausted, failures;
-    int value_size, keys_num = 0;
-    ci_mem_allocator_t *packer;
-    char *indx_values, *data_values, *s;
+    int ret = 0, failures, i;
+    ci_str_vector_t  *vect = NULL;
+    size_t v_size;
     char filter[MAX_LDAP_FILTER_SIZE];
+    char buf[2048];
 
     *vals = NULL;
     failures = 0;
-    memory_exhausted = 0;
     return_value = NULL;
 
-    if(data->cache && ci_cache_search(data->cache, key, (void **)vals, NULL)) {
+    if(data->cache && ci_cache_search(data->cache, key, (void **)&vect, NULL, &ci_cache_read_vector_val)) {
 	ci_debug_printf(4, "Retrieving from cache....\n");
+        if (!vect) /*Negative hit*/
+            return NULL;
+        *vals = (void **)ci_vector_cast_to_voidvoid(vect);
 	return key;
     }
 
@@ -682,42 +630,33 @@ void *ldap_table_search(struct ci_lookup_table *table, void *key, void ***vals)
 
 	ci_debug_printf(4, "Contacting LDAP server: %s\n", ldap_err2string(ret));
 	if(ret == LDAP_SUCCESS) {
-	    indx_values = (char *)ci_buffer_alloc(MAX_DATA_SIZE);
-	    data_values = indx_values + DATA_START;
-	    packer = ci_create_pack_allocator(data_values,DATA_SIZE);
-	    *vals=(void * *)indx_values;
-	    (*vals)[0]=NULL;
-
 	    entry = ldap_first_entry(ld, msg);
-	    keys_num = 0;
 	    while(entry != NULL) {
 		aber = NULL;
 		attrname = ldap_first_attribute(ld, entry, &aber);
 		while(attrname != NULL) {
+                    if (vect == NULL) {
+                        vect = ci_str_vector_create(MAX_DATA_SIZE);
+                        if (!vect)
+                            return NULL;
+                    }
+
 		    ci_debug_printf(8, "Retrieve attribute:%s. Values: ", attrname);
 		    attrs = ldap_get_values_len(ld, entry, attrname);
-		    for(a=attrs; *a!=NULL; a++) {
-			if(keys_num < (MAX_COLS-1) && 
-			   ((*vals)[keys_num] = packer->alloc(packer,(*a)->bv_len+1)) != NULL) {
-			    memcpy((*vals)[keys_num], (*a)->bv_val, (*a)->bv_len);
-			    /*if the (*a) attribute contains binary data maybe the 
-			      (*vals)[keys_num] is not NULL terminated. We are interested 
-			      only for normal string data here so:*/
-			    s = (char *)(*vals)[keys_num];
-			    s[(*a)->bv_len] = '\0';
-			    keys_num++;
-			}
-			else
-			    memory_exhausted = 1;
-			
-			//ci_debug_printf(8, "%s (%d),", (*a)->bv_val, (*a)->bv_len);
+		    for(i = 0; attrs[i] != NULL ; ++i) {
+                        //OpenLdap nowhere documents that the result is NULL terminated.
+                        // copy to an intermediate buffer and terminate it before store to vector
+                        v_size = sizeof(buf) <= attrs[i]->bv_len + 1 ? sizeof(buf) : attrs[i]->bv_len;
+                        memcpy(buf, attrs[i]->bv_val, v_size);
+                        buf[v_size] = '\0';
+                        (void)ci_str_vector_add(vect, buf);
+                        ci_debug_printf(8, "%s,", buf);
 		    }
 		    ci_debug_printf(8, "\n");
 		    ldap_value_free_len(attrs);
 		    attrname = ldap_next_attribute(ld, entry, aber);
 		}
-		(*vals)[keys_num] = NULL;
-		if(aber)
+                if(aber)
 		    ber_free(aber, 0);
 
 		if(!return_value)
@@ -725,19 +664,20 @@ void *ldap_table_search(struct ci_lookup_table *table, void *key, void ***vals)
 		
 		entry = ldap_next_entry(ld, entry);
 	    }
-	    value_size = ci_pack_allocator_data_size(packer);
-	    ci_mem_allocator_destroy(packer);
 	    ldap_msgfree(msg);
 	    ldap_connection_release(data->pool, ld, 0);
 
 	    if(data->cache) {
-		struct cache_val cache_val;
-		cache_val.keys = keys_num;
-		cache_val.size = value_size;
-		cache_val.data = *vals;
-		if (!ci_cache_update(data->cache, key, (void *)&cache_val))
+                v_size =  vect != NULL ? ci_cache_store_vector_size(vect) : 0;
+                ci_debug_printf(4, "adding to cache\n");
+		if (!ci_cache_update(data->cache, key, vect, v_size, ci_cache_store_vector_val))
 		    ci_debug_printf(4, "adding to cache failed!\n");
 	    }
+            
+            if (!vect)
+                return NULL;
+
+            *vals = (void **)ci_vector_cast_to_voidvoid(vect);
 	    return return_value;
 	}
 
@@ -757,5 +697,6 @@ void *ldap_table_search(struct ci_lookup_table *table, void *key, void ***vals)
 
 void  ldap_table_release_result(struct ci_lookup_table *table,void **val)
 {
-    ci_buffer_free(val);
+    ci_str_vector_t  *v = ci_vector_cast_from_voidvoid((const void **)val);
+    ci_str_vector_destroy(v);
 }

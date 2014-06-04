@@ -74,10 +74,7 @@ void *dnsbl_table_open(struct ci_lookup_table *table)
         return NULL;
     }
     strcpy(dnsbl_data->check_domain, table->path);
-    dnsbl_data->cache = ci_cache_build(65536, CI_MAXHOSTNAMELEN+1, 0, 60, &ci_str_ops,
-                                       &ci_cache_store_vector_val, /*copy_to*/
-                                       &ci_cache_read_vector_val /*copy_from*/
-        );
+    dnsbl_data->cache = ci_cache_build("local_cache", 65536, 1024, 60, &ci_str_ops);
 
     table->data = dnsbl_data; 
     return table->data;
@@ -97,6 +94,7 @@ void *dnsbl_table_search(struct ci_lookup_table *table, void *key, void ***vals)
     char dnsname[CI_MAXHOSTNAMELEN + 1];
     char *server;
     ci_str_vector_t  *v;
+    size_t v_size;
     struct dnsbl_data *dnsbl_data = table->data;
 
     if(table->key_ops != &ci_str_ops) {
@@ -105,7 +103,7 @@ void *dnsbl_table_search(struct ci_lookup_table *table, void *key, void ***vals)
     }
     server = (char *)key;
 
-    if (dnsbl_data->cache && ci_cache_search(dnsbl_data->cache, server, (void **)&v, table->allocator)) {
+    if (dnsbl_data->cache && ci_cache_search(dnsbl_data->cache, server, (void **)&v, NULL, &ci_cache_read_vector_val)) {
 	ci_debug_printf(6,"dnsbl_table_search: cache hit for %s value %p\n", server,  v);
         if (!v) {
             *vals = NULL;
@@ -118,8 +116,10 @@ void *dnsbl_table_search(struct ci_lookup_table *table, void *key, void ***vals)
     snprintf(dnsname, CI_MAXHOSTNAMELEN, "%s.%s", server, dnsbl_data->check_domain);
     dnsname[CI_MAXHOSTNAMELEN] = '\0';
     v = resolv_hostname(dnsname);
-    if (dnsbl_data->cache)
-        ci_cache_update(dnsbl_data->cache, server, v);
+    if (dnsbl_data->cache) {
+        v_size =  v != NULL ? ci_cache_store_vector_size(v) : v;
+        ci_cache_update(dnsbl_data->cache, server, v, v_size, ci_cache_store_vector_val);
+    }
     
     if (!v)
         return NULL;

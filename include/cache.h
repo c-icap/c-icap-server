@@ -20,72 +20,116 @@
 #ifndef __CACHE_H
 #define __CACHE_H
 #include "hash.h"
-#include "proc_mutex.h"
-#include "ci_threads.h"
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
 
-struct ci_cache_entry {
-   unsigned int hash;
-   time_t time;
-   void *key;
-   void *val;
-   int val_size;
-   struct ci_cache_entry *qnext;
-   struct ci_cache_entry *hnext;
-};
+/**
+ \defgroup CACHE cache api
+ \ingroup API
+ \brief Macros, functions and structures used to implement and use c-icap cache.
+ */
 
-typedef struct common_mutex {
-    int isproc;
-    union {
-	ci_proc_mutex_t proc_mutex;
-	ci_thread_mutex_t thread_mutex;
-    } mtx;
-} common_mutex_t;
+struct ci_cache;
 
+/**
+ \ingroup CACHE
+ \brief A struct which implements a cache type.
+ * Modules implement a cache type, needs to implement members of this structure.
+ */
+typedef struct ci_cache_type {
+    int (*init)(struct ci_cache *cache);
+    const void *(*search)(struct ci_cache *cache, const void *key, void **val, void *data, void *(*dup_from_cache)(const void *stored_val, size_t stored_val_size, void *data));
+    int (*update)(struct ci_cache *cache, const void *key, const void *val, size_t val_size, void *(*copy_to_cache)(void *cache_buf, const void *val, size_t cache_buf_size));
+    void (*destroy)(struct ci_cache *cache);
+    const char *name;
+} ci_cache_type_t;
 
-typedef struct ci_cache{ 
-    struct ci_cache_entry *first_queue_entry; 
-    struct ci_cache_entry *last_queue_entry;
-    struct ci_cache_entry **hash_table;
+/**
+ * Register a cache type to c-icap server.
+ \ingroup CACHE
+ */
+CI_DECLARE_FUNC(void) ci_cache_type_register(const struct ci_cache_type *type);
+
+/**
+ * The ci_cache_t struct
+ \ingroup CACHE
+ */
+typedef struct ci_cache{
+    int (*init)(struct ci_cache *cache);
+
+    // If dup_from_cache is NULL return a ci_buffer object
+    const void * (*search)(struct ci_cache *cache, const void *key, void **val, void *data, void *(*dup_from_cache)(const void *stored_val, size_t stored_val_size, void *data));
+
+    // buf is of size val_size and buf_size==val_size 
+    int (*update)(struct ci_cache *cache, const void *key, const void *val, size_t val_size, void *(*copy_to_cache)(void *buf, const void *val, size_t buf_size));
+    void (*destroy)(struct ci_cache *cache);
+
     time_t ttl;
-    unsigned int cache_size;
     unsigned int mem_size;
-    unsigned int max_key_size;
     unsigned int max_object_size;
-    unsigned int hash_table_size;
     unsigned int flags;
     const ci_type_ops_t *key_ops;
-    ci_mem_allocator_t *allocator;
-    common_mutex_t mtx;
-    void *(*copy_to)(void *val,int *val_size, ci_mem_allocator_t *allocator);
-    void *(*copy_from)(void *val,int val_size, ci_mem_allocator_t *allocator);
-//    void (*data_release)(void *val, ci_mem_allocator_t *allocator);
+    const ci_cache_type_t *_cache_type;
+    void *cache_data;
 } ci_cache_t;
 
-CI_DECLARE_FUNC(struct ci_cache *) ci_cache_build( unsigned int cache_size,
-                                                   unsigned int max_key_size,
-						   unsigned int max_object_size,
-						   int ttl,
-						   const ci_type_ops_t *key_ops,
-						   void *(copy_to_cache)(void *val, int *val_size, ci_mem_allocator_t *allocator),
-						   void *(copy_from_cache)(void *val,int val_size, ci_mem_allocator_t *allocator)
+/**
+ * Builds a cache and return a pointer to the ci_cache_t object
+ \ingroup CACHE
+ \param cache_type The cache type to use. If the cache type not found return a cache object of type "local"
+ \param cache_size The size of the cache
+ \param max_object_size The maximum object size to store in cache
+ \param ttl The ttl value for cached items in this cache
+ \param key_ops If not null, the ci_types_ops_t object to use for comparing keys. By default keys are considered as c strings.
+ */
+CI_DECLARE_FUNC(ci_cache_t *) ci_cache_build( const char *cache_type,
+                                              unsigned int cache_size,
+                                              unsigned int max_object_size,
+                                              int ttl,
+                                              const ci_type_ops_t *key_ops
     );
 
-CI_DECLARE_FUNC(void *) ci_cache_search(struct ci_cache *cache,void *key, void **val, ci_mem_allocator_t *allocator);
-CI_DECLARE_FUNC(int) ci_cache_update(struct ci_cache *cache, void *key, void *val);
-CI_DECLARE_FUNC(void) ci_cache_destroy(struct ci_cache *cache);
+/**
+ * Searchs a cache for a stored object
+ * If the dup_from_cache parameter is NULL, the returned value must be 
+ * released using the ci_buffer_free function.
+ \ingroup CACHE
+ \param cache Pointer to the ci_cache_t object
+ \param key Pointer to the key to search for
+ \param val Pointer to store the pointer of returned value
+ \param data Pointer to void object which will be passed to dup_from_cache function
+ \param dup_from_cache Pointer to function which will be used to allocate memory and copy the stored value.
+ */
+CI_DECLARE_FUNC(const void *) ci_cache_search(ci_cache_t *cache, const void *key, void **val, void *data, void *(*dup_from_cache)(const void *stored_val, size_t stored_val_size, void *data));
+
+/**
+ * Stores an object to cache
+ \ingroup CACHE
+ \param cache Pointer to the ci_cache_t object
+ \param key The key of the stored object
+ \param val Pointer to the object to be stored
+ \param val_size The size of the object to be stored
+ \param copy_to_cache The function to use to copy object to cache. If it is NULL the memcpy is used.
+ */
+CI_DECLARE_FUNC(int) ci_cache_update(ci_cache_t *cache, const void *key, const void *val, size_t val_size, void *(*copy_to_cache)(void *buf, const void *val, size_t buf_size));
+
+/**
+ * Destroy a cache_t object
+ \ingroup CACHE
+ */
+CI_DECLARE_FUNC(void) ci_cache_destroy(ci_cache_t *cache);
 
 
 /*
   Only for internal use only:
   cb functions to store/retrieve vectors from cache....
 */
-CI_DECLARE_FUNC(void *)ci_cache_store_vector_val(void *val, int *val_size, ci_mem_allocator_t *allocator);
-CI_DECLARE_FUNC(void *)ci_cache_read_vector_val(void *val, int val_size, ci_mem_allocator_t *allocator);
+CI_DECLARE_FUNC(size_t) ci_cache_store_vector_size(ci_vector_t *v);
+CI_DECLARE_FUNC(void *) ci_cache_store_vector_val(void *buf, const void *val, size_t buf_size);
+CI_DECLARE_FUNC(void *) ci_cache_read_vector_val(const void *val, size_t val_size, void *);
 
 
 #ifdef __cplusplus
