@@ -40,7 +40,7 @@ struct ci_cache;
  * Modules implement a cache type, needs to implement members of this structure.
  */
 typedef struct ci_cache_type {
-    int (*init)(struct ci_cache *cache);
+    int (*init)(struct ci_cache *cache, const char *name);
     const void *(*search)(struct ci_cache *cache, const void *key, void **val, void *data, void *(*dup_from_cache)(const void *stored_val, size_t stored_val_size, void *data));
     int (*update)(struct ci_cache *cache, const void *key, const void *val, size_t val_size, void *(*copy_to_cache)(void *cache_buf, const void *val, size_t cache_buf_size));
     void (*destroy)(struct ci_cache *cache);
@@ -58,7 +58,7 @@ CI_DECLARE_FUNC(void) ci_cache_type_register(const struct ci_cache_type *type);
  \ingroup CACHE
  */
 typedef struct ci_cache{
-    int (*init)(struct ci_cache *cache);
+    int (*init)(struct ci_cache *cache, const char *name);
 
     // If dup_from_cache is NULL return a ci_buffer object
     const void * (*search)(struct ci_cache *cache, const void *key, void **val, void *data, void *(*dup_from_cache)(const void *stored_val, size_t stored_val_size, void *data));
@@ -85,7 +85,8 @@ typedef struct ci_cache{
  \param ttl The ttl value for cached items in this cache
  \param key_ops If not null, the ci_types_ops_t object to use for comparing keys. By default keys are considered as c strings.
  */
-CI_DECLARE_FUNC(ci_cache_t *) ci_cache_build( const char *cache_type,
+CI_DECLARE_FUNC(ci_cache_t *) ci_cache_build( const char *name,
+                                              const char *cache_type,
                                               unsigned int cache_size,
                                               unsigned int max_object_size,
                                               int ttl,

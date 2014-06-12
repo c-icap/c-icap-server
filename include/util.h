@@ -45,6 +45,15 @@ CI_DECLARE_FUNC(const char *) ci_strncasestr(const char *s, const char *find, si
 
 CI_DECLARE_FUNC(const char *) ci_strcasestr(const char *str, const char *find);
 
+/*Handle M/m/k/K suffixes and try to detect errors*/
+CI_DECLARE_FUNC(long int) ci_atol_ext(const char *str, const char **error);
+
+CI_DECLARE_FUNC(void) ci_str_trim(char *str);
+
+CI_DECLARE_FUNC(char *) ci_str_trim2(char *s);
+
+typedef struct ci_dyn_array ci_dyn_array_t;
+CI_DECLARE_FUNC(ci_dyn_array_t *) ci_parse_key_value_list(const char *str, char sep);
 #ifdef __cplusplus
 }
 #endif

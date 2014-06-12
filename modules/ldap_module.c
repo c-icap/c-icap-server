@@ -377,30 +377,9 @@ struct ldap_table_data {
     char *password;
     char **attrs;
     char *filter;
+    char *name;
     ci_cache_t *cache;
 };
-
-void str_trim(char *str)
-{
-    char *s, *e;
-
-    if (!str)
-        return;
-
-    s = str;
-    e = NULL;
-    while (*s == ' ' && s != '\0'){
-        e = s;
-        while (*e != '\0'){
-            *e = *(e+1);
-            e++;
-        }
-    }
-
-    /*if (e) e--;  else */
-    e = str+strlen(str);
-    while(*(--e) == ' ' && e >= str) *e = '\0';
-}
 
 int parse_ldap_str(struct ldap_table_data *fields)
 {
@@ -428,9 +407,9 @@ int parse_ldap_str(struct ldap_table_data *fields)
 	if ((e=strchr(fields->user, ':')) != NULL) {
 	  *e = '\0';
 	  fields->password = e + 1;
-          str_trim(fields->password);
+          ci_str_trim(fields->password);
 	}
-        str_trim(fields->user); /* here we have parsed the user*/
+        ci_str_trim(fields->user); /* here we have parsed the user*/
     }
     
     fields->server = s;	 /*The s points to the "server" field now*/
@@ -438,7 +417,7 @@ int parse_ldap_str(struct ldap_table_data *fields)
     if (*s == '\0') 
 	return 0;
     *s = '\0';
-    str_trim(fields->server);
+    ci_str_trim(fields->server);
 
     s++;
     fields->base = s;	 /*The s points to the "base" field now*/
@@ -446,7 +425,7 @@ int parse_ldap_str(struct ldap_table_data *fields)
     if (*s == '\0') 
 	return 0;
     *s = '\0';
-    str_trim(fields->base);
+    ci_str_trim(fields->base);
 
     s++;
     e = s;	/*Count the args*/
@@ -476,30 +455,32 @@ int parse_ldap_str(struct ldap_table_data *fields)
 
     fields->attrs[i] = NULL;
     for(i=0; fields->attrs[i] != NULL; i++)
-        str_trim(fields->attrs[i]);
+        ci_str_trim(fields->attrs[i]);
 
     s++;
     fields->filter = s;   /*The s points to the "filter" field now*/
-    str_trim(fields->filter);
+    ci_str_trim(fields->filter);
     return 1;
 }
 
 void *ldap_table_open(struct ci_lookup_table *table)
 {
+    int i;
     char *path;
+    char tname[1024];
     struct ldap_table_data *ldapdata;
-    int use_cache = 1;
+    ci_dyn_array_t *args = NULL;
+    ci_array_item_t *arg = NULL;
+    char *use_cache = "local";
+    int cache_ttl = 60;
+    size_t cache_size = 1*1024*1024;
+    size_t cache_item_size = 2048;
+    long int val;
 
     path = strdup(table->path);
     if (!path) {
        ci_debug_printf(1, "ldap_table_open: error allocating memory!\n");
        return NULL;
-    }
-
-    if (table->args) {
-        if(strstr(table->args, "cache=no")) {
-            use_cache = 0;
-        }
     }
 
     ldapdata = malloc(sizeof(struct ldap_table_data));
@@ -517,6 +498,7 @@ void *ldap_table_open(struct ci_lookup_table *table)
     ldapdata->password = NULL;
     ldapdata->attrs = NULL;
     ldapdata->filter = NULL;
+    ldapdata->name = NULL;
 
     if(!parse_ldap_str(ldapdata)) {
 	free(ldapdata->str);
@@ -524,10 +506,48 @@ void *ldap_table_open(struct ci_lookup_table *table)
 	ci_debug_printf(1, "ldap_table_open: parse path string error!\n");
 	return NULL;
     }
+
+    if (table->args) {
+        if ((args = ci_parse_key_value_list(table->args, ','))) {
+            for (i = 0; (arg = ci_dyn_array_get_item(args, i)) != NULL; ++i) {
+                ci_debug_printf(5, "Table argument %s:%s\n", arg->name, (char *)arg->value);
+                if(strcasecmp(arg->name, "name") == 0) {
+                    ldapdata->name = strdup((char *)arg->value);
+                } else if(strcasecmp(arg->name, "cache") == 0) {
+                    if (strcasecmp((char *)arg->value, "no") == 0)
+                        use_cache = NULL;
+                    else
+                        use_cache = (char *)arg->value;
+                } else if (strcasecmp(arg->name, "cache-ttl") == 0) {
+                    val = strtol((char *)arg->value, NULL, 10);
+                    if (val > 0)
+                        cache_ttl = val;
+                    else
+                        ci_debug_printf(1, "WARNING: wrong cache-ttl value: %ld, using default\n", val);
+                } else if (strcasecmp(arg->name, "cache-size") == 0) {
+                    val = ci_atol_ext((char *)arg->value, NULL);
+                    if (val > 0)
+                        cache_size = (size_t)val;
+                    else
+                        ci_debug_printf(1, "WARNING: wrong cache-size value: %ld, using default\n", val);
+                } else if (strcasecmp(arg->name, "cache-item-size") == 0) {
+                    val = ci_atol_ext((char *)arg->value, NULL);
+                    if (val > 0)
+                        cache_item_size = (size_t)val;
+                    else
+                        ci_debug_printf(1, "WARNING: wrong cache-item-size value: %ld, using default\n", val);
+                }
+            }
+        }
+    }
+
     ldapdata->pool = ldap_pool_create(ldapdata->server, ldapdata->port, 
 				      ldapdata->user, ldapdata->password);
     if (use_cache) {
-        ldapdata->cache = ci_cache_build("local_cache", 65536, 2048, 60, 
+        snprintf(tname, sizeof(tname), "ldap:%s", ldapdata->name ? ldapdata->name : ldapdata->str);
+        tname[sizeof(tname) - 1] = '\0';
+        ldapdata->cache = ci_cache_build(tname, use_cache, 
+                                         cache_size, cache_item_size, cache_ttl,
                                          &ci_str_ops);
         if(!ldapdata->cache) {
             ci_debug_printf(1, "ldap_table_open: can not create cache! cache is disabled");
@@ -536,6 +556,10 @@ void *ldap_table_open(struct ci_lookup_table *table)
         ldapdata->cache = NULL;
 
     table->data = ldapdata;
+
+    /*Must released before exit, we have pointes pointing on args array items*/
+    if (args)
+        ci_dyn_array_destroy(args);
     return table->data;
 }
 
@@ -548,6 +572,8 @@ void  ldap_table_close(struct ci_lookup_table *table)
     //release ldapdata 
     if(ldapdata) {
 	free(ldapdata->str);
+        if (ldapdata->name)
+            free(ldapdata->name);
 	if(ldapdata->cache)
 	    ci_cache_destroy(ldapdata->cache);
 	free(ldapdata);

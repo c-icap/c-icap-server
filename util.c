@@ -19,8 +19,11 @@
 
 #include "common.h"
 #include "c-icap.h"
+#include "array.h"
 #include "util.h"
 #include <ctype.h>
+#include <errno.h>
+#include <limits.h>
 
 const char *ci_strnstr(const char *s, const char *find, size_t slen)
 {
@@ -66,4 +69,108 @@ const char *ci_strncasestr(const char *s, const char *find, size_t slen)
         s++,slen--;
     }
     return NULL;
+}
+
+static const char *atol_err_erange = "ERANGE";
+static const char *atol_err_conversion = "CONVERSION_ERROR";
+static const char *atol_err_nonumber = "NO_DIGITS_ERROR";
+
+long int ci_atol_ext(const char *str, const char **error) {
+    char *e;
+    
+    long int val;
+    errno = 0;
+    val = strtol(str, &e, 10);
+
+    if (error) {
+        *error = NULL;
+
+        if (errno == ERANGE && (val == LONG_MAX || val == LONG_MIN))
+            *error = atol_err_erange;
+        else if (errno != 0 && val == 0)
+            *error = atol_err_conversion;
+        else if (e == str)
+            *error = atol_err_nonumber;
+
+        if (*error)
+            return 0;
+    }
+
+    if (val) {
+        if (*e == 'k' || * e == 'K')
+            val = val * 1024;
+        else if (*e == 'm' || * e == 'M')
+            val = val * 1024 * 1024;
+    }
+    return val;
+}
+
+void ci_str_trim(char *str)
+{
+    char *s, *e;
+
+    if (!str)
+        return;
+
+    s = str;
+    e = NULL;
+    while (isspace(*s)){
+        e = s;
+        while (*e != '\0'){
+            *e = *(e+1);
+            e++;
+        }
+    }
+
+    /*if (e) e--;  else */
+    e = str+strlen(str);
+    e--;
+    while(isspace(*e) && e >= str) {*e = '\0'; --e;};
+}
+
+char *ci_str_trim2(char *s)
+{
+    char *e;
+
+    if (!s)
+        return NULL;
+
+    while (isspace(*s)) ++s;
+    e = s + strlen(s);
+    e--;
+    while(isspace(*e) && e >= s) {*e = '\0'; --e;};
+    return s;
+}
+
+/*
+  TODO: support escaped chars,
+*/
+ci_dyn_array_t *ci_parse_key_value_list(const char *str, char sep)
+{
+    char *s, *e, *k, *v;
+    ci_dyn_array_t *args_array;
+    s = strdup(str);
+    if (!s)
+        return NULL;
+
+    args_array = ci_dyn_array_new(1024);
+    k = s;
+    while (k) {
+        if ((e = strchr(k , sep))) {
+            *e = '\0';
+            e++;
+        }
+        if ((v = strchr(k, '='))) {
+            *v = '\0';
+            ++v;
+        }
+        k = ci_str_trim2(k);
+        if (v)
+            v = ci_str_trim2(v);
+        if (*k) {
+            ci_dyn_array_add(args_array, k, v ? v : "", v ? strlen(v) + 1 : 1);
+        }
+        k = (e && *e) ? e : NULL;
+    }
+    return args_array;
 }

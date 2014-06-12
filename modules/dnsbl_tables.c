@@ -57,6 +57,15 @@ struct dnsbl_data {
 void *dnsbl_table_open(struct ci_lookup_table *table)
 {
     struct dnsbl_data *dnsbl_data;
+    char tname[CI_MAXHOSTNAMELEN];
+    ci_dyn_array_t *args = NULL;
+    ci_array_item_t *arg = NULL;
+    char *use_cache = "local";
+    int cache_ttl = 60;
+    size_t cache_size = 1*1024*1024;
+    long int val;
+    int i;
+
     if (strlen(table->path) >= CI_MAXHOSTNAMELEN ) {
          ci_debug_printf(1, "dnsbl_table_open: too long domain name: %s\n",
                         table->path);
@@ -73,10 +82,47 @@ void *dnsbl_table_open(struct ci_lookup_table *table)
         ci_debug_printf(1, "dnsbl_table_open: error allocating memory (dnsbl_data)!\n");
         return NULL;
     }
-    strcpy(dnsbl_data->check_domain, table->path);
-    dnsbl_data->cache = ci_cache_build("local_cache", 65536, 1024, 60, &ci_str_ops);
+    strncpy(dnsbl_data->check_domain, table->path, CI_MAXHOSTNAMELEN);
+    dnsbl_data->check_domain[CI_MAXHOSTNAMELEN] = '\0';
+
+    if (table->args) {
+        if ((args = ci_parse_key_value_list(table->args, ','))) {
+            for (i = 0; (arg = ci_dyn_array_get_item(args, i)) != NULL; ++i) {
+                ci_debug_printf(5, "Table argument %s:%s\n", arg->name, (char *)arg->value);
+                if(strcasecmp(arg->name, "cache") == 0) {
+                    if (strcasecmp(arg->value, "no") == 0)
+                        use_cache = NULL;
+                    else
+                        use_cache = (char *)arg->value;
+                } else if (strcasecmp(arg->name, "cache-ttl") == 0) {
+                    val = strtol((char *)arg->value, NULL, 10);
+                    if (val > 0)
+                        cache_ttl = val;
+                    else
+                        ci_debug_printf(1, "WARNING: wrong cache-ttl value: %ld, using default\n", val);
+                } else if (strcasecmp(arg->name, "cache-size") == 0) {
+                    val = ci_atol_ext((char *)arg->value, NULL);
+                    if (val > 0)
+                        cache_size = (size_t)val;
+                    else
+                        ci_debug_printf(1, "WARNING: wrong cache-size value: %ld, using default\n", val);
+                }
+            }
+        }
+    }
+
+    if (use_cache) {
+        snprintf(tname, sizeof(tname), "dnsbl:%s", table->path);
+        tname[sizeof(tname) - 1] = '\0';
+        dnsbl_data->cache = ci_cache_build(tname, use_cache, cache_size, 1024, cache_ttl, &ci_str_ops);
+    } else
+        dnsbl_data->cache = NULL;
 
     table->data = dnsbl_data; 
+
+    /*Must released before exit, we have pointes pointing on args array items*/
+    if (args)
+        ci_dyn_array_destroy(args);
     return table->data;
 }
 
@@ -117,7 +163,7 @@ void *dnsbl_table_search(struct ci_lookup_table *table, void *key, void ***vals)
     dnsname[CI_MAXHOSTNAMELEN] = '\0';
     v = resolv_hostname(dnsname);
     if (dnsbl_data->cache) {
-        v_size =  v != NULL ? ci_cache_store_vector_size(v) : v;
+        v_size =  v != NULL ? ci_cache_store_vector_size(v) : 0;
         ci_cache_update(dnsbl_data->cache, server, v, v_size, ci_cache_store_vector_val);
     }
     

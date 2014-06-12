@@ -641,7 +641,15 @@ Service echo srv_echo.so
 # Description:
 #	Add support for dns lookup tables. Can be used to access
 #	dns block lists. The dnsbl lookup table path definition is:
-#	    dnsbl:domainname
+#	    dnsbl:domainname[{param1=val, ...}]
+#       dnsbl table parameters can be one or more of the followings:
+#            cache=no|cache_type
+#               The cache type to use or 'no' for no cache.
+#            cache-size=Size[K|M]
+#               The cache size in RAM
+#            cache-ttl=ttl
+#               The cache ttl to use
+#	
 #	For example the lookup table  for accessing the black.uribl.com
 #	dns black list is: 
 #	    dnsbl:black.uribl.com
@@ -654,11 +662,23 @@ Service echo srv_echo.so
 # Description:
 #	Add LDAP support to c-icap. The user can use LDAP based lookup tables
 #	using the following lookup table path:
-#	      ldap://[username:password@]ldapserver?base?attr1,attr2?filter[{[cache=no]}]
+#	      ldap://[username:password@]ldapserver?base?attr1,attr2?filter[{[param=value, ...]}]
 #	The filter can contain the "%s" formating code which will be replaced by
-#	the search key
+#	the search key.
+#	ldap table parameters can be one or more of the followings:
+#	     name=aName
+#		A unique name to use for this table
+#	     cache=no|cache_type
+#		The cache type to use or no for no cache.
+#	     cache-size=Size[K|M]
+#		The cache size in RAM
+#	     cache-ttl=ttl
+#		The cache ttl to use
+#	     cache-item-size=ItemSize[K|M]
+#		The maximum item size
+#	
 #	Examples of supported ldap urls:
-#	     ldap://ldap.chtsanti.net?o=chtsanti?cn,uid?uid=%s
+#	     ldap://ldap.chtsanti.net?o=chtsanti?cn,uid?uid=%s{cache=memcached}
 #	     ldap://cn=Directory Manager:Apassword@ldap.chtsanti.net?o=chtsanti?mermberUid?(&(objectClass=posixGroup)(cn=%s))
 #	
 #	WARNING: is not enough tested it may contain bugs!

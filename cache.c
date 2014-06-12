@@ -62,7 +62,7 @@ int ci_cache_update(ci_cache_t *cache, const void *key, const void *val, size_t 
 /*****************************************/
 /*Simple local cache implementation      */
 
-int ci_local_cache_init(struct ci_cache *cache);
+int ci_local_cache_init(struct ci_cache *cache, const char *name);
 const void *ci_local_cache_search(struct ci_cache *cache, const void *key, void **val, void *data, void *(*dup_from_cache)(const void *stored_val, size_t stored_val_size, void *data));
 int ci_local_cache_update(struct ci_cache *cache, const void *key, const void *val, size_t val_size, void *(*copy_to_cache)(void *buf, const void *val, size_t buf_size));
 void ci_local_cache_destroy(struct ci_cache *cache);
@@ -132,7 +132,7 @@ int common_mutex_unlock(common_mutex_t *mtx)
     return ci_thread_mutex_unlock(&mtx->mtx.thread_mutex);
 }
 
-int ci_local_cache_init(struct ci_cache *cache)
+int ci_local_cache_init(struct ci_cache *cache, const char *name)
 {
     struct ci_local_cache_data *cache_data;
     int i;
@@ -378,7 +378,8 @@ int ci_local_cache_update(struct ci_cache *cache, const void *key, const void *v
     return 1;
 }
 
-struct ci_cache *ci_cache_build( const char *cache_type, 
+struct ci_cache *ci_cache_build( const char *name,
+                                 const char *cache_type, 
                                  unsigned int cache_size,
 				 unsigned int max_object_size,
 				 int ttl,
@@ -415,7 +416,7 @@ struct ci_cache *ci_cache_build( const char *cache_type,
     cache->update = type->update;
     cache->_cache_type = type;
 
-    if (!cache->init(cache)) {
+    if (!cache->init(cache, name)) {
         free(cache);
         return NULL;
     }
