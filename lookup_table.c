@@ -94,7 +94,7 @@ struct ci_lookup_table *ci_lookup_table_create_ext(const char *table,
 	*s = '\0';	
 	s = index(path,'{');
 	if (s) {
-	    s = '\0'; /* path ends here */
+	    *s = '\0'; /* path ends here */
 	    args = s+1; /*args start here */
 	    
 	    if ((s = index(args,'}'))) *s = '\0'; /*else args is all the remains string */
