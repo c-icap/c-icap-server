@@ -35,8 +35,10 @@ int load_module(const char *directive,const char **argv,void *setdata)
         return 0;
     }
 
-    module->init_module(NULL);
-    module->post_init_module(NULL);
+    if (module->init_module)
+        module->init_module(NULL);
+    if (module->post_init_module)
+        module->post_init_module(NULL);
 
     return 1;
 }
