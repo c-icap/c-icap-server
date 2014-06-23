@@ -239,6 +239,7 @@ const void *ci_local_cache_search(struct ci_cache *cache, const void *key, void 
 {
     struct ci_cache_entry *e;
     struct ci_local_cache_data *cache_data;
+    time_t current_time;
     cache_data = (struct ci_local_cache_data *)cache->cache_data;
 
     unsigned int hash=ci_hash_compute(cache_data->hash_table_size, key, cache->key_ops->size(key));
@@ -247,18 +248,21 @@ const void *ci_local_cache_search(struct ci_cache *cache, const void *key, void 
 
     common_mutex_lock(&cache_data->mtx);
     e=cache_data->hash_table[hash];
+    *val = NULL;
     while(e != NULL) {
 	ci_debug_printf(10," \t\t->>>>Val %s\n",(char *)e->val);
 	ci_debug_printf(10," \t\t->>>>compare %s ~ %s\n",(char *)e->key, (char *)key);
 	if(cache->key_ops->compare(e->key, key) == 0) {
-            if (dup_from_cache)
-                *val = dup_from_cache(e->val, e->val_size, data);
-            else {
-                if (e->val_size) {
+            current_time = ci_internal_time();
+            if ((current_time - e->time) < cache->ttl) /*if expired*/
+                key = NULL;
+            else if (e->val_size) {
+                if (dup_from_cache)
+                    *val = dup_from_cache(e->val, e->val_size, data);
+                else {
                     *val = ci_buffer_alloc(e->val_size);
                     memcpy(*val, e->val, e->val_size);
-                } else
-                    *val = NULL;
+                }
             }
             common_mutex_unlock(&cache_data->mtx);
 	    return key;
@@ -357,8 +361,10 @@ int ci_local_cache_update(struct ci_cache *cache, const void *key, const void *v
 	    return 0;
 	}
     }
-    else
+    else {
 	e->val = NULL;
+        e->val_size = 0;
+    }
 
     e->hash = hash;
     e->time = current_time;
