@@ -1039,7 +1039,7 @@ int start_server()
           exit(0);
      }
 
-     if (!ci_proc_mutex_init(&accept_mutex)) {
+     if (!ci_proc_mutex_init(&accept_mutex, "accept")) {
           ci_debug_printf(1,
                           "Can't init mutex for accepting conenctions. Fatal error, exiting!\n");
           exit(0);

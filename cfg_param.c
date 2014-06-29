@@ -31,7 +31,9 @@
 #include "commands.h"
 #include "acl.h"
 #include "txtTemplate.h"
+#include "proc_mutex.h"
 #include "registry.h"
+#include "shared_mem.h"
 
 #define MAX_INCLUDE_LEVEL 5
 #define LINESIZE 8192
@@ -118,6 +120,8 @@ int cfg_set_auth_method(const char *directive, const char **argv, void *setdata)
 int cfg_include_config_file(const char *directive, const char **argv, void *setdata);
 int cfg_group_source_by_group(const char *directive, const char **argv, void *setdata);
 int cfg_group_source_by_user(const char *directive, const char **argv, void *setdata);
+int cfg_shared_mem_scheme(const char *directive, const char **argv, void *setdata);
+int cfg_proc_lock_scheme(const char *directive, const char **argv, void *setdata);
 
 /*The following 2 functions defined in access.c file*/
 int cfg_acl_add(const char *directive, const char **argv, void *setdata);
@@ -180,6 +184,8 @@ static struct ci_conf_entry conf_variables[] = {
      {"TemplateMemBufSize", &TEMPLATE_MEMBUF_SIZE, intl_cfg_set_int, NULL},
      {"GroupSourceByGroup", NULL, cfg_group_source_by_group, NULL},
      {"GroupSourceByUser", NULL, cfg_group_source_by_user, NULL},
+     {"InterProcessSharedMemScheme", NULL, cfg_shared_mem_scheme, NULL},
+     {"InterProcessLockingScheme", NULL, cfg_proc_lock_scheme, NULL},
      {NULL, NULL, NULL, NULL}
 };
 
@@ -640,6 +646,22 @@ int cfg_group_source_by_user(const char *directive, const char **argv, void *set
   }
   group_table = argv[0];
   return group_source_add_by_user(group_table);
+}
+
+int cfg_shared_mem_scheme(const char *directive, const char **argv, void *setdata)
+{
+    if (argv == NULL || argv[0] == NULL) {
+        return 0;
+    }
+    return ci_shared_mem_set_scheme(argv[0]);
+}
+
+int cfg_proc_lock_scheme(const char *directive, const char **argv, void *setdata)
+{
+    if (argv == NULL || argv[0] == NULL) {
+        return 0;
+    }
+    return ci_proc_mutex_set_scheme(argv[0]);
 }
 
 /**************************************************************************/

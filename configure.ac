@@ -485,41 +485,6 @@ if test a"$libldap" != "ano"; then
    fi
 fi
 
-FORCE_IPC_MUTEX=0
-FORCE_POSIX_MUTEX=0
-FORCE_FILE_MUTEX=0
-process_mutexes=none
-AC_ARG_WITH(process-mutexes,
-[  --with-process-mutexes        Process mutexes scheme to use: ipc, posix or file ],
-[ case "$withval" in
-    ipc)
-         if test a"$sysvipc" = "no"; then
-            AC_MSG_WARN([--enable-sysvipc set to 'no' but --with-process-mutexes needs sysv IPC!]);
-            exit -1;
-         fi
-         FORCE_IPC_MUTEX=1
-         process_mutexes=ipc
-    ;;
-    posix)
-        FORCE_POSIX_MUTEX=1
-        process_mutexes=posix
-    ;;
-    file)
-        FORCE_FILE_MUTEX=1
-        process_mutexes=file
-    ;;
-    * )
-        AC_MSG_WARN([Use ipc, posix or file with --with-process-mutexes argument!])
-        exit -1;
-    ;;
-  esac
-],
-)
-AC_SUBST(FORCE_IPC_MUTEX)
-AC_SUBST(FORCE_POSIX_MUTEX)
-AC_SUBST(FORCE_FILE_MUTEX)
-
-
 # Check for header files
 AC_HEADER_STDC
 AC_CHECK_HEADERS(strings.h unistd.h sys/stat.h)
@@ -538,26 +503,6 @@ INTTYPES_H="1"
 ]
 )
 AC_SUBST(INTTYPES_H)
-
-#sysv ipc
-SYSV_IPC="0"
-AC_CHECK_HEADERS(sys/ipc.h,
-[AC_DEFINE(HAVE_SYSV_IPC,1,[Define HAVE_SYSV_IPC if sys/ipc.h exists (maybe more tests needed)])
-SYSV_IPC="1"
-]
-)
-
-if test "a$SYSV_IPC" = "a1"; then
-   AC_MSG_CHECKING([whether SYSV IPC should prefered as locking/shared memory mechanism])
-   if test "a$sysvipc" = "ayes"; then
-      SYSV_IPC="1"
-      AC_MSG_RESULT(yes)
-   else
-      SYSV_IPC="0"
-      AC_MSG_RESULT(no)
-   fi
-fi
-AC_SUBST(SYSV_IPC)
 
 AC_CHECK_HEADERS(regex.h,
 AC_DEFINE(HAVE_REGEX,1,[Define HAVE_REGEX if regex.h exists (posix regular expressions - maybe more tests needed)])
@@ -612,6 +557,7 @@ DEFINE_SIZEOFF_LONG_LONG=$ac_cv_sizeof_long_long
 # Checks for library functions.
 
 #Here we are changing the LIBS variable and save the current value to OLD_LIBS variable
+EXTRALIBS=""
 OLD_LIBS="$LIBS"
 LIBS="$LIBS $TEST_LIBS"
 
@@ -637,6 +583,15 @@ AC_CHECK_FUNCS(strncasestr,
 AC_DEFINE(HAVE_STRNCASESTR,1,[Define HAVE_STRNCASESTR if strncasestr exists])
 )
 
+#sysv ipc
+SYSV_IPC="0"
+AC_CHECK_HEADERS(sys/ipc.h,
+[AC_DEFINE(HAVE_SYSV_IPC,1,[Define HAVE_SYSV_IPC if sys/ipc.h exists (maybe more tests needed)])
+SYSV_IPC="1"
+]
+)
+AC_SUBST(SYSV_IPC)
+
 POSIX_MAPPED_FILES="0"
 AC_CHECK_FUNCS(mmap munmap,
 [AC_DEFINE(HAVE_POSIX_MAPPED_FILES,1,[Define HAVE_POSIX_MAPPED_FILES if mmap and munmap exists])
@@ -659,9 +614,9 @@ AC_MSG_RESULT(yes),
 AC_MSG_RESULT(no),
 )
 
-if test a"$process_mutexes" = a"none"; then
-   dnl Checking if interprocess posix semaphores works....
-   AC_CACHE_CHECK([if posix 1003.1b interprocess semaphores works], ac_cv_10031b_ipc_sem,
+
+dnl Checking if interprocess posix semaphores works....
+AC_CACHE_CHECK([if posix 1003.1b interprocess semaphores works], ac_cv_10031b_ipc_sem,
    [AC_TRY_RUN([
    #include <semaphore.h>
    #include <sys/wait.h>
@@ -692,18 +647,20 @@ if test a"$process_mutexes" = a"none"; then
    [AC_MSG_ERROR([cross-compiling,
 	setting --with-process-mutexes or presetting ac_cv_10031b_ipc_sem=(yes|no) will help])]
         )
-   ])
-   AS_IF(
+   ]
+)
+
+AS_IF(
       [test $ac_cv_10031b_ipc_sem = yes],
       [AC_DEFINE(HAVE_POSIX_SEMAPHORES,1,[Define HAVE_POSIX_SEMAPHORES if posix 1003.1b semaphores works])
       POSIX_SEMAPHORES="1"
       ],[
-      POSIX_SEMAPHORES="0"
-   ])
-   AC_SUBST(POSIX_SEMAPHORES)
+      POSIX_SEMAPHORES="0"]
+)
+AC_SUBST(POSIX_SEMAPHORES)
 
-   dnl Checking for file locking
-   AC_CACHE_CHECK([if fcntl file locking works], ac_cv_fcntl,
+dnl Checking for file locking
+AC_CACHE_CHECK([if fcntl file locking works], ac_cv_fcntl,
    [AC_TRY_RUN([
    #include <unistd.h>
    #include <fcntl.h>
@@ -731,19 +688,54 @@ if test a"$process_mutexes" = a"none"; then
    ac_cv_fcntl=yes,
    ac_cv_fcntl=no,
    [AC_MSG_ERROR([cross-compiling,
-	setting --with-process-mutexes or presetting ac_cv_fcntl=(yes|no) will help])]
+	presetting ac_cv_fcntl=(yes|no) will help])]
         )
-   ])
-   AS_IF(
+   ]
+)
+
+AS_IF(
         [test $ac_cv_fcntl = yes],
         [AC_DEFINE(HAVE_POSIX_FILE_LOCK,1,[Define HAVE_POSIX_FILE_LOCK if posix fcntl file locking works])
         POSIX_FILE_LOCK="1"
         ],[
         POSIX_FILE_LOCK="0"
-   ])
-   AC_SUBST(POSIX_FILE_LOCK)
+   ]
+)
+AC_SUBST(POSIX_FILE_LOCK)
 
+AC_MSG_CHECKING([if posix shared mem works])
+AC_TRY_COMPILE(
+[
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+], 
+[int fd = shm_open("foo", O_CREAT|O_RDWR, S_IRUSR | S_IWUSR);
+  if (fd < 0)
+      return 0;
+  if (shm_unlink("foo") < 0)
+      return 0;
+],
+AC_DEFINE(HAVE_POSIX_SHARED_MEM, 1, [Define HAVE_POSIX_SHARED_MEM if shm_open/shm_unlink functions implemented])
+[AC_MSG_RESULT(yes)
+POSIX_SHARED_MEM="1"
+], 
+[AC_MSG_RESULT(no)
+POSIX_SHARED_MEM="0"
+],
+)
+if test a"$POSIX_SHARED_MEM" = "a1"; then
+# Linux and solaris define the shm_open in -rt library.
+# This library already included in LIBS for solaris
+case "$target_os" in
+     linux*)
+        EXTRALIBS="$EXTRALIBS -lrt"
+     ;;
+     *)
+esac
 fi
+
+AC_SUBST(POSIX_SHARED_MEM)
 
 #pthread_rwlock
 PTHREADS_RWLOCK="0"
@@ -760,6 +752,7 @@ AC_SUBST(PTHREADS_RWLOCK)
 
 #We are pouting back real LIBS variable
 LIBS=$OLD_LIBS
+LIBS="$LIBS $EXTRALIBS"
 
 #Configure common flags
 MODULES_LIBADD=""

@@ -127,7 +127,7 @@ int create_childs_queue(struct childs_queue *q, int size)
                           + q->stats_block_size /*Server history  stats area*/
                           + sizeof(struct server_statistics); /*Server general statistics*/
      if ((q->childs =
-          ci_shared_mem_create(&(q->shmid), q->shared_mem_size)) == NULL) {
+          ci_shared_mem_create(&(q->shmid), "kids-queue", q->shared_mem_size)) == NULL) {
           log_server(NULL, "can't get shared memory!");
           return 0;
      }
@@ -158,9 +158,9 @@ int create_childs_queue(struct childs_queue *q, int size)
      q->srv_stats->closed_childs = 0;
      q->srv_stats->crashed_childs = 0;
 
-     if ((ret = ci_proc_mutex_init(&(q->queue_mtx))) == 0) {
+     if ((ret = ci_proc_mutex_init(&(q->queue_mtx), "children-queue")) == 0) {
          /*Release shared mem which is allocated */
-          ci_shared_mem_destroy(&(q->shmid), q->childs);
+          ci_shared_mem_destroy(&(q->shmid));
           log_server(NULL, "can't create children queue semaphore!");
           return 0;
      }
@@ -188,7 +188,7 @@ int dettach_childs_queue(struct childs_queue *q)
 {
 
      ci_proc_mutex_lock(&(q->queue_mtx));       //Not really needed .........
-     if (ci_shared_mem_detach(&(q->shmid), q->childs) == 0) {
+     if (ci_shared_mem_detach(&(q->shmid)) == 0) {
           log_server(NULL, "can't dettach shared memory!");
           ci_proc_mutex_unlock(&(q->queue_mtx));
           return 0;
@@ -204,7 +204,7 @@ int destroy_childs_queue(struct childs_queue *q)
 
      ci_proc_mutex_lock(&(q->queue_mtx));       //Not really needed .........
 
-     if (!ci_shared_mem_destroy(&(q->shmid), q->childs)) {
+     if (!ci_shared_mem_destroy(&(q->shmid))) {
           log_server(NULL, "can't destroy shared memory!");
           ci_proc_mutex_unlock(&(q->queue_mtx));
           return 0;

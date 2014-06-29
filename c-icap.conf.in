@@ -102,6 +102,22 @@ ThreadsPerChild     10
 #	MaxRequestsPerChild  0
 MaxRequestsPerChild  0
 
+# TAG: InterProcessSharedMemScheme
+# Format: InterProcessSharedMemScheme posix | mmap | sysv
+# Description:
+#	The interprocess shared mem scheme to use. Available schemes:
+#	posix Use posix shared memory (shm_open interface)
+#	mmap  Use anonymous mmaped files as shared memory
+#	sysv  use the sysv ipc shared memory
+
+# TAG: InterProcessLockingScheme
+# Format: InterProcessSharedMemScheme posix | file | sysv
+# Description:
+#	The interprocess locking scheme to use. Available schemes:
+#	posix Use posix semaphores
+#       file  Use lock file
+#       sysv  use the sysv ipc semaphores
+
 # TAG: Port
 # Format: Port port
 # Description:

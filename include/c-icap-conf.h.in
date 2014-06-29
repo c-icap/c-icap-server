@@ -20,22 +20,18 @@
 #define USE_POSIX_MAPPED_FILES
 #endif
 
-#if @FORCE_IPC_MUTEX@
-# define USE_SYSV_IPC_MUTEX
-#elif @FORCE_POSIX_MUTEX@
-# define USE_POSIX_SEMAPHORES
-#elif @FORCE_FILE_MUTEX@
-# define USE_POSIX_FILE_LOCK
-#else
-# if @SYSV_IPC@
+#if @POSIX_SHARED_MEM@
+#define USE_POSIX_SHARED_MEM
+#endif
+
+#if @SYSV_IPC@
 #   define USE_SYSV_IPC_MUTEX
-# endif
-# if @POSIX_FILE_LOCK@
+#endif
+#if @POSIX_FILE_LOCK@
 #  define USE_POSIX_FILE_LOCK
-# endif
-# if @POSIX_SEMAPHORES@
+#endif
+#if @POSIX_SEMAPHORES@
 #  define USE_POSIX_SEMAPHORES
-# endif
 #endif
 
 #if @PTHREADS_RWLOCK@

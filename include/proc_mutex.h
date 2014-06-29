@@ -25,11 +25,14 @@
 #if defined (USE_SYSV_IPC_MUTEX)
 #include <sys/ipc.h>
 #include <sys/sem.h>
-#elif defined (USE_POSIX_SEMAPHORES)
+#endif
+#if defined (USE_POSIX_SEMAPHORES)
 #include <semaphore.h>
-#elif defined (USE_POSIX_FILE_LOCK)
+#endif
+#if defined (USE_POSIX_FILE_LOCK)
 #include <fcntl.h>
-#elif defined (_WIN32)
+#endif
+#if defined (_WIN32)
 #include <windows.h>
 #endif
 
@@ -38,39 +41,58 @@ extern "C"
 {
 #endif
 
-#if defined (USE_SYSV_IPC_MUTEX)
+typedef struct ci_proc_mutex ci_proc_mutex_t;
 
-#define ci_proc_mutex_t int
+typedef struct ci_proc_mutex_scheme {
+    int (*proc_mutex_init)(ci_proc_mutex_t *mutex, const char *name);
+    int (*proc_mutex_destroy)(ci_proc_mutex_t *mutex);
+    int (*proc_mutex_lock)(ci_proc_mutex_t *mutex);
+    int (*proc_mutex_unlock)(ci_proc_mutex_t *mutex);
+    int (*proc_mutex_print_info)(ci_proc_mutex_t *mutex, char *buf, size_t buf_size);
+    const char *name;
+} ci_proc_mutex_scheme_t;
 
-#elif defined (USE_POSIX_SEMAPHORES)
+#define CI_PROC_MUTEX_NAME_SIZE 64
 
-#define CI_PROC_MUTEX_NAME_SIZE 25
-#define CI_PROC_MUTEX_NAME_TMPL "c-icap.mutex."
-typedef struct ci_proc_mutex {
+struct ci_proc_mutex {
     char name[CI_PROC_MUTEX_NAME_SIZE];
-    sem_t *sem;
-} ci_proc_mutex_t;
 
-#elif defined (USE_POSIX_FILE_LOCK)
+#if defined(_WIN32)
 
-#define FILE_LOCK_SIZE 25
-#define FILE_LOCK_TEMPLATE "/tmp/icap_lock.XXXXXX"
+    HANDLE id;
 
-typedef struct ci_proc_mutex{
-     char filename[FILE_LOCK_SIZE];
-     int fd;
-} ci_proc_mutex_t;
+#else
 
-#elif defined (_WIN32)
-
-#define ci_proc_mutex_t HANDLE
+    const ci_proc_mutex_scheme_t *scheme;
+    union {
+#if defined(USE_SYSV_IPC_MUTEX)
+        struct {
+            int id;
+        } sysv;
+#endif
+#if defined(USE_POSIX_SEMAPHORES)
+        struct {
+            sem_t *sem;
+        } posix;
+#endif
+#if defined(USE_POSIX_FILE_LOCK)
+        struct {
+            int fd;
+        } file;
+#endif
+    };
 
 #endif
+};
 
-CI_DECLARE_FUNC(int) ci_proc_mutex_init(ci_proc_mutex_t *mutex);
+CI_DECLARE_FUNC(int) ci_proc_mutex_init(ci_proc_mutex_t *mutex, const char *name);
 CI_DECLARE_FUNC(int) ci_proc_mutex_lock(ci_proc_mutex_t *mutex);
 CI_DECLARE_FUNC(int) ci_proc_mutex_unlock(ci_proc_mutex_t *mutex);
 CI_DECLARE_FUNC(int) ci_proc_mutex_destroy(ci_proc_mutex_t *mutex);
+
+CI_DECLARE_FUNC(int) ci_proc_mutex_set_scheme(const char *scheme);
+CI_DECLARE_FUNC(const ci_proc_mutex_scheme_t *) ci_proc_mutex_default_scheme();
+
 
 #ifdef __cplusplus
 }

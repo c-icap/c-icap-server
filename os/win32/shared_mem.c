@@ -25,7 +25,7 @@
 
 
 
-void *ci_shared_mem_create(ci_shared_mem_id_t * id, int size)
+void *ci_shared_mem_create(ci_shared_mem_id_t * id, const char *name, int size)
 {
      HANDLE hMapFile;
      LPVOID lpMapAddress;
@@ -63,7 +63,10 @@ void *ci_shared_mem_create(ci_shared_mem_id_t * id, int size)
           return NULL;
      }
 
-     *id = hMapFile;
+     strncpy(id->name, name, CI_SHARED_MEM_NAME_SIZE);
+     id->size = size;
+     id->id = hMapFile;
+     id->mem = lpMapAddress;
      return lpMapAddress;
 }
 
@@ -71,7 +74,7 @@ void *ci_shared_mem_create(ci_shared_mem_id_t * id, int size)
 void *ci_shared_mem_attach(ci_shared_mem_id_t * id)
 {
      LPVOID lpMapAddress;
-     lpMapAddress = MapViewOfFile(*id,  // handle to mapping object 
+     lpMapAddress = MapViewOfFile(id->id,  // handle to mapping object 
                                   FILE_MAP_ALL_ACCESS,  // read/write permission 
                                   0,    // max. object size 
                                   0,    // size of hFile 
@@ -80,23 +83,25 @@ void *ci_shared_mem_attach(ci_shared_mem_id_t * id)
      if (lpMapAddress == NULL) {
           ci_debug_printf(1, "Could not map view of file.(error:%d)\n",
                           GetLastError());
-          CloseHandle(*id);
+          CloseHandle(id->id);
           return NULL;
      }
+
+     id->mem = lpMapAddress;
      return lpMapAddress;
 }
 
-int ci_shared_mem_detach(ci_shared_mem_id_t * id, void *shmem)
+int ci_shared_mem_detach(ci_shared_mem_id_t * id)
 {
-     CloseHandle(*id);
-     UnmapViewOfFile(shmem);
+     CloseHandle(id->id);
+     UnmapViewOfFile(id->mem);
      return 1;
 }
 
 
-int ci_shared_mem_destroy(ci_shared_mem_id_t * id, void *shmem)
+int ci_shared_mem_destroy(ci_shared_mem_id_t * id)
 {
-     CloseHandle(*id);
-     UnmapViewOfFile(shmem);
+     CloseHandle(id->id);
+     UnmapViewOfFile(id->mem);
      return 1;
 }

@@ -32,26 +32,52 @@ extern "C"
 {
 #endif
 
-#ifdef USE_SYSV_IPC
+typedef struct ci_shared_mem_id ci_shared_mem_id_t;
 
-#define ci_shared_mem_id_t int
+typedef struct ci_shared_mem_scheme {
+    void *(*shared_mem_create)(ci_shared_mem_id_t *id, const char *name, int size);
+    void *(*shared_mem_attach)(ci_shared_mem_id_t *id);
+    int (*shared_mem_detach)(ci_shared_mem_id_t *id);
+    int (*shared_mem_destroy)(ci_shared_mem_id_t *id);
+    int (*shared_mem_print_info)(ci_shared_mem_id_t *id, char *buf, size_t buf_size);
+    const char *name;
+} ci_shared_mem_scheme_t;
 
-#elif defined (USE_POSIX_MAPPED_FILES)
 
-typedef struct ci_shared_mem_id {
-     char *mem;
-     int size;
-} ci_shared_mem_id_t;
+#define CI_SHARED_MEM_NAME_SIZE 64
+struct ci_shared_mem_id {
+    char name[CI_SHARED_MEM_NAME_SIZE];
+    void *mem;
+    size_t size;
 
+#if defined (_WIN32)
+    HANDLE id;
+#else
 
-#elif defined (_WIN32)
-#define ci_shared_mem_id_t HANDLE
+    const ci_shared_mem_scheme_t *scheme;
+    union{
+#if defined (USE_POSIX_SHARED_MEM)
+        struct posix{
+            int fd;
+        } posix;
 #endif
+#if defined (USE_SYSV_IPC)
+        struct sysv{
+            int id;
+        } sysv;
+#endif
+        int id_;
+    };
+#endif
+};
 
-CI_DECLARE_FUNC(void) *ci_shared_mem_create(ci_shared_mem_id_t *id,int size);
+CI_DECLARE_FUNC(void) *ci_shared_mem_create(ci_shared_mem_id_t *id, const char *name, int size);
 CI_DECLARE_FUNC(void) *ci_shared_mem_attach(ci_shared_mem_id_t *id);
-CI_DECLARE_FUNC(int)   ci_shared_mem_detach(ci_shared_mem_id_t *id,void *shmem);
-CI_DECLARE_FUNC(int)   ci_shared_mem_destroy(ci_shared_mem_id_t *id,void *shmem);
+CI_DECLARE_FUNC(int) ci_shared_mem_detach(ci_shared_mem_id_t *id);
+CI_DECLARE_FUNC(int) ci_shared_mem_destroy(ci_shared_mem_id_t *id);
+
+
+CI_DECLARE_FUNC(int) ci_shared_mem_set_scheme(const char *name);
 
 #ifdef __cplusplus
 }

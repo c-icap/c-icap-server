@@ -240,8 +240,9 @@ struct stats_tmpl {
    char *childs_tmpl;
    char *childsEnd;
    char *closingChildsHeader;
-   char *semaphores_tmpl;
-   char *sharedMem_tmpl;
+   char *d1TableHeader_tmpl;
+   char *d1TableEntry_tmpl;
+   char *d1TableEnd_tmpl;
    char *statline_tmpl_int;
    char *statline_tmpl_kbs;
 };
@@ -258,8 +259,9 @@ struct stats_tmpl txt_tmpl = {
   " %d",
   "\n",
   "Closing children pids:",
-  "%s semaphores in use: %s\n",
-  "%s shared mem in use: %s\n",
+  "%s\n",
+  "\t %s\n",
+  "\n\n",
   "%s : %lld\n",
   "%s : %lld Kbs %d bytes\n"
 };
@@ -281,8 +283,9 @@ struct stats_tmpl html_tmpl = {
   "<TD> %d</TD>",
   "</TR></TABLE>\n",
   "<TABLE> <TR><TH>Closing children pids:</TH>",
-  "<TR><TH>%s semaphores in use:</TH><TD>%s</TD>\n",
-  "<TR><TH>%s shared mem in use:</TH><TD>%s</TD>\n",
+  "<TABLE> <TR><TH>%s</TH></TR>\n",
+  "<TR><TD>%s</TD></TR>\n",
+  "</TABLE>\n",
   "<TR><TH>%s:</TH><TD>  %lld</TD>\n",
   "<TR><TH>%s:</TH><TD>  %lld Kbs %d bytes</TD>\n"
 };
@@ -341,32 +344,35 @@ int build_statistics(struct info_req_data *info_data)
      } 
      ci_membuf_write(info_data->body, tmpl->childsEnd, strlen(tmpl->childsEnd), 0);
 
-     /*Print semaphores*/ /*Print shared mem info*/
-#if defined(USE_SYSV_IPC_MUTEX)
-     snprintf(buf2, LOCAL_BUF_SIZE, "%d %d", accept_mutex, childs_queue->queue_mtx);
-     sz = snprintf(buf, LOCAL_BUF_SIZE, tmpl->semaphores_tmpl, "IPC", buf2);
-#elif defined(USE_POSIX_SEMAPHORES)
-     snprintf(buf2, LOCAL_BUF_SIZE, "%p %p", &accept_mutex, &childs_queue->queue_mtx);
-     sz = snprintf(buf, LOCAL_BUF_SIZE, tmpl->semaphores_tmpl, "POSIX", buf2);
-#elif defined(USE_POSIX_FILE_LOCK)
-     snprintf(buf2, LOCAL_BUF_SIZE, "%s %s", accept_mutex.filename, &childs_queue->queue_mtx.filename);
-     sz = snprintf(buf, LOCAL_BUF_SIZE, tmpl->semaphores_tmpl, "Lockfile", buf2);
-#else
-     sz = snprintf(buf, LOCAL_BUF_SIZE, tmpl->sharedMem_tmpl, "Unknown", "Unknown");
-#endif
+     /*Print semaphores*/
+     sz = snprintf(buf, LOCAL_BUF_SIZE, tmpl->d1TableHeader_tmpl, "Semaphores in use");
+     if (sz > LOCAL_BUF_SIZE) 
+              sz = LOCAL_BUF_SIZE;
      ci_membuf_write(info_data->body,buf, sz, 0);
 
-/*Print shared mem*/
-#if defined(USE_SYSV_IPC)
-     snprintf(buf2, LOCAL_BUF_SIZE, "%d %d kbs", childs_queue->shmid, (childs_queue->shared_mem_size/1024));
-     sz = snprintf(buf, LOCAL_BUF_SIZE, tmpl->sharedMem_tmpl, "IPC", buf2);
-#elif defined(USE_POSIX_MAPPED_FILES)
-     snprintf(buf2, LOCAL_BUF_SIZE, "%p %d Kbs", childs_queue->shmid.mem, (childs_queue->shmid.size/1024));
-     sz = snprintf(buf, LOCAL_BUF_SIZE, tmpl->sharedMem_tmpl, "MMAP", buf2);
-#else
-     sz = snprintf(buf, LOCAL_BUF_SIZE, tmpl->sharedMem_tmpl, "Unknown", "Unknown");
-#endif
+     accept_mutex.scheme->proc_mutex_print_info(&accept_mutex, buf2, LOCAL_BUF_SIZE);
+     sz = snprintf(buf, LOCAL_BUF_SIZE, tmpl->d1TableEntry_tmpl, buf2);
      ci_membuf_write(info_data->body,buf, sz, 0);
+
+     childs_queue->queue_mtx.scheme->proc_mutex_print_info(&childs_queue->queue_mtx, buf2, LOCAL_BUF_SIZE);
+     sz = snprintf(buf, LOCAL_BUF_SIZE, tmpl->d1TableEntry_tmpl, buf2);
+     ci_membuf_write(info_data->body,buf, sz, 0);
+
+     ci_membuf_write(info_data->body, tmpl->d1TableEnd_tmpl, strlen(tmpl->d1TableEnd_tmpl), 0);
+
+/*Print shared mem*/
+     sz = snprintf(buf, LOCAL_BUF_SIZE, tmpl->d1TableHeader_tmpl, "Shared mem blocks in use");
+     if (sz > LOCAL_BUF_SIZE) 
+         sz = LOCAL_BUF_SIZE;
+     ci_membuf_write(info_data->body,buf, sz, 0);
+
+     if (childs_queue->shmid.scheme) {
+         
+         childs_queue->shmid.scheme->shared_mem_print_info(&childs_queue->shmid, buf2, LOCAL_BUF_SIZE);
+         sz = snprintf(buf, LOCAL_BUF_SIZE, tmpl->d1TableEntry_tmpl, buf2);
+         ci_membuf_write(info_data->body,buf, sz, 0);
+     }
+     ci_membuf_write(info_data->body, tmpl->d1TableEnd_tmpl, strlen(tmpl->d1TableEnd_tmpl), 0);
 
 
      for (gid = 0; gid < STAT_GROUPS.entries_num; gid++) {

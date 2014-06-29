@@ -24,9 +24,11 @@
 #include "proc_mutex.h"
 #include <tchar.h>
 
-int ci_proc_mutex_init(ci_proc_mutex_t * mutex)
+int ci_proc_mutex_init(ci_proc_mutex_t * mutex, const char *name)
 {
-     if ((*mutex = CreateMutex(NULL, FALSE, NULL)) == NULL) {
+     snprintf(mutex->name, CI_PROC_MUTEX_NAME_SIZE, "Local\%s", name);
+     /*TODO: use named mutex*/
+     if ((mutex->id = CreateMutex(NULL, FALSE, NULL)) == NULL) {
           ci_debug_printf(1, "Error creating mutex:%d\n", GetLastError());
           return 0;
      }
@@ -35,18 +37,18 @@ int ci_proc_mutex_init(ci_proc_mutex_t * mutex)
 
 int ci_proc_mutex_destroy(ci_proc_mutex_t * mutex)
 {
-     CloseHandle(*mutex);
+     CloseHandle(mutex->id);
      return 1;
 }
 
 int ci_proc_mutex_lock(ci_proc_mutex_t * mutex)
 {
-     WaitForSingleObject(*mutex, INFINITE);
+     WaitForSingleObject(mutex->id, INFINITE);
      return 1;
 }
 
 int ci_proc_mutex_unlock(ci_proc_mutex_t * mutex)
 {
-     ReleaseMutex(*mutex);
+     ReleaseMutex(mutex->id);
      return 1;
 }
