@@ -485,6 +485,45 @@ if test a"$libldap" != "ano"; then
    fi
 fi
 
+# Detect memcached library
+libmemcached="yes"
+libmemcachedpath=""
+AC_ARG_WITH(memcached,
+[  --with-memcached        Where to find Memcached library ],
+[ case "$withval" in
+    yes)
+         libmemcached="yes"
+    ;;
+    no )
+        libmemcached="no"
+    ;;
+    * )
+        libmemcachedpath=$withval
+        libmemcached="yes"
+    ;;
+  esac
+],
+)
+
+if test a"$libmemcached" != "ano"; then
+    OLDCPPFLAGS=$CPPFLAGS
+    OLDCXXFLAGS=$CXXFLAGS
+    if test a"$libmemcachedpath" != "a"; then
+       CPPFLAGS="-l$libmemcachedpath/include $CPPFLAGS"
+       CXXFLAGS="-l$libmemcachedpath/include $CXXFLAGS"
+       MEMCACHED_LDFLAGS="-L$libmemcachedpath/lib"
+       MEMCACHED_CFLAGS="-I$libmemcachedpath/include"
+    fi
+
+    AC_CHECK_HEADERS(libmemcached/memcached.h, [libmemcached="yes"],[libmemcached="no"])
+    CPPFLAGS=$OLDCPPFLAGS
+    CXXFLAGS=$OLDCXXFLAGS
+fi
+
+AC_SUBST(MEMCACHED_LDFLAGS)
+AC_SUBST(MEMCACHED_CFLAGS)
+
+
 # Check for header files
 AC_HEADER_STDC
 AC_CHECK_HEADERS(strings.h unistd.h sys/stat.h)
@@ -771,6 +810,7 @@ AM_CONDITIONAL(ISCYGWIN,[test a"$iscygwin" != a])
 AM_CONDITIONAL(USEPERL,[test a"$perlcore" != a])
 AM_CONDITIONAL(USEBDB,   [test a"$libdb" != ano])
 AM_CONDITIONAL(USELDAP, [test a"$libldap" != ano])
+AM_CONDITIONAL(USEMEMCACHED, [test a"$libmemcached" != ano])
 
 AC_OUTPUT([
 include/c-icap-conf.h Makefile c-icap.conf utils/Makefile services/Makefile 

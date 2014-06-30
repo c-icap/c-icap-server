@@ -15,6 +15,10 @@ if USELDAP
 pkglib_LTLIBRARIES += ldap_module.la
 endif
 
+if USEMEMCACHED
+pkglib_LTLIBRARIES += memcached_cache.la
+endif
+
 INCLUDES = -I$(top_srcdir)
 
 sys_logger_la_LIBADD = @MODULES_LIBADD@
@@ -43,5 +47,8 @@ ldap_module_la_CFLAGS=  @MODULES_CFLAGS@ -I../include/ @LDAP_ADD_FLAG@
 ldap_module_la_LDFLAGS= -module -avoid-version
 ldap_module_la_SOURCES = ldap_module.c
 
-
+memcached_cache_la_LIBADD= -lmemcached -lmemcachedutil
+memcached_cache_la_CFLAGS= @MEMCACHED_CFLAGS@ -I../include/
+memcached_cache_la_LDFLAGS= -module -avoid-version @MEMCACHED_LDFLAGS@
+memcached_cache_la_SOURCES= memcached.c
 

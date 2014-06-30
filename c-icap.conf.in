@@ -702,3 +702,26 @@ Service echo srv_echo.so
 #	Module common ldap_module.so
 
 # End module: ldap_module
+
+# Module: memcached
+# Description:
+#       Add support for memcached c-icap cache.
+# Example:
+#       Module common memcached.so
+
+# TAG: memcached.servers
+# Format: memcached.servers hostname1 hostname2 ...
+# Description:
+#	Set the memcached servers to use
+# Default:
+#	memcached.servers 127.0.0.1
+
+# TAG: memcached.use_md5_keys
+# Format: memcached.use_md5_keys on|off
+# Description:
+#	Whether to use or not md5 hash as key when the key exceeds the
+#	MEMCACHED_MAX_KEY (normaly 251 bytes)
+# Default:
+#	memcached.use_md5_keys on
+
+# End module: memcached
