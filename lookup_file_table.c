@@ -258,7 +258,6 @@ void *file_table_open(struct ci_lookup_table *table)
     return (table->data=NULL);
   }
   text_table->hash_table = NULL;
-  text_table->rows = 0;
   return text_table;
 }
 
@@ -345,6 +344,7 @@ void *hash_table_open(struct ci_lookup_table *table)
 	return NULL;
 
     /* build the hash table*/
+    ci_debug_printf(7, "Will build a hash for %d rows of data\n", text_table->rows);
     text_table->hash_table = ci_hash_build(text_table->rows, 
 					   table->key_ops, 
 					   table->allocator);

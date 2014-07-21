@@ -61,6 +61,7 @@ struct ci_hash_table * ci_hash_build(unsigned int hash_size,
 	    new_hash_size = (new_hash_size << 1) -1;
 	}
     }
+    ci_debug_printf(5, "Build hash table of size: %d, memallocated:%d\n", new_hash_size, (new_hash_size+1)*sizeof(struct ci_hash_entry *));
     htable->hash_table=allocator->alloc(allocator, (new_hash_size+1)*sizeof(struct ci_hash_entry *));
     if(!htable->hash_table) {
 	allocator->free(allocator, htable);
