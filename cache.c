@@ -179,17 +179,24 @@ void ci_cache_destroy(struct ci_cache *cache)
 
 void *ci_cache_search(struct ci_cache *cache,void *key, void **val, ci_mem_allocator_t *val_allocator) {
     struct ci_cache_entry *e;
+    time_t current_time;
     unsigned int hash=ci_hash_compute(cache->hash_table_size, key, cache->key_ops->size(key));
     
     assert(hash <= cache->hash_table_size);
 
     common_mutex_lock(&cache->mtx);
     e=cache->hash_table[hash];
+    *val = NULL;
     while(e != NULL) {
 	ci_debug_printf(10," \t\t->>>>Val %s\n",(char *)e->val);
 	ci_debug_printf(10," \t\t->>>>compare %s ~ %s\n",(char *)e->key, (char *)key);
 	if(cache->key_ops->compare(e->key, key) == 0) {
-	    *val = cache->copy_from(e->val, e->val_size, val_allocator);
+            current_time = ci_internal_time();
+            if ((current_time - e->time) < cache->ttl) /*if expired*/
+                key = NULL;
+            else if (e->val_size) {
+                *val = cache->copy_from(e->val, e->val_size, val_allocator);
+            }
 	    common_mutex_unlock(&cache->mtx);
 	    return key;
 	}
@@ -272,8 +279,10 @@ int ci_cache_update(struct ci_cache *cache, void *key, void *val) {
 	    return 0;
 	}
     }
-    else
+    else {
 	e->val = NULL;
+        e->val_size = 0;
+    }
 
     e->hash = hash;
     e->time = current_time;
