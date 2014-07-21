@@ -208,7 +208,7 @@ size_t ci_buffer_blocksize(const void *data)
     size_t buffer_block_size = 0;
     block = (const struct mem_buffer_block *)(data-PTR_OFFSET);
     if (block->sig != BUF_SIGNATURE) {
-        ci_debug_printf(1,"ci_buffer_blocksize: ERROR, not internal buffer. This is a bug!!!!");
+        ci_debug_printf(1,"ci_buffer_blocksize: ERROR, %p is not internal buffer. This is a bug!!!!\n", data);
         return 0;
     }
 
@@ -238,7 +238,7 @@ void * ci_buffer_realloc(void *data, int block_size)
 
     block = (struct mem_buffer_block *)(data-PTR_OFFSET);
     if (block->sig != BUF_SIGNATURE) {
-        ci_debug_printf(1,"ci_buffer_realloc: ERROR, not internal buffer. This is a bug!!!!");
+        ci_debug_printf(1,"ci_buffer_realloc: ERROR, %p is not internal buffer. This is a bug!!!!\n", data);
         return NULL;
     }
 
@@ -274,7 +274,7 @@ void ci_buffer_free(void *data) {
 
     block = (struct mem_buffer_block *)(data-PTR_OFFSET);
     if (block->sig != BUF_SIGNATURE) {
-        ci_debug_printf(1,"ci_mem_buffer_free: ERROR, not internal buffer. This is a bug!!!!");
+        ci_debug_printf(1,"ci_buffer_free: ERROR, %p is not internal buffer. This is a bug!!!!\n", data);
         return;
     }
     block_size = block->ID; 
@@ -387,11 +387,11 @@ void ci_object_pool_free(void *ptr)
 {
     struct mem_buffer_block *block = (struct mem_buffer_block *)(ptr-PTR_OFFSET);
     if (block->sig != OBJ_SIGNATURE) {
-        ci_debug_printf(1,"ci_mem_buffer_free: ERROR, not internal buffer. This is a bug!!!!\n");
+        ci_debug_printf(1,"ci_object_pool_free: ERROR, %p is not internal buffer. This is a bug!!!!\n", ptr);
         return;
     }
     if(block->ID > object_pools_used || block->ID < 0 || !object_pools[block->ID]) {
-	ci_debug_printf(1,"ci_mem_buffer_free: ERROR, corrupted mem? This is a bug!!!!\n");
+	ci_debug_printf(1,"ci_object_pool_free: ERROR, %p is pointing to corrupted mem? This is a bug!!!!\n", ptr);
 	return;
     }
     ci_debug_printf(8, "Storing to objects pool object %d\n", block->ID);
