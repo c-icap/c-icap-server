@@ -195,6 +195,7 @@ void *bdb_table_search(struct ci_lookup_table *table, void *key, void ***vals)
     db_key.data = key;
     db_key.size = table->key_ops->size(key);
 
+    db_data.flags = DB_DBT_USERMEM;
     db_data.data = ci_buffer_alloc(DATA_SIZE);
     db_data.size = DATA_SIZE;
 
