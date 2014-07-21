@@ -44,7 +44,12 @@ extern "C"
 
 #elif defined (USE_POSIX_SEMAPHORES)
 
-#define ci_proc_mutex_t sem_t
+#define CI_PROC_MUTEX_NAME_SIZE 25
+#define CI_PROC_MUTEX_NAME_TMPL "c-icap.mutex."
+typedef struct ci_proc_mutex {
+    char name[CI_PROC_MUTEX_NAME_SIZE];
+    sem_t *sem;
+} ci_proc_mutex_t;
 
 #elif defined (USE_POSIX_FILE_LOCK)
 

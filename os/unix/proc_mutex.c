@@ -55,12 +55,12 @@ int ci_proc_mutex_init(ci_proc_mutex_t * mutex)
 {
      union semun arg;
      if ((*mutex = semget(IPC_PRIVATE, 1, IPC_CREAT | PERMS)) < 0) {
-          ci_debug_printf(1, "Error creating mutex");
+          ci_debug_printf(1, "Error creating mutex\n");
           return 0;
      }
      arg.val = 0;
      if ((semctl(*mutex, 0, SETVAL, arg)) < 0) {
-          ci_debug_printf(1, "Error setting default value for mutex, errno:%d",
+          ci_debug_printf(1, "Error setting default value for mutex, errno:%d\n",
                           errno);
           return 0;
      }
@@ -70,7 +70,7 @@ int ci_proc_mutex_init(ci_proc_mutex_t * mutex)
 int ci_proc_mutex_destroy(ci_proc_mutex_t * mutex)
 {
      if (semctl(*mutex, 0, IPC_RMID, 0) < 0) {
-          ci_debug_printf(1, "Error removing mutex");
+          ci_debug_printf(1, "Error removing mutex\n");
           return 0;
      }
      return 1;
@@ -93,20 +93,34 @@ int ci_proc_mutex_unlock(ci_proc_mutex_t * mutex)
 }
 
 #elif defined (USE_POSIX_SEMAPHORES)
+#include <fcntl.h>           /* For O_* constants */
+#include <sys/stat.h> 
+
 
 int ci_proc_mutex_init(ci_proc_mutex_t * mutex)
 {
-     if (sem_init(mutex, 1, 1) < 0) {
-          ci_debug_printf(1, "An error occurred (errno: %d, ENOSYS: %d)\n", errno,
-                          ENOSYS);
-          return 0;
-     }
-     return 1;
+    int i = 0;
+    mutex->sem = SEM_FAILED;
+    for(i = 0; i < 1024; ++i) {
+        errno = 0;
+        snprintf(mutex->name, CI_PROC_MUTEX_NAME_SIZE, "%s%d", CI_PROC_MUTEX_NAME_TMPL, i);
+        if ((mutex->sem = sem_open(mutex->name, O_CREAT|O_EXCL, S_IREAD|S_IWRITE|S_IRGRP, 1)) != SEM_FAILED) {
+            return 1;
+        }
+        if (errno != EEXIST)
+            break;
+    }
+    if (errno == EEXIST) {
+        ci_debug_printf(1, "Error allocation posix proc mutex, to many c-icap mutexes are open!\n");
+    } else {
+        ci_debug_printf(1, "Error allocation posix proc mutex, errno: %d\n", errno);
+    }
+    return 0;
 }
 
 int ci_proc_mutex_destroy(ci_proc_mutex_t * mutex)
 {
-     if (sem_destroy(mutex) < 0) {
+     if (sem_unlink(mutex->name) < 0) {
           return 0;
      }
      return 1;
@@ -114,13 +128,19 @@ int ci_proc_mutex_destroy(ci_proc_mutex_t * mutex)
 
 int ci_proc_mutex_lock(ci_proc_mutex_t * mutex)
 {
-     sem_wait(mutex);
+     if (sem_wait(mutex->sem)) {
+         ci_debug_printf(1, "Failed to get lock of posix mutex\n");
+         return 0;
+     }
      return 1;
 }
 
 int ci_proc_mutex_unlock(ci_proc_mutex_t * mutex)
 {
-     sem_post(mutex);
+     if (sem_post(mutex->sem)) {
+         ci_debug_printf(1, "Failed to unlock of posix mutex\n");
+         return 0;
+     }
      return 1;
 }
 
