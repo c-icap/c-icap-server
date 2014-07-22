@@ -684,7 +684,7 @@ AC_CACHE_CHECK([if posix 1003.1b interprocess semaphores works], ac_cv_10031b_ip
    ac_cv_10031b_ipc_sem=yes,
    ac_cv_10031b_ipc_sem=no,
    [AC_MSG_ERROR([cross-compiling,
-	setting --with-process-mutexes or presetting ac_cv_10031b_ipc_sem=(yes|no) will help])]
+	presetting ac_cv_10031b_ipc_sem=(yes|no) will help])]
         )
    ]
 )
