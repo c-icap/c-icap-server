@@ -38,6 +38,7 @@
 
 
 extern int TIMEOUT;
+extern const char *DEFAULT_SERVICE;
 
 /*This variable defined in mpm_server.c and become 1 when the child must 
   halt imediatelly:*/
@@ -305,15 +306,7 @@ static int parse_request(ci_request_t * req, char *buf)
          if (len) {
              strncpy(req->service, start, len);
              req->service[len] = '\0';
-             if (!(service = find_service(req->service))) { /*else search for an alias */
-                 if ((salias = find_service_alias(req->service))) {
-                     service = salias->service;
-                     if (salias->args[0] != '\0')
-                         strcpy(req->args, salias->args);
-                 }
-             }
          }
-         req->current_service_mod = service;
 
          if (*end == '?') {     /*args */
              start = ++end;
@@ -350,6 +343,21 @@ static int parse_request(ci_request_t * req, char *buf)
 
      if (vminor == -1 || vmajor < 1)
          return EC_400;
+
+     if (req->service[0] == '\0' && DEFAULT_SERVICE) { /*No service name defined*/
+         strncpy(req->service, DEFAULT_SERVICE, MAX_SERVICE_NAME);
+     }
+
+     if (req->service[0] != '\0') {
+         if (!(service = find_service(req->service))) { /*else search for an alias */
+             if ((salias = find_service_alias(req->service))) {
+                 service = salias->service;
+                 if (salias->args[0] != '\0')
+                     strcpy(req->args, salias->args);
+             }
+         }
+     }
+     req->current_service_mod = service;
 
      if (!req->current_service_mod)
          return EC_404; /*Service not found*/

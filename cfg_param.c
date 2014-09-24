@@ -79,6 +79,7 @@ int MAX_REQUESTS_BEFORE_REALLOCATE_MEM = 100;
 int MAX_REQUESTS_PER_CHILD = 0;
 int DAEMON_MODE = 1;
 int DebugLevelSetFromCmd = 0;
+const char *DEFAULT_SERVICE = NULL; /*Default service if not defined in ICAP URI*/
 
 /* txtTemplate stuff */
 extern const char *TEMPLATE_DIR;
@@ -186,6 +187,7 @@ static struct ci_conf_entry conf_variables[] = {
      {"GroupSourceByUser", NULL, cfg_group_source_by_user, NULL},
      {"InterProcessSharedMemScheme", NULL, cfg_shared_mem_scheme, NULL},
      {"InterProcessLockingScheme", NULL, cfg_proc_lock_scheme, NULL},
+     {"DefaultService", &DEFAULT_SERVICE, intl_cfg_set_str, NULL},
      {NULL, NULL, NULL, NULL}
 };
 
