@@ -254,7 +254,7 @@ const void *ci_local_cache_search(struct ci_cache *cache, const void *key, void 
 	ci_debug_printf(10," \t\t->>>>compare %s ~ %s\n",(char *)e->key, (char *)key);
 	if(cache->key_ops->compare(e->key, key) == 0) {
             current_time = ci_internal_time();
-            if ((current_time - e->time) < cache->ttl) /*if expired*/
+            if ((current_time - e->time) > cache->ttl) /*if expired*/
                 key = NULL;
             else if (e->val_size) {
                 if (dup_from_cache)
