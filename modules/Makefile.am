@@ -2,7 +2,7 @@
 
 # lib_LTLIBRARIES=sys_logger.la perl_handler.la
 
-pkglib_LTLIBRARIES= sys_logger.la dnsbl_tables.la
+pkglib_LTLIBRARIES= sys_logger.la dnsbl_tables.la shared_cache.la
 if USEPERL
 pkglib_LTLIBRARIES += perl_handler.la
 endif
@@ -52,3 +52,7 @@ memcached_cache_la_CFLAGS= @MEMCACHED_CFLAGS@ -I../include/
 memcached_cache_la_LDFLAGS= -module -avoid-version @MEMCACHED_LDFLAGS@
 memcached_cache_la_SOURCES= memcached.c
 
+shared_cache_la_LIBADD= @MODULES_LIBADD@
+shared_cache_la_CFLAGS= -I../include/
+shared_cache_la_LDFLAGS= -module -avoid-version
+shared_cache_la_SOURCES= shared_cache.c
