@@ -1460,11 +1460,16 @@ static int do_request(ci_request_t * req)
               preview_status = do_request_preview(req);
           else {
               preview_status = do_fake_preview(req);
-              /*do_fake_preview return CI_OK or CI_ERROR.
-                We did not send any "100 Continue" response, but wee need 
-                to simulate that we sent...*/
-              if (preview_status == CI_OK) 
-                  req->return_code = EC_100;
+              /* do_fake_preview return CI_OK or CI_ERROR. */
+              if (preview_status == CI_OK) {
+                /* We did not send any "100 Continue" response, but we need
+                   to simulate that we sent in the case we are expecting
+                   body data */
+                  if (req->hasbody)
+                      req->return_code = EC_100;
+                  else
+                      req->return_code = EC_200;
+              }
           }
           
           if (preview_status == CI_ERROR) {
