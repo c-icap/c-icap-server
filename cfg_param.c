@@ -82,6 +82,7 @@ int DebugLevelSetFromCmd = 0;
 const char *DEFAULT_SERVICE = NULL; /*Default service if not defined in ICAP URI*/
 int PIPELINING = 1;
 int CHECK_FOR_BUGGY_CLIENT = 0;
+int ALLOW204_AS_200OK_ZERO_ENCAPS = 0;
 
 /* txtTemplate stuff */
 extern const char *TEMPLATE_DIR;
@@ -192,6 +193,7 @@ static struct ci_conf_entry conf_variables[] = {
      {"DefaultService", &DEFAULT_SERVICE, intl_cfg_set_str, NULL},
      {"Pipelining", &PIPELINING, intl_cfg_onoff, NULL},
      {"SupportBuggyClients", &CHECK_FOR_BUGGY_CLIENT, intl_cfg_onoff, NULL},
+     {"Allow204As200okZeroEncaps", &ALLOW204_AS_200OK_ZERO_ENCAPS, intl_cfg_enable, NULL},
      {NULL, NULL, NULL, NULL}
 };
 

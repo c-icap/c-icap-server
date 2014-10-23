@@ -42,6 +42,7 @@ extern int KEEPALIVE_TIMEOUT;
 extern const char *DEFAULT_SERVICE;
 extern int PIPELINING;
 extern int CHECK_FOR_BUGGY_CLIENT;
+extern int ALLOW204_AS_200OK_ZERO_ENCAPS;
 
 /*This variable defined in mpm_server.c and become 1 when the child must 
   halt imediatelly:*/
@@ -621,10 +622,15 @@ static int ec_responce(ci_request_t * req, int ec)
 {
      char buf[256];
      ci_service_xdata_t *srv_xdata = NULL;
-     int len;
+     int len, allow204to200OK = 0;
      if (req->current_service_mod)
          srv_xdata = service_data(req->current_service_mod);
      ci_headers_reset(req->response_header);
+
+     if (ec == EC_204 && ALLOW204_AS_200OK_ZERO_ENCAPS) {
+         allow204to200OK = 1;
+         ec = EC_200;
+     }
      snprintf(buf, 256, "ICAP/1.0 %d %s",
               ci_error_code(ec), ci_error_code_string(ec));
      ci_headers_add(req->response_header, buf);
@@ -641,6 +647,12 @@ static int ec_responce(ci_request_t * req, int ec)
      }
      if (!ci_headers_is_empty(req->xheaders)) {
 	  ci_headers_addheaders(req->response_header, req->xheaders);
+     }
+     if (allow204to200OK) {
+         if (req->type == ICAP_REQMOD)
+             ci_headers_add(req->response_header, "Encapsulated: req-hdr=0, null-body=0");
+         else
+             ci_headers_add(req->response_header, "Encapsulated: res-hdr=0, null-body=0");
      }
      /*
        TODO: Release req->entities (ci_request_release_entity())

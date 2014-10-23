@@ -208,6 +208,14 @@ Pipelining on
 # SupportBuggyClients off
 SupportBuggyClients off
 
+# TAG: Allow204As200okZeroEncaps
+# Format: Allow204As200okZeroEncaps
+# Description:
+#	When used the c-icap instead of allow 204 return "200 OK" responses
+#	with zero encapsulated entities.
+# Default:
+#	No set
+
 # TAG: ModulesDir
 # Format: ModulesDir dir
 # Description:
