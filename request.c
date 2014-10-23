@@ -418,6 +418,7 @@ static int parse_header(ci_request_t * req)
 {
      int i, request_status = EC_100, result;
      ci_headers_list_t *h;
+     char *val;
 
      h = req->request_header;
      if ((request_status = ci_read_icap_header(req, h, TIMEOUT)) != EC_100)
@@ -431,18 +432,23 @@ static int parse_header(ci_request_t * req)
 	 
      for (i = 1; i < h->used && request_status == EC_100; i++) {
           if (strncasecmp("Preview:", h->headers[i], 8) == 0) {
-               result = strtol(h->headers[i] + 9, NULL, 10);
+               val = h->headers[i] + 8;
+               for (;isspace(*val) && *val != '\0'; ++val);
+               errno = 0;
+               result = strtol(val, NULL, 10);
                if (errno != EINVAL && errno != ERANGE) {
                     req->preview = result;
                     if (result >= 0)
                          ci_buf_reset_size(&(req->preview_data), result + 64);
                }
           }
-          else if (strncasecmp("Encapsulated: ", h->headers[i], 14) == 0)
+          else if (strncasecmp("Encapsulated:", h->headers[i], 13) == 0)
                request_status = process_encapsulated(req, h->headers[i]);
-          else if (strncasecmp("Connection: ", h->headers[i], 12) == 0) {
-/*	       if(strncasecmp(h->headers[i]+12,"keep-alive",10)==0)*/
-               if (strncasecmp(h->headers[i] + 12, "close", 5) == 0)
+          else if (strncasecmp("Connection:", h->headers[i], 11) == 0) {
+               val = h->headers[i] + 11;
+               for (;isspace(*val) && *val != '\0'; ++val);
+/*             if(strncasecmp(val,"keep-alive",10)==0)*/
+               if (strncasecmp(val, "close", 5) == 0)
                     req->keepalive = 0;
                /*else the default behaviour of keepalive ..... */
           }
