@@ -285,6 +285,7 @@ ci_request_t *ci_request_alloc(ci_connection_t * connection)
 
      req->bytes_in = 0;
      req->bytes_out = 0;
+     req->request_bytes_in = 0;
      req->http_bytes_in = 0;
      req->http_bytes_out = 0;
      req->body_bytes_in = 0;
@@ -301,6 +302,8 @@ ci_request_t *ci_request_alloc(ci_connection_t * connection)
 
 /*reset_request simply reset request to use it with tunneled requests
   The req->access_type must not be reset!!!!!
+
+  Also buffers where the pstrblock_read points must not free or reset.
 */
 void ci_request_reset(ci_request_t * req)
 {
@@ -353,6 +356,7 @@ void ci_request_reset(ci_request_t * req)
 
      req->bytes_in = 0;
      req->bytes_out = 0;
+     req->request_bytes_in = 0;
      req->http_bytes_in = 0;
      req->http_bytes_out = 0;
      req->body_bytes_in = 0;
@@ -488,7 +492,8 @@ enum chunk_status { READ_CHUNK_DEF = 1, READ_CHUNK_DATA };
 int parse_chunk_data(ci_request_t * req, char **wdata)
 {
      char *end;
-     int num_len, remains, tmp;
+     const char *eofChunk;
+     int chunkLen, remains, tmp;
      int read_status = 0;
 
      *wdata = NULL;
@@ -504,6 +509,17 @@ int parse_chunk_data(ci_request_t * req, char **wdata)
                read_status = READ_CHUNK_DATA;
 
           if (read_status == READ_CHUNK_DEF) {
+               if ((eofChunk = strnstr(req->pstrblock_read, "\r\n", req->pstrblock_read_len)) == NULL) {
+                   /*Check for wrong protocol data, or possible parse error*/                   
+                   if (req->pstrblock_read_len >= BUFSIZE)
+                       return CI_ERROR; /* To big chunk definition?*/
+                   return CI_NEEDS_MORE;
+               }
+               eofChunk += 2;
+               chunkLen = eofChunk - req->pstrblock_read;
+               // Count parse data
+               req->request_bytes_in += (eofChunk - req->pstrblock_read);
+
                errno = 0;
                tmp = strtol(req->pstrblock_read, &end, 16);
                /*here must check for erron */
@@ -512,52 +528,55 @@ int parse_chunk_data(ci_request_t * req, char **wdata)
                                     tmp, req->pstrblock_read[0]);
                     return CI_ERROR;
                }
-               num_len = end - req->pstrblock_read;
-               if (req->pstrblock_read_len - num_len < 2) {
-                    return CI_NEEDS_MORE;
-               }
-               /*At this point the req->pstrblock_read must point to the start of a chunk eg to a "123\r\n" */
-               req->chunk_bytes_read = 0;
                req->current_chunk_len = tmp;
+               req->chunk_bytes_read = 0;
 
+               while(*end == ' ' || *end == '\t') ++end; /*ignore spaces*/
                if (req->current_chunk_len == 0) {
+                    remains = req->pstrblock_read_len - chunkLen;
+                    if (remains < 2) /*missing the \r\n of the 0[; ...]\r\n\r\n of the eof chunk*/
+                         return CI_NEEDS_MORE;
+
+                    if (*eofChunk != '\r' && *(eofChunk + 1) != '\n')
+                        return CI_ERROR; /* Not an \r\n\r\n eof chunk definition. Parse Error*/
+
+                    eofChunk += 2;
+                    chunkLen += 2;
+                    req->request_bytes_in += 2; /*count 2 extra chars on parsed data*/
 
                     if (*end == ';') {
-			 if(strnstr(end, "\r\n\r\n", req->pstrblock_read_len) == NULL)
-			      return CI_NEEDS_MORE;
-
-			 if (strncmp(end, "; use-original-body=", 20) == 0) {
-			     req->i206_use_original_body = strtol(end+20, NULL, 10);
+                         end++;
+                         while(*end == ' ' || *end == '\t') ++end; /*ignore spaces*/
+                         remains = req->pstrblock_read_len - (end - req->pstrblock_read);
+			 if (remains >= 18 && strncmp(end, "use-original-body=", 18) == 0) {
+			     req->i206_use_original_body = strtol(end + 18, &end, 10);
 		         }
-			 else if (strncmp(end, "; ieof", 6) != 0)
-			      return CI_ERROR;
-
-                         req->eof_received = 1;
-                         return CI_EOF;
-                    }
-                    else {
-                         if (req->pstrblock_read_len - num_len < 4) {
-                              return CI_NEEDS_MORE;
-                         }
-                         if (strncmp(end, "\r\n\r\n", 4) != 0)
+			 else if (remains >=4 && strncmp(end, "ieof", 4) != 0)
                               return CI_ERROR;
-
-                         req->pstrblock_read = NULL;
-                         req->pstrblock_read_len = 0;
-                         return CI_EOF;
+                         // ignore any char after ';'
+                         while(*end != '\r') ++end;
+                         req->eof_received = 1;
                     }
+
                }
                else {
-                    if (*end != '\r' || *(end + 1) != '\n') {
-                         return CI_ERROR;
-                    }
                     read_status = READ_CHUNK_DATA;
-                    req->pstrblock_read = end + 2;
-                    req->pstrblock_read_len -= (num_len + 2);
                     /*include the \r\n end of chunk data */
                     req->current_chunk_len += 2;
                }
+
+               /*The end pointing after the number and extensions. Should point to \r\n*/
+               if (*end != '\r' || *(end + 1) != '\n') {
+                   /*Extra chars in chunk definition!*/
+                   return CI_ERROR;
+               }
+
+               req->pstrblock_read_len -= chunkLen;
+               req->pstrblock_read += chunkLen;
           }
+          if (req->current_chunk_len == 0) /*zero chunk received, stop for now*/
+              return CI_EOF;
+
           /*if we have data for service leaving this function now */
           if (req->write_to_module_pending)
                return CI_OK;
@@ -568,30 +587,31 @@ int parse_chunk_data(ci_request_t * req, char **wdata)
                *wdata = req->pstrblock_read;
                remains = req->current_chunk_len - req->chunk_bytes_read;
                if (remains <= req->pstrblock_read_len) {        /*we have all the chunks data */
-		 if (remains > 2) {
-                         req->write_to_module_pending = remains - 2;
-			 req->http_bytes_in += req->write_to_module_pending;
-			 req->body_bytes_in += req->write_to_module_pending;
-		 } 
-		 else        /*we are in all or part of the \r\n end of chunk data */
-                         req->write_to_module_pending = 0;
-                    req->chunk_bytes_read += remains;
-                    req->pstrblock_read += remains;
-                    req->pstrblock_read_len -= remains;
+                   if (remains > 2) {
+                        req->write_to_module_pending = remains - 2;
+                        req->http_bytes_in += req->write_to_module_pending;
+                        req->body_bytes_in += req->write_to_module_pending;
+                   } 
+                   else        /*we are in all or part of the \r\n end of chunk data */
+                        req->write_to_module_pending = 0;
+                   req->chunk_bytes_read += remains;
+                   req->pstrblock_read += remains;
+                   req->pstrblock_read_len -= remains;
+                   req->request_bytes_in += remains; //append parsed data
                }
                else {
                     tmp = remains - req->pstrblock_read_len;
                     if (tmp < 2) {
                          req->write_to_module_pending =
                              req->pstrblock_read_len - tmp;
-			 req->http_bytes_in += req->write_to_module_pending;
-			 req->body_bytes_in += req->write_to_module_pending;
                     }
                     else {
                          req->write_to_module_pending = req->pstrblock_read_len;
-			 req->http_bytes_in += req->write_to_module_pending;
-			 req->body_bytes_in += req->write_to_module_pending;
 		    }
+                    req->http_bytes_in += req->write_to_module_pending;
+                    req->body_bytes_in += req->write_to_module_pending;
+                    req->request_bytes_in += req->pstrblock_read_len; //append parsed data
+
                     req->chunk_bytes_read += req->pstrblock_read_len;
                     req->pstrblock_read += req->pstrblock_read_len;
                     req->pstrblock_read_len -= req->pstrblock_read_len;

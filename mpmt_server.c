@@ -45,7 +45,6 @@
 //#undef MULTICHILD
 
 
-extern int KEEPALIVE_TIMEOUT;
 extern int MAX_KEEPALIVE_REQUESTS;
 extern int MAX_SECS_TO_LINGER;
 extern int MAX_REQUESTS_BEFORE_REALLOCATE_MEM;
@@ -90,7 +89,6 @@ int c_icap_reconfigure = 0;
 
 #define hard_close_connection(connection)  ci_hard_close(connection->fd)
 #define close_connection(connection) ci_linger_close(connection->fd,MAX_SECS_TO_LINGER)
-#define check_for_keepalive_data(fd) ci_wait_for_data(fd,KEEPALIVE_TIMEOUT,wait_for_read)
 void init_commands();
 int init_server(char *address, int port, int *family);
 int start_child(int fd);
@@ -645,13 +643,10 @@ int thread_main(server_decl_t * srv)
 
                ci_debug_printf(8, "Keep-alive:%d\n",
                                srv->current_req->keepalive);
-               if (srv->current_req->keepalive
-                   && check_for_keepalive_data(srv->current_req->connection->
-                                               fd) > 0) {
-                    ci_request_reset(srv->current_req);
-                    ci_debug_printf(8,
-                                    "Server %d going to serve new request from client (keep-alive) \n",
-                                    srv->srv_id);
+               if (srv->current_req->keepalive && keepalive_request(srv->current_req)) {
+                   ci_debug_printf(8,
+                                   "Server %d going to serve new request from client (keep-alive) \n",
+                                   srv->srv_id);
                }
                else
                     break;
