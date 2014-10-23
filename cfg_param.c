@@ -78,6 +78,8 @@ int MAX_REQUESTS_PER_CHILD = 0;
 int DAEMON_MODE = 1;
 int DebugLevelSetFromCmd = 0;
 const char *DEFAULT_SERVICE = NULL; /*Default service if not defined in ICAP URI*/
+int PIPELINING = 1;
+int CHECK_FOR_BUGGY_CLIENT = 0;
 
 /* txtTemplate stuff */
 extern const char *TEMPLATE_DIR;
@@ -182,6 +184,8 @@ static struct ci_conf_entry conf_variables[] = {
      {"GroupSourceByGroup", NULL, cfg_group_source_by_group, NULL},
      {"GroupSourceByUser", NULL, cfg_group_source_by_user, NULL},
      {"DefaultService", &DEFAULT_SERVICE, intl_cfg_set_str, NULL},
+     {"Pipelining", &PIPELINING, intl_cfg_onoff, NULL},
+     {"SupportBuggyClients", &CHECK_FOR_BUGGY_CLIENT, intl_cfg_onoff, NULL},
      {NULL, NULL, NULL, NULL}
 };
 

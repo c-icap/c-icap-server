@@ -38,7 +38,10 @@
 
 
 extern int TIMEOUT;
+extern int KEEPALIVE_TIMEOUT;
 extern const char *DEFAULT_SERVICE;
+extern int PIPELINING;
+extern int CHECK_FOR_BUGGY_CLIENT;
 
 /*This variable defined in mpm_server.c and become 1 when the child must 
   halt imediatelly:*/
@@ -137,6 +140,23 @@ int recycle_request(ci_request_t * req, ci_connection_t * connection)
      return 1;
 }
 
+int keepalive_request(ci_request_t *req)
+{
+    /* Preserve extra read bytes*/
+    char *pstrblock = req->pstrblock_read;
+    int pstrblock_len = req->pstrblock_read_len;
+    // Just reset without change or free memory
+    ci_request_reset(req);
+    if (PIPELINING) {
+        req->pstrblock_read = pstrblock;
+        req->pstrblock_read_len = pstrblock_len;
+    }
+
+    if (req->pstrblock_read && req->pstrblock_read_len > 0)
+        return 1;
+    return ci_wait_for_data(req->connection->fd, KEEPALIVE_TIMEOUT, wait_for_read);
+}
+
 /*Here we want to read in small blocks icap header becouse in most cases
  it will not bigger than 512-1024 bytes.
  So we are going to do small reads and small increments in icap headers size,
@@ -165,20 +185,44 @@ static int icap_header_check_realloc(char **buf, int *size, int used, int mustad
 static int ci_read_icap_header(ci_request_t * req, ci_headers_list_t * h, int timeout)
 {
      int bytes, request_status = EC_100, i, eoh = 0, startsearch = 0, readed = 0;
-     int wait_status;
+     int wait_status = 0;
      char *buf_end;
+     int dataPrefetch = 0;
 
      buf_end = h->buf;
      readed = 0;
      bytes = 0;
 
-     while ((wait_status = wait_for_data(req->connection->fd, timeout, wait_for_read)) != CI_ERROR) {
-         bytes = ci_read_nonblock(req->connection->fd, buf_end, ICAP_HEADER_READSIZE);
-         if (bytes <= 0)
-             return EC_408;
+     if (PIPELINING && req->pstrblock_read && req->pstrblock_read_len > 0) {
+         if ((request_status =
+              icap_header_check_realloc(&(h->buf), &(h->bufsize), req->pstrblock_read_len,
+                                        ICAP_HEADER_READSIZE)) != EC_100)
+             return request_status;
+         memmove(h->buf, req->pstrblock_read, req->pstrblock_read_len);
+         readed = req->pstrblock_read_len;
+         buf_end = h->buf;
+         bytes = readed;
+         dataPrefetch = 1;
+         req->pstrblock_read = NULL;
+         req->pstrblock_read_len = 0;
+         ci_debug_printf(5, "Get data from previous request read.\n");
+     }
 
-          readed += bytes;
-          req->bytes_in += bytes;
+     do {
+
+         if (!dataPrefetch) {
+             if ((wait_status = wait_for_data(req->connection->fd, timeout, wait_for_read)) == CI_ERROR)
+                 return EC_408;
+
+             bytes = ci_read_nonblock(req->connection->fd, buf_end, ICAP_HEADER_READSIZE);
+             if (bytes <= 0)
+                 return EC_408;
+
+             readed += bytes;
+             req->bytes_in += bytes;
+         } else
+             dataPrefetch = 0;
+
           for (i = startsearch; i < bytes - 3; i++) {   /*search for end of header.... */
                if (strncmp(buf_end + i, "\r\n\r\n", 4) == 0) {
                     buf_end = buf_end + i + 2;
@@ -196,22 +240,21 @@ static int ci_read_icap_header(ci_request_t * req, ci_headers_list_t * h, int ti
           buf_end = h->buf + readed;
           if (startsearch > -3)
                startsearch = (readed > 3 ? -3 : -readed);       /*Including the last 3 char ellements ....... */
-     }
-     if (wait_status == CI_ERROR)
-          return EC_408;
+     } while(1);
+
      h->bufused = buf_end - h->buf;     /* -1 ; */
      req->pstrblock_read = buf_end + 2; /*after the \r\n\r\n. We keep the first \r\n and the other dropped.... */
      req->pstrblock_read_len = readed - h->bufused - 2; /*the 2 of the 4 characters \r\n\r\n and the '\0' character */
+     req->request_bytes_in = h->bufused + 2; /*This is include the "\r\n\r\n" sequence*/
      return request_status;
 }
-
 
 static int read_encaps_header(ci_request_t * req, ci_headers_list_t * h, int size)
 {
      int bytes = 0, remains, readed = 0;
      char *buf_end = NULL;
 
-     if (!ci_headers_setsize(h, size))
+     if (!ci_headers_setsize(h, size + (CHECK_FOR_BUGGY_CLIENT != 0 ? 2 : 0)))
           return EC_500;
      buf_end = h->buf;
 
@@ -244,9 +287,16 @@ static int read_encaps_header(ci_request_t * req, ci_headers_list_t * h, int siz
      h->bufused = buf_end - h->buf;     // -1 ;
      if (strncmp(buf_end - 4, "\r\n\r\n", 4) == 0) {
           h->bufused -= 2;      /*eat the last 2 bytes of "\r\n\r\n" */
+     } else if(CHECK_FOR_BUGGY_CLIENT && strncmp(buf_end - 2, "\r\n", 2) != 0) {
+         // Some icap clients missing the "\r\n\r\n" after end of headers
+         // when null-body is present.
+         *buf_end = '\r';
+         *(buf_end + 1) = '\n';
+         h->bufused += 2;
      }
      /*Currently we are counting only successfull http headers read.*/
      req->http_bytes_in += size;
+     req->request_bytes_in += size;
      return EC_100;
 }
 
@@ -437,7 +487,7 @@ static int parse_header(ci_request_t * req)
 
      if ((request_status = parse_request(req, h->headers[0])) != EC_100)
          return request_status;
-	 
+
      for (i = 1; i < h->used && request_status == EC_100; i++) {
           if (strncasecmp("Preview:", h->headers[i], 8) == 0) {
                val = h->headers[i] + 8;
@@ -480,7 +530,7 @@ static int parse_encaps_headers(ci_request_t * req)
      int size, i, request_status = 0;
      ci_encaps_entity_t *e = NULL;
      for (i = 0; (e = req->entities[i]) != NULL; i++) {
-          if (e->type > ICAP_RES_HDR)   //res_body,req_body or opt_body so the end of the headers.....
+          if (e->type > ICAP_RES_HDR)   //res_body,req_body or opt_body so the end of the headers.....process_encapsulated
                return EC_100;
 
           if (req->entities[i + 1] == NULL)
@@ -1436,18 +1486,20 @@ static int do_request(ci_request_t * req)
 
      auth_status = req->access_type;
      if ((auth_status = access_check_request(req)) == CI_ACCESS_DENY) {
+         req->keepalive = 0;
 	 if (req->auth_required) {
 	      ec_responce(req, EC_407); /*Responce with authentication required */
 	 }
 	 else {
              ec_responce(req, EC_403); /*Forbitten*/
 	 }
-          return CI_ERROR;      /*Or something that means authentication error */
+         return CI_ERROR;      /*Or something that means authentication error */
      }
 
      if (res == EC_100) {
           res = parse_encaps_headers(req);
           if (res != EC_100) {
+              req->keepalive = 0;
               ec_responce(req, EC_400);
               return CI_ERROR;
           }
@@ -1554,6 +1606,10 @@ int process_request(ci_request_t * req)
     int res;
     ci_service_xdata_t *srv_xdata;
     res = do_request(req);
+
+    if (req->pstrblock_read_len) {
+        ci_debug_printf(5, "There are unparsed data od size %d: \"%s\"\n. Move to connection buffer\n", req->pstrblock_read_len, req->pstrblock_read);
+    }
    
     if (res<0 && req->request_header->bufused == 0) /*Did not read anything*/
 	return CI_NO_STATUS;

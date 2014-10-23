@@ -175,6 +175,23 @@ MaxMemObject 131072
 #	DebugLevel 1
 DebugLevel 1
 
+# TAG: Pipelining
+# Format: Pipelining on|off
+# Description:
+#	Enable or disable ICAP requests pipelining
+# Default:
+#	Pipelining on
+Pipelining on
+
+# TAG: SupportBuggyClients
+# FORMAT: SupportBuggyClients on|off
+# Description:
+#	Try to handle requests from buggy clients, for example ICAP requests
+#	missing "\r\n" sequences
+# Default:
+# SupportBuggyClients off
+SupportBuggyClients off
+
 # TAG: ModulesDir
 # Format: ModulesDir dir
 # Description:

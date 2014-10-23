@@ -123,8 +123,9 @@ typedef struct ci_request{
     ci_str_array_t *attributes;
 
      /* statistics */
-     uint64_t bytes_in;
+     uint64_t bytes_in; /*May include bytes from next pipelined request*/
      uint64_t bytes_out;
+     uint64_t request_bytes_in; /*Current request input bytes*/
      uint64_t http_bytes_in;
      uint64_t http_bytes_out;
      uint64_t body_bytes_in;
@@ -141,6 +142,7 @@ typedef struct ci_request{
 /*This functions needed in server (mpmt_server.c ) */
 ci_request_t *newrequest(ci_connection_t *connection);
 int recycle_request(ci_request_t *req,ci_connection_t *connection);
+int keepalive_request(ci_request_t *req);
 int process_request(ci_request_t *);
 
 /*Functions used in both server and icap-client library*/
