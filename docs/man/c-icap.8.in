@@ -97,7 +97,7 @@ hash:/path/to/the/file.txt
 .RE
 .RE
 .IP regex
-Similar to the file lookup tables but the keys are regular expressions in the form /regex/flags where flags are 'i' to ignore case or nothing.
+Similar to the file lookup tables but the keys are regular expressions in the form /regex/flags . For possible flags values please read 'Regex expressions' paragraph in this manual.
 .RS
 .IP "example regex lookup table data:"
 	/^[a-m].*/i: group1
@@ -109,12 +109,53 @@ Similar to the file lookup tables but the keys are regular expressions in the fo
 regex:/path/to/the/file.txt
 .RE
 .RE
+.SS Regex expressions
+The c-icap regex expressions have the form /regex_definition/flags where "flags"
+is one or more letters, its of them express a flag.
+.IP "Common flags"
+.RS
+g This flag forces the score multiplied by the number of regex
+  expression matches. For example if the expression matches 5
+  times and the devined score value is 10 then the final score
+  will be 50.
+.RE
+.RS
+i Do caseless matching
+.RE
+.RS
+m Match-any-character operators don't match a newline
+  and ^$ operators does not match newlines within data
+.RE
+.IP "If the module compiled using the pcre library the following flags can be used"
+.RS
+s (PCRE_DOTALL)  matches anything including NL
+.RE
+.RS
+x (PCRE_EXTENDED) Ignore whitespace and # comments
+.RE
+.RS
+A (PCRE_ANCHORED) Force pattern anchoring
+.RE
+.RS
+D (PCRE_DOLLAR_ENDONLY) $ not to match newline at end
+.RE
+.RS
+U (PCRE_UNGREEDY) Invert greediness of quantifiers
+.RE
+.RS
+X (PCRE_EXTRA) PCRE extra features
+.RE
+.RS
+u (PCRE_UTF8) Run in UTF-8 mode
+.RE
+
 .SS Runtime information
 Someone can retrieve runtime information using the \fBinfo\fR service. The information includes bytes received and transmited, active services, information about service usage and many other. The information provided in HTML and text format.
 .PP
 \fBExample:\fR
 .IP "Retrieve runtime information from command line:"
-	c-icap-client -i localhost -s "info?view=text" -req "a_url"
+.RS
+c-icap-client -i localhost -s "info?view=text" -req "a_url"
 .RE
 .SH SEE ALSO
 .BR c-icap-client "(8)"

@@ -372,16 +372,16 @@ RemoteProxyUserHeaderEncoded on
 #		     The c-icap server ip address
 #		acl aclname icap_header{HeaderName} value1 ...
 #		     Matches the icap header HeaderName with value1 ...
-#		     The values are in regex form: /avalue/
+#		     The values are in regex form: /avalue/flags
 #		acl aclname icap_resp_header{HeaderName} value1 ...
 #		     The icap response header
-#		     The values are in regex form: /avalue/
+#		     The values are in regex form: /avalue/flags
 #		acl aclname http_req_header{HeaderName} value1 ...
 #		     The http request header
-#		     The values are in regex form: /avalue/
+#		     The values are in regex form: /avalue/flags
 #		acl aclname http_resp_header{HeaderName} value1 ...
 #		     The http response header
-#		     The values are in regex form: /avalue/
+#		     The values are in regex form: /avalue/flags
 #		acl aclname data_type type1 ...
 #		     The data type as recognized by the internal data type
 #		     recognizer. The types are defined in c-icap.magic file

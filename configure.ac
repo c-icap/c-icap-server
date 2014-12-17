@@ -543,10 +543,59 @@ INTTYPES_H="1"
 )
 AC_SUBST(INTTYPES_H)
 
-AC_CHECK_HEADERS(regex.h,
-AC_DEFINE(HAVE_REGEX,1,[Define HAVE_REGEX if regex.h exists (posix regular expressions - maybe more tests needed)])
-USE_REGEX=1
+# Check for PCRE regex library
+AC_ARG_WITH(pcre,
+[       --with-pcre     Path to PCRE library],
+[
+case "$withval" in
+     yes)
+        pcre=yes;
+     ;;
+     no)
+        pcre=no;
+     ;;
+     *)
+        pcre=$withval;
+     ;;
+     esac
+],
+[ pcre=yes]
 )
+
+if test a"$pcre" != "ano"; then
+   if test a"$pcre" != "ayes"; then
+        OLDCFLAGS=$CFLAGS
+        OLDLDFLAGS=$LDFLAGS
+        CFLAGS="$CFLAGS -I$pcre/include"
+        LDFLAGS="$LDFLAGS -L$pcre/lib"
+        AC_CHECK_HEADERS(pcre.h,
+                AC_CHECK_LIB(pcre, pcre_exec,[PCRE_ADD_LDADD="-L$pcre/lib -lpcre";PCRE_ADD_FLAG="-I$pcre/include";AC_DEFINE(HAVE_PCRE,1,[Define HAVE_PCRE if pcre installed])],[pcre=no]), 
+                [pcre=no]
+        )
+        CFLAGS=$OLDCFLAGS
+        LDFLAGS=$OLDLDFLAGS
+        AC_SUBST(PCRE_ADD_LDADD)
+        AC_SUBST(PCRE_ADD_FLAG) 
+   else
+         AC_CHECK_HEADERS(pcre.h,
+                AC_CHECK_LIB(pcre, pcre_exec,[PCRE_ADD_LDADD=" -lpcre";AC_DEFINE(HAVE_PCRE,1,[Define HAVE_PCRE if pcre installed])],[pcre=no]),
+                [pcre=no]
+         )
+        AC_SUBST(PCRE_ADD_LDADD)
+   fi
+fi
+
+posix_regex=no
+AC_CHECK_HEADERS(regex.h,
+  [posix_regex=yes;AC_DEFINE(HAVE_REGEX,1,[Define HAVE_REGEX if regex.h exists (posix regular expressions - maybe more tests needed)])],
+  [posix_regex=no]
+  )
+
+USE_REGEX=0
+if test a"$pcre" = "ayes" -o a"$regex" = "ayes"; then
+USE_REGEX=1
+fi
+
 AC_SUBST(USE_REGEX)
 
 # Checks for typedefs, structures, and compiler characteristics.
@@ -807,6 +856,7 @@ AM_CONDITIONAL(ISCYGWIN,[test a"$iscygwin" != a])
 
 # Now determine which modules will going to build .....
 
+AM_CONDITIONAL(USE_REGEX, [test a"$pcre" = "ayes" -o a"$regex" = "ayes"])
 AM_CONDITIONAL(USEPERL,[test a"$perlcore" != a])
 AM_CONDITIONAL(USEBDB,   [test a"$libdb" != ano])
 AM_CONDITIONAL(USELDAP, [test a"$libldap" != ano])

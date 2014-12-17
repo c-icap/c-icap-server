@@ -25,8 +25,8 @@
 #include "cfg_param.h"
 #include "filetype.h"
 #include "debug.h"
-#ifdef HAVE_REGEX_H
-#include <regex.h>
+#if defined(USE_REGEX)
+#include "ci_regex.h"
 #endif
 
 /*string operators */
@@ -221,13 +221,13 @@ const ci_type_ops_t  ci_uint64_ops = {
 
 
 /*regular expresion operator definition  */
-#ifdef USE_REGEX
+#if defined(USE_REGEX)
 /*We only need the preg field which holds the compiled regular expression 
   but keep the uncompiled string too just for debuging reasons */
-struct ci_regex {
+struct ci_acl_regex {
     char *str;
     int flags;
-    regex_t preg;
+    ci_regex_t preg;
 };
 
 /*Parse the a regular expression in the form: /regexpression/flags
@@ -237,59 +237,29 @@ struct ci_regex {
 */
 void *regex_dup(const char *str, ci_mem_allocator_t *allocator)
 {
-    struct ci_regex *reg;
+    struct ci_acl_regex *reg;
     char *newstr,*s;
     int slen;
-    unsigned flags;
+    int flags, recursive;
 
-    s=(char *)str;
+    newstr = ci_regex_parse(str, &flags, &recursive);
 
-    if(!*s=='/') {
-	ci_debug_printf(1, "Parse error, regex should has the form '/expresion/flags'");
-	return NULL;
-    }
-    s++;
-    slen=strlen(s);
-    newstr = allocator->alloc(allocator,slen+1);    
     if(!newstr) {
-	ci_debug_printf(1,"Error allocating memory for regex_dup!\n");
+	ci_debug_printf(1,"Parse error, while parsing regex: '%s')!\n", str);
 	return NULL;
     }
-    strcpy(newstr, s);
-    s=newstr+slen; /*Points to the end of string*/
-    while(*s!='/' && s!=newstr) s--;
-
-    if(s==newstr) {
-	ci_debug_printf(1,"Parse error, regex should has the form '/expression/flags' (regex=%s)!\n",newstr);
-	allocator->free(allocator, newstr);
-	return NULL;
-    }
-    /*Else found the last '/' char:*/
-    *s='\0';
-    /*parse flags:*/
-    flags=0;
-    s++;
-    while(*s!='\0') {
-	if(*s=='i')
-	    flags = flags | REG_ICASE;
-	else { /*other flags*/
-	}
-        s++;
-    }
-    flags |= REG_EXTENDED; /*or beter the 'e' option?*/
-    flags |= REG_NOSUB; /*we do not need it*/
     
-    reg = allocator->alloc(allocator,sizeof(struct ci_regex));
+    reg = allocator->alloc(allocator,sizeof(struct ci_acl_regex));
     if(!reg) {
 	ci_debug_printf(1,"Error allocating memory for regex_dup (1)!\n");
-	allocator->free(allocator, newstr);
+	free(newstr);
 	return NULL;
     }
 
-    if (regcomp(&(reg->preg), newstr, flags) != 0) {
+    if ((reg->preg = ci_regex_build(newstr, flags)) == NULL) {
 	ci_debug_printf(1, "Error compiling regular expression :%s (%s)\n", str, newstr);
 	allocator->free(allocator, reg);
-	allocator->free(allocator, newstr);
+	free(newstr);
 	return NULL;
     }
 
@@ -301,31 +271,29 @@ void *regex_dup(const char *str, ci_mem_allocator_t *allocator)
 
 int regex_cmp(const void *key1, const void *key2)
 {
-    regmatch_t pmatch[1];
-    struct ci_regex *reg=(struct ci_regex *)key1;
+    struct ci_acl_regex *reg=(struct ci_regex *)key1;
     if (!key2)
         return -1;
-    return regexec(&reg->preg, (char *)key2, 1, pmatch, 0);
+    return ci_regex_apply(reg->preg, (const char *)key2, strlen(key2), 0, NULL, NULL)==0;
 }
 
 int regex_equal(const void *key1, const void *key2)
 {
-    regmatch_t pmatch[1];
-    struct ci_regex *reg=(struct ci_regex *)key1;
+    struct ci_acl_regex *reg=(struct ci_acl_regex *)key1;
     if (!key2)
         return 0;
-    return regexec(&reg->preg, (const char *)key2, 1, pmatch, 0)==0;
+    return ci_regex_apply(reg->preg, (const char *)key2, strlen(key2), 0, NULL, NULL)==0;
 }
 
 size_t regex_len(const void *key)
 {
-    return strlen(((const struct ci_regex *)key)->str);
+    return strlen(((const struct ci_acl_regex *)key)->str);
 }
 
 void regex_free(void *key, ci_mem_allocator_t *allocator)
 {
-    struct ci_regex *reg=(struct ci_regex *)key;
-    regfree(&(reg->preg));
+    struct ci_acl_regex *reg=(struct ci_acl_regex *)key;
+    ci_regex_free(reg->preg);
     allocator->free(allocator, reg->str);
     allocator->free(allocator, reg);
 }

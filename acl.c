@@ -69,7 +69,7 @@ void *get_http_client_ip(ci_request_t *req, char *param){
     return (void *)ci_http_client_ip(req);
 }
 
-#if HAVE_REGEX
+#if defined(USE_REGEX)
 /*They are implemented at the bottom of this file ...*/
 void *get_icap_header(ci_request_t *req, char *param);
 void *get_icap_response_header(ci_request_t *req, char *param);
@@ -135,7 +135,7 @@ ci_acl_type_t acl_tcp_xclientip={
      &ci_ip_ops
 };
 
-#if HAVE_REGEX
+#if defined(USE_REGEX)
 ci_acl_type_t acl_icap_header = {
      "icap_header",
      get_icap_header,
@@ -867,7 +867,7 @@ int ci_acl_add_data(const char *name, const char *type, const char *data)
 
 /******************************************************/
 /* Some acl_type methods implementation               */
-#if HAVE_REGEX
+#if defined(USE_REGEX)
 
 const char *get_header(ci_headers_list_t *headers, char *head)
 {

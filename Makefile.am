@@ -20,6 +20,9 @@ bin_PROGRAMS = c-icap
 bin_SCRIPTS = c-icap-config c-icap-libicapapi-config
 
 UTIL_LIB_SOURCES=net_io.c util.c os/unix/net_io.c os/unix/proc_mutex.c os/unix/shared_mem.c os/unix/threads.c os/unix/utilfunc.c os/unix/dlib.c
+if USE_REGEX
+UTIL_LIB_SOURCES += regex.c
+endif
 UTIL_SOURCES=os/unix/proc_utils.c
 
 
@@ -29,6 +32,7 @@ libicapapi_la_SOURCES=  header.c body.c decode.c simple_api.c request_common.c \
                         cache.c lookup_table.c lookup_file_table.c hash.c \
 			txt_format.c stats.c types_ops.c acl.c txtTemplate.c \
 			array.c registry.c md5.c $(UTIL_LIB_SOURCES)
+
 c_icap_SOURCES = aserver.c request.c cfg_param.c \
                    proc_threads_queues.c http_auth.c \
                    access.c log.c service.c module.c \
@@ -36,9 +40,9 @@ c_icap_SOURCES = aserver.c request.c cfg_param.c \
 
 
 # libicapapi ......
-libicapapi_la_CFLAGS= $(INVISIBILITY_CFLAG) -Iinclude/ @ZLIB_ADD_FLAG@ @BZLIB_ADD_FLAG@ -DCI_BUILD_LIB
+libicapapi_la_CFLAGS= $(INVISIBILITY_CFLAG) -Iinclude/ @ZLIB_ADD_FLAG@ @BZLIB_ADD_FLAG@ @PCRE_ADD_FLAG@ -DCI_BUILD_LIB
 
-libicapapi_la_LIBADD = @ZLIB_ADD_LDADD@ @BZLIB_ADD_LDADD@ @DL_ADD_FLAG@ @THREADS_LDADD@
+libicapapi_la_LIBADD = @ZLIB_ADD_LDADD@ @BZLIB_ADD_LDADD@ @PCRE_ADD_LDADD@ @DL_ADD_FLAG@ @THREADS_LDADD@
 libicapapi_la_LDFLAGS= -shared -version-info @CICAPLIB_VERSION@ @THREADS_LDFLAGS@
 
 
@@ -59,7 +63,8 @@ INCS = access.h body.h cfg_param.h c-icap-conf.h c-icap.h ci_threads.h \
 	commands.h debug.h dlib.h filetype.h header.h log.h mem.h module.h \
 	net_io.h proc_mutex.h proc_threads_queues.h request.h service.h \
 	shared_mem.h simple_api.h util.h lookup_table.h hash.h stats.h acl.h \
-        cache.h txt_format.h types_ops.h txtTemplate.h array.h registry.h md5.h
+        cache.h txt_format.h types_ops.h txtTemplate.h array.h registry.h \
+	md5.h ci_regex.h
 
 ALL_INCS=$(INCS:%.h=include/%.h)
 
