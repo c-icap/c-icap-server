@@ -748,3 +748,41 @@ const void * ci_list_search2(ci_list_t *list, const void *data, int (*cmp_func)(
     }
     return NULL;
 }
+
+void ci_list_sort(ci_list_t *list)
+{
+    int (*cmp_func)(const void *, const void *, size_t);
+
+    if (list->cmp_func)
+        cmp_func = list->cmp_func;
+    else if (list->obj_size)
+        cmp_func = default_cmp;
+    else
+        cmp_func = pointers_cmp;
+
+    ci_list_sort2(list, cmp_func);
+}
+
+void ci_list_sort2(ci_list_t *list, int (*cmp_func)(const void *obj1, const void *obj2, size_t obj_size))
+{
+    ci_list_item_t *it;
+    ci_list_item_t *sortedHead = NULL, *sortedTail = NULL;
+    ci_list_item_t **currentSorted, *currentHead;
+    if (!list->items || ! list->items->next)
+        return;
+
+    it = list->items;
+    while (it) {
+        currentHead = it;
+        it = it->next;
+        currentSorted = &sortedHead;
+        while(!(*currentSorted == NULL || cmp_func(currentHead->item, (*currentSorted)->item, list->obj_size) < 0))
+            currentSorted = &(*currentSorted)->next;
+        currentHead->next  = *currentSorted;
+        *currentSorted = currentHead;
+        if ((*currentSorted)->next == NULL)
+            sortedTail = (*currentSorted);
+    }
+    list->items = sortedHead;
+    list->last = sortedTail;
+}

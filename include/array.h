@@ -734,6 +734,20 @@ CI_DECLARE_FUNC(const void *) ci_list_search(ci_list_t *list, const void *data);
  */
 CI_DECLARE_FUNC(const void *) ci_list_search2(ci_list_t *list, const void *data, int (*cmp_func)(const void *obj, const void *user_data, size_t user_data_size));
 
+/**
+ * Sorts the list using as compare function the default.
+ \ingroup LISTS
+ \param list a pointer to the ci_list_t object
+ */
+CI_DECLARE_FUNC(void) ci_list_sort(ci_list_t *list);
+
+/**
+ * Sorts the list using as compare function the cmp_func.
+ \ingroup LISTS
+ \param list a pointer to the ci_list_t object
+ \param cmp_func the compare function to use
+ */
+CI_DECLARE_FUNC(void) ci_list_sort2(ci_list_t *list, int (*cmp_func)(const void *obj1, const void *obj2, size_t obj_size));
 
 /*
   The following three functions are undocumented. Probably will be removed or replaced 
