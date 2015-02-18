@@ -418,7 +418,7 @@ struct ci_lookup_table_type regex_table_type={
 
 void *regex_table_open(struct ci_lookup_table *table)
 {
-#ifdef HAVE_REGEX
+#ifdef USE_REGEX
     struct text_table *text_table;
     if(table->key_ops != &ci_str_ops) {
 	ci_debug_printf(1,"This type of table is not compatible with regex tables!\n");
@@ -439,7 +439,7 @@ void *regex_table_open(struct ci_lookup_table *table)
 
 void  regex_table_close(struct ci_lookup_table *table)
 {
-#ifdef HAVE_REGEX
+#ifdef USE_REGEX
     /*just call the file_table_close:*/
     file_table_close(table);
 #else
@@ -450,7 +450,7 @@ void  regex_table_close(struct ci_lookup_table *table)
 
 void *regex_table_search(struct ci_lookup_table *table, void *key, void ***vals)
 {
-#ifdef HAVE_REGEX
+#ifdef USE_REGEX
     return file_table_search(table, key, vals);
 #else
     ci_debug_printf(1,"regex lookup tables are not supported on this system!\n");

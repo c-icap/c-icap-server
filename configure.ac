@@ -592,7 +592,7 @@ AC_CHECK_HEADERS(regex.h,
   )
 
 USE_REGEX=0
-if test a"$pcre" = "ayes" -o a"$regex" = "ayes"; then
+if test a"$pcre" = "ayes" -o a"$posix_regex" = "ayes"; then
 USE_REGEX=1
 fi
 
