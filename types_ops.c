@@ -238,8 +238,7 @@ struct ci_acl_regex {
 void *regex_dup(const char *str, ci_mem_allocator_t *allocator)
 {
     struct ci_acl_regex *reg;
-    char *newstr,*s;
-    int slen;
+    char *newstr;
     int flags, recursive;
 
     newstr = ci_regex_parse(str, &flags, &recursive);
@@ -271,10 +270,10 @@ void *regex_dup(const char *str, ci_mem_allocator_t *allocator)
 
 int regex_cmp(const void *key1, const void *key2)
 {
-    struct ci_acl_regex *reg=(struct ci_regex *)key1;
+    struct ci_acl_regex *reg=(struct ci_acl_regex *)key1;
     if (!key2)
         return -1;
-    return ci_regex_apply(reg->preg, (const char *)key2, strlen(key2), 0, NULL, NULL)==0;
+    return ci_regex_apply(reg->preg, (const char *)key2, strlen(key2), 0, NULL, NULL) != 0;
 }
 
 int regex_equal(const void *key1, const void *key2)
@@ -282,7 +281,7 @@ int regex_equal(const void *key1, const void *key2)
     struct ci_acl_regex *reg=(struct ci_acl_regex *)key1;
     if (!key2)
         return 0;
-    return ci_regex_apply(reg->preg, (const char *)key2, strlen(key2), 0, NULL, NULL)==0;
+    return ci_regex_apply(reg->preg, (const char *)key2, strlen(key2), 0, NULL, NULL) != 0;
 }
 
 size_t regex_len(const void *key)
