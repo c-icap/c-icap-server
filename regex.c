@@ -119,6 +119,10 @@ int ci_regex_apply(const ci_regex_t regex, const char *str, int len, int recurs,
 {
     int count = 0, i;
     ci_regex_replace_part_t parts;
+
+    if (!str)
+        return 0;
+
 #ifdef HAVE_PCRE
     int ovector[OVECCOUNT];
     int rc;
