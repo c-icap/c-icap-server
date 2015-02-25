@@ -856,7 +856,7 @@ AM_CONDITIONAL(ISCYGWIN,[test a"$iscygwin" != a])
 
 # Now determine which modules will going to build .....
 
-AM_CONDITIONAL(USE_REGEX, [test a"$pcre" = "ayes" -o a"$regex" = "ayes"])
+AM_CONDITIONAL(USE_REGEX, [test a"$pcre" = "ayes" -o a"$posix_regex" = "ayes"])
 AM_CONDITIONAL(USEPERL,[test a"$perlcore" != a])
 AM_CONDITIONAL(USEBDB,   [test a"$libdb" != ano])
 AM_CONDITIONAL(USELDAP, [test a"$libldap" != ano])
