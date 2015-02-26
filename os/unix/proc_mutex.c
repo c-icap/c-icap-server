@@ -103,7 +103,7 @@ int ci_proc_mutex_init(ci_proc_mutex_t * mutex)
     mutex->sem = SEM_FAILED;
     for(i = 0; i < 1024; ++i) {
         errno = 0;
-        snprintf(mutex->name, CI_PROC_MUTEX_NAME_SIZE, "%s%d", CI_PROC_MUTEX_NAME_TMPL, i);
+        snprintf(mutex->name, CI_PROC_MUTEX_NAME_SIZE, "/%s%d", CI_PROC_MUTEX_NAME_TMPL, i);
         if ((mutex->sem = sem_open(mutex->name, O_CREAT|O_EXCL, S_IREAD|S_IWRITE|S_IRGRP, 1)) != SEM_FAILED) {
             return 1;
         }
