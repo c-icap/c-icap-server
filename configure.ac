@@ -671,6 +671,8 @@ AC_CHECK_FUNCS(strncasestr,
 AC_DEFINE(HAVE_STRNCASESTR,1,[Define HAVE_STRNCASESTR if strncasestr exists])
 )
 
+AC_FUNC_STRERROR_R
+
 #sysv ipc
 SYSV_IPC="0"
 AC_CHECK_HEADERS(sys/ipc.h,

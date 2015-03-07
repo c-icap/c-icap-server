@@ -142,6 +142,21 @@ char *ci_str_trim2(char *s)
     return s;
 }
 
+char * ci_strerror(int error, char *buf, size_t buflen)
+{
+#if defined(STRERROR_R_CHAR_P)
+    return strerror_r(error, buf, buflen);
+#elif defined(HAVE_STRERROR_R)
+    if (strerror_r(error,  buf, buflen) == 0)
+        return buf;
+#else
+    snprintf(buf, buflen, "%d", error);
+    buf[buflen - 1] = '\0';
+    return buf;
+
+#endif
+}
+
 /*
   TODO: support escaped chars,
 */

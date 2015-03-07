@@ -349,7 +349,7 @@ int threadjobreqmod()
      int arand=0, p;
      while (!_THE_END) {
          
-	  if (!(conn = ci_client_connect_to(servername, PORT, AF_INET))) {
+	  if (!(conn = ci_client_connect_to(servername, PORT, 0))) {
 	    ci_debug_printf(1, "Failed to connect to icap server.....\n");
 	    exit(-1);
 	  }
@@ -488,7 +488,7 @@ int threadjobsendfiles()
 
      while (1) {
 
-	  if (!(conn = ci_client_connect_to(servername, PORT, AF_INET))) {
+	  if (!(conn = ci_client_connect_to(servername, PORT, 0))) {
 	    ci_debug_printf(1, "Failed to connect to icap server.....\n");
 	    exit(-1);
 	  }

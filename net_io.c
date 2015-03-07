@@ -91,10 +91,15 @@ void ci_fill_ip_t(ci_ip_t *ip_dest, ci_sockaddr_t *src)
 
 void ci_sockaddr_set_port(ci_sockaddr_t * addr, int port)
 {
-     if (addr->sockaddr.ss_family == AF_INET)
+     if (addr->sockaddr.ss_family == AF_INET) {
           ((struct sockaddr_in *) &(addr->sockaddr))->sin_port = htons(port);
-     else
+          addr->ci_sin_port =
+               ((struct sockaddr_in6 *) &(addr->sockaddr))->sin6_port;
+     } else {
           ((struct sockaddr_in6 *) &(addr->sockaddr))->sin6_port = htons(port);
+          addr->ci_sin_port =
+               ((struct sockaddr_in *) &(addr->sockaddr))->sin_port;
+     }
 }
 
 #else
@@ -102,7 +107,7 @@ void ci_sockaddr_set_port(ci_sockaddr_t * addr, int port)
 void ci_sockaddr_set_port(ci_sockaddr_t * addr, int port)
 {
      addr->sockaddr.sin_port = htons(port);
-     /*(addr).ci_sin_port=htons(port); */ ;
+     addr->ci_sin_port = addr->sockaddr.sin_port;
 }
 #endif
 
@@ -176,5 +181,6 @@ int ci_host_to_sockaddr_t(const char *servername, ci_sockaddr_t * addr, int prot
      //fill the addr..... and
      memcpy(&(addr->sockaddr), res->ai_addr, CI_SOCKADDR_SIZE);
      freeaddrinfo(res);
+     ci_fill_sockaddr(addr);
      return 1;
 }

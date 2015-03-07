@@ -32,7 +32,7 @@ const char *ci_sockaddr_t_to_host(ci_sockaddr_t * addr, char *hname,
                                   int maxhostlen)
 {
      getnameinfo((const struct sockaddr *)&(addr->sockaddr), 
-		 CI_SOCKADDR_SIZE, hname, maxhostlen - 1,
+		 addr->ci_sin_family == AF_INET6 ? sizeof(struct sockaddr_in6) : sizeof(struct sockaddr_in), hname, maxhostlen - 1,
 		 NULL, 0, 0);
      return (const char *) hname;
 }

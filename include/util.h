@@ -52,6 +52,8 @@ CI_DECLARE_FUNC(void) ci_str_trim(char *str);
 
 CI_DECLARE_FUNC(char *) ci_str_trim2(char *s);
 
+CI_DECLARE_FUNC(char *) ci_strerror(int error, char *buf, size_t buflen);
+
 typedef struct ci_dyn_array ci_dyn_array_t;
 CI_DECLARE_FUNC(ci_dyn_array_t *) ci_parse_key_value_list(const char *str, char sep);
 #ifdef __cplusplus
