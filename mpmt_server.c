@@ -749,7 +749,7 @@ void listener_thread(int *fd)
                           accept(sockfd,
                                  (struct sockaddr *) &(conn.claddr.sockaddr),
                                  &claddrlen)) == -1)) {
-                         if (errno != EINTR) {
+                         if (errno != EINTR && errno != ECONNABORTED) {
                               ci_debug_printf(1,
                                               "Error accept %d!\nExiting server!\n",
                                               errno);
@@ -762,9 +762,16 @@ void listener_thread(int *fd)
                               ci_debug_printf(5,
                                               "Listener server signalled to exit!\n");
                               goto LISTENER_FAILS;
+                         } else {
+                             ci_debug_printf(2, "Accept failed: errno=%d, ingore!\n", errno);
                          }
                     }
                } while (errno == EINTR && !child_data->to_be_killed);
+
+               // Probably ECONNABORTED or similar error
+               if (conn.fd < 0)
+                   continue;
+
                claddrlen = sizeof(conn.srvaddr.sockaddr);
                getsockname(conn.fd,
                            (struct sockaddr *) &(conn.srvaddr.sockaddr),
