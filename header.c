@@ -238,8 +238,11 @@ const char *ci_headers_add(ci_headers_list_t * h, const char *line)
           h->size = len;
      }
      linelen = strlen(line);
-     while (h->bufused + linelen + 4 >= h->bufsize) {
-          len = h->bufsize + HEADSBUFSIZE;
+     len = h->bufsize;
+     while ( len - h->bufused < linelen + 4 )
+        len += HEADSBUFSIZE;
+     if (len > h->bufsize)
+     {
           newbuf = realloc(h->buf, len * sizeof(char));
           if (!newbuf) {
                ci_debug_printf(1, "Server Error:Error allocation memory \n");
@@ -249,8 +252,7 @@ const char *ci_headers_add(ci_headers_list_t * h, const char *line)
           h->bufsize = len;
           h->headers[0] = h->buf;
           for (i = 1; i < h->used; i++)
-               h->headers[i] =
-                   h->headers[i - 1] + strlen(h->headers[i - 1]) + 2;
+               h->headers[i] = h->headers[i - 1] + strlen(h->headers[i - 1]) + 2;
      }
      newhead = h->buf + h->bufused;
      strcpy(newhead, line);
@@ -266,15 +268,18 @@ const char *ci_headers_add(ci_headers_list_t * h, const char *line)
 
 int ci_headers_addheaders(ci_headers_list_t * h, const ci_headers_list_t * headers)
 {
-     int remains, len, i;
+     int len, i;
      char *newbuf, **newspace;
 
      if (h->packed) { /*Not in edit mode*/
 	  return 0;
      }
+     len = h->size;
+     while ( len - h->used < headers->used )
+         len += HEADERSTARTSIZE;
 
-     while (h->size - h->used < headers->used) {
-          len = h->size + HEADERSTARTSIZE;
+     if ( len > h->size )
+     {
           newspace = realloc(h->headers, len * sizeof(char *));
           if (!newspace) {
                ci_debug_printf(1, "Server Error: Error allocating memory \n");
@@ -284,8 +289,11 @@ int ci_headers_addheaders(ci_headers_list_t * h, const ci_headers_list_t * heade
           h->size = len;
      }
 
-     while ((remains = h->bufsize - h->bufused) < headers->bufused + 2) {
-          len = h->bufsize + HEADSBUFSIZE;
+     len = h->bufsize;
+     while (len - h->bufused < headers->bufused + 2)
+         len += HEADSBUFSIZE;
+     if (len > h->bufsize)
+     {
           newbuf = realloc(h->buf, len * sizeof(char));
           if (!newbuf) {
                ci_debug_printf(1, "Server Error: Error allocating memory \n");
@@ -293,18 +301,14 @@ int ci_headers_addheaders(ci_headers_list_t * h, const ci_headers_list_t * heade
           }
           h->buf = newbuf;
           h->bufsize = len;
-          h->headers[0] = h->buf;
-          for (i = 1; i < h->used; i++)
-               h->headers[i] =
-                   h->headers[i - 1] + strlen(h->headers[i - 1]) + 2;
      }
 
      memcpy(h->buf + h->bufused, headers->buf, headers->bufused + 2);
+
      h->bufused += headers->bufused;
      h->used += headers->used;
 
-     if (h->used && h->headers[0] == NULL)
-         h->headers[0] = h->buf;
+     h->headers[0] = h->buf;
      for (i = 1; i < h->used; i++)
           h->headers[i] = h->headers[i - 1] + strlen(h->headers[i - 1]) + 2;
      return 1;
