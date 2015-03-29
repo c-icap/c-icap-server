@@ -381,6 +381,6 @@ int main(int argc, char **argv)
 
           ci_debug_printf(2, "Done\n");
      }
-     close(conn->fd);
+     ci_connection_destroy(conn);
      return 0;
 }

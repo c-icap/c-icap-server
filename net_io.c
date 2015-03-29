@@ -184,3 +184,16 @@ int ci_host_to_sockaddr_t(const char *servername, ci_sockaddr_t * addr, int prot
      ci_fill_sockaddr(addr);
      return 1;
 }
+
+/**
+ * Close and free the given connection
+ */
+void ci_connection_destroy(ci_connection_t *connection)
+{
+    if ( connection ) {
+        if ( connection->fd >= 0 )
+            close(connection->fd);
+        free(connection);
+    }
+}
+

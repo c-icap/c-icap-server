@@ -110,7 +110,7 @@ typedef struct ci_connection{
      ci_sockaddr_t srvaddr;
 }  ci_connection_t ;
 
-
+CI_DECLARE_FUNC(void) ci_connection_destroy(ci_connection_t *connection);
 
 CI_DECLARE_FUNC(void) ci_fill_sockaddr(ci_sockaddr_t *addr);
 CI_DECLARE_FUNC(void) ci_fill_ip_t(ci_ip_t *ip, ci_sockaddr_t *addr);
