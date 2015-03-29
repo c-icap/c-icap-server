@@ -934,7 +934,7 @@ static int client_parse_encaps_header(ci_request_t * req, ci_headers_list_t * h,
           readed =
               (remains >
                req->pstrblock_read_len ? req->pstrblock_read_len : remains);
-          memcpy(h->buf, req->pstrblock_read, readed);
+          memcpy(h->buf + h->bufused, req->pstrblock_read, readed);
           h->bufused += readed;
           req->pstrblock_read = (req->pstrblock_read) + readed;
           req->pstrblock_read_len = (req->pstrblock_read_len) - readed;
