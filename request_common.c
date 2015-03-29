@@ -1414,3 +1414,13 @@ int ci_client_icapfilter(ci_request_t * req,
 
      return ret;
 }
+
+/**
+ * Return 1 if the HTTP headers (if any) are read completely
+ * otherwise return 0;
+ */
+int ci_client_http_headers_completed(ci_request_t * req)
+{
+    return (req->status >= GET_PREVIEW);
+}
+
