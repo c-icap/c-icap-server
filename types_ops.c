@@ -273,7 +273,7 @@ int regex_cmp(const void *key1, const void *key2)
     struct ci_acl_regex *reg=(struct ci_acl_regex *)key1;
     if (!key2)
         return -1;
-    return ci_regex_apply(reg->preg, (const char *)key2, strlen(key2), 0, NULL, NULL) != 0;
+    return (ci_regex_apply(reg->preg, (const char *)key2, strlen(key2), 0, NULL, NULL) == 0 ? 1 : 0);
 }
 
 int regex_equal(const void *key1, const void *key2)
