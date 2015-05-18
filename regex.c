@@ -177,5 +177,6 @@ int ci_regex_apply(const ci_regex_t regex, const char *str, int len, int recurs,
     } while (recurs && str && *str != '\0' && retcode == 0);
 #endif
 
+    ci_debug_printf(5, "ci_regex_apply matches count: %d\n", count);
     return count;
 }
