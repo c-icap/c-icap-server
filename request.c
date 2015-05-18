@@ -335,10 +335,12 @@ static int parse_request(ci_request_t * req, char *buf)
      while (*end == ' ') end++;
      start = end;
 
-     if (strncasecmp(start, "icap://", 7) != 0)
+     if (strncasecmp(start, "icap://", 7) == 0)
+         start = start + 7;
+     else if (strncasecmp(start, "icaps://", 8) == 0)
+         start = start + 8;
+     else
          return EC_400;
-
-     start = start + 7;
 
      len = strcspn(start, "/ ");
      end = start + len;
