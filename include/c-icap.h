@@ -112,11 +112,15 @@ typedef off_t ci_off_t;
 #if CI_SIZEOF_OFF_T > 4 
 #   define PRINTF_OFF_T "lld" 
 #   define CAST_OFF_T long long int
-#   define ci_strto_off_t strtoull
+#   define ci_strto_off_t strtoll
+#   define CI_STRTO_OFF_T_MAX LLONG_MAX
+#   define CI_STRTO_OFF_T_MIN LLONG_MIN
 #else
 #   define PRINTF_OFF_T "ld" 
 #   define CAST_OFF_T  long int
-#   define ci_strto_off_t strtoul
+#   define ci_strto_off_t strtol
+#   define CI_STRTO_OFF_T_MAX LONG_MAX
+#   define CI_STRTO_OFF_T_MIN LONG_MIN
 #endif
 
 /*

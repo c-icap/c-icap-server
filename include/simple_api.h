@@ -339,7 +339,7 @@ CI_DECLARE_FUNC(int)                 ci_http_request_create(ci_request_t * req, 
  * If the header Content-Length is not included in HTTP response 
  * It can be used with both request and response modification ICAP requests. 
  \param req is a pointer to the current ICAP request object.
- \return The content length on success zero otherwise
+ \return The content length on success or a negative number otherwise
  */
 CI_DECLARE_FUNC(ci_off_t)            ci_http_content_length(ci_request_t *req);
 

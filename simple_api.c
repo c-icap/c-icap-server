@@ -19,7 +19,9 @@
 
 #include "common.h"
 #include "simple_api.h"
+#include "debug.h"
 #include <ctype.h>
+#include <errno.h>
 
 
 /*
@@ -206,14 +208,27 @@ ci_off_t ci_http_content_length(ci_request_t * req)
 {
      ci_headers_list_t *heads;
      const char *val;
+     ci_off_t res = 0;
+     char *e;
      if (!(heads =  ci_http_response_headers(req))) {
           /*Then maybe is a reqmod reauest, try to get request headers */
           if (!(heads = ci_http_request_headers(req)))
                return 0;
      }
      if (!(val = ci_headers_value(heads, "Content-Length")))
-          return 0;
-     return ci_strto_off_t(val, NULL, 10);
+          return -1;
+ 
+     errno = 0;
+     res = ci_strto_off_t(val, &e, 10);
+     if (errno == ERANGE && (res == CI_STRTO_OFF_T_MAX || res == CI_STRTO_OFF_T_MIN)) {
+         ci_debug_printf(4, "Content-Length: overflow\n");
+         return -2;
+     }
+     if (val == e) {
+         ci_debug_printf(4, "Content-Length: not valid value: '%s' \n", val);
+         return -2;
+     }
+     return res;
 }
 
 const char *ci_http_request(ci_request_t * req)

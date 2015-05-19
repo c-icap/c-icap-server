@@ -128,8 +128,6 @@ int ex206_check_preview_handler(char *preview_data, int preview_data_len,
      /*Get the ex206_req_data we allocated using the  ex206_init_service  function*/
      struct ex206_req_data *ex206_data = ci_service_data(req);
 
-     /*If there are is a Content-Length header in encupsulated Http object read it
-      and display a debug message (used here only for debuging purposes)*/
      content_len = ci_http_content_length(req);
      ci_debug_printf(9, "We expect to read :%" PRINTF_OFF_T " body data\n",
                      (CAST_OFF_T) content_len);
@@ -151,7 +149,7 @@ int ex206_check_preview_handler(char *preview_data, int preview_data_len,
              /*Use only the original body after the <html> tag */
              use_origin = e - preview_data + 1;
              ci_request_206_origin_body(req, use_origin);
-             if(content_len) {
+             if(content_len > 0) {
                  content_len += ex206_data->script_size - use_origin;
                  ci_http_response_remove_header(req, "Content-Length");
                  char head[512];
