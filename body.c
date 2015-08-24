@@ -583,6 +583,7 @@ ci_simple_file_t *ci_simple_file_new(ci_off_t maxsize)
           ci_object_pool_free(body);
           return NULL;
      }
+     ci_debug_printf(5, "ci_simple_file_new: Use temporary filename: %s\n", body->filename);
      body->endpos = 0;
      body->readpos = 0;
      body->flags = 0;
