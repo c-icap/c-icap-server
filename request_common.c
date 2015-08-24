@@ -1402,8 +1402,8 @@ int ci_client_icapfilter(ci_request_t * req,
 	       ci_headers_reset(req->response_header);
      }
 
-     if (preview_status == 204)
-          return 204;
+     if (preview_status == 204 || preview_status == 206)
+          return preview_status;
 
      ret =
          client_send_get_data(req, timeout, data_source, source_read, data_dest,
