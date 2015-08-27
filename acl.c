@@ -727,7 +727,7 @@ int request_match_specslist(ci_request_t *req, const struct ci_specs_list *spec_
 	type = spec->type;
 	test_data = type->get_test_data(req, spec->parameter);
 	if (!test_data) {
-	    ci_debug_printf(9,"No data to test for %s\n", spec->parameter);
+	    ci_debug_printf(9,"No data to test for %s/%s, ignore\n", type->name, spec->parameter);
 	    return 0;
 	}
 
@@ -980,7 +980,10 @@ void free_data_type(ci_request_t *req,void *param){
 void *get_content_length(ci_request_t *req, char *param)
 {
     struct acl_cmp_uint64_data *clen_p = (struct acl_cmp_uint64_data *)ci_buffer_alloc(sizeof(struct acl_cmp_uint64_data));
-    clen_p->data = (uint64_t)ci_http_content_length(req);
+    ci_off_t clen = ci_http_content_length(req);
+    if (clen < 0)
+        return NULL;
+    clen_p->data = (uint64_t)clen;
     if (param[0] == '=') {
         clen_p->operator = 0;
     } else if (param[0] == '>') {
