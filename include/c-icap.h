@@ -87,8 +87,7 @@
 #endif
 
 /*
-  Here we are define the ci_off_t type to support large files
-  We must be careful here, the off_t type is unsigned integer.
+  Here we are define the ci_off_t type to support large files.
 
   -A comment about lfs:
   In Solaris and Linux to have lfs support, if you are using 
