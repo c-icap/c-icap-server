@@ -948,6 +948,7 @@ int start_child(int fd)
 {
      int pid;
      int pfd[2];
+     int children_num, free_servers, used_servers, max_requests;
 
      if (pipe(pfd) < 0) {
           ci_debug_printf(1,
@@ -962,9 +963,23 @@ int start_child(int fd)
      }
      if ((pid = fork()) == 0) { //A Child .......
           MY_PROC_PID = getpid();
-          attach_childs_queue(childs_queue);
+          if (!attach_childs_queue(childs_queue)) {
+              ci_debug_printf(1, "Can not access shared memory for %d child\n", (int)MY_PROC_PID);
+              exit(-2);
+          }
           child_data =
               register_child(childs_queue, getpid(), CI_CONF.THREADS_PER_CHILD, pfd[1]);
+          if (!child_data) {
+              childs_queue_stats(childs_queue, &children_num, &free_servers,
+                                 &used_servers, &max_requests);
+              ci_debug_printf(1, "Not available slot in shared memory for %d child (Number of slots: %d, Running children: %d, Free servers: %d, Used servers: %d)!\n", (int)MY_PROC_PID,
+                              childs_queue->size,
+                              children_num,
+                              free_servers,
+                              used_servers
+                  );
+              exit(-3);
+          }
           close(pfd[1]);
           child_main(fd, pfd[0]);
           exit(0);
@@ -1036,7 +1051,8 @@ int start_server()
      ctl_socket = ci_named_pipe_create(CI_CONF.COMMANDS_SOCKET);
      if (ctl_socket < 0) {
           ci_debug_printf(1,
-                          "Error opening control socket %s. Fatal error, exiting!\n",
+                          "Error opening control socket %s: %s. Fatal error, exiting!\n",
+                          strerror(errno),
                           CI_CONF.COMMANDS_SOCKET);
           exit(0);
      }
