@@ -241,12 +241,12 @@ static ci_proc_mutex_scheme_t file_mutex_scheme = {
 
 #endif
 
-#if defined(USE_POSIX_SEMAPHORES)
-const ci_proc_mutex_scheme_t *default_mutex_scheme = &posix_mutex_scheme;
+#if defined(USE_POSIX_FILE_LOCK)
+const ci_proc_mutex_scheme_t *default_mutex_scheme = &file_mutex_scheme;
 #elif defined(USE_SYSV_IPC_MUTEX)
 const ci_proc_mutex_scheme_t *default_mutex_scheme = &sysv_mutex_scheme;
-#elif defined(USE_POSIX_FILE_LOCK)
-const ci_proc_mutex_scheme_t *default_mutex_scheme = &file_mutex_scheme;
+#elif defined(USE_POSIX_SEMAPHORES)
+const ci_proc_mutex_scheme_t *default_mutex_scheme = &posix_mutex_scheme;
 #else
 const ci_proc_mutex_scheme_t *default_mutex_scheme = NULL;
 #endif

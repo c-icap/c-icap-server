@@ -109,14 +109,19 @@ MaxRequestsPerChild  0
 #	posix Use posix shared memory (shm_open interface)
 #	mmap  Use anonymous mmaped files as shared memory
 #	sysv  use the sysv ipc shared memory
+# Default:
+#	InterProcessSharedMemScheme posix
 
 # TAG: InterProcessLockingScheme
-# Format: InterProcessSharedMemScheme posix | file | sysv
+# Format: InterProcessSharedMemScheme file | sysv | posix
 # Description:
 #	The interprocess locking scheme to use. Available schemes:
-#	posix Use posix semaphores
 #       file  Use lock file
-#       sysv  use the sysv ipc semaphores
+#       sysv  Use the sysv ipc semaphores
+#	posix Use posix semaphores: Use it with caution you may experienced
+#             locking problems if one or more processes crashed.
+# Default:
+#	InterProcessLockingScheme file
 
 # TAG: Port
 # Format: Port port
