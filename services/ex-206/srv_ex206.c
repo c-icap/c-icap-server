@@ -150,7 +150,8 @@ int ex206_check_preview_handler(char *preview_data, int preview_data_len,
              use_origin = e - preview_data + 1;
              ci_request_206_origin_body(req, use_origin);
              if(content_len > 0) {
-                 content_len += ex206_data->script_size - use_origin;
+                 // The content length increased because the script was added.
+                 content_len += ex206_data->script_size;
                  ci_http_response_remove_header(req, "Content-Length");
                  char head[512];
                  snprintf(head, 512, "Content-Length: %" PRINTF_OFF_T, (CAST_OFF_T) content_len);
