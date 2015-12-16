@@ -42,7 +42,7 @@ By default c-icap writes its pid in this file. The path of this file can changed
 .RE
 .I /var/run/c-icap.ctl
 .RS
-The commands socket. This file used to send commands to the icap server from command line. For informations about implemented commands look below in the "Implemented commands" sub-section
+The commands socket. This file used to send commands to the icap server from command line. For information about implemented commands look below in the "Implemented commands" sub-section
 .SH NOTES
 .SS Implemented commands
 Currently the following commands are implemented:
@@ -65,10 +65,10 @@ Services and modules can define their own commands.
 .PP
 \fBExamples:\fR
 .IP "To reconfigure c-icap:"
-      echo -n "reconfigure" > /var/run/c-icap.ctl
+      echo \-n "reconfigure" > /var/run/c-icap.ctl
 .IP "To rotate access log:"
       mv /var/log/c-icap/access.log /var/log/c-icap/access.log.1
-      echo -n "relog" > /var/run/c-icap.ctl
+      echo \-n "relog" > /var/run/c-icap.ctl
 .RE
 .SS Lookup tables
 Lookup tables are simple read-only databases. 
@@ -155,7 +155,7 @@ Someone can retrieve runtime information using the \fBinfo\fR service. The infor
 \fBExample:\fR
 .IP "Retrieve runtime information from command line:"
 .RS
-c-icap-client -i localhost -s "info?view=text" -req "a_url"
+c-icap-client \-i localhost \-s "info?view=text" \-req "a_url"
 .RE
 .SH SEE ALSO
 .BR c-icap-client "(8)"
