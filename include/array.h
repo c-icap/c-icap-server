@@ -626,12 +626,13 @@ CI_DECLARE_FUNC(ci_list_t *) ci_list_create(size_t init_size, size_t obj_size);
  \param list  a pointer to the ci_list_t object
  \return The first item if exist, NULL otherwise
  */
-#define ci_list_first(list) ((list)->items && (((list)->cursor = (list)->items->next) != NULL || 1) ? (list)->items->item : NULL)
+#define ci_list_first(list) (list && (list)->items && (((list)->cursor = (list)->items->next) != NULL || 1) ? (list)->items->item : NULL)
 
 
 /**
  \def ci_list_next()
  * Return the next item of the list and updates the list cursor to the next item.
+ * WARNING: It does not check for valid list object.
  * WARNING: do not mix this macro with ci_list_iterate!
  \ingroup LISTS
  \param list  a pointer to the ci_list_t object
@@ -645,14 +646,14 @@ CI_DECLARE_FUNC(ci_list_t *) ci_list_create(size_t init_size, size_t obj_size);
  \ingroup LISTS
  * Return the head of the list
  */
-#define ci_list_head(list) (list->items != NULL ? list->items->item : NULL)
+#define ci_list_head(list) (list && list->items != NULL ? list->items->item : NULL)
 
 /**
  \def ci_list_tail(list)
  \ingroup LISTS
  * Return last item of the list.
  */
-#define ci_list_tail(list) (list->last != NULL ? list->last->item : NULL)
+#define ci_list_tail(list) (list && list->last != NULL ? list->last->item : NULL)
 
 /**
  * Destroy an ci_list_t object 
