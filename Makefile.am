@@ -69,7 +69,7 @@ INCS = access.h body.h cfg_param.h c-icap-conf.h c-icap.h ci_threads.h \
 ALL_INCS=$(INCS:%.h=include/%.h)
 
 pkginclude_HEADERS = $(ALL_INCS)
-#sysconf_DATA = c-icap.conf c-icap.magic
+sysconf_DATA = c-icap.conf
 
 
 do_subst=sed -e 's%[@]SYSCONFDIR[@]%$(CONFIGDIR)%g' \
@@ -88,6 +88,9 @@ do_subst=sed -e 's%[@]SYSCONFDIR[@]%$(CONFIGDIR)%g' \
              -e 's%[@]SOCKDIR[@]%$(SOCKDIR)%g'
 
 CLEANFILES = c-icap-config c-icap-libicapapi-config
+
+c-icap.conf: c-icap.conf.in configure
+	$(do_subst) < c-icap.conf.in > $@
 
 c-icap-config: c-icap-config.in configure
 	$(do_subst) < c-icap-config.in > $@
