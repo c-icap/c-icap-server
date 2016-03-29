@@ -176,7 +176,9 @@ int ci_membuf_write(struct ci_membuf *b, const char *data, int len, int iseof)
      }
 
      if ((b->flags & CI_MEMBUF_HAS_EOF)) {
-         ci_debug_printf( 1, "Cannot write to membuf: the eof flag is set!\n");
+         if (len > 0) {
+             ci_debug_printf( 1, "Cannot write to membuf: the eof flag is set!\n");
+         }
          return 0;
      }
 
