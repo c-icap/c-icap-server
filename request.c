@@ -1029,7 +1029,7 @@ static int get_send_body(ci_request_t * req, int parse_only)
                else if (rbytes == CI_EOF)
                     service_eof = 1;
           } while (no_io == 0 && req->pstrblock_read_len != 0
-                   && parse_chunk_ret != CI_NEEDS_MORE && !rchunkisfull);
+                   && parse_chunk_ret != CI_NEEDS_MORE && parse_chunk_ret != CI_EOF && !rchunkisfull);
 
           action = 0;
           if (!req->write_to_module_pending) {
@@ -1377,8 +1377,10 @@ static int do_fake_preview(ci_request_t * req)
       by the client or not
     */
 
-    if (!req->current_service_mod->mod_check_preview_handler)
+    if (!req->current_service_mod->mod_check_preview_handler) {
+        req->return_code = req->hasbody ? EC_100 : EC_200;
         return CI_OK; /*do nothing*/
+    }
     
     ci_debug_printf(8,"Preview does not supported. Call the preview handler with no preview data.\n");
     res = req->current_service_mod->mod_check_preview_handler(NULL, 0, req);
@@ -1395,8 +1397,12 @@ static int do_fake_preview(ci_request_t * req)
 
         /*And now parse body data we have read and data the client going to send us,
           but do not pass them to the service (second argument of the get_send_body)*/
-        if (req->hasbody)
-            res = get_send_body(req, 1); /*we do not care about return code...*/
+        if (req->hasbody) {
+            res = get_send_body(req, 1);
+            if (res == CI_ERROR)
+                return res;
+        }
+        req->return_code = EC_204;
         return CI_OK;
     }
 
@@ -1407,6 +1413,7 @@ static int do_fake_preview(ci_request_t * req)
           TODO: remove the "!req->hasbody" from if and  attach a (ring?) buffer to 
           echo data back to user
         */
+        req->return_code = EC_204;
         return CI_OK;
     }
 
@@ -1416,8 +1423,10 @@ static int do_fake_preview(ci_request_t * req)
         return CI_OK;
     }
 
-    if (res == CI_MOD_CONTINUE)
+    if (res == CI_MOD_CONTINUE) {
+        req->return_code = req->hasbody ? EC_100 : EC_200;
         return CI_OK;
+    }
 
     ci_debug_printf(1, "An error occured in preview handler (outside preview)!"
                     " return code: %d, req->allow204=%d, req->allow206=%d\n", 
@@ -1539,17 +1548,8 @@ static int do_request(ci_request_t * req)
           if (req->preview >= 0) /*we are inside preview*/
               preview_status = do_request_preview(req);
           else {
-              preview_status = do_fake_preview(req);
               /* do_fake_preview return CI_OK or CI_ERROR. */
-              if (preview_status == CI_OK) {
-                /* We did not send any "100 Continue" response, but we need
-                   to simulate that we sent in the case we are expecting
-                   body data */
-                  if (req->hasbody)
-                      req->return_code = EC_100;
-                  else
-                      req->return_code = EC_200;
-              }
+              preview_status = do_fake_preview(req);
           }
           
           if (preview_status == CI_ERROR) {
