@@ -865,7 +865,7 @@ AM_CONDITIONAL(USELDAP, [test a"$libldap" != ano])
 AM_CONDITIONAL(USEMEMCACHED, [test a"$libmemcached" != ano])
 
 AC_OUTPUT([
-include/c-icap-conf.h Makefile c-icap.conf utils/Makefile services/Makefile 
+include/c-icap-conf.h Makefile utils/Makefile services/Makefile 
 services/echo/Makefile services/ex-206/Makefile modules/Makefile tests/Makefile 
 docs/Makefile docs/man/Makefile
 ])
