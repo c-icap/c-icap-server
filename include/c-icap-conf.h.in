@@ -46,6 +46,10 @@
 #define __CI_COMPAT
 #endif
 
+#if @USE_POLL@
+#define USE_POLL
+#endif
+
 /*The following maybe should used...*/
 #if @SYS_TYPES_H@
 #define __SYS_TYPES_H_EXISTS

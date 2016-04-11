@@ -24,6 +24,12 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <sys/time.h>
+#if defined(USE_POLL)
+#include <poll.h>
+#else
+#error "nopoll"
+#include <sys/select.h>
+#endif
 #include "debug.h"
 #include "net_io.h"
 
@@ -203,7 +209,34 @@ int ci_wait_for_data(ci_socket fd,int secs,int what_wait){
 
 */
 
+#if defined(USE_POLL)
+int ci_wait_for_data(int fd, int secs, int what_wait)
+{
+     int ret = 0;
+     struct pollfd fds[1];
+     secs *= 1000; // Should be in milliseconds
 
+     fds[0].fd = fd;
+     fds[0].events = (what_wait & wait_for_read ? POLLIN : 0) | (what_wait & wait_for_write ? POLLOUT : 0);
+
+     errno = 0;
+     if ((ret = poll(fds, 1, secs)) > 0) {
+          ret = 0;
+          if (fds[0].revents & POLLIN)
+               ret = wait_for_read;
+          if (fds[0].revents & POLLOUT)
+               ret = ret | wait_for_write;
+          return ret;
+     }
+
+     if (ret < 0 && errno != EINTR) {
+          ci_debug_printf(5, "Fatal error while waiting for new data (errno=%d....\n", errno);
+          return -1;
+     }
+     return 0;
+}
+
+#else
 int ci_wait_for_data(int fd, int secs, int what_wait)
 {
      fd_set rfds, wfds, *preadfds, *pwritefds;
@@ -248,6 +281,7 @@ int ci_wait_for_data(int fd, int secs, int what_wait)
      }
      return 0;
 }
+#endif
 
 
 int ci_read(int fd, void *buf, size_t count, int timeout)
