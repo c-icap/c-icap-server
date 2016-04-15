@@ -221,6 +221,15 @@ int ci_wait_for_data(int fd, int secs, int what_wait)
 
      errno = 0;
      if ((ret = poll(fds, 1, secs)) > 0) {
+          if (fds[0].revents & (POLLERR | POLLHUP)) {
+               ci_debug_printf(3, "ci_wait_for_data error: the connection is terminated\n");
+               return -1;
+          }
+
+          if (fds[0].revents & (POLLNVAL)) {
+               ci_debug_printf(1, "ci_wait_for_data error: poll on closed socket?\n");
+               return -1;
+          }
           ret = 0;
           if (fds[0].revents & POLLIN)
                ret = wait_for_read;
