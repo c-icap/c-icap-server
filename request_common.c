@@ -894,7 +894,7 @@ static int client_parse_icap_header(ci_request_t * req, ci_headers_list_t * h)
      char *buf, *end;
      if (req->pstrblock_read_len < 4)   /*we need 4 bytes for the end of headers "\r\n\r\n" string */
           return CI_NEEDS_MORE;
-     if ((end = strstr(req->pstrblock_read, "\r\n\r\n")) != NULL) {
+     if ((end = strnstr(req->pstrblock_read, "\r\n\r\n", req->pstrblock_read_len)) != NULL) {
           readed = end - req->pstrblock_read + 4;
           eoh = 1;
      }
