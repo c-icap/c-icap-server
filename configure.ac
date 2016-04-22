@@ -179,6 +179,17 @@ AC_ARG_ENABLE(sysvipc,
    [ sysvipc="yes" ]
 )
 
+AC_ARG_ENABLE(poll,
+[  --disable-poll	Disable poll(2) support],
+[ if test $enableval = "no"; then
+    enablepoll="no"
+  else
+    enablepoll="yes"
+  fi
+],
+   [ enablepoll="yes" ]
+)
+
 USE_COMPAT="0"
 AC_MSG_CHECKING([Keep library compatibility])
 AC_ARG_ENABLE(lib_compat,
@@ -672,6 +683,19 @@ AC_DEFINE(HAVE_STRNCASESTR,1,[Define HAVE_STRNCASESTR if strncasestr exists])
 )
 
 AC_FUNC_STRERROR_R
+
+USE_POLL="0"
+if test a"$enablepoll" != "ano"; then
+AC_CHECK_HEADERS(poll.h,
+    AC_CHECK_FUNCS(poll,
+    USE_POLL="1"
+    )
+)
+fi
+AC_SUBST(USE_POLL)
+# if test a"$USE_POLL" = "1"; then
+#    AC_DEFINE(HAVE_POLL,1,[Define HAVE_POLL if poll(2) exists and we can use it])
+# fi
 
 #sysv ipc
 SYSV_IPC="0"
