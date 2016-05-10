@@ -69,7 +69,6 @@ INCS = access.h body.h cfg_param.h c-icap-conf.h c-icap.h ci_threads.h \
 ALL_INCS=$(INCS:%.h=include/%.h)
 
 pkginclude_HEADERS = $(ALL_INCS)
-sysconf_DATA = c-icap.conf
 
 
 do_subst=sed -e 's%[@]SYSCONFDIR[@]%$(CONFIGDIR)%g' \
@@ -89,21 +88,24 @@ do_subst=sed -e 's%[@]SYSCONFDIR[@]%$(CONFIGDIR)%g' \
 
 CLEANFILES = c-icap-config c-icap-libicapapi-config
 
-c-icap.conf: c-icap.conf.in configure
+# The c-icap.conf, c-icap-config, and c-icap-libicapapi-config must rebuild 
+# on every new configure run. The include/c-icap-conf.h is rebuild when
+# configure runs so it is a good test.
+c-icap.conf: c-icap.conf.in include/c-icap-conf.h
 	$(do_subst) < c-icap.conf.in > $@
 
-c-icap-config: c-icap-config.in configure
+c-icap-config: c-icap-config.in include/c-icap-conf.h
 	$(do_subst) < c-icap-config.in > $@
 	chmod 755 $@
 
-c-icap-libicapapi-config:  c-icap-libicapapi-config.in configure
+c-icap-libicapapi-config:  c-icap-libicapapi-config.in include/c-icap-conf.h
 	$(do_subst) < c-icap-libicapapi-config.in > $@
 	chmod 755 $@
 
 doc:
 	$(DOXYGEN) c-icap.dox
 
-install-data-local:
+install-data-local: c-icap.conf
 	$(mkinstalldirs) $(DESTDIR)$(CONFIGDIR);
 	$(INSTALL) c-icap.conf $(DESTDIR)$(CONFIGDIR)/c-icap.conf.default
 	$(INSTALL) c-icap.magic $(DESTDIR)$(CONFIGDIR)/c-icap.magic.default
@@ -116,7 +118,7 @@ install-data-local:
 	chgrp nogroup $(DESTDIR)$(SOCKDIR) || echo -e "*********\nWARNING! Can not set group for the c-icap socket store dir $(DESTDIR)$(SOCKDIR)\n\n*********\n"
 	chmod 775 $(DESTDIR)$(SOCKDIR)
 
-EXTRA_DIST = RECONF config-w32.h makefile.w32 c-icap.conf \
+EXTRA_DIST = RECONF config-w32.h makefile.w32 \
              c_icap_dll.mak c-icap.conf.in c-icap.magic  c_icap.mak c_icap.def \
              contrib/get_file.pl contrib/convert_old_magic.pl \
              winnt_server.c  os/win32/dll_entry.c os/win32/makefile.w32 \
