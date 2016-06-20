@@ -231,6 +231,7 @@ int ci_membuf_read(struct ci_membuf *b, char *data, int len)
           remains = b->unlocked - b->readpos;
      else
           remains = b->endpos - b->readpos;
+     assert(remains >= 0);
      if (remains == 0 && (b->flags & CI_MEMBUF_HAS_EOF))
           return CI_EOF;
      copybytes = (len <= remains ? len : remains);
@@ -536,7 +537,7 @@ int ci_cached_file_read(ci_cached_file_t * body, char *buf, int len)
           else
                remains = len;
 
-/*	  assert(remains>=0);*/
+	  assert(remains >= 0);
 
           bytes = (remains > len ? len : remains);      /*Number of bytes that we are going to read from file..... */
 
@@ -551,7 +552,7 @@ int ci_cached_file_read(ci_cached_file_t * body, char *buf, int len)
      else
           remains = body->endpos - body->readpos;
 
-/*     assert(remains>=0);     */
+     assert(remains >= 0);
 
      bytes = (len <= remains ? len : remains);
      if (bytes > 0) {
@@ -786,6 +787,7 @@ int ci_simple_file_read(ci_simple_file_t * body, char *buf, int len)
 	 }
      }
 
+     assert(remains >= 0);
      bytes = (remains > len ? len : remains);   /*Number of bytes that we are going to read from file..... */
      lseek(body->fd, body->readpos, SEEK_SET);
      if ((bytes = do_read(body->fd, buf, bytes)) > 0) {
