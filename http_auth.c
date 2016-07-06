@@ -75,7 +75,10 @@ int http_authenticate(ci_request_t * req, char *use_method)
 		 req->user[MAX_USERNAME_LEN] = '\0';;
 	     }
 	     return CI_ACCESS_ALLOW;
-	 }
+	 } else {
+             ci_debug_printf(3, "No user name found in ICAP header '%s'\n", REMOTE_PROXY_USER_HEADER ? REMOTE_PROXY_USER_HEADER : "-");
+             return CI_ACCESS_DENY;
+         }
      }
 
      if (!use_method)
