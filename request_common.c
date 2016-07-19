@@ -863,7 +863,11 @@ static int client_send_request_headers(ci_request_t * req, int has_eof, int time
           }
      }
      else if (req->preview == 0) {
-          if (ci_writen(req->connection->fd, "0\r\n\r\n", 5, timeout) < 0)
+          if (has_eof)
+               bytes = ci_writen(req->connection->fd, "0; ieof\r\n\r\n", 11, timeout);
+          else
+               bytes = ci_writen(req->connection->fd, "0\r\n\r\n", 5, timeout);
+          if (bytes < 0)
                return CI_ERROR;
           req->bytes_out += 5;
      }
