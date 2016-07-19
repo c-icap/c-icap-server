@@ -983,69 +983,7 @@ int ci_client_get_server_options(ci_request_t * req, int timeout)
 
 ci_connection_t *ci_client_connect_to(char *servername, int port, int proto)
 {
-     ci_connection_t *connection = __intl_malloc(sizeof(ci_connection_t));
-     char hostname[CI_MAXHOSTNAMELEN + 1];
-     unsigned int addrlen = 0;
-     char errBuf[512];
-     int errNo;
-     
-     if (!connection)
-          return NULL;
-
-     if (!ci_host_to_sockaddr_t(servername, &(connection->srvaddr), proto)) {
-          ci_debug_printf(1, "Error getting address info for host '%s': %s\n",
-                          servername,
-                          ci_strerror(errno,  errBuf, sizeof(errBuf)));
-          close(connection->fd);
-          __intl_free(connection);
-          return NULL;
-     }
-     ci_sockaddr_set_port(&(connection->srvaddr), port);
-
-     connection->fd = socket(connection->srvaddr.ci_sin_family, SOCK_STREAM, 0);
-     if (connection->fd == -1) {
-          ci_debug_printf(1, "Error opening socket :%d:%s....\n",
-                          errno,
-                          ci_strerror(errno,  errBuf, sizeof(errBuf)));
-          __intl_free(connection);
-          return NULL;
-     }
-
-#ifdef USE_IPV6
-     if (connection->srvaddr.ci_sin_family == AF_INET6)
-         addrlen = sizeof(struct sockaddr_in6);
-     else
-#endif
-         addrlen = sizeof(struct sockaddr_in);
-
-     if (connect
-         (connection->fd, (struct sockaddr *) &(connection->srvaddr.sockaddr),
-          addrlen)) {
-          errNo = errno;
-          ci_sockaddr_t_to_host(&(connection->srvaddr), hostname,
-                                CI_MAXHOSTNAMELEN);
-          ci_debug_printf(1, "Error connecting to host  '%s': %s \n",
-                          hostname,
-                          ci_strerror(errNo,  errBuf, sizeof(errBuf)));
-          close(connection->fd);
-          __intl_free(connection);
-          return NULL;
-     }
-
-     addrlen = CI_SOCKADDR_SIZE;
-     if (getsockname(connection->fd,
-                     (struct sockaddr *) &(connection->claddr.sockaddr), &addrlen)) {
-          ci_debug_printf(1, "Error getting client sockname: %s\n",
-                          ci_strerror(errno,  errBuf, sizeof(errBuf)));
-          close(connection->fd);
-          __intl_free(connection);
-          return NULL;
-     }
-     ci_fill_sockaddr(&(connection->claddr));
-     ci_fill_sockaddr(&(connection->srvaddr));
-
-     ci_netio_init(connection->fd);
-     return connection;
+    return ci_connect_to(servername, port, proto, -1);
 }
 
 

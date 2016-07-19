@@ -259,7 +259,7 @@ int main(int argc, char **argv)
 #endif
 
 
-     if (!(conn = ci_client_connect_to(icap_server, port, 0))) {
+     if (!(conn = ci_connect_to(icap_server, port, 0, CONN_TIMEOUT))) {
           ci_debug_printf(1, "Failed to connect to icap server.....\n");
           exit(-1);
      }

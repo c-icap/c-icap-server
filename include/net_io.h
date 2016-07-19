@@ -154,6 +154,8 @@ CI_DECLARE_FUNC(int) ci_write_nonblock(ci_socket fd, const void *buf,size_t coun
 CI_DECLARE_FUNC(int) ci_linger_close(ci_socket fd,int secs_to_linger);
 CI_DECLARE_FUNC(int) ci_hard_close(ci_socket fd);
 
+CI_DECLARE_FUNC(ci_connection_t *) ci_connect_to(char *servername, int port, int proto, int timeout);
+
 #ifdef __cplusplus
 }
 #endif

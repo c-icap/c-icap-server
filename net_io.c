@@ -23,6 +23,7 @@
 #include "net_io.h"
 #include "debug.h"
 #include "net_io.h"
+#include "util.h"
 
 
 #ifdef USE_IPV6
@@ -195,5 +196,79 @@ void ci_connection_destroy(ci_connection_t *connection)
             close(connection->fd);
         free(connection);
     }
+}
+
+ci_connection_t *ci_connect_to(char *servername, int port, int proto, int timeout)
+{
+     ci_connection_t *connection = malloc(sizeof(ci_connection_t));
+     unsigned int addrlen = 0;
+     char errBuf[512];
+     
+     if (!connection)
+          return NULL;
+
+     if (!ci_host_to_sockaddr_t(servername, &(connection->srvaddr), proto)) {
+          ci_debug_printf(1, "Error getting address info for host '%s': %s\n",
+                          servername,
+                          ci_strerror(errno,  errBuf, sizeof(errBuf)));
+          close(connection->fd);
+          free(connection);
+          return NULL;
+     }
+     ci_sockaddr_set_port(&(connection->srvaddr), port);
+
+     connection->fd = socket(connection->srvaddr.ci_sin_family, SOCK_STREAM, 0);
+     if (connection->fd == -1) {
+          ci_debug_printf(1, "Error opening socket :%d:%s....\n",
+                          errno,
+                          ci_strerror(errno,  errBuf, sizeof(errBuf)));
+          free(connection);
+          return NULL;
+     }
+
+#ifdef USE_IPV6
+     if (connection->srvaddr.ci_sin_family == AF_INET6)
+         addrlen = sizeof(struct sockaddr_in6);
+     else
+#endif
+         addrlen = sizeof(struct sockaddr_in);
+
+     // Sets the fd to non-block mode
+     ci_netio_init(connection->fd);
+
+     int ret;
+     ret = connect(connection->fd, (struct sockaddr *) &(connection->srvaddr.sockaddr), addrlen);
+     if (ret < 0 && errno != EINPROGRESS) {
+          ci_debug_printf(1, "Error connecting to host  '%s': %s \n",
+                          servername,
+                          ci_strerror(errno,  errBuf, sizeof(errBuf)));
+          close(connection->fd);
+          free(connection);
+          return NULL;
+     }
+
+     do {
+          ret = ci_wait_for_data(connection->fd, timeout, wait_for_write);
+          if (ret < 0) {
+               ci_debug_printf(1, "Connection to '%s:%d' failed/timedout\n",
+                               servername, port);
+               close(connection->fd);
+               free(connection);
+               return NULL;
+          }
+     } while(ret == 0);
+
+     addrlen = CI_SOCKADDR_SIZE;
+     if (getsockname(connection->fd,
+                     (struct sockaddr *) &(connection->claddr.sockaddr), &addrlen)) {
+          ci_debug_printf(1, "Error getting client sockname: %s\n",
+                          ci_strerror(errno,  errBuf, sizeof(errBuf)));
+          close(connection->fd);
+          free(connection);
+          return NULL;
+     }
+     ci_fill_sockaddr(&(connection->claddr));
+     ci_fill_sockaddr(&(connection->srvaddr));
+     return connection;
 }
 

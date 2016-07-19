@@ -182,7 +182,6 @@ CI_DECLARE_FUNC(int)          ci_request_206_origin_body(ci_request_t *req, uint
 CI_DECLARE_FUNC(ci_request_t *)  ci_client_request(ci_connection_t *conn,char *server,char *service);
 CI_DECLARE_FUNC(void)         ci_client_request_reuse(ci_request_t *req);
 CI_DECLARE_FUNC(int)          ci_client_get_server_options(ci_request_t *req,int timeout);
-CI_DECLARE_FUNC(ci_connection_t *)  ci_client_connect_to(char *servername,int port,int proto);
 CI_DECLARE_FUNC(int)          ci_client_icapfilter(ci_request_t *req,
 						   int timeout,
 						   ci_headers_list_t *req_headers,
@@ -194,6 +193,9 @@ CI_DECLARE_FUNC(int)          ci_client_icapfilter(ci_request_t *req,
 
 
 CI_DECLARE_FUNC(int) ci_client_http_headers_completed(ci_request_t * req);
+
+/** Deprecated. Use ci_connect_to declared in net_io.h instead. */
+CI_DECLARE_FUNC(ci_connection_t *)  ci_client_connect_to(char *servername,int port,int proto);
 
 #ifdef __CI_COMPAT
 #define request_t   ci_request_t
