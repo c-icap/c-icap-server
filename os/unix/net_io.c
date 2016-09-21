@@ -27,7 +27,6 @@
 #if defined(USE_POLL)
 #include <poll.h>
 #else
-#error "nopoll"
 #include <sys/select.h>
 #endif
 #include "debug.h"
