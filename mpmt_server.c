@@ -470,7 +470,30 @@ void ci_named_pipe_close(int pipe_fd)
 int wait_for_commands(int ctl_fd, char *command_buffer, int secs)
 {
     int ret = 0;
-    if ((ret = ci_wait_for_data(ctl_fd, secs, wait_for_read)) > 0) {
+
+#if defined(USE_POLL)
+    struct pollfd pfds[1];
+    secs = secs > 0 ? secs * 1000 : -1;
+    pfds[0].fd = ctl_fd;
+    pfds[0].events = POLLIN;
+    if ((ret = poll(pfds, 1, secs)) > 0) {
+        if (pfds[0].revents & (POLLERR | POLLNVAL))
+            ret = -1;
+    }
+#else
+    struct timeval tv;
+    fd_set fds;
+    FD_ZERO(&fds);
+    FD_SET(ctl_fd, &fds);
+    tv.tv_sec = secs;
+    tv.tv_usec = 0;
+    if ((ret = select(ctl_fd + 1, &fds, NULL, NULL, (secs >= 0 ? &tv : NULL))) > 0) {
+        if (!FD_ISSET(ctl_fd, &fds))
+            ret = 0;
+    }
+#endif
+
+    if (ret > 0) {
         ret = ci_read_nonblock(ctl_fd, command_buffer, COMMANDS_BUFFER_SIZE - 1);
         if (ret > 0) {
             command_buffer[ret] = '\0';
@@ -481,7 +504,7 @@ int wait_for_commands(int ctl_fd, char *command_buffer, int secs)
             return -1;
         }
     }
-    if (ret < 0) {
+    if (ret < 0 && errno != EINTR) {
         ci_debug_printf(1,
                         "Unexpected error waiting for or reading  events in control socket!\n");
         /*returning -1 we are causing reopening control socket! */
