@@ -63,7 +63,7 @@ CI_DECLARE_FUNC(int) ci_membuf_truncate(struct ci_membuf *body, int new_size);
 CI_DECLARE_FUNC(unsigned int) ci_membuf_set_flag(struct ci_membuf *body, unsigned int flag);
 
 #define ci_membuf_lock_all(body)        ((body)->unlocked=0)
-#define ci_membuf_unlock(body, len)     ((body)->unlocked=len)
+#define ci_membuf_unlock(body, len)     ((body)->unlocked = ((body->readpos) > len ? (body->readpos) : len))
 #define ci_membuf_unlock_all(body)      ((body)->unlocked=-1)
 #define ci_membuf_size(body)            ((body)->endpos)
 #define ci_membuf_flag(body, flag)      ((body)->flags & flag)
@@ -101,7 +101,7 @@ CI_DECLARE_FUNC(void) ci_cached_file_release(ci_cached_file_t *body);
 
 
 #define ci_cached_file_lock_all(body)     (body->flags|=CI_FILE_USELOCK,body->unlocked=0)
-#define ci_cached_file_unlock(body, len) (body->unlocked=len)
+#define ci_cached_file_unlock(body, len) (body->unlocked = ((body->readpos) > len ? (body->readpos) : len))
 #define ci_cached_file_unlock_all(body)   (body->flags&=~CI_FILE_USELOCK,body->unlocked=0)
 #define ci_cached_file_size(body)            (body->endpos)
 #define ci_cached_file_ismem(body)           (body->fd<0)
@@ -148,7 +148,7 @@ CI_DECLARE_FUNC(const char *) ci_simple_file_to_const_string(ci_simple_file_t *b
 #endif
 
 #define ci_simple_file_lock_all(body)            (body->flags|=CI_FILE_USELOCK,body->unlocked=0)
-#define ci_simple_file_unlock(body, len)     (body->unlocked=len)
+#define ci_simple_file_unlock(body, len)     (body->unlocked = ((body->readpos) > len ? (body->readpos) : len))
 #define ci_simple_file_unlock_all(body)      (body->flags&=~CI_FILE_USELOCK,body->unlocked=0)
 #define ci_simple_file_size(body)            (body->endpos)
 #define ci_simple_file_haseof(body)        (body->flags&CI_FILE_HAS_EOF)
