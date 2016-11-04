@@ -451,14 +451,14 @@ int ci_named_pipe_create(char *name)
      status = mkfifo(name, S_IRUSR | S_IWUSR | S_IWGRP);
      if (status < 0 && errno != EEXIST)
           return -1;
-     pipe = open(name, O_RDONLY | O_NONBLOCK);
+     pipe = open(name, O_RDWR | O_NONBLOCK);
      return pipe;
 }
 
 int ci_named_pipe_open(char *name)
 {
      int pipe;
-     pipe = open(name, O_RDONLY | O_NONBLOCK);
+     pipe = open(name, O_RDWR | O_NONBLOCK);
      return pipe;
 }
 
