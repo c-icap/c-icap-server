@@ -29,7 +29,7 @@ void *ci_module_load(const char *module_file, const char *default_path)
      char path[CI_MAX_PATH];
      void *handle;
      int len;
-     if (module_file[0] != '/') {
+     if (module_file[0] != '/' && default_path) {
           len = strlen(default_path) + strlen(module_file) + 1; /*plus the '/' delimiter */
           if (len >= CI_MAX_PATH) {
                ci_debug_printf(1,

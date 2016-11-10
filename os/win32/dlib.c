@@ -29,20 +29,23 @@ HMODULE ci_module_load(const char *module_file, const char *default_path)
      WCHAR path[CI_MAX_PATH];
      WCHAR c;
      int len, i = 0;
+     DWORD load_flags = LOAD_WITH_ALTERED_SEARCH_PATH;
 
      if (module_file[0] != '/') {
-          len = strlen(default_path) + strlen(module_file) + 1; /*plus the '/' delimiter */
-          if (len >= CI_MAX_PATH) {
-               ci_debug_printf(1,
-                               "Path name len of %s+%s is greater than "
-                               "MAXPATH:%d, not loading\n",
-                               default_path, module_file, CI_MAX_PATH);
-               return NULL;
-          }
-
+          if (default_path) {
+               len = strlen(default_path) + strlen(module_file) + 1; /*plus the '/' delimiter */
+               if (len >= CI_MAX_PATH) {
+                    ci_debug_printf(1,
+                                    "Path name len of %s+%s is greater than "
+                                    "MAXPATH:%d, not loading\n",
+                                    default_path, module_file, CI_MAX_PATH);
+                    return NULL;
+               }
           strcpy(path, default_path);
           strcat(path, "/");
           strcat(path, module_file);
+          } else
+              load_flags = LOAD_LIBRARY_SEARCH_DEFAULT_DIRS;
      }
      else
           strncpy(path, module_file, CI_MAX_PATH - 1);
@@ -50,7 +53,7 @@ HMODULE ci_module_load(const char *module_file, const char *default_path)
 
      path[CI_MAX_PATH - 1] = '\0';
 
-     handle = LoadLibraryEx(filename, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
+     handle = LoadLibraryEx(filename, NULL, load_flags);
      if (!handle)
           handle = LoadLibraryEx(filename, NULL, NULL);
 
