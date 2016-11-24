@@ -539,6 +539,35 @@ int ci_headers_unpack(ci_headers_list_t * h)
      return EC_100;
 }
 
+size_t ci_headers_pack_to_buffer(ci_headers_list_t *heads, char *buf, size_t size)
+{
+     size_t n;
+     int i;
+     char *pos;
+
+     n = heads->bufused;
+     if (!heads->packed)
+          n += 2;
+
+     if (n > size)
+          return 0;
+
+     memcpy(buf, heads->buf, heads->bufused);
+
+     if (!heads->packed) {
+          pos = buf;
+          for (i = 0; i < heads->used; ++i) {
+               pos = strchr(pos, '\0');
+               if (pos[1] == '\n')
+                    pos[0] = '\r';
+               else
+                    pos[0] = '\n';
+          }
+          buf[heads->bufused] = '\r';
+          buf[heads->bufused+1] = '\n';
+     }
+     return n;
+}
 
 /********************************************************************************************/
 /*             Entities List                                                                */

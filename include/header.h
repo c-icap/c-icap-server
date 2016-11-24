@@ -226,6 +226,20 @@ CI_DECLARE_FUNC(const char *) ci_headers_copy_value(ci_headers_list_t *heads, co
  */
 CI_DECLARE_FUNC(int) ci_headers_iterate(ci_headers_list_t *heads, void *data, void (*fn)(void *data, const char  *header_name, const char  *header_value));
 
+/**
+ * Copy the headers to a buffer in a form they can be transmitted to the
+ * network. 
+ * WARNING: It produces an non-NULL-terminated string.
+ \ingroup HEADERS
+ \param heads is a pointer to the ci_headers_list_t object
+ \param buf the buffer to store data.
+ \param size the size of buffer.
+ \return the size of written data, or zero if the headers does not fit to buffer.
+ */
+CI_DECLARE_FUNC(size_t) ci_headers_pack_to_buffer(ci_headers_list_t *heads, char *buf, size_t size);
+/*compatibility macro*/
+#define ci_headers_copy_header_bytes ci_headers_pack_to_buffer
+
 /*The following headers are only used internally */
 CI_DECLARE_FUNC(void) ci_headers_pack(ci_headers_list_t *heads);
 CI_DECLARE_FUNC(int)  ci_headers_unpack(ci_headers_list_t *heads);
