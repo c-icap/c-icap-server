@@ -245,6 +245,8 @@ int fileread(void *fd, char *buf, int len)
 {
      int ret;
      ret = read(*(int *) fd, buf, len);
+     if (ret == 0)
+         return CI_EOF;
      return ret;
 }
 
@@ -706,8 +708,8 @@ void vlog_errors(ci_request_t * req, const char *format, va_list ap)
 int main(int argc, char **argv)
 {
      int i;
+     ci_client_library_init();
      CI_DEBUG_LEVEL = 1;        /*Default debug level is 1 */
-     ci_cfg_lib_init();
      
      int ret = ci_args_apply(argc, argv, options);
      if (!ret || (DoReqmod != 0 && urls_file == NULL) 
@@ -784,5 +786,6 @@ int main(int argc, char **argv)
      print_stats();
      ci_thread_mutex_destroy(&filemtx);
      ci_thread_mutex_destroy(&statsmtx);
+     ci_client_library_release();
      return 0;
 }

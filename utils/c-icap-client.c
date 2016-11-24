@@ -133,6 +133,8 @@ int fileread(void *fd, char *buf, int len)
 {
      int ret;
      ret = read(*(int *) fd, buf, len);
+     if (ret == 0)
+         return CI_EOF;
      return ret;
 }
 
@@ -244,8 +246,8 @@ int main(int argc, char **argv)
      ci_headers_list_t *req_headers = NULL;
      ci_headers_list_t *resp_headers = NULL;
 
+     ci_client_library_init();
      CI_DEBUG_LEVEL = 1;        /*Default debug level is 1 */
-     ci_cfg_lib_init();
 
      if (!ci_args_apply(argc, argv, options)) {
           ci_args_usage(argv[0], options);
@@ -382,5 +384,6 @@ int main(int argc, char **argv)
           ci_debug_printf(2, "Done\n");
      }
      ci_connection_destroy(conn);
+     ci_client_library_release();
      return 0;
 }
