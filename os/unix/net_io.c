@@ -19,6 +19,9 @@
 
 #include "common.h"
 #include "c-icap.h"
+//#include "cfg_param.h"
+#include "port.h"
+#include <assert.h>
 #include <errno.h>
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
@@ -44,95 +47,99 @@ const char *ci_sockaddr_t_to_host(ci_sockaddr_t * addr, char *hname,
 
 
 #ifdef USE_IPV6
-int icap_init_server_ipv6(char *address, int port, int *protocol_family, int secs_to_linger)
+int icap_init_server_ipv6(ci_port_t *port)
 {
-     int fd;
      struct sockaddr_in6 addr;
 
-     fd = socket(AF_INET6, SOCK_STREAM, 0);
-     if (fd == -1) {
+     port->fd = socket(AF_INET6, SOCK_STREAM, 0);
+     if (port->fd == -1) {
           ci_debug_printf(1, "Error opening ipv6 socket ....\n");
           return CI_SOCKET_ERROR;
      }
 
-     icap_socket_opts(fd, secs_to_linger);
+     icap_socket_opts(port->fd, port->secs_to_linger);
 
      memset(&addr, 0, sizeof(addr));
      addr.sin6_family = AF_INET6;
-     addr.sin6_port = htons(port);
-     if(address == NULL) // ListenAddress is not set in configuration file. Bind to all interfaces
+     addr.sin6_port = htons(port->port);
+     if(port->address == NULL) // ListenAddress is not set in configuration file. Bind to all interfaces
          addr.sin6_addr = in6addr_any;
      else {
-         if(inet_pton(AF_INET6, address, (void *) &addr.sin6_addr) != 1) {
+         if(inet_pton(AF_INET6, port->address, (void *) &addr.sin6_addr) != 1) {
              ci_debug_printf(1, "Error converting ipv6 address to the network byte order \n");
-             close(fd);
+             close(port->fd);
+             port->fd = -1;
              return CI_SOCKET_ERROR;
          }
      }
 
 
 
-     if (bind(fd, (struct sockaddr *) &addr, sizeof(addr))) {
+     if (bind(port->fd, (struct sockaddr *) &addr, sizeof(addr))) {
           ci_debug_printf(1, "Error bind  at ipv6 address \n");;
-          close(fd);
+          close(port->fd);
+          port->fd = -1;
           return CI_SOCKET_ERROR;
      }
-     if (listen(fd, 512)) {
+     if (listen(port->fd, 512)) {
           ci_debug_printf(1, "Error listening to ipv6 address.....\n");
-          close(fd);
+          close(port->fd);
+          port->fd = -1;
           return CI_SOCKET_ERROR;
      }
-     *protocol_family = AF_INET6;
-     return fd;
+     port->protocol_family = AF_INET6;
+     return port->fd;
 
 }
 
 #endif
 
-int icap_init_server(char *address, int port, int *protocol_family, int secs_to_linger)
+int icap_init_server(ci_port_t *port)
 {
-     int fd;
      struct sockaddr_in addr;
 
 #ifdef USE_IPV6
-     if ((fd =
-          icap_init_server_ipv6(address, port, protocol_family,
-                                secs_to_linger)) != CI_SOCKET_ERROR)
-          return fd;
+     if (icap_init_server_ipv6(port) != CI_SOCKET_ERROR)
+          return port->fd;
      ci_debug_printf(1,
                      "WARNING! Error binding to an ipv6 address. Trying ipv4...\n");
 #endif
 
-     fd = socket(AF_INET, SOCK_STREAM, 0);
-     if (fd == -1) {
+     port->fd = socket(AF_INET, SOCK_STREAM, 0);
+     if (port->fd == -1) {
           ci_debug_printf(1, "Error opening socket ....\n");
           return CI_SOCKET_ERROR;
      }
 
-     icap_socket_opts(fd, secs_to_linger);
+     icap_socket_opts(port->fd, port->secs_to_linger);
 
      memset(&addr, 0, sizeof(addr));
      addr.sin_family = AF_INET;
-     addr.sin_port = htons(port);
-     if(address == NULL) // ListenAddress is not set in configuration file
+     addr.sin_port = htons(port->port);
+     if(port->address == NULL) // ListenAddress is not set in configuration file
           addr.sin_addr.s_addr = INADDR_ANY;
      else
-         if(inet_pton(AF_INET, address, (void *) &addr.sin_addr.s_addr) != 1) {
+         if(inet_pton(AF_INET, port->address, (void *) &addr.sin_addr.s_addr) != 1) {
              ci_debug_printf(1, "Error converting ipv4 address to the network byte order \n");
-             close(fd);
+             close(port->fd);
+             port->fd = -1;
              return CI_SOCKET_ERROR;
          }
 
-     if (bind(fd, (struct sockaddr *) &addr, sizeof(addr))) {
+     if (bind(port->fd, (struct sockaddr *) &addr, sizeof(addr))) {
           ci_debug_printf(1, "Error binding  \n");;
+          close(port->fd);
+          port->fd = -1;
           return CI_SOCKET_ERROR;
      }
-     if (listen(fd, 512)) {
+     if (listen(port->fd, 512)) {
           ci_debug_printf(1, "Error listening .....\n");
+          close(port->fd);
+          port->fd = -1;
           return CI_SOCKET_ERROR;
      }
-     *protocol_family = AF_INET;
-     return fd;
+     port->protocol_family = AF_INET;
+     return port->fd;
 }
 
 
@@ -166,12 +173,66 @@ int icap_socket_opts(ci_socket fd, int secs_to_linger)
      return 1;
 }
 
-
-
-
-int ci_netio_init(int fd)
+/*1 is success, 0 should retried, -1 error can be ignored, -2 fatal error */
+int icap_accept_raw_connection(ci_port_t *port, ci_connection_t *conn)
 {
-     fcntl(fd, F_SETFL, O_NONBLOCK);    //Setting newfd descriptor to nonblocking state....
+     socklen_t claddrlen;
+
+     errno = 0;
+     claddrlen = sizeof(conn->claddr.sockaddr);
+     if (((conn->fd =
+            accept(port->fd,
+                   (struct sockaddr *) &(conn->claddr.sockaddr),
+                   &claddrlen)) < 0)) {
+         switch(errno) {
+         case EINTR:
+             return 0;
+         case ECONNABORTED:
+             ci_debug_printf(2, "Accepting connection aborted\n");
+             return -1;
+         default:
+             ci_debug_printf(1, "Accept failed: errno=%d\n", errno);
+             return -2;
+         }
+     }
+
+     if (!ci_connection_init(conn, ci_connection_server_side)) {
+         ci_debug_printf(1, "Initializing connection failed, errno:%d\n", errno);
+         close(conn->fd);
+         conn->fd = -1;
+         return -2;
+     }
+
+     return 1;
+}
+
+int ci_connection_init(ci_connection_t *conn, ci_connection_type_t type)
+{
+     socklen_t claddrlen;
+     struct sockaddr *addr;
+     assert(type == ci_connection_server_side || type == ci_connection_client_side);
+     if (type == ci_connection_server_side) {
+          claddrlen = sizeof(conn->srvaddr.sockaddr);
+          addr = (struct sockaddr *) &(conn->srvaddr.sockaddr);
+     } else {
+          claddrlen = sizeof(conn->claddr.sockaddr);
+          addr = (struct sockaddr *) &(conn->claddr.sockaddr);
+     }
+
+     if (getsockname(conn->fd, addr, &claddrlen)) {
+          /* caller should handle the error */
+          return 0;
+     }
+     ci_fill_sockaddr(&(conn->claddr));
+     ci_fill_sockaddr(&(conn->srvaddr));
+
+     fcntl(conn->fd, F_SETFL, O_NONBLOCK);    //Setting newfd descriptor to nonblocking state....
+     return 1;
+}
+
+int ci_connection_set_nonblock(ci_connection_t *conn)
+{
+     fcntl(conn->fd, F_SETFL, O_NONBLOCK);    //Setting newfd descriptor to nonblocking state....
      return 1;
 }
 
@@ -216,7 +277,7 @@ int ci_wait_for_data(int fd, int secs, int what_wait)
      secs *= 1000; // Should be in milliseconds
 
      fds[0].fd = fd;
-     fds[0].events = (what_wait & wait_for_read ? POLLIN : 0) | (what_wait & wait_for_write ? POLLOUT : 0);
+     fds[0].events = (what_wait & ci_wait_for_read ? POLLIN : 0) | (what_wait & ci_wait_for_write ? POLLOUT : 0);
 
      errno = 0;
      if ((ret = poll(fds, 1, secs)) > 0) {
@@ -231,15 +292,19 @@ int ci_wait_for_data(int fd, int secs, int what_wait)
           }
           ret = 0;
           if (fds[0].revents & POLLIN)
-               ret = wait_for_read;
+               ret = ci_wait_for_read;
           if (fds[0].revents & POLLOUT)
-               ret = ret | wait_for_write;
+               ret = ret | ci_wait_for_write;
           return ret;
      }
 
-     if (ret < 0 && errno != EINTR) {
-          ci_debug_printf(5, "Fatal error while waiting for new data (errno=%d....\n", errno);
-          return -1;
+     if (ret < 0) {
+          if (errno == EINTR) {
+              return ci_wait_should_retry;
+          } else {
+               ci_debug_printf(5, "Fatal error while waiting for new data (errno=%d....\n", errno);
+               return -1;
+          }
      }
      return 0;
 }
@@ -283,9 +348,13 @@ int ci_wait_for_data(int fd, int secs, int what_wait)
           return ret;
      }
 
-     if (ret < 0 && errno != EINTR) {
-          ci_debug_printf(5, "Fatal error while waiting for new data (errno=%d....\n", errno);
-          return -1;
+     if (ret < 0) {
+         if (errno == EINTR) {
+              return ci_wait_should_retry;
+         } else {
+              ci_debug_printf(5, "Fatal error while waiting for new data (errno=%d....\n", errno);
+              return -1;
+         }
      }
      return 0;
 }
@@ -300,10 +369,13 @@ int ci_read(int fd, void *buf, size_t count, int timeout)
      } while (bytes == -1 && errno == EINTR);
 
      if (bytes == -1 && errno == EAGAIN) {
+          int ret;
+          do {
+              ret = ci_wait_for_data(fd, timeout, wait_for_read);
+          } while (ret & ci_wait_should_retry);
 
-          if (!ci_wait_for_data(fd, timeout, wait_for_read)) {
-               return bytes;
-          }
+          if (ret <= 0)  /*timeout or connection closed*/
+               return -1;
 
           do {
                bytes = read(fd, buf, count);
@@ -328,10 +400,13 @@ int ci_write(int fd, const void *buf, size_t count, int timeout)
           } while (bytes == -1 && errno == EINTR);
 
           if (bytes == -1 && errno == EAGAIN) {
+               int ret;
+               do {
+                    ret = ci_wait_for_data(fd, timeout, wait_for_write);
+               } while (ret & ci_wait_should_retry);
 
-               if (!ci_wait_for_data(fd, timeout, wait_for_write)) {
-                    return bytes;
-               }
+               if (ret <= 0) /*timeout or connection closed*/
+                   return -1;
 
                do {
                     bytes = write(fd, b, remains);
@@ -357,6 +432,9 @@ int ci_read_nonblock(int fd, void *buf, size_t count)
      if (bytes < 0 && errno == EAGAIN)
           return 0;
 
+     if (bytes == 0) /*EOF received?*/
+          return -1;
+
      return bytes;
 }
 
@@ -371,6 +449,9 @@ int ci_write_nonblock(int fd, const void *buf, size_t count)
 
      if (bytes < 0 && errno == EAGAIN)
           return 0;
+
+     if (bytes == 0) /*connection is closed?*/
+          return -1;
 
      return bytes;
 }

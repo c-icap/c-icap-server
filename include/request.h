@@ -17,6 +17,11 @@
  *  MA  02110-1301  USA.
  */
 
+/**
+ \defgroup ICAPCLIENT ICAP client request API
+ \ingroup API
+ * API for implementing ICAP clients
+ */
 
 #ifndef _REQUEST_H
 #define _REQUEST_H

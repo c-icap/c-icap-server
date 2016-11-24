@@ -80,21 +80,24 @@ void request_stats_init()
   STAT_BODY_BYTES_OUT = ci_stat_entry_register("BODY BYTES OUT", STAT_KBS_T, "General");
 }
 
-static int wait_for_data(ci_socket fd, int secs, int what_wait)
+static int wait_for_data(ci_connection_t *conn, int secs, int what_wait)
 {
     int wait_status;
 
     /*if we are going down do not wait....*/
     if (CHILD_HALT) 
-        return CI_ERROR;
+        return -1;
 
     do {
-        wait_status =ci_wait_for_data(fd, secs, what_wait);
+        wait_status = ci_connection_wait(conn, secs, what_wait);
         if (wait_status < 0)
-            return CI_ERROR;
+            return -1;
         if (wait_status == 0 && CHILD_HALT) /*abort*/
-            return CI_ERROR;
-    } while (wait_status == 0);
+            return -1;
+    } while (wait_status & ci_wait_should_retry);
+
+    if (wait_status == 0) /* timeout */
+        return -1;
 
     return wait_status;
 }
@@ -113,7 +116,7 @@ ci_request_t *newrequest(ci_connection_t * connection)
 
      if ((access = access_check_client(req)) == CI_ACCESS_DENY) { /*Check for client access */
           len = strlen(FORBITTEN_STR);
-          ci_write(connection->fd, FORBITTEN_STR, len, TIMEOUT);
+          ci_connection_write(connection, FORBITTEN_STR, len, TIMEOUT);
 	  ci_request_destroy(req);
           return NULL;          /*Or something that means authentication error */
      }
@@ -134,7 +137,7 @@ int recycle_request(ci_request_t * req, ci_connection_t * connection)
 
      if ((access = access_check_client(req)) == CI_ACCESS_DENY) { /*Check for client access */
           len = strlen(FORBITTEN_STR);
-          ci_write(connection->fd, FORBITTEN_STR, len, TIMEOUT);
+          ci_connection_write(connection, FORBITTEN_STR, len, TIMEOUT);
           return 0;             /*Or something that means authentication error */
      }
      req->access_type = access;
@@ -155,7 +158,7 @@ int keepalive_request(ci_request_t *req)
 
     if (req->pstrblock_read && req->pstrblock_read_len > 0)
         return 1;
-    return ci_wait_for_data(req->connection->fd, KEEPALIVE_TIMEOUT, wait_for_read);
+    return wait_for_data(req->connection, KEEPALIVE_TIMEOUT, ci_wait_for_read);
 }
 
 /*Here we want to read in small blocks icap header becouse in most cases
@@ -212,12 +215,15 @@ static int ci_read_icap_header(ci_request_t * req, ci_headers_list_t * h, int ti
      do {
 
          if (!dataPrefetch) {
-             if ((wait_status = wait_for_data(req->connection->fd, timeout, wait_for_read)) == CI_ERROR)
+             if ((wait_status = wait_for_data(req->connection, timeout, ci_wait_for_read)) < 0)
                  return EC_408;
 
-             bytes = ci_read_nonblock(req->connection->fd, buf_end, ICAP_HEADER_READSIZE);
-             if (bytes <= 0)
+             bytes = ci_connection_read_nonblock(req->connection, buf_end, ICAP_HEADER_READSIZE);
+             if (bytes < 0)
                  return EC_408;
+
+             if (bytes == 0) /*NOP? should retry?*/
+                 continue;
 
              readed += bytes;
              req->bytes_in += bytes;
@@ -276,9 +282,9 @@ static int read_encaps_header(ci_request_t * req, ci_headers_list_t * h, int siz
 
      remains = size - readed;
      while (remains > 0) {
-          if (wait_for_data(req->connection->fd, TIMEOUT, wait_for_read) == CI_ERROR)
+          if (wait_for_data(req->connection, TIMEOUT, ci_wait_for_read) < 0)
                return CI_ERROR;
-          if ((bytes = ci_read_nonblock(req->connection->fd, buf_end, remains)) <= 0)
+          if ((bytes = ci_connection_read_nonblock(req->connection, buf_end, remains)) < 0)
                return CI_ERROR;
           remains -= bytes;
           buf_end += bytes;
@@ -567,7 +573,7 @@ static int read_preview_data(ci_request_t * req)
      req->write_to_module_pending = 0;
 
      if (req->pstrblock_read_len == 0) {
-         if(wait_for_data(req->connection->fd, TIMEOUT, wait_for_read) < 0)
+         if(wait_for_data(req->connection, TIMEOUT, ci_wait_for_read) < 0)
              return CI_ERROR;
              
           if (net_data_read(req) == CI_ERROR)
@@ -598,7 +604,7 @@ static int read_preview_data(ci_request_t * req)
                }
           } while (ret != CI_NEEDS_MORE);
 
-          if (wait_for_data(req->connection->fd, TIMEOUT, wait_for_read) < 0)
+          if (wait_for_data(req->connection, TIMEOUT, ci_wait_for_read) < 0)
                return CI_ERROR;
           if (net_data_read(req) == CI_ERROR)
                return CI_ERROR;
@@ -615,7 +621,7 @@ static void ec_responce_simple(ci_request_t * req, int ec)
               ci_error_code(ec), ci_error_code_string(ec));
      buf[255] = '\0';
      len = strlen(buf);
-     ci_write(req->connection->fd, buf, len, TIMEOUT);
+     ci_connection_write(req->connection, buf, len, TIMEOUT);
      req->bytes_out += len;
      req->return_code = ec;
 }
@@ -662,7 +668,7 @@ static int ec_responce(ci_request_t * req, int ec)
      ci_headers_pack(req->response_header);
      req->return_code = ec;
 
-     len = ci_write(req->connection->fd, 
+     len = ci_connection_write(req->connection, 
 		    req->response_header->buf, req->response_header->bufused, 
 		    TIMEOUT);
 
@@ -744,16 +750,18 @@ static int send_current_block_data(ci_request_t * req)
      if (req->remain_send_block_bytes == 0)
           return 0;
      if ((bytes =
-          ci_write_nonblock(req->connection->fd, req->pstrblock_responce,
-                            req->remain_send_block_bytes)) < 0) {
+          ci_connection_write_nonblock(req->connection, req->pstrblock_responce,
+                                       req->remain_send_block_bytes)) < 0) {
          ci_debug_printf(5, "Error writing to socket (errno:%d, bytes:%d. string:\"%s\")", errno, req->remain_send_block_bytes, req->pstrblock_responce);
           return CI_ERROR;
      }
 
+/*
      if (bytes == 0) {
          ci_debug_printf(5, "Can not write to the client. Is the connection closed?");
          return CI_ERROR;
      }
+*/
 
      req->pstrblock_responce += bytes;
      req->remain_send_block_bytes -= bytes;
@@ -927,23 +935,23 @@ static int get_send_body(ci_request_t * req, int parse_only)
         if there are unparsed bytes in pstrblock buffer
       */
      if (req->pstrblock_read_len == 0)
-          action = wait_for_read;
+          action = ci_wait_for_read;
      do {
           ret = 0;
           if (action) {
                ci_debug_printf(9, "Going to %s/%s data\n",
-                               (action & wait_for_read ? "Read" : "-"),
-                               (action & wait_for_write ? "Write" : "-")
+                               (action & ci_wait_for_read ? "Read" : "-"),
+                               (action & ci_wait_for_write ? "Write" : "-")
                    );
                if ((ret =
-                    wait_for_data(req->connection->fd, TIMEOUT,
+                    wait_for_data(req->connection, TIMEOUT,
                                      action)) < 0)
                     break;
-               if (ret & wait_for_read) {
+               if (ret & ci_wait_for_read) {
                     if (net_data_read(req) == CI_ERROR)
                          return CI_ERROR;
                }
-               if (ret & wait_for_write) {
+               if (ret & ci_wait_for_write) {
                     if (!req->data_locked && req->status == SEND_NOTHING) {
                          update_send_status(req);
                     }
@@ -1033,7 +1041,7 @@ static int get_send_body(ci_request_t * req, int parse_only)
 
           action = 0;
           if (!req->write_to_module_pending) {
-               action = wait_for_read;
+               action = ci_wait_for_read;
                wchunkdata = NULL;
           }
 
@@ -1047,7 +1055,7 @@ static int get_send_body(ci_request_t * req, int parse_only)
           }
 
           if (req->remain_send_block_bytes) {
-               action = action | wait_for_write;
+               action = action | ci_wait_for_write;
           }
 	  
      } while ((!req->eof_received || (req->eof_received && req->write_to_module_pending)) && (action || lock_status != req->data_locked));
@@ -1085,8 +1093,8 @@ static int send_remaining_response(ci_request_t * req)
      do {
           while (req->remain_send_block_bytes > 0) {
                if ((ret =
-                    wait_for_data(req->connection->fd, TIMEOUT,
-                                     wait_for_write)) < 0) {
+                    wait_for_data(req->connection, TIMEOUT,
+                                     ci_wait_for_write)) < 0) {
                     ci_debug_printf(3,
                                     "Timeout sending data. Ending .......\n");
                     return CI_ERROR;
@@ -1269,7 +1277,7 @@ static void options_responce(ci_request_t * req)
      req->remain_send_block_bytes = head->bufused;
 
      do {
-          if ((wait_for_data(req->connection->fd, TIMEOUT, wait_for_write))
+          if ((wait_for_data(req->connection, TIMEOUT, ci_wait_for_write))
               < 0) {
                ci_debug_printf(3, "Timeout sending data. Ending .......\n");
                return;
@@ -1494,7 +1502,7 @@ static int do_request(ci_request_t * req)
           req->keepalive = 0;   // Error occured, close the connection ......
           if (res > EC_100 && req->request_header->bufused > 0)
                ec_responce(req, res);
-          ci_debug_printf(5, "Error %d while parsing headers :(%d)\n",
+          ci_debug_printf((req->request_header->bufused ? 5 : 11), "Error %d while parsing headers :(%d)\n",
 			  res ,req->request_header->bufused);
           return CI_ERROR;
      }

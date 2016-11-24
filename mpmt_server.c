@@ -36,13 +36,18 @@
 #else
 #include <sys/select.h>
 #endif
+#include <assert.h>
 #include "net_io.h"
+#if defined(USE_OPENSSL)
+#include "net_io_ssl.h"
+#endif
 #include "proc_mutex.h"
 #include "debug.h"
 #include "log.h"
 #include "request.h"
 #include "ci_threads.h"
 #include "proc_threads_queues.h"
+#include "port.h" 
 #include "cfg_param.h"
 #include "commands.h"
 
@@ -66,7 +71,6 @@ typedef struct server_decl {
      int running;
 } server_decl_t;
 
-#undef SINGLE_ACCEPT
 ci_thread_mutex_t threads_list_mtx;
 server_decl_t **threads_list = NULL;
 ci_thread_t listener_thread_id = -1;
@@ -88,16 +92,14 @@ int CHILD_HALT = 0;
 ci_proc_mutex_t accept_mutex;
 
 /*Main proccess variables*/
-ci_socket LISTEN_SOCKET = -1;
 int c_icap_going_to_term = 0;
 int c_icap_reconfigure = 0;
 
-#define hard_close_connection(connection)  ci_hard_close(connection->fd)
-#define close_connection(connection) ci_linger_close(connection->fd,MAX_SECS_TO_LINGER)
 void init_commands();
-int init_server(char *address, int port, int *family);
-int start_child(int fd);
+int init_server();
+int start_child();
 void system_shutdown();
+
 /***************************************************************************************/
 /*Signals managment functions                                                          */
 
@@ -211,11 +213,7 @@ static void cancel_all_threads()
      while (wait_listener_time > 0 && listener_running != 0) {
           /*Interrupt listener if it is waiting for threads or 
              waiting to accept new connections */
-#ifdef SINGLE_ACCEPT
-          pthread_cancel(listener_thread_id);   /*..... */
-#else
           pthread_kill(listener_thread_id, SIGHUP);
-#endif
           ci_thread_cond_signal(&free_server_cond);
           ci_usleep(1000);
           wait_listener_time -= 10;
@@ -428,7 +426,7 @@ static int server_reconfigure()
           CI_CONF.START_SERVERS = CI_CONF.MAX_SERVERS;
 
      for (i = 0; i < CI_CONF.START_SERVERS; i++) {
-          start_child(LISTEN_SOCKET);
+          start_child();
      }
 
      /*
@@ -601,7 +599,6 @@ int thread_main(server_decl_t * srv)
           (child_data->usedservers)++;
           ci_thread_mutex_unlock(&counters_mtx);
 
-          ci_netio_init(con.fd);
           ret = 1;
           if (srv->current_req == NULL)
                srv->current_req = newrequest(&con);
@@ -612,7 +609,7 @@ int thread_main(server_decl_t * srv)
                ci_sockaddr_t_to_host(&(con.claddr), clientname,
                                      CI_MAXHOSTNAMELEN);
                ci_debug_printf(1, "Request from %s denied...\n", clientname);
-               hard_close_connection((&con));
+               ci_connection_hard_close(&con);
                goto end_of_main_loop_thread;    /*The request rejected. Log an error and continue ... */
           }
 
@@ -625,8 +622,8 @@ int thread_main(server_decl_t * srv)
                     srv->current_req->keepalive = 0;
 
                if ((request_status = process_request(srv->current_req)) == CI_NO_STATUS) {
-                    ci_debug_printf(5,
-                                    "Process request timeout or interrupted....\n");
+                    ci_debug_printf(5, "connection closed or request timed-out or request interrupted....\n");
+                    ci_connection_hard_close(srv->current_req->connection);
                     ci_request_reset(srv->current_req);
                     break;
                }
@@ -665,10 +662,10 @@ int thread_main(server_decl_t * srv)
 
           if (srv->current_req) {
                if (request_status != CI_OK || child_data->to_be_killed) {
-                    hard_close_connection(srv->current_req->connection);
+                    ci_connection_hard_close(srv->current_req->connection);
                }
                else {
-                    close_connection(srv->current_req->connection);
+                    ci_connection_linger_close(srv->current_req->connection, MAX_SECS_TO_LINGER);
                }
           }
           if (srv->served_requests_no_reallocation >
@@ -693,13 +690,12 @@ int thread_main(server_decl_t * srv)
      return 0;
 }
 
-void listener_thread(int *fd)
+void listener_thread(void *unused)
 {
      ci_connection_t conn;
-     socklen_t claddrlen = sizeof(struct sockaddr_in);
+     ci_port_t *port;
      int haschild = 1, jobs_in_queue = 0;
-     int pid, sockfd;
-     sockfd = *fd;
+     int pid;
      thread_signals(1);
      /*Wait main process to signal us to start accepting requests*/
      ci_thread_mutex_lock(&counters_mtx);
@@ -730,20 +726,31 @@ void listener_thread(int *fd)
           child_data->idle = 0;
           ci_debug_printf(7, "Child %d getting requests now ...\n", pid);
           do {                  //Getting requests while we have free servers.....
-#ifndef SINGLE_ACCEPT
+
+#if defined(USE_POLL)
+              struct pollfd pfds[1024];
+              assert(CI_CONF.PORTS->count < 1024);
+#else
+              fd_set fds;
+#endif
+              int i;
                do {
                     int ret;
                     errno = 0;
 #if defined(USE_POLL)
-                    struct pollfd pfds[1];
-                    pfds[0].fd = sockfd;
-                    pfds[0].events = POLLIN;
-                    ret = poll(pfds, 1, -1);
+                    for (i = 0; (port = (ci_port_t *)ci_vector_get(CI_CONF.PORTS, i)) != NULL; ++i) {
+                         pfds[i].fd = port->fd;
+                         pfds[i].events = POLLIN;
+                    }
+                    ret = poll(pfds, i, -1);
 #else
-                    fd_set fds;
+                    int max_fd = 0;
                     FD_ZERO(&fds);
-                    FD_SET(sockfd, &fds);
-                    ret = select(sockfd + 1, &fds, NULL, NULL, NULL);
+                    for (i = 0; (port = (ci_port_t *)ci_vector_get(CI_CONF.PORTS, i)) != NULL; ++i) {
+                        if (port->fd > max_fd) max_fd = port->fd;
+                        FD_SET(port->fd, &fds);
+                    }
+                    ret = select(max_fd + 1, &fds, NULL, NULL, NULL);
 #endif
                     if (ret < 0) {
                          if (errno != EINTR) {
@@ -759,57 +766,54 @@ void listener_thread(int *fd)
                          }
                     }
                } while (errno == EINTR);
+
+               for (i = 0; (port = (ci_port_t *)ci_vector_get(CI_CONF.PORTS, i)) != NULL; ++i) {
+#if defined(USE_POLL)
+                   if (!pfds[i].revents & POLLIN)
+                       continue;
+#else
+                   if (!FD_ISSET(port->fd, &fds))
+                       continue;
 #endif
-               do {
-                    errno = 0;
-                    claddrlen = sizeof(conn.claddr.sockaddr);
-                    if (((conn.fd =
-                          accept(sockfd,
-                                 (struct sockaddr *) &(conn.claddr.sockaddr),
-                                 &claddrlen)) == -1)) {
-                         if (errno != EINTR && errno != ECONNABORTED) {
-                              ci_debug_printf(1,
-                                              "Error accept %d!\nExiting server!\n",
-                                              errno);
-                              goto LISTENER_FAILS;
-                         }
-                         /*Here we are going to exit only if accept interrupted by a signal
-                           else if we accepted an fd we must add it to queue for 
-                           processing. */
-                         if (errno == EINTR && child_data->to_be_killed) {
-                              ci_debug_printf(5,
-                                              "Listener server signalled to exit!\n");
-                              goto LISTENER_FAILS;
-                         } else {
-                             ci_debug_printf(2, "Accept failed: errno=%d, ingore!\n", errno);
-                         }
+                    int ret = 0;
+                    do {
+                        ci_connection_reset(&conn);
+#ifdef USE_OPENSSL
+                        if (port->bio)
+                            ret = icap_accept_tls_connection(port, &conn);
+                        else
+#endif
+                            ret = icap_accept_raw_connection(port, &conn);
+                        if (ret <= 0) {
+                            if (child_data->to_be_killed) {
+                                ci_debug_printf(5, "Accept aborted: listener server signalled to exit!\n");
+                                goto LISTENER_FAILS;
+                            } else if (ret == -2) {
+                                ci_debug_printf(1, "Fatal error while accepting!\n");
+                                goto LISTENER_FAILS;
+                            } /*else ret is -1 for aborted, or zero for EINTR*/ 
+                        }
+                    } while (ret == 0);
+
+                    // Probably ECONNABORTED or similar error
+                    if (conn.fd < 0)
+                        continue;
+
+                    /*Do w need the following? Options has been set in icap_init_server*/
+                    icap_socket_opts(port->fd, MAX_SECS_TO_LINGER);
+
+                    if ((jobs_in_queue = put_to_queue(con_queue, &conn)) == 0) {
+                        ci_debug_printf(1,
+                                        "ERROR!!!!!! NO AVAILABLE SERVERS! THIS IS A BUG!!!!!!!!\n");
+                        ci_debug_printf(1,
+                                        "Jobs in Queue: %d, Free servers: %d, Used Servers: %d, Requests: %d\n",
+                                        jobs_in_queue, child_data->freeservers,
+                                        child_data->usedservers,
+                                        child_data->requests);
+                        goto LISTENER_FAILS;
                     }
-               } while (errno == EINTR && !child_data->to_be_killed);
-
-               // Probably ECONNABORTED or similar error
-               if (conn.fd < 0)
-                   continue;
-
-               claddrlen = sizeof(conn.srvaddr.sockaddr);
-               getsockname(conn.fd,
-                           (struct sockaddr *) &(conn.srvaddr.sockaddr),
-                           &claddrlen);
-               ci_fill_sockaddr(&conn.claddr);
-               ci_fill_sockaddr(&conn.srvaddr);
-
-               icap_socket_opts(sockfd, MAX_SECS_TO_LINGER);
-
-               if ((jobs_in_queue = put_to_queue(con_queue, &conn)) == 0) {
-                    ci_debug_printf(1,
-                                    "ERROR!!!!!! NO AVAILABLE SERVERS! THIS IS A BUG!!!!!!!!\n");
-                    ci_debug_printf(1,
-                                    "Jobs in Queue: %d, Free servers: %d, Used Servers: %d, Requests: %d\n",
-                                    jobs_in_queue, child_data->freeservers,
-                                    child_data->usedservers,
-                                    child_data->requests);
-                    goto LISTENER_FAILS;
-               }
-               (child_data->connections)++;     //NUM of Requests....
+                    (child_data->connections)++;     //NUM of Requests....
+               } /*for (Listen_SOCKETS[i]...*/
 
                if (child_data->to_be_killed) {
                    ci_debug_printf(5, "Listener server must exit!\n");
@@ -844,10 +848,18 @@ void listener_thread(int *fd)
           ci_thread_mutex_unlock(&counters_mtx);
      }
    LISTENER_FAILS_UNLOCKED:
+     /* The code commented out, because causes closing TLS listening ports
+        for all of the kids and parent.
+     ci_port_list_release(CI_CONF.PORTS);
+     CI_CONF.PORTS = NULL;*/
      listener_running = 0;
      return;
 
    LISTENER_FAILS:
+     /* The code commented out, because causes closing TLS listening ports
+        for all of the kids and parent.
+     ci_port_list_release(CI_CONF.PORTS);
+     CI_CONF.PORTS = NULL*/
      listener_running = 0;
      errno = 0;
      while (!ci_proc_mutex_unlock(&accept_mutex)) {
@@ -863,7 +875,7 @@ void listener_thread(int *fd)
      return;
 }
 
-void child_main(int sockfd, int pipefd)
+void child_main(int pipefd)
 {
      ci_thread_t thread;
      int i, ret;
@@ -892,7 +904,7 @@ void child_main(int sockfd, int pipefd)
      threads_list[CI_CONF.THREADS_PER_CHILD] = NULL;
      /*Now start the listener thread.... */
      ret = ci_thread_create(&thread, (void *(*)(void *)) listener_thread,
-                            (void *) &sockfd);
+                            NULL);
      listener_thread_id = thread;
      
      /*set srand for child......*/
@@ -925,7 +937,12 @@ void child_main(int sockfd, int pipefd)
      while (!child_data->to_be_killed) {
           char buf[512];
           int bytes;
-          if ((ret = ci_wait_for_data(pipefd, 1, wait_for_read)) > 0) { /*data input */
+          ret = ci_wait_for_data(pipefd, 1, ci_wait_for_read);
+          if (ret < 0) {
+               ci_debug_printf(1,
+                               "An error occured while waiting for commands from parent. Terminating!\n");
+               child_data->to_be_killed = IMMEDIATELY;
+          } else if (ret & ci_wait_for_read) { /*data input */
                bytes = ci_read_nonblock(pipefd, buf, 511);
                if (bytes == 0) {
                     ci_debug_printf(1,
@@ -936,11 +953,7 @@ void child_main(int sockfd, int pipefd)
                     handle_child_process_commands(buf);
                }
           }
-          else if (ret < 0) {
-               ci_debug_printf(1,
-                               "An error occured while waiting for commands from parent. Terminating!\n");
-               child_data->to_be_killed = IMMEDIATELY;
-          }
+
           if (!listener_running && !child_data->to_be_killed) {
                ci_debug_printf(1,
                                "Ohh!! something happened to listener thread! Terminating\n");
@@ -962,7 +975,7 @@ void child_main(int sockfd, int pipefd)
 /*****************************************************************************************/
 /*Main process functions                                                                 */
 
-int start_child(int fd)
+int start_child()
 {
      int pid;
      int pfd[2];
@@ -999,7 +1012,7 @@ int start_child(int fd)
               exit(-3);
           }
           close(pfd[1]);
-          child_main(fd, pfd[0]);
+          child_main(pfd[0]);
           exit(0);
      }
      else {
@@ -1040,14 +1053,38 @@ void test_command(const char *name, int type, const char **argv)
      ci_debug_printf(1, "\n");
 }
 
-int init_server(char *address, int port, int *family)
+int init_server()
 {
-     if (LISTEN_SOCKET != -1)
-          close(LISTEN_SOCKET);
+     int i;
+     ci_port_t *p;
 
-     LISTEN_SOCKET = icap_init_server(address, port, family, MAX_SECS_TO_LINGER);
-     if (LISTEN_SOCKET == CI_SOCKET_ERROR)
-          return 0;
+     if (!CI_CONF.PORTS) {
+         ci_debug_printf(1, "No ports configured!\n");
+         return 0;
+     }
+
+#ifdef USE_OPENSSL
+     if (CI_CONF.TLS_ENABLED) {
+         ci_tls_init();
+         ci_tls_set_passphrase_script(CI_CONF.TLS_PASSPHRASE);
+     }
+#endif
+
+     for (i = 0; (p = (ci_port_t *)ci_vector_get(CI_CONF.PORTS, i)); ++i) {
+         if (p->configured)
+             continue;
+
+#ifdef USE_OPENSSL
+         if (p->tls_enabled) {
+             if (!icap_init_server_tls(p))
+                 return 0;
+         } else
+#endif
+             if (CI_SOCKET_ERROR == icap_init_server(p))
+                 return 0;
+         p->configured = 1;
+     }
+
      return 1;
 }
 
@@ -1096,7 +1133,7 @@ int start_server()
 
      for (i = 0; i < CI_CONF.START_SERVERS; i++) {
           if (pid)
-               pid = start_child(LISTEN_SOCKET);
+               pid = start_child();
      }
      if (pid != 0) {
           main_signals();
@@ -1134,7 +1171,7 @@ int start_server()
                                     "Max requests reached for child :%d of pid :%d\n",
                                     child_indx,
                                     childs_queue->childs[child_indx].pid);
-                    pid = start_child(LISTEN_SOCKET);
+                    pid = start_child();
                     //         usleep(500);
                     childs_queue->childs[child_indx].father_said = GRACEFULLY;
                     /*kill a server ... */
@@ -1146,7 +1183,7 @@ int start_server()
                     ci_debug_printf(8,
                                     "Free Servers: %d, children: %d. Going to start a child .....\n",
                                     freeservers, childs);
-                    pid = start_child(LISTEN_SOCKET);
+                    pid = start_child();
                }
                else if (freeservers >= CI_CONF.MAX_SPARE_THREADS &&
                         childs > CI_CONF.START_SERVERS &&
@@ -1190,6 +1227,8 @@ int start_server()
                           "Possibly a term signal received. Monitor process going to term all children\n");
           kill_all_childs();
 	  system_shutdown();
+          ci_port_list_release(CI_CONF.PORTS);
+          CI_CONF.PORTS = NULL;
 	  ci_debug_printf(1, "Exiting....\n");
           return 1;
      }
@@ -1207,7 +1246,7 @@ int start_server()
      child_data->stats = malloc(child_data->stats_size);
      child_data->stats->sig = MEMBLOCK_SIG;
      ci_stat_attach_mem(child_data->stats, child_data->stats_size, NULL);
-     child_main(LISTEN_SOCKET, 0);
+     child_main(0);
      ci_proc_mutex_destroy(&accept_mutex);
      destroy_childs_queue(childs_queue);
 #endif

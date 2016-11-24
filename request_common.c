@@ -26,6 +26,7 @@
 #include "debug.h"
 #include "request.h"
 #include "simple_api.h"
+#include "util.h"
 
 const char *CI_DEFAULT_USER_AGENT = "C-ICAP-Client-Library/" VERSION;
 char *CI_USER_AGENT = NULL;
@@ -160,7 +161,7 @@ void ci_response_pack(ci_request_t *req){
      ci_request_t_pack(req, 0);
 }
 
-static int block_write_nonblock(ci_socket fd, char **block, int *block_size, uint64_t *counter)
+static int block_write_nonblock(ci_connection_t *conn, char **block, int *block_size, uint64_t *counter)
 {
     if (!block || !(*block) || !(block_size))
          return CI_ERROR;
@@ -168,7 +169,7 @@ static int block_write_nonblock(ci_socket fd, char **block, int *block_size, uin
     if (!*block_size)
          return CI_OK;
 
-    int ret = ci_write_nonblock(fd, *block, *block_size);
+    int ret = ci_connection_write_nonblock(conn, *block, *block_size);
     if (ret < 0)
          return CI_ERROR;
 
@@ -329,8 +330,6 @@ ci_request_t *ci_request_alloc(ci_connection_t * connection)
 void ci_request_reset(ci_request_t * req)
 {
      int i;
-     /*     memset(req->connections,0,sizeof(ci_connection)) *//*Not really needed... */
-
      req->packed = 0;
      req->user[0] = '\0';
      req->service[0] = '\0';
@@ -666,7 +665,7 @@ int net_data_read(ci_request_t * req)
           return CI_ERROR;
      }
 
-     if ((bytes = ci_read_nonblock(req->connection->fd, req->rbuf + req->pstrblock_read_len, bytes)) <= 0) {    /*... read some data... */
+     if ((bytes = ci_connection_read_nonblock(req->connection, req->rbuf + req->pstrblock_read_len, bytes)) < 0) {    /*... read some data... */
           ci_debug_printf(5, "Error reading data (read return=%d, errno=%d) \n", bytes, errno);
           return CI_ERROR;
      }
@@ -860,7 +859,7 @@ static int client_send_request_headers(ci_request_t * req, int has_eof)
      if (!req->remain_send_block_bytes)
          return CI_OK;
 
-     ret = block_write_nonblock(req->connection->fd, &req->pstrblock_responce, &req->remain_send_block_bytes, &req->bytes_out);
+     ret = block_write_nonblock(req->connection, &req->pstrblock_responce, &req->remain_send_block_bytes, &req->bytes_out);
      if ( ret != CI_OK )
           return ret;
 
@@ -1072,23 +1071,29 @@ int ci_client_get_server_options_nonblocking(ci_request_t * req)
 
 int ci_client_get_server_options(ci_request_t * req, int timeout)
 {
-     int ret;
+     int status;
      int wait;
      do {
-         ret = ci_client_get_server_options_nonblocking(req);
-          if (ret == CI_ERROR)
+         status = ci_client_get_server_options_nonblocking(req);
+          if (status == CI_ERROR)
                return CI_ERROR;
 
           wait = 0;
-          if ( ret & NEEDS_TO_READ_FROM_ICAP )
-              wait |= wait_for_read;
+          if ( status & NEEDS_TO_READ_FROM_ICAP )
+              wait |= ci_wait_for_read;
 
-          if ( ret & NEEDS_TO_WRITE_TO_ICAP )
-              wait |= wait_for_write;
+          if ( status & NEEDS_TO_WRITE_TO_ICAP )
+              wait |= ci_wait_for_write;
 
-          if (wait)
-               ci_wait_for_data(req->connection->fd, timeout, wait_for_read);
-     } while (ret);
+          if (wait) {
+              int ret;
+              do {
+                  ret = ci_connection_wait(req->connection, timeout, wait);
+                  if (ret <= 0)
+                      return CI_ERROR;
+              } while(ret & ci_wait_should_retry);
+          }
+     } while (status);
 
      return CI_OK;
 }
@@ -1264,7 +1269,7 @@ static int ci_client_send_and_get_data(ci_request_t * req,
      if (!data_source)
           req->eof_sent = 1;
 
-     if (io_action_in & wait_for_write) {
+     if (io_action_in & ci_wait_for_write) {
           if (req->remain_send_block_bytes == 0) {
               if ( !req->eof_sent && data_source ) {
                   switch (client_prepere_body_chunk(req, data_source, source_read)) {
@@ -1282,9 +1287,9 @@ static int ci_client_send_and_get_data(ci_request_t * req,
               }
           }
           if ( req->remain_send_block_bytes > 0 ) {
-              bytes = ci_write_nonblock(req->connection->fd,
-                                        req->pstrblock_responce,
-                                        req->remain_send_block_bytes);
+              bytes = ci_connection_write_nonblock(req->connection,
+                                                   req->pstrblock_responce,
+                                                   req->remain_send_block_bytes);
               if (bytes < 0)
                   return CI_ERROR;
               req->bytes_out += bytes;
@@ -1293,7 +1298,7 @@ static int ci_client_send_and_get_data(ci_request_t * req,
           }
      }
 
-     if (io_action_in & wait_for_read) {
+     if (io_action_in & ci_wait_for_read) {
           if (net_data_read(req) == CI_ERROR)
                return CI_ERROR;
 
@@ -1527,15 +1532,17 @@ int ci_client_icapfilter(ci_request_t * req, int timeout,
 
           int wait = 0;
           if (ret & NEEDS_TO_READ_FROM_ICAP)
-               wait |= wait_for_read;
+               wait |= ci_wait_for_read;
 
           if (ret & NEEDS_TO_WRITE_TO_ICAP)
-               wait |= wait_for_write;
+               wait |= ci_wait_for_write;
 
           if (wait != 0) {
-               io_action = ci_wait_for_data(req->connection->fd, timeout, wait);
-               if (io_action < 0 )
-                    return CI_ERROR;
+               do {
+                    io_action = ci_connection_wait(req->connection, timeout, wait);
+                    if (io_action <= 0 )
+                         return CI_ERROR;
+               } while (io_action & ci_wait_should_retry);
           } /*Else probably NEEDS_TO_READ_USER_DATA|NEEDS_TO_WRITE_USER_DATA*/
      }
 

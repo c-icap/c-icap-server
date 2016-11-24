@@ -30,6 +30,10 @@
 #include "net_io.h"
 #include "cfg_param.h"
 #include "debug.h"
+#if defined(USE_OPENSSL)
+#include "net_io_ssl.h"
+#include <openssl/ssl.h>
+#endif
 
 
 /*Must declared ....*/
@@ -195,12 +199,22 @@ int verbose = 0;
 ci_headers_list_t *xheaders = NULL;
 ci_headers_list_t *http_xheaders = NULL;
 ci_headers_list_t *http_resp_xheaders = NULL;
+#if defined(USE_OPENSSL)
+int use_tls = 0;
+int tls_verify = 1;
+const char *tls_method = NULL;
+#endif
 
 static struct ci_options_entry options[] = {
      {"-i", "icap_servername", &icap_server, ci_cfg_set_str,
       "The icap server name"},
      {"-p", "port", &port, ci_cfg_set_int, "The server port"},
      {"-s", "service", &service, ci_cfg_set_str, "The service name"},
+#if defined(USE_OPENSSL)
+     {"-tls", NULL, &use_tls, ci_cfg_enable, "Use TLS"},
+     {"-tls-method", "tls_method", &tls_method, ci_cfg_set_str, "Use TLS method"},
+     {"-tls-no-verify", NULL, &tls_verify, ci_cfg_disable, "Disable server certificate verify"},
+#endif
      {"-f", "filename", &input_file, ci_cfg_set_str,
       "Send this file to the icap server.\nDefault is to send an options request"},
      {"-o", "filename", &output_file, ci_cfg_set_str,
@@ -260,8 +274,23 @@ int main(int argc, char **argv)
      __vlog_error = vlog_errors;        /*set c-icap library  log function for win32..... */
 #endif
 
+#if defined(USE_OPENSSL)
+     if (use_tls) {
+         ci_tls_client_options_t tlsOpts;
+         ci_tls_init();
 
-     if (!(conn = ci_connect_to(icap_server, port, 0, CONN_TIMEOUT))) {
+         memset((void *)&tlsOpts, 0 , sizeof(ci_tls_client_options_t));
+         tlsOpts.method = tls_method;
+         tlsOpts.verify = tls_verify;
+         SSL_CTX *ctx = ci_tls_create_context(&tlsOpts);
+
+         if (!(conn = ci_tls_connect(icap_server, port, 0, ctx, CONN_TIMEOUT))){
+              ci_debug_printf(1, "Failed to establish SSL connection to the icap server.\n");
+              exit(-1);
+         }
+     } else
+#endif
+         if (!(conn = ci_connect_to(icap_server, port, 0, CONN_TIMEOUT))) {
           ci_debug_printf(1, "Failed to connect to icap server.....\n");
           exit(-1);
      }

@@ -20,6 +20,9 @@ bin_PROGRAMS = c-icap
 bin_SCRIPTS = c-icap-config c-icap-libicapapi-config
 
 UTIL_LIB_SOURCES=net_io.c util.c os/unix/net_io.c os/unix/proc_mutex.c os/unix/shared_mem.c os/unix/threads.c os/unix/utilfunc.c os/unix/dlib.c
+if USE_OPENSSL
+UTIL_LIB_SOURCES += openssl/net_io_ssl.c
+endif
 if USE_REGEX
 UTIL_LIB_SOURCES += regex.c
 endif
@@ -36,13 +39,14 @@ libicapapi_la_SOURCES=  header.c body.c decode.c simple_api.c request_common.c \
 c_icap_SOURCES = aserver.c request.c cfg_param.c \
                    proc_threads_queues.c http_auth.c \
                    access.c log.c service.c module.c \
-		   commands.c mpmt_server.c dlib.c info.c default_acl.c $(UTIL_SOURCES)
+		   commands.c mpmt_server.c dlib.c info.c \
+		   default_acl.c port.c $(UTIL_SOURCES)
 
 
 # libicapapi ......
-libicapapi_la_CFLAGS= $(INVISIBILITY_CFLAG) -Iinclude/ @ZLIB_ADD_FLAG@ @BZLIB_ADD_FLAG@ @PCRE_ADD_FLAG@ -DCI_BUILD_LIB
+libicapapi_la_CFLAGS= $(INVISIBILITY_CFLAG) -Iinclude/ @ZLIB_ADD_FLAG@ @OPENSSL_ADD_FLAG@ @BZLIB_ADD_FLAG@ @PCRE_ADD_FLAG@ -DCI_BUILD_LIB
 
-libicapapi_la_LIBADD = @ZLIB_ADD_LDADD@ @BZLIB_ADD_LDADD@ @PCRE_ADD_LDADD@ @DL_ADD_FLAG@ @THREADS_LDADD@
+libicapapi_la_LIBADD = @ZLIB_ADD_LDADD@ @BZLIB_ADD_LDADD@ @PCRE_ADD_LDADD@ @DL_ADD_FLAG@ @THREADS_LDADD@ @OPENSSL_ADD_LDADD@
 libicapapi_la_LDFLAGS= -shared -version-info @CICAPLIB_VERSION@ @THREADS_LDFLAGS@
 
 
@@ -51,9 +55,9 @@ c_icap_DEPENDENCIES=libicapapi.la
 c_icap_CFLAGS= $(INVISIBILITY_CFLAG) -Iinclude/  \
                         -DCONFDIR=\"$(CONFIGDIR)\" -DMODSDIR=\"$(MODULESDIR)\" \
                         -DSERVDIR=\"$(SERVICESDIR)\" -DLOGDIR=\"$(LOGDIR)\"  \
-                        -DDATADIR=\"$(DATADIR)\"
+                        -DDATADIR=\"$(DATADIR)\" @OPENSSL_ADD_FLAG@
 
-c_icap_LDADD = libicapapi.la @DL_ADD_FLAG@ @THREADS_LDADD@
+c_icap_LDADD = libicapapi.la @DL_ADD_FLAG@ @THREADS_LDADD@ @OPENSSL_ADD_LDADD@
 c_icap_LDFLAGS = -rdynamic -rpath @libdir@ @THREADS_LDFLAGS@
 
 EXT_PROGRAMS_MKLIB = -licapapi
@@ -64,7 +68,7 @@ INCS = access.h body.h cfg_param.h c-icap-conf.h c-icap.h ci_threads.h \
 	net_io.h proc_mutex.h proc_threads_queues.h request.h service.h \
 	shared_mem.h simple_api.h util.h lookup_table.h hash.h stats.h acl.h \
         cache.h txt_format.h types_ops.h txtTemplate.h array.h registry.h \
-	md5.h ci_regex.h
+	md5.h ci_regex.h net_io_ssl.h port.h
 
 ALL_INCS=$(INCS:%.h=include/%.h)
 
@@ -126,5 +130,7 @@ EXTRA_DIST = RECONF config-w32.h makefile.w32 \
              os/win32/shared_mem.c os/win32/threads.c os/win32/utilfunc.c \
              common.h \
              c-icap-config.in c-icap-libicapapi-config.in c-icap.dox \
-             build/c_icap_version.awk
+             build/c_icap_version.awk \
+	     openssl/build_openssl_opts.pl \
+	     openssl/openssl_options.c
 

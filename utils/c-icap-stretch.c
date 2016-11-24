@@ -407,7 +407,7 @@ int threadjobreqmod()
 	      usleep(500000);
 	      ci_client_request_reuse(req);
 	  }
-	  ci_hard_close(conn->fd);
+	  ci_connection_hard_close(conn);
 	  ci_request_destroy(req);
           if (!_THE_END)
               usleep(1000000);
@@ -553,7 +553,7 @@ int threadjobsendfiles()
 
 	       ci_client_request_reuse(req);
           }
-	  ci_hard_close(conn->fd);
+	  ci_connection_hard_close(conn);
 	  ci_request_destroy(req);
           if (_THE_END) {
               printf("The end: thread dying ps 2\n");

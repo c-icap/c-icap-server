@@ -21,6 +21,7 @@
 #ifndef __NET_IO_H
 #define __NET_IO_H
 
+#include "c-icap.h"
 #ifndef _WIN32
 #include <netinet/in.h>
 #include <sys/ioctl.h>
@@ -31,6 +32,9 @@
 #include <fcntl.h>
 #else
 #include <WinSock2.h>
+#endif
+#ifdef USE_OPENSSL
+#include <openssl/bio.h>
 #endif
 
 #ifdef __cplusplus
@@ -45,6 +49,7 @@ extern "C"
 #define ci_socket SOCKET
 #define CI_SOCKET_ERROR INVALID_SOCKET
 #endif
+typedef ci_socket ci_socket_t;
 
 typedef struct ci_sockaddr{
 #ifdef USE_IPV6
@@ -57,7 +62,6 @@ typedef struct ci_sockaddr{
      void *ci_sin_addr;
      int ci_inaddr_len;
 }  ci_sockaddr_t;
-
 
 #define CI_MAXHOSTNAMELEN 256
 
@@ -94,7 +98,12 @@ typedef struct in_addr ci_in_addr_t;
 
 #define wait_for_read       0x1
 #define wait_for_write      0x2
-#define wait_for_readwrite  0x3 
+#define wait_for_readwrite  0x3
+
+#define ci_wait_for_read       0x1
+#define ci_wait_for_write      0x2
+#define ci_wait_for_readwrite  0x3
+#define ci_wait_should_retry   0x4
 
 
 typedef struct ci_ip {
@@ -103,12 +112,22 @@ typedef struct ci_ip {
     int family;
 } ci_ip_t;
 
+/*Flags for ci_connection_t object*/
+#define CI_CONNECTION_CONNECTED 0x1
+
 typedef struct ci_connection{
      ci_socket fd;
      ci_sockaddr_t claddr;
      ci_sockaddr_t srvaddr;
+#ifdef USE_OPENSSL
+    BIO* bio;
+#endif
+    int32_t flags;
 }  ci_connection_t ;
 
+struct ci_port;
+
+CI_DECLARE_FUNC(ci_connection_t *) ci_connection_create();
 CI_DECLARE_FUNC(void) ci_connection_destroy(ci_connection_t *connection);
 
 CI_DECLARE_FUNC(void) ci_fill_sockaddr(ci_sockaddr_t *addr);
@@ -135,9 +154,11 @@ CI_DECLARE_FUNC(const char *) ci_sockaddr_t_to_host(ci_sockaddr_t *addr, char *h
 CI_DECLARE_FUNC(int) ci_host_to_sockaddr_t(const char *servername, ci_sockaddr_t * addr, int proto);
 
 CI_DECLARE_FUNC(void) ci_copy_connection(ci_connection_t *dest, ci_connection_t *src);
+CI_DECLARE_FUNC(void) ci_connection_reset(ci_connection_t *conn);
 
 CI_DECLARE_FUNC(int) icap_socket_opts(ci_socket fd, int secs_to_linger);
-CI_DECLARE_FUNC(ci_socket) icap_init_server(char *address, int port,int *protocol_family,int secs_to_linger);
+CI_DECLARE_FUNC(ci_socket) icap_init_server(struct ci_port *port);
+CI_DECLARE_FUNC(int) icap_accept_raw_connection(struct ci_port *port, ci_connection_t *conn);
 
 
 CI_DECLARE_FUNC(int) ci_wait_for_data(ci_socket fd,int secs,int what_wait);
@@ -145,7 +166,11 @@ CI_DECLARE_FUNC(int) ci_wait_for_data(ci_socket fd,int secs,int what_wait);
 #define ci_wait_for_incomming_data(fd,timeout) ci_wait_for_data(fd,timeout,wait_for_read)
 #define ci_wait_for_outgoing_data(fd,timeout) ci_wait_for_data(fd,timeout,wait_for_write)
 
-CI_DECLARE_FUNC(int) ci_netio_init(ci_socket fd);
+CI_DECLARE_FUNC(int) ci_connection_set_nonblock(ci_connection_t *conn);
+
+typedef enum {ci_connection_server_side, ci_connection_client_side} ci_connection_type_t;
+CI_DECLARE_FUNC(int) ci_connection_init(ci_connection_t *conn, ci_connection_type_t type);
+
 CI_DECLARE_FUNC(int) ci_read(ci_socket fd,void *buf,size_t count,int timeout);
 CI_DECLARE_FUNC(int) ci_write(ci_socket fd, const void *buf,size_t count,int timeout);
 CI_DECLARE_FUNC(int) ci_read_nonblock(ci_socket fd, void *buf,size_t count);
@@ -155,7 +180,15 @@ CI_DECLARE_FUNC(int) ci_linger_close(ci_socket fd,int secs_to_linger);
 CI_DECLARE_FUNC(int) ci_hard_close(ci_socket fd);
 
 CI_DECLARE_FUNC(ci_connection_t *) ci_connect_to(char *servername, int port, int proto, int timeout);
+CI_DECLARE_FUNC(int) ci_connect_to_nonblock(ci_connection_t *connection, char *servername, int port, int proto);
 
+CI_DECLARE_FUNC(int) ci_connection_wait(ci_connection_t *conn, int secs, int what_wait);
+CI_DECLARE_FUNC(int) ci_connection_read(ci_connection_t *conn, void *buf, size_t count, int timeout);
+CI_DECLARE_FUNC(int) ci_connection_write(ci_connection_t *conn, void *buf, size_t count, int timeout);
+CI_DECLARE_FUNC(int) ci_connection_read_nonblock(ci_connection_t *conn, void *buf, size_t count);
+CI_DECLARE_FUNC(int) ci_connection_write_nonblock(ci_connection_t *conn, void *buf, size_t count);
+CI_DECLARE_FUNC(int) ci_connection_linger_close(ci_connection_t *conn, int timeout);
+CI_DECLARE_FUNC(int) ci_connection_hard_close(ci_connection_t *conn);
 #ifdef __cplusplus
 }
 #endif

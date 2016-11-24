@@ -254,6 +254,47 @@ AC_SUBST(perllib)
 AC_SUBST(perlccflags)
 AC_SUBST(perlldflags)
 
+AC_ARG_WITH(openssl,
+[  --with-openssl	Path to openssl],
+[
+case "$withval" in
+     yes)
+	openssl=yes;
+     ;;
+     no)
+	openssl=no;
+     ;;
+     *)
+	openssl=$withval;
+     ;;
+     esac
+],
+[ openssl=yes]
+)
+
+if test a"$openssl" != "ano"; then
+   if test a"$openssl" != "ayes"; then
+        OLDCFLAGS=$CFLAGS
+        OLDLDFLAGS=$LDFLAGS
+        CFLAGS="$CFLAGS -I$openssl/include"
+        LDFLAGS="$LDFLAGS -L$openssl/lib"
+        AC_CHECK_LIB(ssl,SSL_library_init,[OPENSSL_ADD_LDADD="-L$openssl/lib -lssl -lcrypto";OPENSSL_ADD_FLAG="-I$openssl/include";AC_DEFINE(HAVE_OPENSSL,1,[Define HAVE_OPENSSL if openssl is installed])],[openssl=no],-lcrypto)
+        CFLAGS=$OLDCFLAGS
+        LDFLAGS=$OLDLDFLAGS
+        AC_SUBST(OPENSSL_ADD_LDADD)
+        AC_SUBST(OPENSSL_ADD_FLAG)
+   else
+	AC_CHECK_LIB(ssl,SSL_library_init,[OPENSSL_ADD_LDADD=" -lssl -lcrypto"; AC_DEFINE(HAVE_OPENSSL,1,[Define HAVE_OPENSSL if openssl is installed])],[openssl=no])
+	AC_SUBST(OPENSSL_ADD_LDADD)
+   fi
+fi
+
+USE_OPENSSL="1"
+if test a"$openssl" = "ano"; then
+#    AC_MSG_WARN("openssl is required for ssl encryption")
+    USE_OPENSSL="0"
+fi
+AC_SUBST(USE_OPENSSL)
 
 AC_CHECK_LIB(dl,dlopen,DL_ADD_FLAG=" -ldl")
 AC_SUBST(DL_ADD_FLAG)
@@ -882,6 +923,7 @@ AM_CONDITIONAL(ISCYGWIN,[test a"$iscygwin" != a])
 
 # Now determine which modules will going to build .....
 
+AM_CONDITIONAL(USE_OPENSSL, [test a"$openssl" != "ano"])
 AM_CONDITIONAL(USE_REGEX, [test a"$pcre" = "ayes" -o a"$posix_regex" = "ayes"])
 AM_CONDITIONAL(USEPERL,[test a"$perlcore" != a])
 AM_CONDITIONAL(USEBDB,   [test a"$libdb" != ano])

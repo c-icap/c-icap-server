@@ -12,6 +12,10 @@
 #define USE_IPV6
 #endif
 
+#if @USE_OPENSSL@
+#define USE_OPENSSL
+#endif
+
 #if @SYSV_IPC@
 #define USE_SYSV_IPC
 #endif

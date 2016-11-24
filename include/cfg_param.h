@@ -20,7 +20,8 @@
 
 #ifndef __CFG_PARAM_H
 #define __CFG_PARAM_H
-#include "body.h"
+#include "c-icap.h"
+#include "array.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -28,13 +29,14 @@ extern "C"
 #endif
 
 struct ci_magics_db;
-
+struct ci_port;
 
 /**
  \defgroup CONFIG c-icap server configuration API
  \ingroup API
  *
  */
+
 
 /**
  * This struct holds the basic configurations of c-icap server. It passed as argument to
@@ -44,9 +46,7 @@ struct ci_magics_db;
  * Do not use directly this struct but better use the documended macros and functions
  */
 struct ci_server_conf{
-     char *ADDRESS;
-     int  PORT;
-     int  PROTOCOL_FAMILY;
+     ci_vector_t  *PORTS;
      char *TMPDIR;
      char *PIDFILE;
      char *COMMANDS_SOCKET;
@@ -64,6 +64,11 @@ struct ci_server_conf{
      int THREADS_PER_CHILD;
      int MIN_SPARE_THREADS;
      int MAX_SPARE_THREADS;
+
+#ifdef USE_OPENSSL
+     char *TLS_PASSPHRASE;
+     int TLS_ENABLED;
+#endif
 };
 
 /**

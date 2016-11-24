@@ -32,8 +32,12 @@
 #include "acl.h"
 #include "txtTemplate.h"
 #include "proc_mutex.h"
+#include "port.h"
 #include "registry.h"
 #include "shared_mem.h"
+#ifdef USE_OPENSSL
+#include "net_io_ssl.h"
+#endif
 
 #define MAX_INCLUDE_LEVEL 5
 #define LINESIZE 8192
@@ -43,7 +47,7 @@ int ARGC;
 char **ARGV;
 
 struct ci_server_conf CI_CONF = {
-     NULL, /* LISTEN ADDRESS */ 1344, /*PORT*/ AF_INET,    /*SOCK_FAMILY */
+     NULL,
 #ifdef _WIN32
      "c:\\TEMP", /*TMPDIR*/ "c:\\TEMP\\c-icap.pid", /*PIDFILE*/ "\\\\.\\pipe\\c-icap",  /*COMMANDS_SOCKET; */
 #else
@@ -68,6 +72,11 @@ struct ci_server_conf CI_CONF = {
      30,                        /*THREADS_PER_CHILD*/
      30,                        /*MIN_SPARE_THREADS*/
      60                        /*MAX_SPARE_THREADS*/
+
+#ifdef USE_OPENSSL
+     ,
+     0                         /*TLS_ENABLED, set by TLSPort*/
+#endif
 };
 
 
@@ -126,6 +135,7 @@ int cfg_group_source_by_group(const char *directive, const char **argv, void *se
 int cfg_group_source_by_user(const char *directive, const char **argv, void *setdata);
 int cfg_shared_mem_scheme(const char *directive, const char **argv, void *setdata);
 int cfg_proc_lock_scheme(const char *directive, const char **argv, void *setdata);
+int cfg_set_port(const char *directive, const char **argv, void *setdata);
 
 /*The following 2 functions defined in access.c file*/
 int cfg_acl_add(const char *directive, const char **argv, void *setdata);
@@ -139,7 +149,7 @@ struct sub_table {
 };
 
 static struct ci_conf_entry conf_variables[] = {
-     {"ListenAddress", &CI_CONF.ADDRESS, intl_cfg_set_str, NULL},
+//     {"ListenAddress", &CI_CONF.ADDRESS, intl_cfg_set_str, NULL},
      {"PidFile", &CI_CONF.PIDFILE, intl_cfg_set_str, NULL},
      {"CommandsSocket", &CI_CONF.COMMANDS_SOCKET, intl_cfg_set_str, NULL},
      {"Timeout", (void *) (&TIMEOUT), intl_cfg_set_int, NULL},
@@ -154,7 +164,14 @@ static struct ci_conf_entry conf_variables[] = {
      {"MaxRequestsPerChild", &MAX_REQUESTS_PER_CHILD, intl_cfg_set_int, NULL},
      {"MaxRequestsReallocateMem", &MAX_REQUESTS_BEFORE_REALLOCATE_MEM,
       intl_cfg_set_int, NULL},
-     {"Port", &CI_CONF.PORT, intl_cfg_set_int, NULL},
+     {"Port", &CI_CONF.PORTS, cfg_set_port, NULL},
+#ifdef USE_OPENSSL
+     {"TlsPort", &CI_CONF.PORTS, cfg_set_port, NULL},
+     {"TlsPassphrase", &CI_CONF.TLS_PASSPHRASE, intl_cfg_set_str, NULL},
+     /*The Ssl* alias of Tls* cfg params*/
+     {"SslPort", &CI_CONF.PORTS, cfg_set_port, NULL},
+     {"SslPassphrase", &CI_CONF.TLS_PASSPHRASE, intl_cfg_set_str, NULL},
+#endif
      {"User", &CI_CONF.RUN_USER, intl_cfg_set_str, NULL},
      {"Group", &CI_CONF.RUN_GROUP, intl_cfg_set_str, NULL},
      {"ServerAdmin", &CI_CONF.SERVER_ADMIN, intl_cfg_set_str, NULL},
@@ -377,6 +394,64 @@ int print_variables()
    The following tree functions refered to non constant variables so
    the compilers in Win32 have problem to appeared in static arrays
 */
+int cfg_set_port(const char *directive, const char **argv, void *setdata)
+{
+     int i;
+     char *s;
+     ci_port_t *pcfg = NULL;
+     ci_port_t tmpP;
+     ci_vector_t **port_configs = (ci_vector_t **)setdata;
+     if (argv == NULL || argv[0] == NULL) {
+          ci_debug_printf(1, "Missing arguments in %s directive\n", directive);
+          return 0;
+     }
+     if (!*port_configs)
+         *port_configs = ci_vector_create(2048);
+
+     memset(&tmpP, 0, sizeof(ci_port_t));
+
+     pcfg = (ci_port_t *)ci_vector_add(*port_configs, (void *)&tmpP, sizeof(ci_port_t));
+     if (!pcfg) {
+         ci_debug_printf(1, "Maximum number of configured ports is reached\n");
+         return 0;
+     }
+
+     if ((s = strchr(argv[0], ':'))) {
+         *s = '\0'; /*maybe use strdup/strndup?*/
+         pcfg->address = strdup(argv[0]);
+         s++;
+     } else
+         s = (char *)argv[0];
+
+     pcfg->port = atoi(s);
+     if (pcfg->port <= 0) {
+         ci_debug_printf(1, "Failed to parse %s (parsed port number:%d)\n", directive, pcfg->port);
+         return 0;
+     }
+
+     if (!argv[1])
+         return 1;
+
+#ifdef USE_OPENSSL
+     int isTls = (strcmp(directive, "TlsPort") == 0 || strcmp(directive, "SslPort") == 0) ? 1 : 0;
+     CI_CONF.TLS_ENABLED = 1;
+     pcfg->tls_enabled = 1;
+#endif
+
+     for (i = 1; argv[i] != NULL; ++i) {
+#ifdef USE_OPENSSL
+    if (isTls && icap_port_tls_option(argv[i], pcfg, CONFDIR)) {
+          } else
+#endif
+          {
+              ci_debug_printf(1, "Unknown %s option: '%s'", directive, argv[i]);
+              return 0;
+          }
+     }
+
+     return 1;
+}
+
 int cfg_set_debug_level(const char *directive, const char **argv, void *setdata)
 {
     if (!DebugLevelSetFromCmd)
@@ -917,7 +992,7 @@ int reconfig()
 }
 
 
-int init_server(char *address, int port, int *family);
+int init_server();
 void release_modules();
 void ci_dlib_closeall();
 int log_open();
@@ -949,13 +1024,19 @@ void system_shutdown()
     ci_magic_db_free();
     CI_CONF.MAGIC_DB = NULL;
     ci_txt_template_close();
+#ifdef USE_OPENSSL
+    ci_tls_cleanup();
+#endif
 }
 
 int system_reconfigure()
 {
-     int old_port;
-
+     ci_vector_t *old_ports;
      ci_debug_printf(1, "Going to reconfigure system!\n");
+
+     old_ports = CI_CONF.PORTS;
+     CI_CONF.PORTS = NULL;
+
      system_shutdown();
      reset_conf_tables();
      ci_acl_reset();
@@ -974,16 +1055,18 @@ int system_reconfigure()
         - Freeing all memory and resources used by configuration parameters (is it possible???)
         - reopen and read config file. Now the monitor process has now the new config parameters.
       */
-     old_port = CI_CONF.PORT;
      if (!reconfig())
 	 return 0;
+
+     /*Check the ports, to not close and reopen ports unchanged ports.*/
+     ci_port_handle_reconfigure(CI_CONF.PORTS, old_ports);
+     ci_port_list_release(old_ports);
 
      /*
         - reinit listen socket if needed
       */
-     if (old_port != CI_CONF.PORT) {
-          init_server(CI_CONF.ADDRESS, CI_CONF.PORT, &(CI_CONF.PROTOCOL_FAMILY));
-     }
+     if (!init_server())
+         return 0;
 
      log_open();
 

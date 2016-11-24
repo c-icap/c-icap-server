@@ -24,6 +24,11 @@
 #include "debug.h"
 #include "net_io.h"
 #include "util.h"
+#ifdef USE_OPENSSL
+#include "net_io_ssl.h"
+#endif
+
+#include <assert.h>
 
 
 #ifdef USE_IPV6
@@ -165,6 +170,19 @@ void ci_copy_connection(ci_connection_t * dest, ci_connection_t * src)
      dest->fd = src->fd;
      ci_copy_sockaddr(&dest->claddr, &src->claddr);
      ci_copy_sockaddr(&dest->srvaddr, &src->srvaddr);
+#if defined(USE_OPENSSL)
+     dest->bio = src->bio;
+#endif
+     dest->flags = src->flags;
+}
+
+void ci_connection_reset(ci_connection_t *conn)
+{
+     conn->fd = -1;
+#if defined(USE_OPENSSL)
+     conn->bio = NULL;
+#endif
+     conn->flags = 0;
 }
 
 int ci_host_to_sockaddr_t(const char *servername, ci_sockaddr_t * addr, int proto)
@@ -186,89 +204,181 @@ int ci_host_to_sockaddr_t(const char *servername, ci_sockaddr_t * addr, int prot
      return 1;
 }
 
+ci_connection_t *ci_connection_create()
+{
+     ci_connection_t *connection = malloc(sizeof(ci_connection_t));
+     if (connection)
+          ci_connection_reset(connection);
+     return connection;
+}
+
 /**
  * Close and free the given connection
  */
 void ci_connection_destroy(ci_connection_t *connection)
 {
     if ( connection ) {
-        if ( connection->fd >= 0 )
-            close(connection->fd);
+        if (connection->fd >= 0)
+            ci_connection_hard_close(connection);
         free(connection);
     }
 }
 
-ci_connection_t *ci_connect_to(char *servername, int port, int proto, int timeout)
+int ci_connect_to_nonblock(ci_connection_t *connection, char *servername, int port, int proto)
 {
-     ci_connection_t *connection = malloc(sizeof(ci_connection_t));
      unsigned int addrlen = 0;
      char errBuf[512];
      
      if (!connection)
-          return NULL;
+          return -1;
 
-     if (!ci_host_to_sockaddr_t(servername, &(connection->srvaddr), proto)) {
-          ci_debug_printf(1, "Error getting address info for host '%s': %s\n",
-                          servername,
-                          ci_strerror(errno,  errBuf, sizeof(errBuf)));
-          close(connection->fd);
-          free(connection);
-          return NULL;
-     }
-     ci_sockaddr_set_port(&(connection->srvaddr), port);
+     if (connection->fd < 0) {
+          if (!ci_host_to_sockaddr_t(servername, &(connection->srvaddr), proto)) {
+               ci_debug_printf(1, "Error getting address info for host '%s': %s\n",
+                               servername,
+                               ci_strerror(errno,  errBuf, sizeof(errBuf)));
+               return -1;
+          }
+          ci_sockaddr_set_port(&(connection->srvaddr), port);
 
-     connection->fd = socket(connection->srvaddr.ci_sin_family, SOCK_STREAM, 0);
-     if (connection->fd == -1) {
-          ci_debug_printf(1, "Error opening socket :%d:%s....\n",
-                          errno,
-                          ci_strerror(errno,  errBuf, sizeof(errBuf)));
-          free(connection);
-          return NULL;
-     }
+          connection->fd = socket(connection->srvaddr.ci_sin_family, SOCK_STREAM, 0);
+          if (connection->fd == -1) {
+               ci_debug_printf(1, "Error opening socket :%d:%s....\n",
+                               errno,
+                               ci_strerror(errno,  errBuf, sizeof(errBuf)));
+               return -1;
+          }
 
 #ifdef USE_IPV6
-     if (connection->srvaddr.ci_sin_family == AF_INET6)
-         addrlen = sizeof(struct sockaddr_in6);
-     else
+          if (connection->srvaddr.ci_sin_family == AF_INET6)
+               addrlen = sizeof(struct sockaddr_in6);
+          else
 #endif
-         addrlen = sizeof(struct sockaddr_in);
+               addrlen = sizeof(struct sockaddr_in);
 
-     // Sets the fd to non-block mode
-     ci_netio_init(connection->fd);
+          // Sets the fd to non-block mode
+          ci_connection_set_nonblock(connection);
 
-     int ret;
-     ret = connect(connection->fd, (struct sockaddr *) &(connection->srvaddr.sockaddr), addrlen);
-     if (ret < 0 && errno != EINPROGRESS) {
-          ci_debug_printf(1, "Error connecting to host  '%s': %s \n",
-                          servername,
-                          ci_strerror(errno,  errBuf, sizeof(errBuf)));
-          close(connection->fd);
-          free(connection);
-          return NULL;
-     }
-
-     do {
-          ret = ci_wait_for_data(connection->fd, timeout, wait_for_write);
-          if (ret < 0) {
-               ci_debug_printf(1, "Connection to '%s:%d' failed/timedout\n",
-                               servername, port);
-               close(connection->fd);
-               free(connection);
-               return NULL;
+          int ret;
+          ret = connect(connection->fd, (struct sockaddr *) &(connection->srvaddr.sockaddr), addrlen);
+          if (ret < 0 && errno != EINPROGRESS) {
+              ci_debug_printf(1, "Error connecting to host  '%s': %s \n",
+                              servername,
+                              ci_strerror(errno,  errBuf, sizeof(errBuf)));
+              return -1;
           }
-     } while(ret == 0);
 
-     addrlen = CI_SOCKADDR_SIZE;
-     if (getsockname(connection->fd,
-                     (struct sockaddr *) &(connection->claddr.sockaddr), &addrlen)) {
-          ci_debug_printf(1, "Error getting client sockname: %s\n",
-                          ci_strerror(errno,  errBuf, sizeof(errBuf)));
-          close(connection->fd);
-          free(connection);
+          return 0;
+     }
+
+     if (!(connection->flags & CI_CONNECTION_CONNECTED)) {
+          if (!ci_connection_init(connection, ci_connection_client_side)) {
+               ci_debug_printf(1, "Error getting client sockname: %s\n",
+                               ci_strerror(errno,  errBuf, sizeof(errBuf)));
+               return -1;
+          }
+          connection->flags &= CI_CONNECTION_CONNECTED;
+     }
+
+     return 1;
+}
+
+ci_connection_t *ci_connect_to(char *servername, int port, int proto, int timeout)
+{
+    int ret;
+    ci_connection_t *connection = ci_connection_create();
+    if (!connection) {
+        ci_debug_printf(1, "Failed to allocate memory for ci_connection_t object\n");
+        return NULL;
+    }
+
+    ret = ci_connect_to_nonblock(connection, servername, port, proto);
+
+    do {
+         ret = ci_wait_for_data(connection->fd, timeout, ci_wait_for_write);
+    } while(ret & ci_wait_should_retry); //while iterrupted by signal
+
+    if (ret > 0)
+        ret = ci_connect_to_nonblock(connection, servername, port, proto);
+
+     if (ret <= 0) {
+          ci_debug_printf(1, "Connection to '%s:%d' failed/timedout\n",
+                          servername, port);
+          ci_connection_destroy(connection);
           return NULL;
      }
-     ci_fill_sockaddr(&(connection->claddr));
-     ci_fill_sockaddr(&(connection->srvaddr));
+
      return connection;
 }
 
+int ci_connection_wait(ci_connection_t *conn, int secs, int what_wait)
+{
+    assert(conn);
+#ifdef USE_OPENSSL
+    if (conn->bio)
+        return ci_connection_wait_tls(conn, secs, what_wait);
+#endif
+    return ci_wait_for_data(conn->fd, secs, what_wait);
+}
+
+int ci_connection_read(ci_connection_t *conn, void *buf, size_t count, int timeout)
+{
+    assert(conn);
+#ifdef USE_OPENSSL
+    if (conn->bio)
+        return ci_connection_read_tls(conn, buf, count, timeout);
+#endif
+    return ci_read(conn->fd, buf, count, timeout);
+}
+
+int ci_connection_write(ci_connection_t *conn, void *buf, size_t count, int timeout)
+{
+    assert(conn);
+#ifdef USE_OPENSSL
+    if (conn->bio)
+        return ci_connection_write_tls(conn, buf, count, timeout);
+#endif
+    return ci_write(conn->fd, buf, count, timeout);
+}
+
+int ci_connection_read_nonblock(ci_connection_t *conn, void *buf, size_t count)
+{
+    assert(conn);
+#ifdef USE_OPENSSL
+    if (conn->bio)
+        return ci_connection_read_nonblock_tls(conn, buf, count);
+#endif
+    return ci_read_nonblock(conn->fd, buf, count);
+}
+
+int ci_connection_write_nonblock(ci_connection_t *conn, void *buf, size_t count)
+{
+    assert(conn);
+#ifdef USE_OPENSSL
+    if (conn->bio)
+        return ci_connection_write_nonblock_tls(conn, buf, count);
+#endif
+    return ci_write_nonblock(conn->fd, buf, count);
+}
+
+int ci_connection_linger_close(ci_connection_t *conn, int timeout)
+{
+    assert(conn);
+#ifdef USE_OPENSSL
+    if (conn->bio)
+        return ci_connection_linger_close_tls(conn, timeout);
+#endif
+    return ci_linger_close(conn->fd, timeout);
+}
+
+int ci_connection_hard_close(ci_connection_t *conn)
+{
+    assert(conn);
+#ifdef USE_OPENSSL
+    if (conn->bio)
+        return ci_connection_hard_close_tls(conn);
+#endif
+    close(conn->fd);
+    conn->fd = -1;
+    return 1;
+}

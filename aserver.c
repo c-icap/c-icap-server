@@ -44,7 +44,7 @@ char MY_HOSTNAME[CI_MAXHOSTNAMELEN + 1];
 void init_conf_tables();
 int init_body_system();
 int config(int, char **);
-int init_server(char *address, int port, int *family);
+int init_server();
 int start_server();
 int store_pid(char *pidfile);
 int clear_pid(char *pidfile);
@@ -174,7 +174,7 @@ int main(int argc, char **argv)
      store_pid(CI_CONF.PIDFILE);
 #endif
 
-     if (!init_server(CI_CONF.ADDRESS, CI_CONF.PORT, &(CI_CONF.PROTOCOL_FAMILY)))
+     if (!init_server())
           return -1;
      post_init_modules();
      post_init_services();
