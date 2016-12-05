@@ -840,3 +840,18 @@ int ci_connection_should_write_tls(ci_connection_t *connection)
         return -1;
     return BIO_should_write(connection->bio);
 }
+
+int ci_connection_read_pending_tls(ci_connection_t *connection)
+{
+    if (connection->fd < 0 || !connection->bio)
+        return 0;
+    return BIO_pending(connection->bio);
+}
+
+int ci_connection_write_pending_tls(ci_connection_t *connection)
+{
+    if (connection->fd < 0 || !connection->bio)
+        return 0;
+    return BIO_wpending(connection->bio);
+}
+
