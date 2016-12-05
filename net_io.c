@@ -194,7 +194,7 @@ int ci_host_to_sockaddr_t(const char *servername, ci_sockaddr_t * addr, int prot
      hints.ai_socktype = SOCK_STREAM;
      hints.ai_protocol = 0;
      if ((ret = getaddrinfo(servername, NULL, &hints, &res)) != 0) {
-	 ci_debug_printf(5, "Error geting addrinfo:%s\n", gai_strerror(ret));
+         ci_debug_printf(5, "Error getting addrinfo for '%s':%s\n", servername, gai_strerror(ret));
 	 return 0;
      }
      //fill the addr..... and
@@ -234,9 +234,7 @@ int ci_connect_to_nonblock(ci_connection_t *connection, char *servername, int po
 
      if (connection->fd < 0) {
           if (!ci_host_to_sockaddr_t(servername, &(connection->srvaddr), proto)) {
-               ci_debug_printf(1, "Error getting address info for host '%s': %s\n",
-                               servername,
-                               ci_strerror(errno,  errBuf, sizeof(errBuf)));
+               ci_debug_printf(1, "Error getting address info for host '%s'\n", servername);
                return -1;
           }
           ci_sockaddr_set_port(&(connection->srvaddr), port);
@@ -265,6 +263,8 @@ int ci_connect_to_nonblock(ci_connection_t *connection, char *servername, int po
               ci_debug_printf(1, "Error connecting to host  '%s': %s \n",
                               servername,
                               ci_strerror(errno,  errBuf, sizeof(errBuf)));
+              close(connection->fd);
+              connection->fd = -1;
               return -1;
           }
 
@@ -293,6 +293,8 @@ ci_connection_t *ci_connect_to(char *servername, int port, int proto, int timeou
     }
 
     ret = ci_connect_to_nonblock(connection, servername, port, proto);
+    if (ret < 0)
+        return NULL;
 
     do {
          ret = ci_wait_for_data(connection->fd, timeout, ci_wait_for_write);

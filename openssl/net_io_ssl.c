@@ -703,9 +703,8 @@ int ci_tls_connect_nonblock(ci_connection_t *connection, const char *servername,
     if (!connection->bio) {
 
         if (!ci_host_to_sockaddr_t(servername, &(connection->srvaddr), proto)) {
-            ci_debug_printf(1, "Error getting address info for host '%s': %s\n",
-                            servername,
-                            ci_strerror(errno,  buf, sizeof(buf)));
+            ci_debug_printf(1, "Error getting address info for host '%s'\n",
+                            servername);
             return -1;
         }
         ci_sockaddr_set_port(&(connection->srvaddr), port);
