@@ -831,14 +831,14 @@ int ci_connection_should_read_tls(ci_connection_t *connection)
 {
     if (connection->fd < 0 || !connection->bio)
         return -1;
-    return BIO_should_read(connection->bio);
+    return (BIO_should_read(connection->bio) | BIO_should_io_special(connection->bio) ? 1 : 0);
 }
 
 int ci_connection_should_write_tls(ci_connection_t *connection)
 {
     if (connection->fd < 0 || !connection->bio)
         return -1;
-    return BIO_should_write(connection->bio);
+    return (BIO_should_write(connection->bio) | BIO_should_io_special(connection->bio) ? 1 : 0);
 }
 
 int ci_connection_read_pending_tls(ci_connection_t *connection)
