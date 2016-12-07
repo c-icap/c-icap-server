@@ -272,8 +272,21 @@ int ci_connect_to_nonblock(ci_connection_t *connection, char *servername, int po
      }
 
      if (!(connection->flags & CI_CONNECTION_CONNECTED)) {
+          int errcode = 0;
+          socklen_t len = sizeof(errcode);
+          if (getsockopt(connection->fd, SOL_SOCKET, SO_ERROR, &errcode, &len) != 0)
+               errcode = errno;
+
+          if (errcode) {
+              ci_debug_printf(1, "Error while connecting to host '%s': %s\n",
+                              servername,
+                              ci_strerror(errcode,  errBuf, sizeof(errBuf)));
+              return -1;
+          }
+
           if (!ci_connection_init(connection, ci_connection_client_side)) {
-               ci_debug_printf(1, "Error getting client sockname: %s\n",
+               ci_debug_printf(1, "Error initializing connection to '%s': %s\n",
+                               servername,
                                ci_strerror(errno,  errBuf, sizeof(errBuf)));
                return -1;
           }
