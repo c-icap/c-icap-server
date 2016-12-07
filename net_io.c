@@ -298,7 +298,7 @@ ci_connection_t *ci_connect_to(char *servername, int port, int proto, int timeou
 
     do {
          ret = ci_wait_for_data(connection->fd, timeout, ci_wait_for_write);
-    } while(ret & ci_wait_should_retry); //while iterrupted by signal
+    } while(ret > 0 && (ret & ci_wait_should_retry)); //while iterrupted by signal
 
     if (ret > 0)
         ret = ci_connect_to_nonblock(connection, servername, port, proto);

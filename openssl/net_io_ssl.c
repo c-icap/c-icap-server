@@ -811,7 +811,7 @@ ci_connection_t *ci_tls_connect(const char *servername, int port, int proto, SSL
     do {
         do {
             ret = ci_connection_wait_tls(connection, timeout, ci_wait_for_write);
-        } while (ret & ci_wait_should_retry); //while iterrupted by signal
+        } while (ret > 0 && (ret & ci_wait_should_retry)); //while iterrupted by signal
 
         if (ret > 0)
             ret = ci_tls_connect_nonblock(connection, servername, port, proto, use_ctx);
