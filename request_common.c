@@ -927,12 +927,6 @@ static int client_send_request_headers(ci_request_t * req, int has_eof)
           req->status = CLIENT_PROCESS_DATA;
      }
 
-     /* ci_headers_reset(req->head);*/
-     /* Why do we need the following?
-     for (i = 0; req->entities[i] != NULL; i++) {
-         ci_request_release_entity(req, i);
-         }*/
-
       return CI_OK;
 }
 
@@ -1032,7 +1026,7 @@ static int client_parse_encaps_header(ci_request_t * req, ci_headers_list_t * h,
 
 int ci_client_get_server_options_nonblocking(ci_request_t * req)
 {
-     int ret;
+    int ret, i;
 
      if ( req->status == CLIENT_INIT ) {
           if (CI_OK != client_create_request(req, req->req_server,
@@ -1042,12 +1036,20 @@ int ci_client_get_server_options_nonblocking(ci_request_t * req)
           req->status = CLIENT_SEND_HEADERS;
      }
 
-     if ( req->status >= CLIENT_SEND_HEADERS && req->status < CLIENT_READ_HEADERS) {
+     if ( req->status >= CLIENT_SEND_HEADERS && req->status < CLIENT_SEND_HEADERS_FINISHED) {
           ret = client_send_request_headers(req, 0);
           if ( ret == CI_NEEDS_MORE )
                return NEEDS_TO_WRITE_TO_ICAP;
           else if ( ret == CI_ERROR )
                return CI_ERROR;
+
+           req->status = CLIENT_SEND_HEADERS_FINISHED;
+     }
+
+     if (req->status == CLIENT_SEND_HEADERS_FINISHED) {
+          // Reset encaps entities to receive new entities from server
+          for (i = 0; req->entities[i] != NULL; i++)
+              ci_request_release_entity(req, i);
 
           req->status = CLIENT_PROCESS_DATA;
           return NEEDS_TO_READ_FROM_ICAP;
@@ -1460,7 +1462,7 @@ int ci_client_icapfilter_nonblocking(ci_request_t * req, int io_action,
                                      void *data_dest,
                                      int (*dest_write) (void *, char *, int))
 {
-     int ret, preview_status;
+    int ret, preview_status, i;
  
      if ( req->status == CLIENT_INIT ) {
           ret = prepare_headers(req, req_headers, resp_headers,
@@ -1472,23 +1474,29 @@ int ci_client_icapfilter_nonblocking(ci_request_t * req, int io_action,
           req->status = CLIENT_SEND_HEADERS;
      }
 
-     if ( req->status >= CLIENT_SEND_HEADERS && req->status < CLIENT_READ_HEADERS) {
+     if ( req->status >= CLIENT_SEND_HEADERS && req->status < CLIENT_SEND_HEADERS_FINISHED) {
           ret = client_send_request_headers(req, req->eof_sent);
           if ( ret == CI_NEEDS_MORE )
                return NEEDS_TO_WRITE_TO_ICAP;
           else if ( ret == CI_ERROR )
                return CI_ERROR;
 
-          if (req->preview >= 0) {   /*we must wait for ICAP responce here..... */
-               req->status = CLIENT_READ_HEADERS;
-               return NEEDS_TO_READ_FROM_ICAP;
-          }
-          else {
-               req->status = CLIENT_PROCESS_DATA;
-          }
+          req->status = CLIENT_SEND_HEADERS_FINISHED;
      }
 
-     if ( req->preview >= 0 && req->status == CLIENT_READ_HEADERS ) {
+     if (req->status == CLIENT_SEND_HEADERS_FINISHED) {
+          // Reset encaps entities to receive new entities from server
+          for (i = 0; req->entities[i] != NULL; i++)
+               ci_request_release_entity(req, i);
+
+          if (req->preview >= 0) {   /*we must wait for ICAP responce here..... */
+               req->status = CLIENT_READ_PREVIEW_RESPONSE;
+               return NEEDS_TO_READ_FROM_ICAP;
+          } else
+               req->status = CLIENT_PROCESS_DATA;
+     }
+
+     if ( req->preview >= 0 && req->status == CLIENT_READ_PREVIEW_RESPONSE ) {
           preview_status = 100;
           ret = ci_client_handle_previewed_response(req, &preview_status);
           if ( ret == CI_NEEDS_MORE )
