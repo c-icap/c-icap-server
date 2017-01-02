@@ -42,7 +42,7 @@ CI_DECLARE_FUNC(void *)         ci_module_sym(CI_DLIB_HANDLE handle,const char *
 CI_DECLARE_FUNC(int)            ci_module_unload(CI_DLIB_HANDLE handle,const char *name);
 
 /*Utility functions */
-CI_DECLARE_FUNC(int)            ci_dlib_entry(const char *name,const char *file, CI_DLIB_HANDLE handle);
+CI_DECLARE_FUNC(int)            ci_dlib_entry(const char *name,const char *file, CI_DLIB_HANDLE handle, int forceUnload);
 
 #ifdef __cplusplus
 }

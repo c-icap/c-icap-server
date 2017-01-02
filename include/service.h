@@ -267,7 +267,7 @@ typedef struct service_alias {
 
 /*Internal function */
 ci_service_module_t *add_service(ci_service_module_t *service);
-ci_service_module_t *register_service(const char *module_file);
+ci_service_module_t *register_service(const char *module_file, const char *argv[]);
 
 service_alias_t *add_service_alias(const char *service_alias, const char *service_name,const char *args);
 ci_service_module_t *find_service(const char *service_name);

@@ -22,6 +22,7 @@
 #define __MODULE_H
 
 #include <stdarg.h>
+#include "c-icap.h"
 #include "request.h"
 #include "header.h"
 #include "service.h"
@@ -33,6 +34,9 @@ extern "C"
 #endif
 
 struct ci_request;
+
+#define CI_MOD_DISABLE_FORCE_UNLOAD_STR "__c_icap_module_disable_force_unload"
+#define CI_MOD_DISABLE_FORCE_UNLOAD() CI_DECLARE_MOD_DATA const char * __c_icap_module_disable_force_unload = "off;"
 
 enum module_type{
      UNKNOWN,
@@ -51,7 +55,7 @@ typedef struct  service_handler_module{
      int (*init_service_handler)(struct ci_server_conf *server_conf);
      int (*post_init_service_handler)(struct ci_server_conf *server_conf);
      void (*release_service_handler)();
-     ci_service_module_t *(*create_service)(const char *service_file);
+    ci_service_module_t *(*create_service)(const char *service_file, const char *argv[]);
      struct ci_conf_entry *conf_table;
 } service_handler_module_t;
 
@@ -111,7 +115,7 @@ typedef struct authenticator_module{
 
 int init_modules();
 int post_init_modules();
-void * register_module(const char *module_file,const char *type);
+void * register_module(const char *module_file, const char *type, const char *argv[]);
 
 logger_module_t *find_logger(const char *name);
 access_control_module_t *find_access_controller(const char *name);

@@ -66,10 +66,17 @@ static struct modules_list *modules_lists_table[] = {   /*Must follows the 'enum
 };
 
 
-void *load_module(const char *module_file)
+void *load_module(const char *module_file, const char *argv[])
 {
      void *module = NULL;
      CI_DLIB_HANDLE module_handle;
+     int forceUnload = 1;
+
+     while (*argv != NULL) {
+         if (strcasecmp(*argv, "forceUnload=off") == 0)
+             forceUnload = 0;
+         argv++;
+     }
 
      module_handle = ci_module_load(module_file, CI_CONF.MODULES_DIR);
      if (!module_handle)
@@ -81,7 +88,11 @@ void *load_module(const char *module_file)
           ci_module_unload(module_handle, module_file);
           return NULL;
      }
-     ci_dlib_entry("module", module_file, module_handle);
+
+     if (ci_module_sym(module_handle, CI_MOD_DISABLE_FORCE_UNLOAD_STR))
+         forceUnload = 0;
+
+     ci_dlib_entry("module", module_file, module_handle, forceUnload);
      return module;
 }
 
@@ -347,7 +358,7 @@ struct module_tmp_struct{
     void *other_data;
 };
 
-void *register_module(const char *module_file, const char *type)
+void *register_module(const char *module_file, const char *type, const char *argv[])
 {
      void *module = NULL;
      int mod_type;
@@ -359,7 +370,7 @@ void *register_module(const char *module_file, const char *type)
      if (l == NULL)
           return NULL;
 
-     module = load_module(module_file);
+     module = load_module(module_file, argv);
      if (!module) {
           ci_debug_printf(3, "Error while loading  module %s\n",
                           module_file);

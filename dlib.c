@@ -26,13 +26,14 @@ struct dlib_entry {
      char *file;
      char *name;
      CI_DLIB_HANDLE handle;
+     int forceUnload;
      struct dlib_entry *next;
 };
 
 struct dlib_entry *dlib_list = NULL;
 
 
-int ci_dlib_entry(const char *name, const char *file, CI_DLIB_HANDLE handle)
+int ci_dlib_entry(const char *name, const char *file, CI_DLIB_HANDLE handle, int forceUnload)
 {
      struct dlib_entry *dl_e, *dl_cur;
 
@@ -53,6 +54,7 @@ int ci_dlib_entry(const char *name, const char *file, CI_DLIB_HANDLE handle)
           return 0;
      }
      dl_e->handle = handle;
+     dl_e->forceUnload = forceUnload;
      dl_e->next = NULL;
 
      if (dlib_list == NULL) {
@@ -77,7 +79,8 @@ int ci_dlib_closeall()
      while (dl_cur != NULL) {
           dl_e = dl_cur;
           dl_cur = dl_cur->next;
-          ret = ci_module_unload(dl_e->handle, dl_e->name);
+          if (dl_e->forceUnload)
+              ret = ci_module_unload(dl_e->handle, dl_e->name);
           if (!ret)
                error = 1;
           if (dl_e->name)

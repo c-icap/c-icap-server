@@ -29,6 +29,7 @@
 #endif
 #include "dlib.h"
 #include "cfg_param.h"
+#include "module.h"
 #include "stats.h"
 #include <errno.h>
 
@@ -261,7 +262,7 @@ struct ci_conf_entry *create_service_conf_table(struct ci_service_xdata *srv_xda
 ci_service_module_t *find_service_by_alias(const char *service_name);
 
 
-ci_service_module_t *create_service(const char *service_file)
+ci_service_module_t *create_service(const char *service_file, const char *argv[])
 {
      char *extension;
      service_handler_module_t *service_handler;
@@ -270,8 +271,7 @@ ci_service_module_t *create_service(const char *service_file)
 
      if (!service_handler)
           return NULL;
-     return service_handler->create_service(service_file);
-
+     return service_handler->create_service(service_file, argv);
 }
 
 void init_extra_data(ci_service_xdata_t * srv_xdata, const char *service)
@@ -389,10 +389,10 @@ ci_service_module_t *add_service(ci_service_module_t *service)
      return service;
 }
 
-ci_service_module_t *register_service(const char *service_file)
+ci_service_module_t *register_service(const char *service_file, const char *argv[])
 {
      ci_service_module_t *service;
-     service = create_service(service_file);
+     service = create_service(service_file, argv);
      if (!service) {
           ci_debug_printf(3, "Error while loading service %s\n",
                           service_file);
@@ -590,7 +590,7 @@ service_alias_t *find_service_alias(const char *service_name)
   and loaded as dynamic libraries
  **********************************************************************/
 
-ci_service_module_t *load_c_service(const char *service_file);
+ci_service_module_t *load_c_service(const char *service_file, const char *argv[]);
 void release_c_handler();
 
 service_handler_module_t c_service_handler = {
@@ -603,11 +603,16 @@ service_handler_module_t c_service_handler = {
      NULL                       /*config table .... */
 };
 
-ci_service_module_t *load_c_service(const char *service_file)
+ci_service_module_t *load_c_service(const char *service_file, const char *argv[])
 {
      ci_service_module_t *service = NULL;
      CI_DLIB_HANDLE service_handle;
-
+     int forceUnload = 1;
+     while (*argv != NULL) {
+         if (strcasecmp(*argv, "forceUnload=off") == 0)
+             forceUnload = 0;
+         argv++;
+     }
      service_handle = ci_module_load(service_file, CI_CONF.SERVICES_DIR);
      if (!service_handle)
           return NULL;
@@ -618,8 +623,12 @@ ci_service_module_t *load_c_service(const char *service_file)
           ci_module_unload(service_handle, service_file);
           return NULL;
      }
+
+     if (ci_module_sym(service_handle, CI_MOD_DISABLE_FORCE_UNLOAD_STR))
+         forceUnload = 0;
+
      ci_dlib_entry((service->mod_name != NULL ? service->mod_name : ""),
-                   service_file, service_handle);
+                   service_file, service_handle, forceUnload);
      return service;
 }
 

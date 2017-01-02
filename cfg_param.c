@@ -485,7 +485,7 @@ int cfg_load_service(const char *directive, const char **argv, void *setdata)
      }
      ci_debug_printf(2, "Loading service :%s path %s\n", argv[0], argv[1]);
 
-     if (!(service = register_service(argv[1]))) {
+     if (!(service = register_service(argv[1], argv + 2))) {
           ci_debug_printf(1, "Error loading service %s\n", argv[1]);
           return 0;
      }
@@ -518,7 +518,7 @@ int cfg_load_module(const char *directive, const char **argv, void *setdata)
      }
      ci_debug_printf(2, "Loading service :%s path %s\n", argv[0], argv[1]);
 
-     if (!register_module(argv[1], argv[0])) {
+     if (!register_module(argv[1], argv[0], argv + 2)) {
           ci_debug_printf(1, "Error loading module %s, module path %s\n", argv[1], argv[0]);
           return 0;
      }
