@@ -1415,13 +1415,13 @@ static int do_fake_preview(ci_request_t * req)
     }
 
     if (res == CI_MOD_ALLOW204 && !req->hasbody) {
-        ci_debug_printf(5,"Preview handler return allow 204 response, and allow204 outside preview does NOT supported\n");
+        ci_debug_printf(5,"Preview handler return allow 204 response, allow204 outside preview does NOT supported, but no body data\n");
         /*Just copy http headers to icap response. No need at this time*/
         /*
           TODO: remove the "!req->hasbody" from if and  attach a (ring?) buffer to 
           echo data back to user
         */
-        req->return_code = EC_204;
+        req->return_code = EC_200;
         return CI_OK;
     }
 
