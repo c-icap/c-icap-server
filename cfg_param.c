@@ -71,7 +71,7 @@ struct ci_server_conf CI_CONF = {
      10,                        /*MAX_SERVERS*/
      30,                        /*THREADS_PER_CHILD*/
      30,                        /*MIN_SPARE_THREADS*/
-     60                        /*MAX_SPARE_THREADS*/
+     60                         /*MAX_SPARE_THREADS*/
 
 #ifdef USE_OPENSSL
      ,
@@ -92,6 +92,8 @@ const char *DEFAULT_SERVICE = NULL; /*Default service if not defined in ICAP URI
 int PIPELINING = 1;
 int CHECK_FOR_BUGGY_CLIENT = 0;
 int ALLOW204_AS_200OK_ZERO_ENCAPS = 0;
+int FAKE_ALLOW204 = 1;
+
 
 /* txtTemplate stuff */
 extern const char *TEMPLATE_DIR;
@@ -211,6 +213,7 @@ static struct ci_conf_entry conf_variables[] = {
      {"Pipelining", &PIPELINING, intl_cfg_onoff, NULL},
      {"SupportBuggyClients", &CHECK_FOR_BUGGY_CLIENT, intl_cfg_onoff, NULL},
      {"Allow204As200okZeroEncaps", &ALLOW204_AS_200OK_ZERO_ENCAPS, intl_cfg_enable, NULL},
+     {"FakeAllow204", &FAKE_ALLOW204, intl_cfg_onoff, NULL},
      {NULL, NULL, NULL, NULL}
 };
 

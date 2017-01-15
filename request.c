@@ -35,6 +35,7 @@
 #include "simple_api.h"
 #include "cfg_param.h"
 #include "stats.h"
+#include "body.h"
 
 
 extern int TIMEOUT;
@@ -43,6 +44,7 @@ extern const char *DEFAULT_SERVICE;
 extern int PIPELINING;
 extern int CHECK_FOR_BUGGY_CLIENT;
 extern int ALLOW204_AS_200OK_ZERO_ENCAPS;
+extern int FAKE_ALLOW204;
 
 /*This variable defined in mpm_server.c and become 1 when the child must 
   halt imediatelly:*/
@@ -911,6 +913,26 @@ static int mod_null_io(char *rbuf, int *rlen, char *wbuf, int *wlen, int iseof,
      return CI_OK;
 }
 
+static int mod_echo_io(char *wbuf, int *wlen, char *rbuf, int *rlen, int iseof,
+                       ci_request_t *req)
+{
+     if (!req->echo_body)
+         return CI_ERROR;
+
+     if (rlen && rbuf) {
+         *rlen = ci_ring_buf_write(req->echo_body, rbuf, *rlen);
+         if (*rlen < 0)
+            return CI_ERROR;
+     }
+
+     if (wbuf && wlen) {
+          *wlen = ci_ring_buf_read(req->echo_body, wbuf, *wlen);
+          if(*wlen == 0 && req->eof_received)
+              *wlen = CI_EOF;
+     }
+
+     return CI_OK;
+}
 
 static int get_send_body(ci_request_t * req, int parse_only)
 {
@@ -924,6 +946,8 @@ static int get_send_body(ci_request_t * req, int parse_only)
 
      if (parse_only)
           service_io = mod_null_io;
+     else if (req->echo_body)
+          service_io = mod_echo_io;
      else
           service_io = req->current_service_mod->mod_service_io;
      if (!service_io)
@@ -1080,7 +1104,10 @@ static int send_remaining_response(ci_request_t * req)
      int ret = 0;
      int (*service_io) (char *rbuf, int *rlen, char *wbuf, int *wlen, int iseof,
                         ci_request_t *);
-     service_io = req->current_service_mod->mod_service_io;
+     if (req->echo_body)
+          service_io = mod_echo_io;
+     else
+          service_io = req->current_service_mod->mod_service_io;
 
      if (!service_io)
           return CI_ERROR;
@@ -1414,15 +1441,21 @@ static int do_fake_preview(ci_request_t * req)
         return CI_OK;
     }
 
-    if (res == CI_MOD_ALLOW204 && !req->hasbody) {
-        ci_debug_printf(5,"Preview handler return allow 204 response, allow204 outside preview does NOT supported, but no body data\n");
-        /*Just copy http headers to icap response. No need at this time*/
-        /*
-          TODO: remove the "!req->hasbody" from if and  attach a (ring?) buffer to 
-          echo data back to user
-        */
-        req->return_code = EC_200;
-        return CI_OK;
+    if (res == CI_MOD_ALLOW204) {
+        if (req->hasbody) {
+            ci_debug_printf(5,"Preview handler return allow 204 response, allow204 outside preview does NOT supported, and body data\n");
+            if (FAKE_ALLOW204) {
+                ci_debug_printf(5,"Fake allow204 supported, echo data back\n");
+                req->echo_body = ci_ring_buf_new(32768);
+                req->return_code = EC_100;
+                return CI_OK;
+            }
+        } else {        
+            ci_debug_printf(5,"Preview handler return allow 204 response, allow204 outside preview does NOT supported, but no body data\n");
+            /*Just copy http headers to icap response*/
+            req->return_code = EC_200;
+            return CI_OK;
+        }
     }
 
     if (res == CI_MOD_ALLOW206 && req->allow204 && req->allow206) {

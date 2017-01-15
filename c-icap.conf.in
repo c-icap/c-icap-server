@@ -283,6 +283,16 @@ SupportBuggyClients off
 # Default:
 #	No set
 
+# TAG: FakeAllow204
+# Format: FakeAllow204 on|off
+# Description:
+#	Support 204 responses from services preview handler to the clients
+#	which does not support preview. Requires early responses support
+#	from clients.
+#	If disabled the c-icap will return 500 response in these cases
+# Default:
+# FakeAllow204 on
+
 # TAG: ModulesDir
 # Format: ModulesDir dir
 # Description:

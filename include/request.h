@@ -102,7 +102,7 @@ typedef struct ci_buf{
 
 
 struct ci_service_module;
-
+struct ci_ring_buf;
 
 /**
    \typedef ci_request_t
@@ -151,7 +151,11 @@ typedef struct ci_request{
      int return_code;
      char *pstrblock_responce;
      int remain_send_block_bytes;
-    
+
+     /*Used to echo data back to a client which does not support preview
+       in the case of 204 outside preview.*/
+     struct ci_ring_buf *echo_body;
+
      /*Caching values for various subsystems*/
      int preview_data_type;
      int auth_required;
