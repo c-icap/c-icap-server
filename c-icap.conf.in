@@ -748,7 +748,14 @@ Service echo srv_echo.so
 # Description:
 #	Add support for Berkeley DB based lookup tables. The format for 
 #	bdb path of the lookup table is:
-#		bdb:/path/to/bdb
+#		bdb:/path/to/bdb[{param1=val, ...}]
+#	bdb table parameters can be one or more of the followings:
+#	    cache-size=Size[K|M]
+#               The cache size to use. Default is the berkeleyDB default value.
+#	    cache-num=num
+#	        The number of caches to create. The cache will be split across
+#	        num separate regions, where the region size is equal to the
+#	        initial cache size divided by ncache.
 #	Use the c-icap-mkbdb utility to build Berkeley DB c-icap lookup tables
 # Example:
 #	Module common bdb_tables.so

@@ -22,6 +22,8 @@ const ci_type_ops_t *val_ops = &ci_str_ops;
 char *txtfile = NULL;
 char *dbfile = NULL;
 int DUMP_MODE = 0;
+int USE_DBTREE = 0;
+long int PAGE_SIZE;
 
 ci_mem_allocator_t *allocator = NULL;
 int cfg_set_type(const char *directive, const char **argv, void *setdata);
@@ -37,6 +39,10 @@ static struct ci_options_entry options[] = {
      "The type of the key"},
      {"-v", "string|int|ip", NULL, cfg_set_type,
       "The type of values"},
+     {"-p", "page_size", &PAGE_SIZE, ci_cfg_size_long,
+      "The page size to use for the database"},
+     {"--btree", NULL, &USE_DBTREE, ci_cfg_enable,
+     "Use B-Tree for indexes instead of Hash"},
      {"--dump", NULL, &DUMP_MODE, ci_cfg_enable,
       "Do not update the database just dump it to the screen"},
      {NULL, NULL, NULL, NULL}
@@ -83,9 +89,12 @@ int open_db(char *path)
 	return 0;
     }
 
+    if (PAGE_SIZE > 512 && PAGE_SIZE <= 64*1024)
+        db->set_pagesize(db, (uint32_t)PAGE_SIZE);
 
-    if ((ret = db->open( db, NULL, path, NULL,
-			 DB_BTREE, DB_CREATE /*| DB_TRUNCATE*/, 0664)) != 0) {
+    if ((ret = db->open(db, NULL, path, NULL,
+                        (USE_DBTREE ? DB_BTREE : DB_HASH),
+                        DB_CREATE /*| DB_TRUNCATE*/, 0664)) != 0) {
 	ci_debug_printf(1, "open db %s: %s\n", path, db_strerror(ret));
 	db->close(db, 0);
 	return 0;

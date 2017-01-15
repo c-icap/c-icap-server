@@ -43,6 +43,11 @@ for integer keys or
 for using IP addresses as keys. The "string" is the default.
 .IP "-v string|int|ip"
 The type of the values. The "string" is the default.
+.IP "-p page_size[k]"
+The page size to use. Can not be less than 512 bytes or greater than 64k.
+Read berkeleyDB manual for default values.
+.IP "--btree"
+Use B-Tree as access method for the database. By default uses Hash.
 .IP "--dump"
 Do not update the database just dump it to the screen.
 .SH EXAMPLES

@@ -4,6 +4,7 @@
 #include "lookup_table.h"
 #include "commands.h"
 #include "debug.h"
+#include "util.h"
 #include <db.h>
 
 
@@ -56,9 +57,13 @@ struct bdb_data {
 
 int bdb_table_do_real_open(struct ci_lookup_table *table)
 {
-    int ret;
+    int ret, i;
     char *s,home[CI_MAX_PATH];
-
+    ci_dyn_array_t *args = NULL;
+    ci_array_item_t *arg = NULL;
+    uint32_t cache_size = 0;
+    int caches_num = 0;
+    long int val;
     struct bdb_data *dbdata = table->data;
 
     if (!dbdata) {
@@ -77,7 +82,29 @@ int bdb_table_do_real_open(struct ci_lookup_table *table)
 	*s = '\0';
     else /*no path in filename?*/
 	home[0]='\0';
-    
+
+    if (table->args) {
+        if ((args = ci_parse_key_value_list(table->args, ','))) {
+            for (i = 0; (arg = ci_dyn_array_get_item(args, i)) != NULL; ++i) {
+                if (strcasecmp(arg->name, "cache-size") == 0) {
+                    val = ci_atol_ext((char *)arg->value, NULL);
+                    if (val > 0 && val < 1*1024*1024*1024)
+                        cache_size = (uint32_t)val;
+                    else
+                        ci_debug_printf(1, "WARNING: wrong cache-size value: %ld, will not set\n", val);
+                }
+                if (strcasecmp(arg->name, "cache-num") == 0) {
+                    val = strtol(arg->value, NULL, 10);
+                    if (val > 0 && val < 20)
+                        caches_num = (uint32_t)val;
+                    else
+                        ci_debug_printf(1, "WARNING: wrong cache-num value: %ld, will not set\n", val);
+                }
+
+            }
+        }
+    }
+
     /* * Create an environment and initialize it for additional error * reporting. */ 
     if ((ret = db_env_create(&dbdata->env_db, 0)) != 0) { 
 	return 0; 
@@ -108,6 +135,10 @@ int bdb_table_do_real_open(struct ci_lookup_table *table)
 	return 0;
     }
 
+    if (cache_size > 0 &&
+        (ret = dbdata->db->set_cachesize(dbdata->db, 0, cache_size, caches_num)) != 0) {
+        ci_debug_printf(1, "db_create failed to set cache size: %s\n", db_strerror(ret));
+    }
 
 #if (DB_VERSION_MAJOR > 4) || (DB_VERSION_MAJOR == 4 && DB_VERSION_MINOR >= 1)
     if ((ret = dbdata->db->open( dbdata->db, NULL, table->path, NULL,
