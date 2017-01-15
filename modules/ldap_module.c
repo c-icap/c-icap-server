@@ -6,6 +6,7 @@
 #include "lookup_table.h"
 #include "cache.h"
 #include "debug.h"
+#include "util.h"
 #include <assert.h>
 
 #define MAX_LDAP_FILTER_SIZE 1024
@@ -14,8 +15,8 @@
 #define DATA_START           (MAX_COLS*sizeof(void *))
 #define DATA_SIZE            (MAX_DATA_SIZE-DATA_START)
 
-int init_ldap_pools();
-void release_ldap_pools();
+static int init_ldap_pools();
+static void release_ldap_pools();
 
 int init_ldap_module(struct ci_server_conf *server_conf);
 void release_ldap_module();
@@ -30,7 +31,7 @@ CI_DECLARE_MOD_DATA common_module_t module = {
 
 
 
-void *ldap_table_open(struct ci_lookup_table *table); 
+void *ldap_table_open(struct ci_lookup_table *table);
 void  ldap_table_close(struct ci_lookup_table *table);
 void *ldap_table_search(struct ci_lookup_table *table, void *key, void ***vals);
 void  ldap_table_release_result(struct ci_lookup_table *table_data,void **val);
@@ -45,17 +46,42 @@ struct ci_lookup_table_type ldap_table_type={
     "ldap"
 };
 
+struct ci_lookup_table_type ldaps_table_type={
+    ldap_table_open,
+    ldap_table_close,
+    ldap_table_search,
+    ldap_table_release_result,
+    NULL,
+    "ldaps"
+};
+
+struct ci_lookup_table_type ldapi_table_type={
+    ldap_table_open,
+    ldap_table_close,
+    ldap_table_search,
+    ldap_table_release_result,
+    NULL,
+    "ldapi"
+};
 
 int init_ldap_module(struct ci_server_conf *server_conf)
 {
     init_ldap_pools();
-    return (ci_lookup_table_type_register(&ldap_table_type) != NULL);
+    if (ci_lookup_table_type_register(&ldap_table_type) == NULL)
+        return 0;
+    if (ci_lookup_table_type_register(&ldaps_table_type) == NULL)
+        return 0;
+    if (ci_lookup_table_type_register(&ldapi_table_type) == NULL)
+        return 0;
+    return 1;
 }
 
 void release_ldap_module()
 {
     release_ldap_pools();
     ci_lookup_table_type_unregister(&ldap_table_type);
+    ci_lookup_table_type_unregister(&ldaps_table_type);
+    ci_lookup_table_type_unregister(&ldapi_table_type);
 }
 
 /***********************************************************/
@@ -78,6 +104,7 @@ struct ldap_connections_pool {
 #ifdef LDAP_MAX_CONNECTIONS
     int max_connections;
 #endif
+    const char *scheme;
     ci_thread_mutex_t mutex;
 #ifdef LDAP_MAX_CONNECTIONS
     ci_thread_cond_t pool_cond;
@@ -91,16 +118,16 @@ struct ldap_connections_pool {
 struct ldap_connections_pool *ldap_pools = NULL;
 ci_thread_mutex_t ldap_connections_pool_mtx;
 
-void ldap_pool_destroy(struct ldap_connections_pool *pool);
+static void ldap_pool_destroy(struct ldap_connections_pool *pool);
 
-int init_ldap_pools()
+static int init_ldap_pools()
 {
     ldap_pools = NULL;
     ci_thread_mutex_init(&ldap_connections_pool_mtx);
     return 1;
 }
 
-void release_ldap_pools()
+static void release_ldap_pools()
 {
     struct ldap_connections_pool *pool;
     while((pool=ldap_pools) != NULL) {
@@ -112,7 +139,7 @@ void release_ldap_pools()
 
 /*The folowing two functions are not thread safe! It is only used in ldap_pool_create which locks
   the required mutexes*/
-void add_ldap_pool(struct ldap_connections_pool *pool)
+static void add_ldap_pool(struct ldap_connections_pool *pool)
 {/*NOT thread safe!*/
     struct ldap_connections_pool *p;
     pool->next = NULL;
@@ -125,7 +152,7 @@ void add_ldap_pool(struct ldap_connections_pool *pool)
     p->next = pool;
 }
 
-struct ldap_connections_pool * search_ldap_pools(char *server, int port, char *user, char *password)
+static struct ldap_connections_pool * search_ldap_pools(char *server, int port, char *user, char *password)
 {/*NOT thread safe!*/
     struct ldap_connections_pool *p;
     p = ldap_pools;
@@ -142,7 +169,7 @@ struct ldap_connections_pool * search_ldap_pools(char *server, int port, char *u
     return NULL;
 }
 
-struct ldap_connections_pool *ldap_pool_create(char *server, int port, char *user, char *password)
+static struct ldap_connections_pool *ldap_pool_create(char *server, int port, char *user, char *password, const char *scheme)
 {
     struct ldap_connections_pool *pool;
     ci_thread_mutex_lock(&ldap_connections_pool_mtx);
@@ -164,6 +191,7 @@ struct ldap_connections_pool *ldap_pool_create(char *server, int port, char *use
    pool->server[CI_MAXHOSTNAMELEN]='\0';
    pool->port = port;
    pool->ldapversion = LDAP_VERSION3;
+   pool->scheme = scheme;
    pool->next = NULL;
 
    if(user) {
@@ -184,7 +212,10 @@ struct ldap_connections_pool *ldap_pool_create(char *server, int port, char *use
    pool->inactive = NULL;
    pool->used = NULL;
 
-   snprintf(pool->ldap_uri,1024,"%s://%s:%d","ldap",pool->server,pool->port);
+   if (pool->port > 0)
+       snprintf(pool->ldap_uri, 1024, "%s://%s:%d", pool->scheme, pool->server, pool->port);
+   else
+       snprintf(pool->ldap_uri, 1024, "%s://%s", pool->scheme, pool->server);
    pool->ldap_uri[1023] = '\0';
    ci_thread_mutex_init(&pool->mutex);
 #ifdef LDAP_MAX_CONNECTIONS
@@ -197,7 +228,7 @@ struct ldap_connections_pool *ldap_pool_create(char *server, int port, char *use
 }
 
 /*The following function is not thread safe! Should called only when c-icap shutdown*/
-void ldap_pool_destroy(struct ldap_connections_pool *pool)
+static void ldap_pool_destroy(struct ldap_connections_pool *pool)
 {
     struct ldap_connection *conn,*prev;
     if(pool->used) {
@@ -221,7 +252,7 @@ void ldap_pool_destroy(struct ldap_connections_pool *pool)
     free(pool);
 }
 
-LDAP *ldap_connection_open(struct ldap_connections_pool *pool)
+static LDAP *ldap_connection_open(struct ldap_connections_pool *pool)
 {
   struct ldap_connection *conn;
   struct berval ldap_passwd, *servercred;
@@ -330,7 +361,7 @@ LDAP *ldap_connection_open(struct ldap_connections_pool *pool)
   return conn->ldap;
 }
 
-int ldap_connection_release(struct ldap_connections_pool *pool, LDAP *ldap, int close_connection)
+static int ldap_connection_release(struct ldap_connections_pool *pool, LDAP *ldap, int close_connection)
 {
    struct ldap_connection *cur,*prev;
    if (ci_thread_mutex_lock(&pool->mutex)!=0)
@@ -378,15 +409,17 @@ struct ldap_table_data {
     char **attrs;
     char *filter;
     char *name;
+    const char *scheme;
     ci_cache_t *cache;
 };
 
-int parse_ldap_str(struct ldap_table_data *fields)
+static int parse_ldap_str(struct ldap_table_data *fields)
 {
-    char *s, *e;
+    char *s, *e, *p;
+    char c;
     int array_size, i;
 
-    /*we are expecting a path in the form //[username:password@]ldapserver?base?attr1,attr2?filter*/
+    /*we are expecting a path in the form //[username:password@]ldapserver[:port][/|?]base?attr1,attr2?filter*/
 
     if(!fields->str)
 	return 0;
@@ -413,12 +446,22 @@ int parse_ldap_str(struct ldap_table_data *fields)
     }
     
     fields->server = s;	 /*The s points to the "server" field now*/
-    while(*s != '?' && *s != '/'  && *s != '\0') s++;
+    while(*s != ':' && *s != '?' && *s != '/'  && *s != '\0') s++;
     if (*s == '\0') 
 	return 0;
+    c = *s;
     *s = '\0';
     ci_str_trim(fields->server);
 
+    if (c == ':') { /*The s points to the port specification*/
+        s++;
+        p = s;
+        while(*s != '?' && *s != '/'  && *s != '\0') s++;
+        if (*s == '\0') 
+            return 0;
+        *s = '\0';
+        fields->port = strtol(p, NULL, 10);
+    }
     s++;
     fields->base = s;	 /*The s points to the "base" field now*/
     while(*s != '?' && *s != '\0') s++;
@@ -463,7 +506,7 @@ int parse_ldap_str(struct ldap_table_data *fields)
     return 1;
 }
 
-void *ldap_table_open(struct ci_lookup_table *table)
+static void *ldap_open(struct ci_lookup_table *table, const char *scheme)
 {
     int i;
     char *path;
@@ -493,12 +536,18 @@ void *ldap_table_open(struct ci_lookup_table *table)
     ldapdata->pool = NULL;
     ldapdata->base = NULL;
     ldapdata->server = NULL;
-    ldapdata->port = 389;
+    if (strcasecmp(scheme, "ldap") == 0)
+        ldapdata->port = 389;
+    else if (strcasecmp(scheme, "ldaps") == 0)
+        ldapdata->port = 636;
+    else
+        ldapdata->port = 0;
     ldapdata->user = NULL;
     ldapdata->password = NULL;
     ldapdata->attrs = NULL;
     ldapdata->filter = NULL;
     ldapdata->name = NULL;
+    ldapdata->scheme = scheme;
 
     if(!parse_ldap_str(ldapdata)) {
 	free(ldapdata->str);
@@ -542,7 +591,7 @@ void *ldap_table_open(struct ci_lookup_table *table)
     }
 
     ldapdata->pool = ldap_pool_create(ldapdata->server, ldapdata->port, 
-				      ldapdata->user, ldapdata->password);
+				      ldapdata->user, ldapdata->password, ldapdata->scheme);
     if (use_cache) {
         snprintf(tname, sizeof(tname), "ldap:%s", ldapdata->name ? ldapdata->name : ldapdata->str);
         tname[sizeof(tname) - 1] = '\0';
@@ -561,6 +610,11 @@ void *ldap_table_open(struct ci_lookup_table *table)
     if (args)
         ci_dyn_array_destroy(args);
     return table->data;
+}
+
+void *ldap_table_open(struct ci_lookup_table *table)
+{
+    return ldap_open(table, table->type);
 }
 
 void  ldap_table_close(struct ci_lookup_table *table)

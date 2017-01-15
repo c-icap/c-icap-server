@@ -779,8 +779,10 @@ Service echo srv_echo.so
 # Module: ldap_module
 # Description:
 #	Add LDAP support to c-icap. The user can use LDAP based lookup tables
-#	using the following lookup table path:
+#	using the following lookup table paths:
 #	      ldap://[username:password@]ldapserver?base?attr1,attr2?filter[{[param=value, ...]}]
+#	      ldaps://...
+#	      ldapi://...
 #	The filter can contain the "%s" formating code which will be replaced by
 #	the search key.
 #	ldap table parameters can be one or more of the followings:
