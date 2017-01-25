@@ -179,8 +179,8 @@ CI_DECLARE_FUNC(int) ci_write_nonblock(ci_socket fd, const void *buf,size_t coun
 CI_DECLARE_FUNC(int) ci_linger_close(ci_socket fd,int secs_to_linger);
 CI_DECLARE_FUNC(int) ci_hard_close(ci_socket fd);
 
-CI_DECLARE_FUNC(ci_connection_t *) ci_connect_to(char *servername, int port, int proto, int timeout);
-CI_DECLARE_FUNC(int) ci_connect_to_nonblock(ci_connection_t *connection, char *servername, int port, int proto);
+CI_DECLARE_FUNC(ci_connection_t *) ci_connect_to(const char *servername, int port, int proto, int timeout);
+CI_DECLARE_FUNC(int) ci_connect_to_nonblock(ci_connection_t *connection, const char *servername, int port, int proto);
 
 CI_DECLARE_FUNC(int) ci_connection_wait(ci_connection_t *conn, int secs, int what_wait);
 CI_DECLARE_FUNC(int) ci_connection_read(ci_connection_t *conn, void *buf, size_t count, int timeout);

@@ -224,7 +224,7 @@ void ci_connection_destroy(ci_connection_t *connection)
     }
 }
 
-int ci_connect_to_nonblock(ci_connection_t *connection, char *servername, int port, int proto)
+int ci_connect_to_nonblock(ci_connection_t *connection, const char *servername, int port, int proto)
 {
      unsigned int addrlen = 0;
      char errBuf[512];
@@ -296,7 +296,7 @@ int ci_connect_to_nonblock(ci_connection_t *connection, char *servername, int po
      return 1;
 }
 
-ci_connection_t *ci_connect_to(char *servername, int port, int proto, int timeout)
+ci_connection_t *ci_connect_to(const char *servername, int port, int proto, int timeout)
 {
     int ret;
     ci_connection_t *connection = ci_connection_create();
