@@ -271,3 +271,17 @@ int ci_cfg_size_long(const char *directive, const char **argv, void *setdata)
      ci_debug_printf(2, "Setting parameter :%s=%ld\n", directive, val);
      return 1;
 }
+
+int ci_cfg_version(const char *directive, const char **argv, void *setdata)
+{
+    if (setdata)
+        *((int *) setdata) = 1;
+    printf("%s\n", VERSION);
+}
+
+int ci_cfg_build_info(const char *directive, const char **argv, void *setdata)
+{
+    if (setdata)
+        *((int *) setdata) = 1;
+    printf("c-icap version: %s\nConfigure script options: %s\nConfigured for host: %s\n", VERSION, C_ICAP_CONFIGURE_OPTIONS, C_ICAP_CONFIG_HOST_TYPE);
+}

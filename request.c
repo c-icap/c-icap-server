@@ -1169,7 +1169,10 @@ static void options_responce(ci_request_t * req)
      head = req->response_header;
      srv_xdata = service_data(req->current_service_mod);
      ci_headers_reset(head);
-     ci_headers_add(head, "ICAP/1.0 200 OK");
+     if (run_services_option_handlers(srv_xdata, req) != CI_OK)
+         ci_headers_add(head, "ICAP/1.0 500 Server Error");
+     else
+         ci_headers_add(head, "ICAP/1.0 200 OK");
      strcpy(buf, "Methods: ");
      if (ci_method_support(req->current_service_mod->mod_type, ICAP_RESPMOD)) {
           strcat(buf, "RESPMOD");
@@ -1297,6 +1300,9 @@ static void options_responce(ci_request_t * req)
           }
           if (xlen > 11)
                ci_headers_add(head, buf);
+     }
+     if (!ci_headers_is_empty(req->xheaders)) {
+         ci_headers_addheaders(head, req->xheaders);
      }
      ci_response_pack(req);
 

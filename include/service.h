@@ -60,6 +60,7 @@ extern "C"
 #define CI_XAUTHENTICATEDGROUPS  16
 
 struct ci_request;
+struct ci_list;
 
 typedef struct  ci_service_module ci_service_module_t;
 
@@ -67,6 +68,13 @@ enum SERVICE_STATUS {CI_SERVICE_NOT_INITIALIZED=-1,
                      CI_SERVICE_OK=0,  
                      CI_SERVICE_ERROR=1
 };
+
+/*For internal use only*/
+struct ci_option_handler {
+    char name[64];
+    int (*handler)(struct ci_request *);
+};
+
 
 /**
  \typedef  ci_service_xdata_t
@@ -89,6 +97,7 @@ typedef struct ci_service_xdata {
      int allow_204;
      int allow_206;
      int disable_206; /*even if service support it do not use 206*/
+     struct ci_list *option_handlers;
      /*statistics IDS*/
      int stat_bytes_in;
      int stat_bytes_out;
@@ -276,7 +285,8 @@ ci_service_xdata_t *service_data(ci_service_module_t *srv);
 int init_services();
 int post_init_services();
 int release_services();
-
+int run_services_option_handlers(ci_service_xdata_t *srv_xdata, struct ci_request *req);
+    
 /*Library functions */
 /*Undocumented, are not usefull to users*/
 CI_DECLARE_FUNC(void) ci_service_data_read_lock(ci_service_xdata_t *srv_xdata);
@@ -428,6 +438,24 @@ CI_DECLARE_FUNC(void) ci_service_set_max_connections(ci_service_xdata_t *srv_xda
 CI_DECLARE_FUNC(void) ci_service_set_options_ttl(ci_service_xdata_t *srv_xdata, int ttl);
 
 CI_DECLARE_FUNC(void) ci_service_add_xincludes(ci_service_xdata_t *srv_xdata, char **xincludes);
+
+/**
+  \ingroup SERVICES
+  \brief Add a service handler for the service
+  *
+  * Normally this function called in ci_service_module::mod_init_service()  or 
+  * ci_service_module::mod_post_init_service() function.
+  * The options handlers are running when the service receives an OPTIONS
+  * request to check for service health. They can add ICAP headers to the
+  * OPTIONS response and must return CI_OK on success, or CI_ERROR on failure.
+  * If one or more handlers failed the c-icap will produce a "500 Server Error"
+  * response.
+  *
+  \param srv_xdata is a pointer to the c-icap internal service data.
+  \param name a name for the handler, used for debuging reasons
+  \param handler the handler
+*/
+CI_DECLARE_FUNC(void) ci_service_add_option_handler(ci_service_xdata_t *srv_xdata, const char *name, int (*handler)(struct ci_request *));
 
 #ifdef __CI_COMPAT
 #define service_module_t ci_service_module_t

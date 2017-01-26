@@ -201,6 +201,19 @@ CI_DECLARE_FUNC(int) ci_cfg_size_off(const char *directive,const char **argv,voi
  */
 CI_DECLARE_FUNC(int) ci_cfg_size_long(const char *directive,const char **argv,void *setdata);
 
+/**
+ * Sets a configuration parameter of type int to 1 and prints c-icap version.
+ \ingroup CONFIG
+ */
+CI_DECLARE_FUNC(int) ci_cfg_version(const char *directive, const char **argv, void *setdata);
+
+/**
+ * Sets a configuration parameter of type int to 1 and prints c-icap build
+ * information.
+ \ingroup CONFIG
+ */
+CI_DECLARE_FUNC(int) ci_cfg_build_info(const char *directive, const char **argv, void *setdata);
+
 CI_DECLARE_FUNC(void) ci_args_usage(const char *progname,struct ci_options_entry *options);
 CI_DECLARE_FUNC(int)  ci_args_apply(int argc, char *argv[],struct ci_options_entry *options);
 

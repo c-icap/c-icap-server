@@ -4,6 +4,12 @@ c-icap-stretch - A simple utility for stretching ICAP servers
 .SH SYNOPSIS
 .B c-icap-stretch 
 [
+.B \-V
+]
+[
+.B \-VV
+]
+[
 .B \-i "icap_servername"
 ]
 [
@@ -41,6 +47,10 @@ c-icap-stretch - A simple utility for stretching ICAP servers
 .B c-icap-stretch
 is a simple utility for loading ICAP servers.
 .SH OPTIONS
+.IP "-V"
+Print version
+.IP "-VV"
+Print build informations
 .IP "-i icap_servername"
 The hostname of the icap server. The default is localhost
 .IP "-p port"

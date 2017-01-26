@@ -4,6 +4,12 @@ c-icap-mkbdb - simple ICAP clientutility to create Berkeley DB lookup tables
 .SH SYNOPSIS
 .B c-icap-mkbdb
 [
+.B \-V
+]
+[
+.B \-VV
+]
+[
 .B \-d debug_level
 ] 
 [
@@ -25,6 +31,10 @@ c-icap-mkbdb - simple ICAP clientutility to create Berkeley DB lookup tables
 .B c-icap-mkbdb
 utility can be used to create Berkeley DB databases which can be used as lookup tables by the c-icap server.
 .SH OPTIONS
+.IP "-V"
+Print version
+.IP "-VV"
+Print build informations
 .IP "-d debug_level"
 The debug level
 .IP "-i file.txt"

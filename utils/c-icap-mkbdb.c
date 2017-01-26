@@ -22,6 +22,7 @@ const ci_type_ops_t *val_ops = &ci_str_ops;
 char *txtfile = NULL;
 char *dbfile = NULL;
 int DUMP_MODE = 0;
+int VERSION_MODE = 0;
 int USE_DBTREE = 0;
 long int PAGE_SIZE;
 
@@ -29,7 +30,9 @@ ci_mem_allocator_t *allocator = NULL;
 int cfg_set_type(const char *directive, const char **argv, void *setdata);
 
 static struct ci_options_entry options[] = {
-    {"-d", "debug_level", &CI_DEBUG_LEVEL, ci_cfg_set_int,
+     {"-V", NULL, &VERSION_MODE, ci_cfg_version, "Print version and exits"},
+     {"-VV", NULL, &VERSION_MODE, ci_cfg_build_info, "Print version and build informations and exits"},
+     {"-d", "debug_level", &CI_DEBUG_LEVEL, ci_cfg_set_int,
      "The debug level"},
      {"-i", "file.txt", &txtfile, ci_cfg_set_str,
       "The file contains the data (required)"},
@@ -349,10 +352,12 @@ int main(int argc, char **argv)
     CI_DEBUG_LEVEL = 1;
     ci_cfg_lib_init();
     
-    if (!ci_args_apply(argc, argv, options) || (!txtfile && !DUMP_MODE)) {
+    if (!ci_args_apply(argc, argv, options) || (!txtfile && !DUMP_MODE && !VERSION_MODE)) {
 	ci_args_usage(argv[0], options);
 	exit(-1);
     }
+    if (VERSION_MODE)
+        exit(0);
     
 #if ! defined(_WIN32)
     __log_error = (void (*)(void *, const char *,...)) log_errors;     /*set c-icap library log  function */

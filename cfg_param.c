@@ -87,6 +87,8 @@ int MAX_SECS_TO_LINGER = 5;
 int MAX_REQUESTS_BEFORE_REALLOCATE_MEM = 100;
 int MAX_REQUESTS_PER_CHILD = 0;
 int DAEMON_MODE = 1;
+int VERSION_MODE = 0;
+int HELP_MODE = 0;
 int DebugLevelSetFromCmd = 0;
 const char *DEFAULT_SERVICE = NULL; /*Default service if not defined in ICAP URI*/
 int PIPELINING = 1;
@@ -944,6 +946,8 @@ int parse_file(const char *conf_file)
 /* #endif */
 
 static struct ci_options_entry options[] = {
+     {opt_pre "V", NULL, &VERSION_MODE, ci_cfg_version, "Print c-icap version and exits"},
+     {opt_pre "VV", NULL, &VERSION_MODE, ci_cfg_build_info, "Print c-icap version and build informations and exits"},
      {opt_pre "f", "filename", &CI_CONF.cfg_file, ci_cfg_set_str,
       "Specify the configuration file"},
      {opt_pre "N", NULL, &DAEMON_MODE, ci_cfg_disable, "Do not run as daemon"},
@@ -951,6 +955,7 @@ static struct ci_options_entry options[] = {
       "Specify the debug level"},
      {opt_pre "D", NULL, NULL, cfg_set_debug_stdout,
       "Print debug info to stdout"},
+     {opt_pre "h", NULL, &HELP_MODE, ci_cfg_enable, "Do not run as daemon"},
      {NULL, NULL, NULL, NULL}
 };
 
@@ -965,6 +970,12 @@ int config(int argc, char **argv)
           ci_debug_printf(1, "Error in command line options\n");
           ci_args_usage(argv[0], options);
           exit(-1);
+     }
+     if (VERSION_MODE)
+         exit(0);
+     if (HELP_MODE) {
+         ci_args_usage(argv[0], options);
+         exit(0);
      }
      if (!parse_file(CI_CONF.cfg_file)) {
           ci_debug_printf(1, "Error opening/parsing config file\n");

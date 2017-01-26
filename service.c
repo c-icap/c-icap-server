@@ -29,6 +29,7 @@
 #endif
 #include "dlib.h"
 #include "cfg_param.h"
+#include "simple_api.h"
 #include "module.h"
 #include "stats.h"
 #include <errno.h>
@@ -294,6 +295,7 @@ void init_extra_data(ci_service_xdata_t * srv_xdata, const char *service)
      srv_xdata->xopts = 0;
      srv_xdata->status = CI_SERVICE_NOT_INITIALIZED;
      srv_xdata->options_ttl = -1;
+     srv_xdata->option_handlers = NULL;
 
      snprintf(stat_group, 1023, "Service %s", service);
      stat_group[1023] = '\0';
@@ -479,6 +481,10 @@ int release_services()
 	       if(table)
 		   free(table);
 	       service_extra_data_list[i].intl_srv_conf_table = NULL;
+               if (service_extra_data_list[i].option_handlers) {
+                    ci_list_destroy(service_extra_data_list[i].option_handlers);
+                    service_extra_data_list[i].option_handlers = NULL;
+               }
           }
      }
 
@@ -494,6 +500,26 @@ int release_services()
      return 1;
 }
 
+int run_services_option_handlers(ci_service_xdata_t *srv_xdata, struct ci_request *req)
+{
+    const struct ci_option_handler *oh;
+    int ret;
+    char buf[1024];
+    if (!srv_xdata->option_handlers)
+        return CI_OK;
+    for (oh = ci_list_first(srv_xdata->option_handlers); oh != NULL; oh = ci_list_next(srv_xdata->option_handlers)) {
+        if (oh->handler) {
+            ret = oh->handler(req);
+            if (ret != CI_OK) {
+                ci_debug_printf(1, "The %s Options check of %s service failed\n", oh->name, req->current_service_mod->mod_name);
+                snprintf(buf, sizeof(buf), "X-C-ICAP-Fail: %s", oh->name);
+                ci_icap_add_xheader(req, buf);
+                return CI_ERROR;
+            }
+        }
+    }
+    return CI_OK;
+}
 
 /********************** Service aliases *****************************/
 service_alias_t *add_service_alias(const char *service_alias, const char *service_name,

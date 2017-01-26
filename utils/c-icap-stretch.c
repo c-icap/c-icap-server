@@ -49,6 +49,7 @@ int PORT = 1344;
 char *service = "echo";
 int threadsnum = 10;
 int MAX_REQUESTS = 100;
+int VERSION_MODE = 0;
 
 int DoReqmod = 0;
 int DoTransparent = 0;
@@ -58,7 +59,7 @@ int URLS_COUNT=0;
 
 time_t START_TIME = 0;
 int FILES_NUMBER = 0;
-char **FILES;
+char **FILES = NULL;
 ci_thread_t *threads;
 ci_thread_mutex_t filemtx;
 int file_indx = 0;
@@ -668,6 +669,8 @@ char *urls_file = NULL;
 
 
 static struct ci_options_entry options[] = {
+     {"-V", NULL, &VERSION_MODE, ci_cfg_version, "Print version and exits"},
+     {"-VV", NULL, &VERSION_MODE, ci_cfg_build_info, "Print version and build informations and exits"},
      {"-i", "icap_servername", &servername, ci_cfg_set_str,
       "The ICAP server name"},
      {"-p", "port", &PORT, ci_cfg_set_int, "The ICAP server port"},
@@ -712,6 +715,8 @@ int main(int argc, char **argv)
      CI_DEBUG_LEVEL = 1;        /*Default debug level is 1 */
      
      int ret = ci_args_apply(argc, argv, options);
+     if (VERSION_MODE)
+         exit(0);
      if (!ret || (DoReqmod != 0 && urls_file == NULL) 
          || (DoReqmod == 0 && FILES == NULL))
      {

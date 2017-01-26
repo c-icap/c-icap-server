@@ -19,6 +19,7 @@
 
 #include "common.h"
 #include "c-icap.h"
+#include "array.h"
 #include "service.h"
 #include "debug.h"
 
@@ -141,4 +142,19 @@ void ci_service_add_xincludes(ci_service_xdata_t * srv_xdata,
           i++;
      }
      ci_thread_rwlock_unlock(&srv_xdata->lock);
+}
+
+void ci_service_add_option_handler(ci_service_xdata_t *srv_xdata, const char *name, int (*handler)(struct ci_request *))
+{
+    if (!handler)
+        return;
+    ci_thread_rwlock_wrlock(&srv_xdata->lock);
+    if (!srv_xdata->option_handlers)
+        srv_xdata->option_handlers = ci_list_create(1024, sizeof(struct ci_option_handler));
+    struct ci_option_handler oh;
+    strncpy(oh.name, name, sizeof(oh.name) - 1);
+    oh.name[sizeof(oh.name) - 1] = '\0';
+    oh.handler = handler;
+    ci_list_push_back(srv_xdata->option_handlers, &oh);
+    ci_thread_rwlock_unlock(&srv_xdata->lock);
 }

@@ -103,6 +103,11 @@ if test "x$GCC" != "x" ; then
         AC_USE_SYSTEM_EXTENSIONS
 fi
 
+AC_DEFINE_UNQUOTED(C_ICAP_CONFIGURE_OPTIONS, "$ac_configure_args",
+                   [configure command line used to configure c-icap])
+AC_DEFINE_UNQUOTED(C_ICAP_CONFIG_HOST_TYPE, "$host",[Host type from configure])
+
+
 CFLAGS="$CFLAGS -Wall"
 
 AC_CACHE_CHECK([for __attribute__((visibility("default")))],

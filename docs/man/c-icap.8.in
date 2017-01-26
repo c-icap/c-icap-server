@@ -4,6 +4,12 @@ c-icap - ICAP filtering server
 .SH SYNOPSIS
 .B c-icap
 [
+.B \-V
+]
+[
+.B \-VV
+]
+[
 .B \-f " config-file"
 ]
 [
@@ -19,6 +25,10 @@ c-icap - ICAP filtering server
 .B c-icap
 is an implementation of an ICAP server. It can be used with HTTP proxies that support the ICAP protocol. Most of the comercial HTTP proxies must support ICAP pcotocol.
 .SH OPTIONS
+.IP "-V"
+Print version
+.IP "-VV"
+Print build informations
 .IP "-f config-file" 
 Specify the configuration file
 .IP "-N"
