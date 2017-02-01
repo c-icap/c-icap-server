@@ -435,7 +435,7 @@ static int parse_request(ci_request_t * req, char *buf)
 static int check_request(ci_request_t *req)
 {
     /*Check encapsulated header*/
-    if (req->entities[0] == NULL && !req->type == ICAP_OPTIONS) /*No encapsulated header*/
+    if (req->entities[0] == NULL && req->type != ICAP_OPTIONS) /*No encapsulated header*/
         return EC_400;
 
     ci_debug_printf(6, "\n type:%d Entities: %d %d %d %d \n",
