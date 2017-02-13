@@ -171,6 +171,62 @@ enum {
  */
 CI_DECLARE_FUNC(int) ci_uncompress_preview(int compress_method, const char *buf, int len, char *unzipped_buf, int *unzipped_buf_len);
 
+enum CI_UNCOMPRESS_ERRORS {
+    CI_UNCOMP_ERR_BOMB = -4,
+    CI_UNCOMP_ERR_CORRUPT = -3,
+    CI_UNCOMP_ERR_OUTPUT = -2,
+    CI_UNCOMP_ERR_ERROR = -1,
+    CI_UNCOMP_ERR_NONE = 0, 
+    CI_UNCOMP_OK = 1,
+};
+
+/**
+ * Return a string representation of an uncompress error code.
+ \ingroup UTILITY
+ *
+ \param err a CI_UNCOMPRESS_ERRORS error code
+*/
+CI_DECLARE_FUNC(const char *) ci_inflate_error(int err);
+
+struct ci_membuf;
+struct ci_simple_file;
+
+/**
+ * Uncompress deflate/gzip compressed data and writes the output to the outbuf object
+ \ingroup UTILITY
+ *
+ \param inbuf   is a buffer which holds the zipped data
+ \param inlen is the length of the buffer buf
+ \param outbuf where to put unzipped data
+ \param max_size if it is greater than zero, the output data limit
+ \return CI_UNCOMP_OK on success, CI_UNCOMP_ERR_NONE, if maxsize exceed, an CI_UNCOMPRESS_ERRORS code otherwise
+ */
+CI_DECLARE_FUNC(int) ci_inflate_to_membuf(const char *inbuf, size_t inlen, struct ci_membuf *outbuf, ci_off_t max_size);
+
+/**
+ \ingroup UTILITY
+ \copydoc ci_inflate_to_membuf(char *inbuf, size_t inlen, struct ci_membuf *outbuf, ci_off_t max_size)
+ */
+CI_DECLARE_FUNC(int) ci_inflate_to_simple_file(const char *inbuf, size_t inlen, struct ci_simple_file *outbuf, ci_off_t max_size);
+
+/**
+ * Uncompress bzip2 compressed data and writes the output to the outbuf object
+ \ingroup UTILITY
+ *
+ \param inbuf   is a buffer which holds the zipped data
+ \param inlen is the length of the buffer buf
+ \param outbuf where to put unzipped data
+ \param max_size if it is greater than zero, the output data limit
+ \return CI_UNCOMP_OK on success, CI_UNCOMP_ERR_NONE, if maxsize exceed, an CI_UNCOMPRESS_ERRORS code otherwise
+ */
+CI_DECLARE_FUNC(int) ci_bzunzip_to_membuf(const char *inbuf, size_t inlen, struct ci_membuf *outbuf, ci_off_t max_size);
+
+/**
+ \ingroup UTILITY
+ \copydoc ci_bzunzip_to_membuf(char *inbuf, size_t inlen, struct ci_membuf *outbuf, ci_off_t max_size)
+ */
+CI_DECLARE_FUNC(int) ci_bzunzip_to_simple_file(const char *inbuf, size_t inlen, struct ci_simple_file *outbuf, ci_off_t max_size);
+
 /**
  * Decodes a base64 encoded string, and also allocate memory for the result.
  \ingroup UTILITY

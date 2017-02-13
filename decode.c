@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2004-2008 Christos Tsantilas
+ *  Copyright (C) 2004-2017 Christos Tsantilas
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -20,9 +20,11 @@
 
 #include "common.h"
 #include "c-icap.h"
+#include "body.h"
 #include "simple_api.h"
 #include "debug.h"
 
+#include <assert.h>
 #ifdef HAVE_ZLIB
 #include <zlib.h>
 #endif
@@ -189,6 +191,58 @@ CI_DECLARE_FUNC(int) url_decoder2(char *input)
     return 1;
 }
 
+
+#define CHUNK 8192
+
+static const char *uncompress_errors[] = {
+    "uncompress: No Error",
+    "uncompress: Uncompression Failure",
+    "uncompress: Write Failed",
+    "uncompress: Input Corrupted",
+    "uncompress: Compression Bomb"
+};
+
+const char *ci_inflate_error(int err)
+{
+    ci_debug_printf (7, "Inflate error %d\n", err);
+    if (err < CI_UNCOMP_ERR_NONE && err >= CI_UNCOMP_ERR_BOMB)
+        return uncompress_errors[-err];
+    return "No Error";
+}
+
+static int write_membuf_func(void *obj, const char *buf, size_t len)
+{
+    return ci_membuf_write((ci_membuf_t *)obj, buf, len, 0);
+}
+
+static int write_simple_file_func(void *obj, const char *buf, size_t len)
+{
+    return ci_simple_file_write((ci_simple_file_t *)obj, buf, len, 0);
+}
+
+struct unzipBuf {
+    char *buf;
+    size_t buf_size;
+    size_t out_len;
+};
+
+static char *get_buf_outbuf(void *obj, unsigned int *len)
+{
+    struct unzipBuf *ab = (struct unzipBuf *)obj;
+    *len = ab->buf_size;
+    return ab->buf;
+}
+
+static int write_once_to_outbuf(void *obj, const char *buf, size_t len)
+{
+    struct unzipBuf *ab = (struct unzipBuf *)obj;
+    ab->out_len = ab->buf_size < len ? ab->buf_size : len;
+    memcpy(ab->buf, buf, ab->out_len);
+    /*Return 0 to abort immediately uncompressing. 
+      We are interesting only for the first bytes*/
+    return 0;
+}
+
 #ifdef HAVE_ZLIB
 #define ZIP_HEAD_CRC     0x02   /* bit 1 set: header CRC present */
 #define ZIP_EXTRA_FIELD  0x04   /* bit 2 set: extra field present */
@@ -205,57 +259,135 @@ static void free_a_buffer(void *op, void *ptr)
     ci_buffer_free(ptr);
 }
 
-static int zlib_inflate(const char *buf, int len, char *unzipped_buf, int *unzipped_buf_len)
+
+/*return CI_INFLATE_ERRORS
+ */
+int ci_mem_inflate(const char *inbuf, size_t inlen, void *out_obj, char *(*get_outbuf)(void *obj, unsigned int *len), int (*writefunc)(void *obj, const char *buf, size_t len), ci_off_t max_size) {
+    int ret, retriable;
+    unsigned have, written, can_write, out_size;
+    ci_off_t unzipped_size;
+    z_stream strm;
+    unsigned char *out, OUT[CHUNK];
+
+    /* allocate inflate state */
+    strm.zalloc = alloc_a_buffer;
+    strm.zfree = free_a_buffer;
+    strm.opaque = Z_NULL;
+    strm.avail_in = 0;
+    strm.next_in = Z_NULL;
+    ret = inflateInit2(&strm, 32 + 15);
+    if (ret != Z_OK)
+        return CI_UNCOMP_ERR_ERROR;
+
+    retriable = 1;
+    unzipped_size = 0;
+    strm.next_in = (unsigned char*)inbuf;
+    strm.avail_in = inlen;
+
+    /* run inflate() on input until output buffer not full */
+    do {
+    do_mem_inflate_retry:
+        if (get_outbuf) {
+            out = (unsigned char *)get_outbuf(out_obj, &out_size);
+            strm.next_out = out;
+            strm.avail_out = out_size;
+            if (!out || !strm.avail_out) {
+                inflateEnd(&strm);
+                return CI_UNCOMP_ERR_OUTPUT;
+            }
+        } else {
+            strm.avail_out = out_size = CHUNK;
+            strm.next_out = out = OUT;
+        }
+        ret = inflate(&strm, Z_NO_FLUSH);
+        assert(ret != Z_STREAM_ERROR);  /* state not clobbered */
+        switch (ret) {
+        case Z_NEED_DICT:
+        case Z_DATA_ERROR:
+            if (retriable) {
+                ret = inflateInit2(&strm, -15);
+                retriable = 0;
+                if (ret == Z_OK) {
+                    strm.avail_in = inlen;
+                    strm.next_in = (unsigned char *)inbuf;
+                    goto do_mem_inflate_retry;
+                }
+                /*else let fail ...*/
+            }
+        case Z_MEM_ERROR:
+            inflateEnd(&strm);
+            return CI_UNCOMP_ERR_CORRUPT;
+        }
+        retriable = 0; // No more retries allowed
+        have = out_size - strm.avail_out;
+        can_write = (max_size > 0 && (max_size - unzipped_size) < have) ? (max_size - unzipped_size) : have;
+        if ((written = writefunc(out_obj, (char *)out, can_write)) != can_write) {
+            inflateEnd(&strm);
+            return CI_UNCOMP_ERR_OUTPUT;
+        }
+        unzipped_size += written;
+        if (written < have) {
+            inflateEnd(&strm);
+            if ( (unzipped_size/inlen) > 100) {
+                ci_debug_printf(1, "Compression ratio UncompSize/CompSize = %" PRINTF_OFF_T "/%" PRINTF_OFF_T " = %" PRINTF_OFF_T "! Is it a zip bomb? aborting!\n", (CAST_OFF_T)unzipped_size, (CAST_OFF_T)inlen, (CAST_OFF_T)(unzipped_size/inlen));
+                return CI_UNCOMP_ERR_BOMB;  /*Probably compression bomb object*/
+            }
+            else {
+                ci_debug_printf(4, "Object is bigger than max allowed file\n");
+                return CI_UNCOMP_ERR_NONE;
+            }
+        }
+    } while (strm.avail_out == 0);
+    
+    /* done when inflate() says it's done */
+    assert(ret == Z_STREAM_END);
+    /* clean up and return */
+    inflateEnd(&strm);
+    return ret == Z_STREAM_END ? CI_UNCOMP_OK : CI_UNCOMP_ERR_CORRUPT;
+}
+
+int ci_inflate_to_membuf(const char *inbuf, size_t inlen, ci_membuf_t *outbuf, ci_off_t max_size)
 {
-     int ret, retriable;
-     z_stream strm;
-     strm.zalloc = alloc_a_buffer;
-     strm.zfree = free_a_buffer;
-     strm.opaque = Z_NULL;
-     strm.avail_in = 0;
-     strm.next_in = Z_NULL;
+    int ret = ci_mem_inflate(inbuf, inlen, outbuf, NULL, write_membuf_func, max_size);
+    ci_membuf_write(outbuf, "", 0, 1);
+    return ret;
+}
 
-     ret = inflateInit2(&strm, 32 + 15);        /*MAX_WBITS + 32 for both deflate and gzip decompress */
- 
-     retriable = 1;
-zlib_inflate_retry:
-     if (ret != Z_OK) {
-          ci_debug_printf(1,
-                          "Error initializing  zlib (inflateInit2 return:%d)\n",
-                          ret);
-          return CI_ERROR;
-     }
+int ci_inflate_to_simple_file(const char *inbuf, size_t inlen, struct ci_simple_file *outbuf, ci_off_t max_size)
+{
+    int ret = ci_mem_inflate(inbuf, inlen, outbuf, NULL, write_simple_file_func, max_size);
+    ci_simple_file_write(outbuf, "", 0, 1);
+    return ret;
+}
 
-     strm.next_in = (Bytef *) buf;
-     strm.avail_in = len;
+static int zlib_inflate_step(const char *buf, int len, char *unzipped_buf, int *unzipped_buf_len)
+{
+    struct unzipBuf ub;
+    ub.buf = unzipped_buf;
+    ub.buf_size = *unzipped_buf_len;
+    int ret = ci_mem_inflate(buf, len,  &ub, get_buf_outbuf, write_once_to_outbuf, len);
+    ci_debug_printf(5, "zlib_inflate_step: retcode %d, unzipped data: %d\n", ret, (int)ub.out_len);
+    if (ub.out_len > 0) {
+        *unzipped_buf_len = ub.out_len;
+        return CI_OK;
+    }
+    return CI_ERROR;
+}
 
-     strm.avail_out = *unzipped_buf_len;
-     strm.next_out = (Bytef *) unzipped_buf;
-     ret = inflate(&strm, Z_NO_FLUSH);
-     inflateEnd(&strm);
+#else
+int ci_inflate_to_membuf(const char *inbuf, size_t inlen, ci_membuf_t *outbuf, ci_off_t max_size)
+{
+    ci_debug_printf(1, "zlib/inflate is not supported.\n");
+    return CI_UNCOMP_ERR_NONE;
+}
 
-     switch (ret) {
-     case Z_NEED_DICT:
-     case Z_DATA_ERROR:
-          if (retriable) {
-              ret = inflateInit2(&strm, -15);
-              retriable = 0;
-              goto zlib_inflate_retry;
-          }
-     case Z_MEM_ERROR:
-          return CI_ERROR;
-     }
-
-     /*If the data was not enough to get decompressed data
-       return error
-     */
-     if (*unzipped_buf_len == strm.avail_out && ret != Z_STREAM_END)
-         return CI_ERROR;
-     
-     *unzipped_buf_len = *unzipped_buf_len - strm.avail_out;
-     return CI_OK;
+int ci_inflate_to_simple_file(const char *inbuf, size_t inlen, struct ci_simple_file *outbuf, ci_off_t max_size)
+{
+    ci_debug_printf(1, "zlib/inflate is not supported.\n");
+    return CI_UNCOMP_ERR_NONE;
 }
 #endif
+
 #ifdef HAVE_BZLIB
 static void *bzalloc_a_buffer(void *op, int items, int size)
 {
@@ -267,11 +399,18 @@ static void bzfree_a_buffer(void *op, void *ptr)
     ci_buffer_free(ptr);
 }
 
-static int bzlib_uncompress(const char *buf, int len, char *unzipped_buf, int *unzipped_buf_len)
+/*
+  TODO: fix to allow write directly to out_obj internal buffers instead of using out[CHUNK] buffer
+ */
+int ci_mem_bzunzip(const char *buf, int inlen,  void *out_obj, char *(*get_outbuf)(void *obj, unsigned int *len), int (*writefunc)(void *obj, const char *buf, size_t len), ci_off_t max_size)
 {
     /*we can use  BZ2_bzBuffToBuffDecompress but we need to use our buffer_alloc interface...*/
      int ret;
+     unsigned have, written, can_write, out_size;
+     ci_off_t unzipped_size;
      bz_stream strm;
+     char *out, OUT[CHUNK];
+
      strm.bzalloc = bzalloc_a_buffer;
      strm.bzfree = bzfree_a_buffer;
      strm.opaque = NULL;
@@ -282,31 +421,101 @@ static int bzlib_uncompress(const char *buf, int len, char *unzipped_buf, int *u
           ci_debug_printf(1,
                           "Error initializing  bzlib (BZ2_bzDeompressInit return:%d)\n",
                           ret);
-          return CI_ERROR;
+          return CI_UNCOMP_ERR_ERROR;
      }
 
      strm.next_in = (char *)buf;
-     strm.avail_in = len;
-     strm.avail_out = *unzipped_buf_len;
-     strm.next_out = unzipped_buf;
-     ret = BZ2_bzDecompress(&strm);
+     strm.avail_in = inlen;
+
+     unzipped_size = 0;
+
+     do {
+         if (get_outbuf) {
+             out = get_outbuf(out_obj, &out_size);
+             strm.next_out = out;
+             strm.avail_out = out_size;
+             if (!out || !strm.avail_out) {
+                 BZ2_bzDecompressEnd(&strm);
+                 return CI_UNCOMP_ERR_OUTPUT;
+             }
+         } else {
+             strm.avail_out = out_size = CHUNK;
+             strm.next_out = out = OUT;
+         }
+         ret = BZ2_bzDecompress(&strm);
+         switch (ret) {
+         case BZ_PARAM_ERROR:
+         case BZ_DATA_ERROR:
+         case BZ_DATA_ERROR_MAGIC:
+         case BZ_MEM_ERROR:
+             BZ2_bzDecompressEnd(&strm);
+             return CI_UNCOMP_ERR_ERROR;
+         }
+
+         have = out_size - strm.avail_out;
+         can_write = (max_size > 0 && (max_size - unzipped_size) < have) ? (max_size - unzipped_size) : have;
+         if (!have || (written = writefunc(out_obj, (char *)out, can_write)) != can_write) {
+             BZ2_bzDecompressEnd(&strm);
+             return CI_UNCOMP_ERR_OUTPUT;
+         }
+         unzipped_size += written;
+         if (written < have) {
+             BZ2_bzDecompressEnd(&strm);
+             if ( (unzipped_size/inlen) > 100) {
+                 ci_debug_printf(1, "Compression ratio UncompSize/CompSize = %" PRINTF_OFF_T "/%" PRINTF_OFF_T " = %" PRINTF_OFF_T "! Is it a zip bomb? aborting!\n", (CAST_OFF_T)unzipped_size, (CAST_OFF_T)inlen, (CAST_OFF_T)(unzipped_size/inlen));
+                 return CI_UNCOMP_ERR_BOMB;  /*Probably compression bomb object*/
+             }
+             else {
+                 ci_debug_printf(4, "Object is bigger than max allowed file\n");
+                 return CI_UNCOMP_ERR_NONE;
+             }
+         }
+     } while (strm.avail_out == 0);
+     
+
      BZ2_bzDecompressEnd(&strm);
-     switch (ret) {
-     case BZ_PARAM_ERROR:
-     case BZ_DATA_ERROR:
-     case BZ_DATA_ERROR_MAGIC:
-     case BZ_MEM_ERROR:
-         return CI_ERROR;
-     }
+     return CI_UNCOMP_OK;
+}
 
-     /*If the data was not enough to get decompressed data
-       return error
-      */
-     if (*unzipped_buf_len == strm.avail_out && ret != BZ_STREAM_END)
-         return CI_ERROR;
+int ci_bzunzip_to_membuf(const char *inbuf, size_t inlen, ci_membuf_t *outbuf, ci_off_t max_size)
+{
+    int ret = ci_mem_bzunzip(inbuf, inlen, outbuf, NULL, write_membuf_func, max_size);
+    ci_membuf_write(outbuf, "", 0, 1);
+    return ret;
+}
 
-     *unzipped_buf_len = *unzipped_buf_len - strm.avail_out;
-     return CI_OK;
+int ci_bzunzip_to_simple_file(const char *inbuf, size_t inlen, struct ci_simple_file *outbuf, ci_off_t max_size)
+{
+    int ret = ci_mem_bzunzip(inbuf, inlen, outbuf, NULL, write_simple_file_func, max_size);
+    ci_simple_file_write(outbuf, "", 0, 1);
+    return ret;
+}
+
+static int bzlib_uncompress_step(const char *buf, int len, char *unzipped_buf, int *unzipped_buf_len)
+{
+    struct unzipBuf ub;
+    ub.buf = unzipped_buf;
+    ub.buf_size = *unzipped_buf_len;
+    int ret = ci_mem_bzunzip(buf, len,  &ub, get_buf_outbuf, write_once_to_outbuf, len);
+    ci_debug_printf(5, "bzlib_uncompress_step: retcode %d, unzipped data: %d\n", ret, (int)ub.out_len);
+    if (ub.out_len > 0) {
+        *unzipped_buf_len = ub.out_len;
+        return CI_OK;
+    }
+    return CI_ERROR;
+}
+
+#else
+int ci_bzunzip_to_membuf(const char *inbuf, size_t inlen, ci_membuf_t *outbuf, ci_off_t max_size)
+{
+    ci_debug_printf(1, "bzlib/bzunzip is not supported.\n");
+    return CI_UNCOMP_ERR_NONE;
+}
+
+int ci_bzunzip_to_simple_file(const char *inbuf, size_t inlen, struct ci_simple_file *outbuf, ci_off_t max_size)
+{
+    ci_debug_printf(1, "bzlib/bzunzip is not supported.\n");
+    return CI_UNCOMP_ERR_NONE;
 }
 #endif
 
@@ -315,11 +524,11 @@ int ci_uncompress_preview(int compress_method, const char *buf, int len, char *u
 {
 #ifdef HAVE_BZLIB
     if (compress_method == CI_ENCODE_BZIP2)
-        return  bzlib_uncompress(buf, len, unzipped_buf, unzipped_buf_len);
+        return  bzlib_uncompress_step(buf, len, unzipped_buf, unzipped_buf_len);
     else
 #endif
 #ifdef HAVE_ZLIB
-        return zlib_inflate(buf, len, unzipped_buf, unzipped_buf_len);
+        return zlib_inflate_step(buf, len, unzipped_buf, unzipped_buf_len);
 #endif
     return CI_ERROR;
 }
