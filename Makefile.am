@@ -10,6 +10,7 @@ SOCKDIR=/var/run/c-icap
 
 DOXYGEN=@doxygen_bin@
 
+ACLOCAL_AMFLAGS = -I m4
 
 SUBDIRS =  . utils modules services tests docs
 

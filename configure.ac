@@ -17,6 +17,11 @@ AM_MAINTAINER_MODE
 AM_CONFIG_HEADER(autoconf.h)
 
 AM_INIT_AUTOMAKE([subdir-objects])
+AC_CONFIG_MACRO_DIR([m4])
+
+AC_CANONICAL_HOST
+
+AC_USE_SYSTEM_EXTENSIONS
 
 AC_PROG_AWK
 AC_PROG_CC
@@ -33,12 +38,9 @@ dnl Define c-icap version
 C_ICAP_HEX_VERSION=`echo $PACKAGE_VERSION | $AWK -f $srcdir/build/c_icap_version.awk`
 AC_SUBST(C_ICAP_HEX_VERSION)
 
-AC_CANONICAL_HOST
-AC_CANONICAL_TARGET
-
 dnl Checks for OS specific flags and posix threads libraries.....
 
-case "$target_os" in
+case "$host_os" in
      linux*)
 	CFLAGS="-D_REENTRANT $CFLAGS"
 	THREADS_LDADD="-lpthread"
@@ -98,10 +100,6 @@ esac
 TEST_LIBS="$TEST_LIBS $THREADS_LDADD"
 AC_SUBST(THREADS_LDADD)
 AC_SUBST(THREADS_LDFLAGS)
-
-if test "x$GCC" != "x" ; then
-        AC_USE_SYSTEM_EXTENSIONS
-fi
 
 AC_DEFINE_UNQUOTED(C_ICAP_CONFIGURE_OPTIONS, "$ac_configure_args",
                    [configure command line used to configure c-icap])
@@ -407,8 +405,8 @@ if test a"$libdb" != "ano"; then
       OLDLIBS=$LIBS
       LIBS="-ldb $OLDLIBS"
       echo -n "checking for Berkeley DB under standard directories... "
-      AC_LINK_IFELSE(
-                     [
+      AC_LINK_IFELSE([AC_LANG_SOURCE(
+                      [
                          #include <db.h>
                          int main(){
                               int major,minor,patch;
@@ -416,6 +414,7 @@ if test a"$libdb" != "ano"; then
                                    return -1;
                               return 0;
                          }
+                      ])
                      ],	
 	    	     [BDB_ADD_LDADD=" -ldb"; libdb="yes"; echo "yes"],
                      [libdb="no"; echo "no"]
@@ -434,6 +433,7 @@ if test a"$libdb" != "ano"; then
       LIBS="-ldb $OLDLIBS"
       echo -n "checking for Berkeley DB under $libdbpath... "
       AC_LINK_IFELSE(
+               [AC_LANG_SOURCE(
                 [
                     #include <db.h>
                     int main(){
@@ -442,7 +442,8 @@ if test a"$libdb" != "ano"; then
                              return -1;
                          return 0;
                     }
-                ],
+                ])
+               ],
                [BDB_ADD_LDADD="-L$libdbpath/lib -ldb"; BDB_ADD_FLAG="-I$libdbpath/include";libdb="yes"; echo "yes"], 
                [libdb="no"; echo "no"]
       )
@@ -472,14 +473,16 @@ if test a"$libdb" != "ano"; then
            CFLAGS="-I$libdbpath/include/db$DBVER $OLDCFLAGS"
            LDFLAGS="-L$libdbpath/lib/db$DBVER $OLDLDFLAGS" 
            AC_LINK_IFELSE(
-                  [
-                     #include <db.h>
-                     int main(){
-                        int major,minor,patch;
-                        if (!db_version(&major,&minor,&patch))
-                             return -1;
-                        return 0;
-                     }
+                  [AC_LANG_SOURCE(
+                    [
+                        #include <db.h>
+                        int main(){
+                           int major,minor,patch;
+                           if (!db_version(&major,&minor,&patch))
+                                return -1;
+                           return 0;
+                        }
+                     ])
                   ],
                   [echo yes;BDB_ADD_LDADD="-L$libdbpath/lib/db$DBVER -ldb"; BDB_ADD_FLAG="-I$libdbpath/include/db$DBVER";libdb="yes";], 
                   [libdb="no"; echo "no";]
@@ -887,7 +890,7 @@ POSIX_SHARED_MEM="0"
 if test a"$POSIX_SHARED_MEM" = "a1"; then
 # Linux and solaris define the shm_open in -rt library.
 # This library already included in LIBS for solaris
-case "$target_os" in
+case "$host_os" in
      linux*)
         EXTRALIBS="$EXTRALIBS -lrt"
      ;;
