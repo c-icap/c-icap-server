@@ -314,71 +314,136 @@ int ci_headers_addheaders(ci_headers_list_t * h, const ci_headers_list_t * heade
      return 1;
 }
 
+const char *ci_headers_first_line2(ci_headers_list_t *h, size_t *return_size)
+{
+    const char *eol;
+    if (h->used == 0)
+        return NULL;
 
-const char *ci_headers_search(ci_headers_list_t * h, const char *header)
+    eol = h->used > 1 ? (h->headers[1] - 1)  : (h->buf + h->bufused);
+    while((eol > h->buf) && (*eol == '\0' || *eol == '\r' || *eol == '\n')) --eol;
+    *return_size = eol - h->buf + 1;
+
+    return h->buf;
+}
+
+const char *ci_headers_first_line(ci_headers_list_t *h)
+{
+    if (h->used == 0)
+        return NULL;
+    return h->buf;
+}
+
+static const char *do_header_search(ci_headers_list_t * h, const char *header, const char **value, const char **end)
 {
      int i;
+     size_t header_size = strlen(header);
+     const char *h_end = (h->buf + h->bufused);
+     const char *check_head, *lval;
+
+     if (!header_size)
+         return NULL;
+
      for (i = 0; i < h->used; i++) {
-          if (strncasecmp(h->headers[i], header, strlen(header)) == 0)
-               return h->headers[i];
+          check_head = h->headers[i];
+          if (h_end < check_head + header_size)
+               return NULL;
+          if (*(check_head + header_size) != ':')
+               continue;
+          if (strncasecmp(check_head, header, header_size) == 0) {
+               lval = check_head + header_size + 1;
+               if (value)
+                    *value = lval;
+               if (end) {
+                    *end = (i < h->used -1) ? (h->headers[i + 1] - 1) : (h->buf + h->bufused - 1);
+                    while((*end > lval) && (**end == '\0' || **end == '\r' || **end == '\n')) --(*end);
+               }
+               return check_head;
+          }
      }
      return NULL;
 }
 
+const char *ci_headers_search(ci_headers_list_t * h, const char *header)
+{
+    return do_header_search(h, header, NULL, NULL);
+}
+
+const char *ci_headers_search2(ci_headers_list_t * h, const char *header, size_t *return_size)
+{
+    const char *phead, *pend = NULL;
+    if ((phead = do_header_search(h, header, NULL, &pend))) {
+        *return_size = (pend != NULL) ? (pend - phead + 1) : 0;
+        return phead;
+    }
+    *return_size = 0;
+    return NULL;
+}
+
 const char *ci_headers_value(ci_headers_list_t * h, const char *header)
 {
-     const char *phead;
-     if (!(phead = ci_headers_search(h, header)))
-          return NULL;
-     while (*phead != '\0' && *phead != ':')
-          phead++;
-     if (*phead != ':')
-          return NULL;
-     phead++;
-     while (isspace(*phead) && *phead != '\0')
-          phead++;
-     return phead;
+    const char *pval, *phead;
+    pval = NULL;
+    if ((phead = do_header_search(h, header, &pval, NULL)))
+        return pval;
+    return NULL;
+}
+
+const char *ci_headers_value2(ci_headers_list_t * h, const char *header, size_t *return_size)
+{
+    const char *pval, *phead, *pend = NULL;
+    pval = NULL;
+    if ((phead = do_header_search(h, header, &pval, &pend))) {
+        *return_size = (pend != NULL) ? (pend - pval + 1) : 0;
+        return pval;
+    }
+    return NULL;
 }
 
 const char *ci_headers_copy_value(ci_headers_list_t * h, const char *header, char *buf, size_t len)
 {
-     const char *phead;
-     int i;
-     if (!(phead = ci_headers_search(h, header)))
-          return NULL;
-     if (h->packed)
-         while (*phead != '\0' && *phead != ':' && *phead != '\r' && *phead !='\n') phead++;
-     else
-         while (*phead != '\0' && *phead != ':') phead++;
+     const char *phead = NULL, *pval = NULL, *pend = NULL;
+     char *dest, *dest_end;
+     phead = do_header_search(h, header, &pval, &pend);
+     if (phead == NULL || pval == NULL || pend == NULL)
+         return NULL;
 
-     if (*phead != ':')
-          return NULL;
-     phead++;
      /*skip spaces at the beginning*/
-     while (isspace(*phead) && *phead != '\0')
-          phead++;
+     while (isspace(*pval) && pval < pend)
+          pval++;
+     while (isspace(*pend) && pend > pval)
+          pend--;
 
-     /*phead now points to the biggining of the header value.*/
      /*copy value to buf*/
-     for(i=0; i < len-1 && *phead != '\0' && *phead != '\r' && *phead != '\n'; i++, phead++)
-         buf[i] = *phead;
-     buf[i] = '\0';
+     dest = buf;
+     dest_end = buf + len -1;
+     for(; dest < dest_end && pval <= pend; dest++, pval++)
+         *dest = *pval;
+     *dest = '\0';
      return buf;
 }
 
 int ci_headers_remove(ci_headers_list_t * h, const char *header)
 {
+     const char *h_end;
      char *phead;
-     int i, j, header_len, rest_len;
+     int i, j, cur_head_size, rest_len;
+     size_t header_size;
 
      if (h->packed) { /*Not in edit mode*/
 	  return 0;
      }
 
+     h_end = (h->buf + h->bufused);
+     header_size = strlen(header);
      for (i = 0; i < h->used; i++) {
-          if (strncasecmp(h->headers[i], header, strlen(header)) == 0) {
+          phead = h->headers[i];
+          if (h_end < phead + header_size)
+               return 0;
+          if (*(phead + header_size) != ':')
+               continue;
+          if (strncasecmp(phead, header, header_size) == 0) {
                /*remove it........ */
-               phead = h->headers[i];
                if (i == h->used - 1) {
                     phead = h->headers[i];
                     *phead = '\r';
@@ -388,18 +453,18 @@ int ci_headers_remove(ci_headers_list_t * h, const char *header)
                     return 1;
                }
                else {
-                    header_len = h->headers[i + 1] - h->headers[i];
+                    cur_head_size = h->headers[i + 1] - h->headers[i];
                     rest_len =
-                        h->bufused - (h->headers[i] - h->buf) - header_len;
+                        h->bufused - (h->headers[i] - h->buf) - cur_head_size;
                     ci_debug_printf(5, "remove_header : remain len %d\n",
                                     rest_len);
                     memmove(phead, h->headers[i + 1], rest_len);
                     /*reconstruct index..... */
-                    h->bufused -= header_len;
+                    h->bufused -= cur_head_size;
                     (h->used)--;
                     for (j = i + 1; j < h->used; j++) {
-                         header_len = strlen(h->headers[j - 1]);
-                         h->headers[j] = h->headers[j - 1] + header_len + 1;
+                         cur_head_size = strlen(h->headers[j - 1]);
+                         h->headers[j] = h->headers[j - 1] + cur_head_size + 1;
                          if (h->headers[j][0] == '\n')
                               (h->headers[j])++;
                     }

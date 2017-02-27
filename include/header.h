@@ -177,6 +177,13 @@ CI_DECLARE_FUNC(int)     ci_headers_remove(ci_headers_list_t *heads, const char 
 CI_DECLARE_FUNC(const char *)  ci_headers_search(ci_headers_list_t *heads, const char *header);
 
 /**
+ * Similar to ci_headers_search but also sets to a parameter the size of
+ * returned header 
+ \ingroup HEADERS
+ */
+CI_DECLARE_FUNC(const char *) ci_headers_search2(ci_headers_list_t * h, const char *header, size_t *return_size);
+
+/**
  * Search for a header in a header list and return the value of the first occurrence of this header
  \ingroup HEADERS
  \param heads is a pointer to the ci_headers_list_t object
@@ -193,6 +200,13 @@ CI_DECLARE_FUNC(const char *)  ci_headers_search(ci_headers_list_t *heads, const
  *
  */
 CI_DECLARE_FUNC(const char *)  ci_headers_value(ci_headers_list_t *heads, const char *header);
+
+/**
+ * Similar to ci_headers_search but also sets to a parameter the size of
+ * returned header value
+ \ingroup HEADERS
+ */
+CI_DECLARE_FUNC(const char *) ci_headers_value2(ci_headers_list_t * h, const char *header, size_t *return_size);
 
 /**
  * Search for a header in a header list and copy the value to a buffer if exist
@@ -237,6 +251,24 @@ CI_DECLARE_FUNC(int) ci_headers_iterate(ci_headers_list_t *heads, void *data, vo
  \return the size of written data, or zero if the headers does not fit to buffer.
  */
 CI_DECLARE_FUNC(size_t) ci_headers_pack_to_buffer(ci_headers_list_t *heads, char *buf, size_t size);
+
+/**
+ * Get the first line of headers
+ \ingroup HEADERS
+ \param heads is a pointer to the ci_headers_list_t object
+ \return the first line on success, NULL otherwise
+*/
+CI_DECLARE_FUNC(const char *) ci_headers_first_line(ci_headers_list_t *heads);
+
+/**
+ * Get the first line of headers and its size
+ \ingroup HEADERS
+ \param heads is a pointer to the ci_headers_list_t object
+ \param return_size where to store the size of first line in bytes
+ \return the first line on success, NULL otherwise
+*/
+CI_DECLARE_FUNC(const char *) ci_headers_first_line2(ci_headers_list_t *heads, size_t *return_size);
+    
 /*compatibility macro*/
 #define ci_headers_copy_header_bytes ci_headers_pack_to_buffer
 
