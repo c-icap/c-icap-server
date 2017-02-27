@@ -50,6 +50,7 @@
 #include "port.h" 
 #include "cfg_param.h"
 #include "commands.h"
+#include "util.h"
 
 #define MULTICHILD
 //#undef MULTICHILD
@@ -521,8 +522,10 @@ void handle_monitor_process_commands(char *cmd_line)
                execute_command(command, cmd_line, MONITOR_PROC_CMD);
           if (command->type & CHILDS_PROC_CMD) {
                for (i = 0; i < childs_queue->size; i++) {
-                    bytes = write(childs_queue->childs[i].pipe, cmd_line,
-				  strlen(cmd_line));
+                   do {
+                       bytes = write(childs_queue->childs[i].pipe, cmd_line,
+                                     strlen(cmd_line));
+                   } while (bytes < 0 && errno == EINTR);
                }
           }
           if (command->type & MONITOR_PROC_POST_CMD)

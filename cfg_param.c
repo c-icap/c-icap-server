@@ -779,11 +779,9 @@ int fread_line(FILE * f_conf, char *line)
 struct ci_conf_entry *find_action(char *str, char **arg)
 {
      char *end, *table, *s;
-     int size;
      end = str;
      while (*end != '\0' && !isspace(*end))
           end++;
-     size = end - str;
      *end = '\0';               /*Mark the end of Variable...... */
      end++;                     /*... and continue.... */
      while (*end != '\0' && isspace(*end))      /*Find the start of arguments ...... */

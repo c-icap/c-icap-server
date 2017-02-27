@@ -69,6 +69,7 @@ int execute_command(ci_command_t *command, char *cmdline, int exec_type);
 ci_command_t *find_command(const char *cmd_line);
 int commands_execute_start_child();
 int commands_execute_stop_child();
+void commands_exec_scheduled();
 
 #ifdef __cplusplus
 }

@@ -316,7 +316,6 @@ const ci_array_item_t * ci_dyn_array_add(ci_dyn_array_t *array, const char *name
 
 const void * ci_dyn_array_search(ci_dyn_array_t *array, const char *name)
 {
-    ci_array_item_t *item;
     int i;
     for (i = 0; i < array->count; ++i)
         if (strcmp(array->items[i]->name, name) == 0)
@@ -582,7 +581,7 @@ static ci_list_item_t *list_alloc_item(ci_list_t *list, const void *data)
         if (list->copy_func)
             list->copy_func(it->item, data);
     } else
-        it->item = data;
+        it->item = (void *)data;
     return it;
 }
 

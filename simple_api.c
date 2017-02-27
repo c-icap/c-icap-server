@@ -96,8 +96,6 @@ int ci_http_request_reset_headers(ci_request_t * req)
 int ci_http_response_create(ci_request_t * req, int has_reshdr, int has_body)
 {
      int i = 0;
-     ci_encaps_entity_t **e_list;
-     e_list = req->entities;
 
      for (i = 0; i < 4; i++) {
           if (req->entities[i]) {
@@ -119,8 +117,6 @@ int ci_http_response_create(ci_request_t * req, int has_reshdr, int has_body)
 int ci_http_request_create(ci_request_t * req, int has_body)
 {
      int i = 0;
-     ci_encaps_entity_t **e_list;
-     e_list = req->entities;
 
      for (i = 0; i < 4; i++) {
           if (req->entities[i]) {

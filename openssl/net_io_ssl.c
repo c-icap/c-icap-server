@@ -89,7 +89,7 @@ static int openssl_option(const char *opt)
 static int parse_openssl_options(const char *str, long *options)
 {
     char *stroptions = strdup(str);
-    char *sopt, *next;
+    char *sopt, *next = NULL;
     long lopt;
     int negate;
     *options = SSL_OP_ALL;
@@ -595,6 +595,7 @@ int icap_accept_tls_connection(ci_port_t *port, ci_connection_t *client_conn)
      return 1;
 }
 
+#if !defined(OPENSSL_VERSION_NUMBER) || OPENSSL_VERSION_NUMBER <= 0x1000201fL
 static int check_hostname(const char *servername, ASN1_STRING *check)
 {
     const char *cname;
@@ -657,6 +658,7 @@ static int match_X509_names(X509 *cert, const char *servername)
     return 0;
 
 }
+#endif
 
 SSL_CTX *ci_tls_create_context(ci_tls_client_options_t *opts)
 {

@@ -36,14 +36,13 @@ int main(int argc,char *argv[])
     ci_str_array_t *arr_str;
     ci_ptr_array_t *arr_ptr;
     ci_vector_t *vect_str;
-    ci_vector_t *vect_ptr;
     ci_dyn_array_t *dyn_arr;
     const ci_array_item_t *item;
     int i, j;
     char name[128];
     char value[128];
     void *data;
-    char *strdata;
+    const char *strdata;
     ci_cfg_lib_init();
     mem_init();
     __log_error = (void (*)(void *, const char *,...)) log_errors;     /*set c-icap library log  function */
@@ -132,7 +131,7 @@ int main(int argc,char *argv[])
             ci_debug_printf(2, "from charchar value: %s\n", *s);
         }
         ci_str_vector_t *v = ci_str_vector_cast_from_charchar(p);
-        ci_debug_printf(1, "Returned vector max size: %d, itmes %d\n", v->max_size, v->count);
+        ci_debug_printf(1, "Returned vector max size: %d, itmes %d\n", (int)v->max_size, v->count);
         
         while((strdata = ci_str_vector_pop(vect_str)) != NULL) {
             ci_debug_printf(2, "Popped value: %s\n", strdata);

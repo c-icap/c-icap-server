@@ -89,6 +89,7 @@ static struct ci_options_entry options[] = {
 };
 
 
+int mem_init();
 int main(int argc,char *argv[]) {
     struct ci_lookup_table *table;
     void *e,*v,**vals;

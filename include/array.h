@@ -170,14 +170,14 @@ CI_DECLARE_FUNC(const ci_array_item_t *)ci_array_get_item(ci_array_t *array, int
 typedef ci_array_t ci_str_array_t;
 #define ci_str_array_new ci_array_new
 #define ci_str_array_destroy ci_array_destroy
-#define ci_str_array_add(array, name, value) ci_array_add(array, name, value, (strlen(value)+1))
-#define ci_str_array_pop(array) ci_array_pop(array)
-#define ci_str_array_get_item(array, pos) ci_array_get_item(array, pos)
-#define ci_str_array_search(array, name) (const char *)ci_array_search(array, name)
+#define ci_str_array_add(array, name, value) ci_array_add((ci_array_t *)(array), name, value, (strlen(value)+1))
+#define ci_str_array_pop(array) ci_array_pop((ci_array_t *)(array))
+#define ci_str_array_get_item(array, pos) ci_array_get_item((ci_array_t *)(array), pos)
+#define ci_str_array_search(array, name) (const char *)ci_array_search((ci_array_t *)(array), name)
 #define ci_str_array_iterate ci_array_iterate
-#define ci_str_array_value(array, pos) ci_array_value(array, pos)
-#define ci_str_array_name(array, pos) ci_array_name(array, pos)
-#define ci_str_array_size(array) ci_array_size(array)
+#define ci_str_array_value(array, pos) ci_array_value((ci_array_t *)(array), pos)
+#define ci_str_array_name(array, pos) ci_array_name((ci_array_t *)(array), pos)
+#define ci_str_array_size(array) ci_array_size((ci_array_t *)(array))
 
 
 /**
@@ -200,21 +200,21 @@ typedef ci_array_t ci_ptr_array_t;
  \ingroup PTR_ARRAYS
  * Return the value of item at position 'pos'
  */
-#define ci_ptr_array_value(array, pos) ci_array_value(array, pos)
+#define ci_ptr_array_value(array, pos) ci_array_value((ci_array_t *)(array), pos)
 
 /**
  \def ci_ptr_array_value(ptr_array, pos)
  \ingroup PTR_ARRAYS
  * Return the name of item at position 'pos'
  */
-#define ci_ptr_array_name(array, pos) ci_array_name(array, pos)
+#define ci_ptr_array_name(array, pos) ci_array_name((ci_array_t *)(array), pos)
 
 /**
  \def ci_ptr_array_value(ptr_array)
  \ingroup PTR_ARRAYS
  * Return the size of ptr_array
  */
-#define ci_ptr_array_size(array) ci_array_size(array)
+#define ci_ptr_array_size(array) ci_array_size((ci_array_t *)(array))
 
 /**
  \def ci_ptr_array_new()
@@ -236,7 +236,7 @@ CI_DECLARE_FUNC(ci_ptr_array_t *) ci_ptr_array_new2(size_t items);
  \ingroup PTR_ARRAYS
  * Destroy a ci_ptr_array_t object. Similar to the ci_array_destroy function
  */
-#define ci_ptr_array_destroy(ptr_array) ci_array_destroy(ptr_array)
+#define ci_ptr_array_destroy(ptr_array) ci_array_destroy((ci_array_t *)(ptr_array))
 
 /**
  * Search in an array for an item with the given name
@@ -254,7 +254,7 @@ CI_DECLARE_FUNC(void *) ci_ptr_array_search(ci_ptr_array_t *array, const char *n
  * Run the function fn for each item of the ci_ptr_array_t object. Similar to
  * the ci_array_iterate function
  */
-#define ci_ptr_array_iterate(ptr_array, data, fn) ci_array_iterate(ptr_array, data, fn)
+#define ci_ptr_array_iterate(ptr_array, data, fn) ci_array_iterate((ci_array_t *)(ptr_array), data, fn)
 
 /**
  * Add an name/value pair item to the ci_ptr_array_t object.
@@ -290,7 +290,7 @@ CI_DECLARE_FUNC(void *) ci_ptr_array_pop_value(ci_ptr_array_t *ptr_array, char *
  \ingroup PTR_ARRAYS
  * Get an array item. Wrapper to the ci_array_get_item() function.
  */
-#define ci_ptr_array_get_item(array, pos) ci_array_get_item(array, pos)
+#define ci_ptr_array_get_item(array, pos) ci_array_get_item((ci_array_t *)(array), pos)
 
 /**
  \defgroup DYNAMIC_ARRAYS Dynamic arrays related API
@@ -413,14 +413,14 @@ CI_DECLARE_FUNC(void) ci_dyn_array_iterate(const ci_dyn_array_t *array, void *da
 typedef ci_dyn_array_t ci_ptr_dyn_array_t;
 #define ci_ptr_dyn_array_new(size) ci_dyn_array_new(size)
 #define ci_ptr_dyn_array_new2(items, item_size) ci_dyn_array_new2(items, item_size)
-#define ci_ptr_dyn_array_destroy(ptr_array) ci_dyn_array_destroy(ptr_array)
-#define ci_ptr_dyn_array_search(ptr_array, name) ci_dyn_array_search(ptr_array, name)
-#define ci_ptr_dyn_array_iterate(ptr_array, data, fn) ci_dyn_array_iterate(ptr_array, data, fn)
+#define ci_ptr_dyn_array_destroy(ptr_array) ci_dyn_array_destroy((ci_dyn_array_t *)(ptr_array))
+#define ci_ptr_dyn_array_search(ptr_array, name) ci_dyn_array_search((ci_dyn_array_t *)(ptr_array), name)
+#define ci_ptr_dyn_array_iterate(ptr_array, data, fn) ci_dyn_array_iterate((ci_dyn_array_t *)(ptr_array), data, fn)
 
-#define ci_ptr_dyn_array_get_item(array, pos) ci_dyn_array_get_item(array, pos)
-#define ci_ptr_dyn_array_value(array, pos) ci_dyn_array_value(array, pos)
-#define ci_ptr_dyn_array_name(array, pos) ci_dyn_array_name(array, pos)
-#define ci_ptr_dyn_array_size(array) ci_dyn_array_size(array)
+#define ci_ptr_dyn_array_get_item(ptr_array, pos) ci_dyn_array_get_item((ci_dyn_array_t *)(ptr_array), pos)
+#define ci_ptr_dyn_array_value(ptr_array, pos) ci_dyn_array_value((ci_dyn_array_t *)(ptr_array), pos)
+#define ci_ptr_dyn_array_name(ptr_array, pos) ci_dyn_array_name((ci_dyn_array_t *)(ptr_array), pos)
+#define ci_ptr_dyn_array_size(ptr_array) ci_dyn_array_size((ci_dyn_array_t *)(ptr_array))
 
 /**
  * Add an name/value pair item to the array.
@@ -524,11 +524,11 @@ CI_DECLARE_FUNC(ci_vector_t *)ci_vector_cast_from_voidvoid(const void **p);
 typedef ci_vector_t ci_str_vector_t;
 #define ci_str_vector_create ci_vector_create
 #define ci_str_vector_destroy ci_vector_destroy
-#define ci_str_vector_add(vect, string) ((const char *)ci_vector_add(vect, string, (strlen(string)+1)))
+#define ci_str_vector_add(vect, string) ((const char *)ci_vector_add((ci_vector_t *)(vect), string, (strlen(string)+1)))
 #define ci_str_vector_get(vector, i) (i < vector->count ? (const char *)vector->items[i]:  (const char *)NULL)
-#define ci_str_vector_pop(vect)  ((const char *)ci_vector_pop(vect))
-#define ci_str_vector_cast_to_charchar(vector) ((const char **)ci_vector_cast_to_voidvoid(vector))
-#define ci_str_vector_cast_from_charchar(p) (ci_vector_cast_from_voidvoid((void **)p))
+#define ci_str_vector_pop(vect)  ((const char *)ci_vector_pop((ci_vector_t *)(vect)))
+#define ci_str_vector_cast_to_charchar(vector) ((const char **)ci_vector_cast_to_voidvoid((ci_vector_t *)(vector)))
+#define ci_str_vector_cast_from_charchar(p) ((ci_str_vector_t *)ci_vector_cast_from_voidvoid((const void **)p))
 
 /**
  * Run the given function for each string vector item

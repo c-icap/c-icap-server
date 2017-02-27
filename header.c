@@ -544,7 +544,7 @@ int ci_headers_unpack(ci_headers_list_t * h)
 {
      int len, eoh;
      char **newspace;
-     char *shead, *ebuf, *str;
+     char *ebuf, *str;
 
      if (h->bufused < 2)        /*???????????? */
           return EC_400;
@@ -559,7 +559,6 @@ int ci_headers_unpack(ci_headers_list_t * h)
           return EC_400;        /*Bad request .... */
      }
      *ebuf = '\0';
-     shead = h->buf;
 
      h->headers[0] = h->buf;
      h->used = 1;

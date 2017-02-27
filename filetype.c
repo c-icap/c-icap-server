@@ -560,7 +560,6 @@ int extend_object_type(struct ci_magics_db *db, ci_headers_list_t *headers, cons
                        int len, int *iscompressed)
 {
      int file_type;
-     int unzip_error = 0;
      int unzipped_buf_len = 0;
      char *unzipped_buf = NULL;
      const char *checkbuf = buf;
@@ -617,7 +616,8 @@ int extend_object_type(struct ci_magics_db *db, ci_headers_list_t *headers, cons
                                          "Error uncompressing encoded object\n");
                          ci_buffer_free(unzipped_buf);
                          unzipped_buf = NULL;
-                         unzip_error = 1;
+                         /* The checkbuf points to raw buf, 
+                            type will be zipped data*/
                     }
                }
           }

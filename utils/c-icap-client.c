@@ -25,6 +25,7 @@
 #include <errno.h>
 #include <stdarg.h>
 #include <ctype.h>
+#include <assert.h>
 #include "request.h"
 #include "simple_api.h"
 #include "net_io.h"
@@ -153,9 +154,12 @@ void copy_data(int fd_in, int fd_out, ci_off_t copy_from)
 {
     char buf[4095];
     size_t len;
+    int ret;
     lseek(fd_in, copy_from, SEEK_SET);
-    while((len = read(fd_in, buf ,sizeof(buf))) > 0)
-        write(fd_out, buf, len);
+    while((len = read(fd_in, buf ,sizeof(buf))) > 0) {
+        ret = write(fd_out, buf, len);
+        assert(ret == len);
+    }
 }
 
 int add_xheader(const char *directive, const char **argv, void *setdata)

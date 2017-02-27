@@ -27,6 +27,7 @@
 #include "request.h"
 #include "simple_api.h"
 #include "util.h"
+#include "body.h"
 
 const char *CI_DEFAULT_USER_AGENT = "C-ICAP-Client-Library/" VERSION;
 char *CI_USER_AGENT = NULL;

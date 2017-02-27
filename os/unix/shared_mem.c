@@ -156,13 +156,16 @@ const ci_shared_mem_scheme_t mmap_scheme = {
 
 void *posix_shared_mem_create(ci_shared_mem_id_t * id, const char *name, int size)
 {
-    int i;
+    int i, ret;
     id->size = size;
     for (i = 0; i < 1024; ++i) {
         errno = 0;
 snprintf(id->name, CI_SHARED_MEM_NAME_SIZE, "%s-%s.%d", CI_SHARED_MEM_NAME_TMPL, name, i);
         id->posix.fd = shm_open(id->name, O_RDWR | O_CREAT | O_EXCL, S_IREAD | S_IWRITE);
-        (void)ftruncate(id->posix.fd, id->size);
+        ret = ftruncate(id->posix.fd, id->size);
+        if (ret < 0) {
+            ci_debug_printf(2, "Posix mem: Failed to truncate posix file, errno: %d! Ignoring ...\n", errno);
+        }
         if (id->posix.fd >= 0) {
             id->mem = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, id->posix.fd, 0);
             if (id->mem == MAP_FAILED) {

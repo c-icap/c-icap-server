@@ -79,10 +79,11 @@ int ci_dlib_closeall()
      while (dl_cur != NULL) {
           dl_e = dl_cur;
           dl_cur = dl_cur->next;
-          if (dl_e->forceUnload)
+          if (dl_e->forceUnload) {
               ret = ci_module_unload(dl_e->handle, dl_e->name);
-          if (!ret)
-               error = 1;
+              if (!ret)
+                  error = 1;
+          }
           if (dl_e->name)
                free(dl_e->name);
           if (dl_e->file)

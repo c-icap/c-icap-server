@@ -40,6 +40,9 @@ int store_pid(char *pidfile)
      snprintf(strPid, 29, "%d", pid);
      strPid[29] = '\0';
      bytes = write(fd, strPid, strlen(strPid));
+     if (bytes != strlen(strPid)) {
+         ci_debug_printf(1, "Cannot write to the pid file: %s\n", pidfile);
+     }
      close(fd);
      return 1;
 }
