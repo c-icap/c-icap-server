@@ -81,7 +81,16 @@ void free_icap_response_header(ci_request_t *req, void *param);
 void free_http_req_header(ci_request_t *req, void *param);
 void free_http_resp_header(ci_request_t *req, void *param);
 
+void *get_http_req_url(ci_request_t *req, char *param);
+void free_http_req_url(ci_request_t *req, void *data);
+void *get_http_req_line(ci_request_t *req, char *param);
+void free_http_req_line(ci_request_t *req, void *data);
+void *get_http_resp_line(ci_request_t *req, char *param);
+void free_http_resp_line(ci_request_t *req, void *data);
 #endif
+
+void *get_http_req_method(ci_request_t *req, char *param);
+void free_http_req_method(ci_request_t *req, void *param);
 
 void *get_data_type(ci_request_t *req, char *param);
 void free_data_type(ci_request_t *req,void *param);
@@ -163,7 +172,35 @@ ci_acl_type_t acl_http_resp_header = {
      free_http_resp_header,
      &ci_regex_ops
 };
+
+ci_acl_type_t acl_http_req_url = {
+     "http_req_url",
+     get_http_req_url,
+     free_http_req_url,
+     &ci_regex_ops
+};
+
+ci_acl_type_t acl_http_req_line = {
+     "http_req_line",
+     get_http_req_line,
+     free_http_req_line,
+     &ci_regex_ops
+};
+
+ci_acl_type_t acl_http_resp_line = {
+    "http_resp_line",
+     get_http_resp_line,
+     free_http_resp_line,
+     &ci_regex_ops
+};
 #endif
+
+ci_acl_type_t acl_http_req_method={
+     "http_req_method",
+     get_http_req_method,
+     free_http_req_method,
+     &ci_str_ops
+};
 
 ci_acl_type_t acl_data_type={
      "data_type",
@@ -781,10 +818,16 @@ static int acl_load_defaults()
      ci_acl_typelist_add(&types_list, &acl_user);
      ci_acl_typelist_add(&types_list, &acl_tcp_src);
      ci_acl_typelist_add(&types_list, &acl_tcp_srvip);
+#if defined(USE_REGEX)
      ci_acl_typelist_add(&types_list, &acl_icap_header);
      ci_acl_typelist_add(&types_list, &acl_icap_resp_header);
      ci_acl_typelist_add(&types_list, &acl_http_req_header);
      ci_acl_typelist_add(&types_list, &acl_http_resp_header);
+     ci_acl_typelist_add(&types_list, &acl_http_req_url);
+     ci_acl_typelist_add(&types_list, &acl_http_req_line);
+     ci_acl_typelist_add(&types_list, &acl_http_resp_line);
+#endif
+     ci_acl_typelist_add(&types_list, &acl_http_req_method);
      ci_acl_typelist_add(&types_list, &acl_data_type);
      ci_acl_typelist_add(&types_list, &acl_content_length);
      ci_acl_typelist_add(&types_list, &acl_time);
@@ -873,24 +916,23 @@ const char *get_header(ci_headers_list_t *headers, char *head)
 {
     const char *val;
     char *buf;
-    int i;
+    size_t value_size = 0;
 
     if(!headers || !head)
 	return NULL;
 
-    if (!(val = ci_headers_value(headers, head)))
+    if (!(val = ci_headers_value2(headers, head, &value_size)))
 	return NULL;
 
     if (!headers->packed) /*The headers are not packed, so it is NULL terminated*/
 	return val;
 
     /*assume that an 8k buffer is enough for a header value*/
-    if (!(buf = ci_buffer_alloc(8192)))
+    if (!(buf = ci_buffer_alloc(value_size + 1)))
 	return NULL;
 
-     for(i=0;i<8191 && *val!= '\0' && *val != '\r' && *val!='\n'; i++,val++) 
-        buf[i] = *val;
-     buf[8191]='\0';
+    memcpy(buf, val, value_size);
+    buf[value_size] = '\0';
 
      return buf;
 }
@@ -956,7 +998,118 @@ void free_http_resp_header(ci_request_t *req, void *param)
     release_header_value(heads, param);
 }
 
+void *get_http_req_url(ci_request_t *req, char *param)
+{
+    char *buf;
+    ci_headers_list_t *heads;
+    heads = ci_http_request_headers(req);
+    if(!heads)
+	return NULL;
+    buf = ci_buffer_alloc(8192);
+    ci_http_request_url(req, buf, 8192);
+    return buf;
+}
+void free_http_req_url(ci_request_t *req, void *data)
+{
+    ci_buffer_free((char *)data);
+}
+
+void *get_http_req_line(ci_request_t *req, char *param)
+{
+    ci_headers_list_t *heads;
+    size_t first_line_size;
+    const char *first_line;
+    char *buf;
+    heads = ci_http_request_headers(req);
+    if(!heads)
+	return NULL;
+
+    first_line = ci_headers_first_line2(heads, &first_line_size);
+
+    if (!first_line || first_line_size == 0)
+        return NULL;
+
+    if (!heads->packed) /*The headers are not packed, so it is NULL terminated*/
+        return (void *)first_line;
+
+    buf = ci_buffer_alloc(first_line_size + 1);
+    memcpy(buf, first_line, first_line_size);
+    buf[first_line_size] = '\0';
+    return buf;
+}
+
+void free_http_req_line(ci_request_t *req, void *data)
+{
+    ci_headers_list_t *heads;
+    heads = ci_http_request_headers(req);
+    if (heads->packed)
+        ci_buffer_free(data);
+}
+
+void *get_http_resp_line(ci_request_t *req, char *param)
+{
+    size_t first_line_size;
+    const char *first_line;
+    char *buf;
+    ci_headers_list_t *heads;
+    heads = ci_http_response_headers(req);
+    if(!heads)
+	return NULL;
+
+    first_line = ci_headers_first_line2(heads, &first_line_size);
+
+    if (!first_line || first_line_size == 0)
+        return NULL;
+
+    if (!heads->packed) /*The headers are not packed, so it is NULL terminated*/
+        return (void *)first_line;
+
+    buf = ci_buffer_alloc(first_line_size + 1);
+    memcpy(buf, first_line, first_line_size);
+    buf[first_line_size] = '\0';
+    return buf;
+}
+
+void free_http_resp_line(ci_request_t *req, void *data)
+{
+    ci_headers_list_t *heads;
+    heads = ci_http_response_headers(req);
+    if (heads->packed)
+        ci_buffer_free(data);
+}
 #endif
+
+void *get_http_req_method(ci_request_t *req, char *param)
+{
+    ci_headers_list_t *heads;
+    size_t found_size;
+    const char *first_line, *e, *eol;
+    char *buf;
+    heads = ci_http_request_headers(req);
+    if(!heads)
+	return NULL;
+
+    first_line = ci_headers_first_line2(heads, &found_size);
+    if (!first_line || found_size == 0)
+        return NULL;
+    eol = first_line + found_size;
+    
+    for (e = first_line; e < eol && !isspace(*e); e++);
+    if (e == eol) /*No method found*/
+        return NULL;
+    found_size = e - first_line;
+    if ((buf = ci_buffer_alloc(found_size + 1))) {
+        memcpy(buf, first_line, found_size);
+        buf[found_size] = '\0';
+    }
+    return buf;
+}
+
+void free_http_req_method(ci_request_t *req, void *data)
+{
+    if (data)
+        ci_buffer_free(data);
+}
 
 void *get_data_type(ci_request_t *req, char *param){
     int type, isenc;

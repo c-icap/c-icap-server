@@ -486,6 +486,18 @@ RemoteProxyUserHeaderEncoded on
 #			A - Saturday
 #		acl http_client_ip ip1[/netmask1] ...
 #		     The HTTP client ip address, if it is available.
+#		acl http_req_line value1 ...
+#		     The first line of HTTP request
+#		     The values are in regex form: /avalue/flags
+#		acl http_resp_line value1 ...
+#		     The first line of HTTP response
+#		     The values are in regex form: /avalue/flags
+#		acl http_req_url value1 ...
+#		     The HTTP request url without GET request arguments
+#		     The values are in regex form: /avalue/flags
+#		acl http_req_method value1 ...
+#		     The HTTP request method
+
 # Default:
 #	None set
 # Examples:
