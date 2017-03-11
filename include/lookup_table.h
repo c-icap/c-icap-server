@@ -35,8 +35,8 @@ extern "C"
  \ingroup API
  \brief Macros, functions and structures used to implement and use lookup tables
  *
- * Lookup tables can considered as simple read only databases where the user can 
- * search a set of values using a key
+ * Lookup tables can considered as simple read only databases where the user
+ * can search a set of values using a key
  */
 
 
@@ -80,7 +80,8 @@ CI_DECLARE_FUNC(const struct ci_lookup_table_type *) ci_lookup_table_type_search
  * \brief Create a lookup table
  * \ingroup LOOKUPTABLE
  * 
- \param table The path of the lookup table (eg file:/etc/c-icap/users.txt or ldap://hostname/o=base?cn,uid?uid=chtsanti)
+ \param table The path of the lookup table (eg file:/etc/c-icap/users.txt or
+ *            ldap://hostname/o=base?cn,uid?uid=chtsanti)
  \return A pointer to  a lookup table object
  */
 CI_DECLARE_FUNC(struct ci_lookup_table *) ci_lookup_table_create(const char *table);
@@ -106,7 +107,8 @@ CI_DECLARE_FUNC(void *) ci_lookup_table_open(struct ci_lookup_table *table);
  *
  * \param table The lookup table object
  * \param key The key value to search for
- * \param vals In this variable stored a 2d array which contains the return values 
+ * \param vals In this variable stored a 2d array which contains the return
+ *            values 
  * \return NULL if none object matches, pointer to the object key value.
  */
 CI_DECLARE_FUNC(const char *) ci_lookup_table_search(struct ci_lookup_table *table, const char *key, char ***vals);
@@ -124,8 +126,10 @@ CI_DECLARE_FUNC(void)  ci_lookup_table_release_result(struct ci_lookup_table *ta
  *
  * \param table The lookup table object
  * \param key The key value to search for
- * \param columns NULL terminated array with the names of the columns to retrieve.
- * \param vals In this variable stored a 2d array which contains the requested row
+ * \param columns NULL terminated array with the names of the columns to
+ *                retrieve.
+ * \param vals In this variable stored a 2d array which contains the
+ *             requested row
  * \return NULL if none object matches, pointer to the object key value.
  */
 

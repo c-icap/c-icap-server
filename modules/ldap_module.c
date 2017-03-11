@@ -260,9 +260,7 @@ static LDAP *ldap_connection_open(struct ldap_connections_pool *pool)
   char *ldap_user;
   if (ci_thread_mutex_lock(&pool->mutex)!=0)
       return NULL;
-#ifdef LDAP_MAX_CONNECTIONS
   do {
-#endif
       if (pool->inactive) {
 	  conn = pool->inactive;
 	  pool->inactive = pool->inactive->next;
@@ -284,6 +282,7 @@ static LDAP *ldap_connection_open(struct ldap_connections_pool *pool)
       }
   } while(pool->connections >= pool->max_connections);
 #else
+  } while(0);
   ci_thread_mutex_unlock(&pool->mutex);
 #endif
 
@@ -646,7 +645,7 @@ int create_filter(char *filter,int size, char *frmt,char *key)
 	if (*s == '%' && *(s+1) == 's') {
 	    k = key;
 	    while (i < size && *k != '\0' ) {
-		*o=*k;
+		*o = *k;
 		o++;
 		k++;
 		i++;

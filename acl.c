@@ -306,10 +306,24 @@ struct acl_time_data {
 
 void *acl_time_dup(const char *str, ci_mem_allocator_t *allocator)
 {
-    struct {const char *day; int id;} days[] = {
-        {"Sunday", 0}, {"Monday", 1}, {"Tuesday", 2}, {"Wednesday", 3},
-        {"Thursday", 4}, {"Friday", 5}, {"Saturday", 6},
-        {"S", 0}, {"M", 1}, {"T", 2}, {"W", 3}, {"H", 4}, {"F", 5}, {"A", 6},
+    struct {
+        const char *day;
+        int id;
+    } days[] = {
+        {"Sunday", 0},
+        {"Monday", 1},
+        {"Tuesday", 2},
+        {"Wednesday", 3},
+        {"Thursday", 4},
+        {"Friday", 5},
+        {"Saturday", 6},
+        {"S", 0},
+        {"M", 1},
+        {"T", 2},
+        {"W", 3},
+        {"H", 4},
+        {"F", 5},
+        {"A", 6},
         {NULL, -1}
     };
     int h1, m1, h2, m2, i;

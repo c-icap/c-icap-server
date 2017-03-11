@@ -79,11 +79,13 @@ typedef struct ci_cache{
 /**
  * Builds a cache and return a pointer to the ci_cache_t object
  \ingroup CACHE
- \param cache_type The cache type to use. If the cache type not found return a cache object of type "local"
+ \param cache_type The cache type to use. If the cache type not found return
+ *      a cache object of type "local"
  \param cache_size The size of the cache
  \param max_object_size The maximum object size to store in cache
  \param ttl The ttl value for cached items in this cache
- \param key_ops If not null, the ci_types_ops_t object to use for comparing keys. By default keys are considered as c strings.
+ \param key_ops If not null, the ci_types_ops_t object to use for comparing
+ *              keys. By default keys are considered as c strings.
  */
 CI_DECLARE_FUNC(ci_cache_t *) ci_cache_build( const char *name,
                                               const char *cache_type,
@@ -101,8 +103,10 @@ CI_DECLARE_FUNC(ci_cache_t *) ci_cache_build( const char *name,
  \param cache Pointer to the ci_cache_t object
  \param key Pointer to the key to search for
  \param val Pointer to store the pointer of returned value
- \param data Pointer to void object which will be passed to dup_from_cache function
- \param dup_from_cache Pointer to function which will be used to allocate memory and copy the stored value.
+ \param data Pointer to void object which will be passed to dup_from_cache
+ *           function
+ \param dup_from_cache Pointer to function which will be used to allocate
+ *                     memory and copy the stored value.
  */
 CI_DECLARE_FUNC(const void *) ci_cache_search(ci_cache_t *cache, const void *key, void **val, void *data, void *(*dup_from_cache)(const void *stored_val, size_t stored_val_size, void *data));
 
@@ -113,7 +117,8 @@ CI_DECLARE_FUNC(const void *) ci_cache_search(ci_cache_t *cache, const void *key
  \param key The key of the stored object
  \param val Pointer to the object to be stored
  \param val_size The size of the object to be stored
- \param copy_to_cache The function to use to copy object to cache. If it is NULL the memcpy is used.
+ \param copy_to_cache The function to use to copy object to cache.
+ *                    If it is NULL the memcpy is used.
  */
 CI_DECLARE_FUNC(int) ci_cache_update(ci_cache_t *cache, const void *key, const void *val, size_t val_size, void *(*copy_to_cache)(void *buf, const void *val, size_t buf_size));
 

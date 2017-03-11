@@ -166,8 +166,7 @@ static struct ci_conf_entry conf_variables[] = {
      {"MaxSpareThreads", &CI_CONF.MAX_SPARE_THREADS, intl_cfg_set_int, NULL},
      {"ThreadsPerChild", &CI_CONF.THREADS_PER_CHILD, intl_cfg_set_int, NULL},
      {"MaxRequestsPerChild", &MAX_REQUESTS_PER_CHILD, intl_cfg_set_int, NULL},
-     {"MaxRequestsReallocateMem", &MAX_REQUESTS_BEFORE_REALLOCATE_MEM,
-      intl_cfg_set_int, NULL},
+     {"MaxRequestsReallocateMem", &MAX_REQUESTS_BEFORE_REALLOCATE_MEM, intl_cfg_set_int, NULL},
      {"Port", &CI_CONF.PORTS, cfg_set_port, NULL},
 #ifdef USE_OPENSSL
      {"TlsPort", &CI_CONF.PORTS, cfg_set_port, NULL},

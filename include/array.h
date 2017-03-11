@@ -150,7 +150,7 @@ CI_DECLARE_FUNC(void) ci_array_iterate(const ci_array_t *array, void *data, int 
  \param pos The position of the item in array
  \return a pointer to the array item on success, NULL otherwise
  */
-CI_DECLARE_FUNC(const ci_array_item_t *)ci_array_get_item(ci_array_t *array, int pos);
+CI_DECLARE_FUNC(const ci_array_item_t *) ci_array_get_item(ci_array_t *array, int pos);
 
 /**
  \defgroup STR_ARRAYS   Arrays of strings related API
@@ -163,9 +163,10 @@ CI_DECLARE_FUNC(const ci_array_item_t *)ci_array_get_item(ci_array_t *array, int
  \ingroup STR_ARRAYS
  * An alias to the ci_array_t object. It is used to store items with string
  * values to an array.
- * The ci_str_array_new, ci_str_array_destroy, ci_str_array_add, ci_str_array_search
- * and ci_str_array_iterate defines are similar to the equivalent ci_array_* 
- * functions with the required typecasting to work with strings.
+ * The ci_str_array_new, ci_str_array_destroy, ci_str_array_add,
+ * ci_str_array_search and ci_str_array_iterate defines are similar to
+ * the equivalent ci_array_* functions with the required typecasting to
+ * work with strings.
  */
 typedef ci_array_t ci_str_array_t;
 #define ci_str_array_new ci_array_new
@@ -260,8 +261,9 @@ CI_DECLARE_FUNC(void *) ci_ptr_array_search(ci_ptr_array_t *array, const char *n
  * Add an name/value pair item to the ci_ptr_array_t object.
  \ingroup PTR_ARRAYS
  \param ptr_array a pointer to the ci_ptr_array_t object
- \ param name the name part of the name/value pair item to be added
- \ param value a pointer to the value part of the name/value pair item to be added
+ \param name the name part of the name/value pair item to be added
+ \param value a pointer to the value part of the name/value pair item to be
+ *      added
  \return a pointer to the new array item on success, NULL otherwise
  *
  */
@@ -279,7 +281,8 @@ CI_DECLARE_FUNC(const ci_array_item_t *) ci_ptr_array_pop(ci_ptr_array_t *ptr_ar
  * Pop and delete the last item of a  ci_ptr_array_t object.
  \ingroup PTR_ARRAYS
  \param ptr_array a pointer to the ci_ptr_array_t object
- \param name a pointer to a buffer where the name of the poped item will be store, or NULL
+ \param name a pointer to a buffer where the name of the poped item will be
+ *      store, or NULL
  \param name_size the size of name buffer
  \return a pointer to the value of the popped item
 */
@@ -391,7 +394,8 @@ CI_DECLARE_FUNC(const void *) ci_dyn_array_search(ci_dyn_array_t *array, const c
  \ingroup DYNAMIC_ARRAYS
  \param array a pointer to the ci_dyn_array_t object
  \param data a pointer to data which will be passed on fn function
- \param fn a pointer to the function which will be run for each array item.  The iteration will stop if the fn function return non zero value.
+ \param fn a pointer to the function which will be run for each array item.
+ *      The iteration will stop if the fn function return non zero value.
  */
 CI_DECLARE_FUNC(void) ci_dyn_array_iterate(const ci_dyn_array_t *array, void *data, int (*fn)(void *data, const char *name, const void *));
 
@@ -484,7 +488,8 @@ CI_DECLARE_FUNC(void *) ci_vector_add(ci_vector_t *vector, const void *obj, size
  \ingroup VECTORS
  \param vector a pointer to the ci_vector_t object
  \param data a pointer to data which will be passed to the fn function
- \param fn a pointer to the function which will be run for each vector item. The iteration will stop if the fn function return non zero value.
+ \param fn a pointer to the function which will be run for each vector item.
+ *      The iteration will stop if the fn function return non zero value.
  */
 CI_DECLARE_FUNC(void) ci_vector_iterate(const ci_vector_t *vector, void *data, int (*fn)(void *data, const void *));
 
@@ -535,7 +540,8 @@ typedef ci_vector_t ci_str_vector_t;
  \ingroup STR_VECTORS
  \param vector a pointer to the ci_vector_t object
  \param data a pointer to data which will be passed to the fn function
- \param fn a pointer to the function which will be run for each string vector item. The iteration will stop if the fn function return non zero value.
+ \param fn a pointer to the function which will be run for each string vector
+ *      item. The iteration will stop if the fn function return non zero value.
  */
 CI_DECLARE_FUNC(void) ci_str_vector_iterate(const ci_str_vector_t *vector, void *data, int (*fn)(void *data, const char *));
 
@@ -592,8 +598,8 @@ typedef struct ci_list_item{
  \ingroup LISTS
  * The ci_list_t objects can store a list of objects, with a predefined size.
  * The list items can be removed.
- * The memory RAM space of list can not be decreased before the ci_list destroyed.
- * However the memory of removed items reused.
+ * The memory RAM space of list can not be decreased before the
+ * ci_list destroyed. However the memory of removed items reused.
  */
 typedef struct ci_list {
     ci_list_item_t *items;
@@ -613,7 +619,8 @@ typedef struct ci_list {
  * Allocate the required memory and initialize a ci_list_t object 
  \ingroup LISTS
  \param init_size the initial memory size to use
- \param obj_size the size of stored objects. If it is 0 then stores pointers to objects.
+ \param obj_size the size of stored objects. If it is 0 then stores pointers
+ *      to objects.
  \return the allocated object on success, or NULL on failure
  */
 CI_DECLARE_FUNC(ci_list_t *) ci_list_create(size_t init_size, size_t obj_size);
@@ -621,7 +628,8 @@ CI_DECLARE_FUNC(ci_list_t *) ci_list_create(size_t init_size, size_t obj_size);
 /**
  \def ci_list_first(ci_list_t *list)
  * Gets the first item of the list and updates the list cursor to the next item.
- * WARNING: do not mix this macro with ci_list_iterate. Use the ci_list_head/ci_list_tail macros instead
+ * WARNING: do not mix this macro with ci_list_iterate. Use the ci_list_head
+ * and ci_list_tail macros instead
  \ingroup LISTS
  \param list  a pointer to the ci_list_t object
  \return The first item if exist, NULL otherwise
@@ -631,7 +639,8 @@ CI_DECLARE_FUNC(ci_list_t *) ci_list_create(size_t init_size, size_t obj_size);
 
 /**
  \def ci_list_next()
- * Return the next item of the list and updates the list cursor to the next item.
+ * Return the next item of the list and updates the list cursor to the next
+ * item.
  * WARNING: It does not check for valid list object.
  * WARNING: do not mix this macro with ci_list_iterate!
  \ingroup LISTS
@@ -667,7 +676,8 @@ CI_DECLARE_FUNC(ci_list_t *) ci_list_create(size_t init_size, size_t obj_size);
  \ingroup LISTS
  \param list a pointer to the ci_list_t object
  \param data a pointer to data which will be passed to the fn function
- \param fn a pointer to the function which will be run for each vector item. The iteration will stop if the fn function return non zero value.
+ \param fn a pointer to the function which will be run for each vector item.
+ *      The iteration will stop if the fn function return non zero value.
  */
 CI_DECLARE_FUNC(void) ci_list_iterate(ci_list_t *list, void *data, int (*fn)(void *data, const void *obj));
 
@@ -726,7 +736,8 @@ CI_DECLARE_FUNC(int) ci_list_remove(ci_list_t *list, const void *obj);
 CI_DECLARE_FUNC(const void *) ci_list_search(ci_list_t *list, const void *data);
 
 /**
- * Return the first found item equal to the obj, using the cmp_func as comparison function.
+ * Return the first found item equal to the obj, using the cmp_func as
+ * comparison function.
  \ingroup LISTS
  \param list a pointer to the ci_list_t object
  \param obj pointer to an object to remove

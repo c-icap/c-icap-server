@@ -65,8 +65,8 @@ const char *ci_encaps_entity_string(int e);
  \typedef ci_headers_list_t
  \ingroup HEADERS
  * This is a struct which can store a set of headers.
- * The developers should not touch ci_headers_list_t objects directly but better use the
- * documented macros and functions
+ * The developers should not touch ci_headers_list_t objects directly but
+ * they should use the documented macros and functions
  */
 typedef struct ci_headers_list{
      int size;
@@ -108,7 +108,7 @@ CI_DECLARE_FUNC(ci_headers_list_t *) ci_headers_create();
  \param heads is a pointer to the ci_headers_list_t object to be destroyed
  *
  */
-CI_DECLARE_FUNC(void)    ci_headers_destroy(ci_headers_list_t *heads);
+CI_DECLARE_FUNC(void) ci_headers_destroy(ci_headers_list_t *heads);
 
 /**
  * Resets and initialize a ci_headers_list_t object
@@ -116,14 +116,15 @@ CI_DECLARE_FUNC(void)    ci_headers_destroy(ci_headers_list_t *heads);
  \param heads pointer to the ci_headers_list_t object to be reset
  *
  */
-CI_DECLARE_FUNC(void)    ci_headers_reset(ci_headers_list_t *heads);
+CI_DECLARE_FUNC(void) ci_headers_reset(ci_headers_list_t *heads);
 
-CI_DECLARE_FUNC(int)     ci_headers_setsize(ci_headers_list_t *heads, int size);
+CI_DECLARE_FUNC(int) ci_headers_setsize(ci_headers_list_t *heads, int size);
 
 /**
  * Add a header to a ci_headers_list_t object
  \ingroup HEADERS
- \param heads is a pointer to the ci_headers_list_t object in which the header will be added
+ \param heads is a pointer to the ci_headers_list_t object in which the header
+ *      will be added
  \param header is the header to be added
  \return Pointer to the newly add header on success, NULL otherwise
  *
@@ -133,16 +134,18 @@ CI_DECLARE_FUNC(int)     ci_headers_setsize(ci_headers_list_t *heads, int size);
  \endcode
  *
  */
-CI_DECLARE_FUNC(const char *)  ci_headers_add(ci_headers_list_t *heads, const char *header);
+CI_DECLARE_FUNC(const char *) ci_headers_add(ci_headers_list_t *heads, const char *header);
 
 /**
  * Append a  headers list object to an other headers list
  \ingroup HEADERS
- \param heads is a pointer to the ci_headers_list_t object in which the headers will be added
- \param someheaders is a ci_headers_list_t object which contains the headers will be added to the heads
+ \param heads is a pointer to the ci_headers_list_t object in which the
+ *      headers will be added
+ \param someheaders is a ci_headers_list_t object which contains the headers
+ *      will be added to the heads
  \return non zero on success zero otherwise
  */
-CI_DECLARE_FUNC(int)  ci_headers_addheaders(ci_headers_list_t *heads,const ci_headers_list_t *someheaders);
+CI_DECLARE_FUNC(int) ci_headers_addheaders(ci_headers_list_t *heads,const ci_headers_list_t *someheaders);
 
 /**
  * Removes a header from a header list
@@ -157,21 +160,23 @@ CI_DECLARE_FUNC(int)  ci_headers_addheaders(ci_headers_list_t *heads,const ci_he
  \endcode
  *
  */
-CI_DECLARE_FUNC(int)     ci_headers_remove(ci_headers_list_t *heads, const char *header);
+CI_DECLARE_FUNC(int) ci_headers_remove(ci_headers_list_t *heads, const char *header);
 
 /**
  * Search for a header in a header list
  \ingroup HEADERS
  \param heads is a pointer to the ci_headers_list_t object
  \param header is the name of the header
- \return a pointer to the start of the first occurrence of the header on success, NULL otherwise
+ \return a pointer to the start of the first occurrence of the header on
+ *       success, NULL otherwise
  *
  *example usage:
  \code
  char *head;
  head=ci_headers_search(heads,"Content-Length")
  \endcode
- * In this example on success the head pointer will point to a \em "Content-Lenght: 1025" string
+ * In this example on success the head pointer will point to a 
+ * \em "Content-Lenght: 1025" string
  *
  */
 CI_DECLARE_FUNC(const char *)  ci_headers_search(ci_headers_list_t *heads, const char *header);
@@ -184,7 +189,8 @@ CI_DECLARE_FUNC(const char *)  ci_headers_search(ci_headers_list_t *heads, const
 CI_DECLARE_FUNC(const char *) ci_headers_search2(ci_headers_list_t * h, const char *header, size_t *return_size);
 
 /**
- * Search for a header in a header list and return the value of the first occurrence of this header
+ * Search for a header in a header list and return the value of the first
+ * occurrence of this header
  \ingroup HEADERS
  \param heads is a pointer to the ci_headers_list_t object
  \param header is the name of the header
@@ -199,7 +205,7 @@ CI_DECLARE_FUNC(const char *) ci_headers_search2(ci_headers_list_t * h, const ch
  \endcode
  *
  */
-CI_DECLARE_FUNC(const char *)  ci_headers_value(ci_headers_list_t *heads, const char *header);
+CI_DECLARE_FUNC(const char *) ci_headers_value(ci_headers_list_t *heads, const char *header);
 
 /**
  * Similar to ci_headers_search but also sets to a parameter the size of
@@ -234,8 +240,10 @@ CI_DECLARE_FUNC(const char *) ci_headers_copy_value(ci_headers_list_t *heads, co
  * Run the given function for each header name/value pair
  \ingroup HEADERS
  \param heads is a pointer to the ci_headers_list_t object
- \param data is a pointer to data which will passed as first argument to the fn function
- \param fn is a pointer to a function which will run for each header name/value pair.
+ \param data is a pointer to data which will passed as first argument to the
+ *      fn function
+ \param fn is a pointer to a function which will run for each header
+ *      name/value pair.
  \return non zero on success, zero otherwise
  */
 CI_DECLARE_FUNC(int) ci_headers_iterate(ci_headers_list_t *heads, void *data, void (*fn)(void *data, const char  *header_name, const char  *header_value));
@@ -248,7 +256,8 @@ CI_DECLARE_FUNC(int) ci_headers_iterate(ci_headers_list_t *heads, void *data, vo
  \param heads is a pointer to the ci_headers_list_t object
  \param buf the buffer to store data.
  \param size the size of buffer.
- \return the size of written data, or zero if the headers does not fit to buffer.
+ \return the size of written data, or zero if the headers does not fit to
+ *       buffer.
  */
 CI_DECLARE_FUNC(size_t) ci_headers_pack_to_buffer(ci_headers_list_t *heads, char *buf, size_t size);
 

@@ -107,9 +107,9 @@ struct ci_ring_buf;
 /**
    \typedef ci_request_t
    \ingroup REQUEST
-   * This is the struct which holds all the data which represent an ICAP request. The
-   * developers should not access directly the fields of this struct but better use
-   * the documented macros and functions
+   * This is the struct which holds all the data which represent an ICAP
+   * request. The developers should not access directly the fields of
+   * this struct but better use the documented macros and functions
 */
 typedef struct ci_request{
      ci_connection_t *connection;
@@ -238,18 +238,22 @@ CI_DECLARE_FUNC(int)          ci_client_icapfilter(ci_request_t *req,
 
 /**
  \ingroup ICAPCLIENT
- * Function to send HTTP objects to an ICAP server for processing. It sends the HTTP request
- * headers sent to the HTTP server, and the HTTP response from HTTP server (HTTP response
- * headers plus body data), and receives modified HTTP headers and HTTP body data.
+ * Function to send HTTP objects to an ICAP server for processing. It sends
+ * the HTTP request headers, and the HTTP response from HTTP server (headers
+ * plus body data), and receives modified HTTP response headers and body data.
  \param req The ci_request_t object.
- \param io_action is a combination set of ci_wait_for_read and ci_wait_for_write flags. It has the meaning that the ci_client_icapfilter_nonblocking can read from or write to ICAP server.
+ \param io_action is a combination set of ci_wait_for_read and
+ *      ci_wait_for_write flags. It has the meaning that the
+ *      ci_client_icapfilter_nonblocking can read from or write to ICAP server.
  \param req_headers The HTTP request headers to use.
  \param resp_headers The HTTP response headers to use.
  \param data_source User data to use with source_read callback function.
  \param source_read Callback function to use for reading HTTP object body data.
  \param data_dest User data to use with dest_write callback function.
  \param dest_write Callback function to use for storing modified body data.
- \return combination of the following flags: NEEDS_TO_READ_FROM_ICAP, NEEDS_TO_WRITE_TO_ICAP, NEEDS_TO_READ_USER_DATA and NEEDS_TO_WRITE_USER_DATA.
+ \return combination of the following flags: NEEDS_TO_READ_FROM_ICAP,
+ *       NEEDS_TO_WRITE_TO_ICAP, NEEDS_TO_READ_USER_DATA and
+ *       NEEDS_TO_WRITE_USER_DATA.
  */
 CI_DECLARE_FUNC(int) ci_client_icapfilter_nonblocking(ci_request_t * req, int io_action,
                                                       ci_headers_list_t * req_headers,

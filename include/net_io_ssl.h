@@ -74,13 +74,15 @@ CI_DECLARE_FUNC(void) ci_tls_init();
 
 /**
  \ingroup TLS
- \brief Deinitializes c-icap tls subsystem. Normally called on shutdown to clean-up.
+ \brief Deinitializes c-icap tls subsystem. Normally called on shutdown to
+ *      clean-up.
  */
 CI_DECLARE_FUNC(void) ci_tls_cleanup();
 
 /**
  \ingroup TLS
  \brief Create a context based on given opts
+ *
  * A context can be used to open more than one connections to a TLS server.
  */
 CI_DECLARE_FUNC(SSL_CTX *) ci_tls_create_context(ci_tls_client_options_t *opts);
@@ -92,7 +94,8 @@ CI_DECLARE_FUNC(SSL_CTX *) ci_tls_create_context(ci_tls_client_options_t *opts);
  \param p The port number to use
  \param proto One of AF_INET, AF_INET6
  \param ctx The context object to use
- \return NULL on failures the ci_connection_t object which can be used with various ci_connection_*  api functions on success.
+ \return NULL on failures the ci_connection_t object which can be used
+ *       with various ci_connection_*  api functions on success.
  */
 CI_DECLARE_FUNC(ci_connection_t*) ci_tls_connect(const char *servername, int port, int proto, SSL_CTX *ctx, int timeout);
 
@@ -100,14 +103,15 @@ CI_DECLARE_FUNC(ci_connection_t*) ci_tls_connect(const char *servername, int por
 /**
  \ingroup TLS
  \brief The non-blocking version of ci_tls_connect function
- \return -1 on error, 1 when connection is established or 0 if should be called again.
+ \return -1 on error, 1 when connection is established or 0 if should be
+ *       called again.
  *
- * To establish a connection required more than one calls to ci_tls_connect_nonblock. The
- * user should monitor the connection->fd file descriptor for events in order to call
- * again ci_tls_connect_nonblock.
- * If it is used with a custom monitor of file descriptors event, it should be used with
- * ci_connection_should_read_tls/ci_connection_should_write_tls functions. In this case it
- * should be used as follows:
+ * To establish a connection required more than one calls to
+ * ci_tls_connect_nonblock. The user should monitor the connection->fd
+ * file descriptor for events in order to call again ci_tls_connect_nonblock.
+ * If it is used with a custom monitor of file descriptors event, it should
+ * be used with ci_connection_should_read_tls/ci_connection_should_write_tls
+ * functions. In this case it should be used as follows:
  \code
            ci_connection_t *connection = ci_connection_create();
            int ret = ci_tls_connect_nonblock(connection, servername, port, proto, use_ctx);
@@ -141,7 +145,8 @@ CI_DECLARE_FUNC(int) ci_connection_should_read_tls(ci_connection_t *connection);
 /**
  \ingroup TLS
  \brief The TLS subsystem wants to write data to the connection
- \return -1 on non TLS connection or error, 1 if wants to write data, 0 otherwise
+ \return -1 on non TLS connection or error, 1 if wants to write data,
+ *       0 otherwise
  */
 CI_DECLARE_FUNC(int) ci_connection_should_write_tls(ci_connection_t *connection);
 

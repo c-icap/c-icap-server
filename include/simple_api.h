@@ -32,8 +32,8 @@ extern "C"
 /**
  \defgroup HTTP API for HTTP object manipulation
  \ingroup API
- * Macros, functions and structures used for manipulating the encupsulated HTTP objects 
- * (HTTP requests or HTTP responses).
+ * Macros, functions and structures used for manipulating the encupsulated 
+ * HTTP objects (HTTP requests or HTTP responses).
  */
 
 /**
@@ -46,8 +46,8 @@ extern "C"
 /**
  \def ci_req_lock_data(ci_request_t)
  \ingroup REQUEST
- * Lock a ci_request_t object. After called the c-icap server stops sending body data
- * to the ICAP client.
+ * Lock a ci_request_t object. After called the c-icap server stops sending
+ * body data to the ICAP client.
  \param req is pointer to an object of type ci_request_t
  */
 #define ci_req_lock_data(req) ((req)->data_locked=1)
@@ -55,8 +55,8 @@ extern "C"
 /**
  \def ci_req_unlock_data(ci_request_t)
  \ingroup REQUEST
- * Unlock a ci_request_t object. When called the c-icap server will start sending body data 
- * to the ICAP client.
+ * Unlock a ci_request_t object. When called the c-icap server will start
+ * sending body data to the ICAP client.
  \param req is pointer to an object of type ci_request_t
  */
 #define ci_req_unlock_data(req) ((req)->data_locked=0)
@@ -72,8 +72,8 @@ extern "C"
 /**
  \def ci_req_type(ci_request_t) 
  \ingroup REQUEST
- \return  ICAP_OPTIONS, ICAP_REQMOD or ICAP_RESPMOD if the ICAP request is options, 
- * request modification or response modification ICAP request
+ \return  ICAP_OPTIONS, ICAP_REQMOD or ICAP_RESPMOD if the ICAP request is
+ * options, request modification or response modification ICAP request
  */
 #define ci_req_type(req) ((req)->type)
 
@@ -91,7 +91,7 @@ extern "C"
  \param req  is pointer to an object of type ci_request_t
  \return True (non zero int) if the ICAP request supports "Allow 204"
  */
-#define ci_req_allow204(req)    ((req)->allow204)
+#define ci_req_allow204(req) ((req)->allow204)
 
 /**
  \def ci_req_allow206(ci_request_t) 
@@ -99,15 +99,16 @@ extern "C"
  \param req  is pointer to an object of type ci_request_t
  \return True (non zero int) if the ICAP request supports "Allow 206"
  */
-#define ci_req_allow206(req)    ((req)->allow206)
+#define ci_req_allow206(req) ((req)->allow206)
 
 /**
  \def ci_req_allow206_outside_preview(ci_request_t) 
  \ingroup REQUEST
  \param req  is pointer to an object of type ci_request_t
- \return True (non zero int) if the ICAP request supports "Allow 206" outside preview requests
+ \return True (non zero int) if the ICAP request supports "Allow 206" outside
+ *       preview requests
  */
-#define ci_req_allow206_outside_preview(req)    ((req)->allow206 && (req)->allow204)
+#define ci_req_allow206_outside_preview(req) ((req)->allow206 && (req)->allow204)
 
 
 /**
@@ -122,8 +123,8 @@ extern "C"
  \def ci_req_hasalldata(ci_request_t) 
  \ingroup REQUEST
  \param req is pointer to an object of type ci_request_t
- \return True (non zero int) if the ICAP client has sent all the data (headers and body data) 
- * to the ICAP server
+ \return True (non zero int) if the ICAP client has sent all the data 
+ *       (headers and body data) to the ICAP server
  */
 #define ci_req_hasalldata(req)((req)->eof_received)
 
@@ -136,7 +137,7 @@ extern "C"
  \param len    is the length of the result buffer
  \return the number of decoded bytes
  */
-CI_DECLARE_FUNC(int)                ci_base64_decode(const char *str,char *result,int len);
+CI_DECLARE_FUNC(int) ci_base64_decode(const char *str,char *result,int len);
 
 /**
  * Produces a base64 encoded string.
@@ -166,7 +167,8 @@ enum {
  \param buf   is a buffer which holds the zipped data
  \param len is the length of the buffer buf
  \param unzipped_buf  is the buffer where to store unzipped data
- \param unzipped_buf_len  is the length of the buffer to store unzipped data, and updated with the length of unzipped data
+ \param unzipped_buf_len  is the length of the buffer to store unzipped data,
+ *      and updated with the length of unzipped data
  \return CI_OK on success CI_ERROR on error
  */
 CI_DECLARE_FUNC(int) ci_uncompress_preview(int compress_method, const char *buf, int len, char *unzipped_buf, int *unzipped_buf_len);
@@ -192,14 +194,16 @@ struct ci_membuf;
 struct ci_simple_file;
 
 /**
- * Uncompress deflate/gzip compressed data and writes the output to the outbuf object
+ * Uncompress deflate/gzip compressed data and writes the output to the outbuf
+ * object
  \ingroup UTILITY
  *
  \param inbuf   is a buffer which holds the zipped data
  \param inlen is the length of the buffer buf
  \param outbuf where to put unzipped data
  \param max_size if it is greater than zero, the output data limit
- \return CI_UNCOMP_OK on success, CI_UNCOMP_ERR_NONE, if maxsize exceed, an CI_UNCOMPRESS_ERRORS code otherwise
+ \return CI_UNCOMP_OK on success, CI_UNCOMP_ERR_NONE, if maxsize exceed, an
+ *       CI_UNCOMPRESS_ERRORS code otherwise
  */
 CI_DECLARE_FUNC(int) ci_inflate_to_membuf(const char *inbuf, size_t inlen, struct ci_membuf *outbuf, ci_off_t max_size);
 
@@ -217,7 +221,8 @@ CI_DECLARE_FUNC(int) ci_inflate_to_simple_file(const char *inbuf, size_t inlen, 
  \param inlen is the length of the buffer buf
  \param outbuf where to put unzipped data
  \param max_size if it is greater than zero, the output data limit
- \return CI_UNCOMP_OK on success, CI_UNCOMP_ERR_NONE, if maxsize exceed, an CI_UNCOMPRESS_ERRORS code otherwise
+ \return CI_UNCOMP_OK on success, CI_UNCOMP_ERR_NONE, if maxsize exceed, an
+ *       CI_UNCOMPRESS_ERRORS code otherwise
  */
 CI_DECLARE_FUNC(int) ci_bzunzip_to_membuf(const char *inbuf, size_t inlen, struct ci_membuf *outbuf, ci_off_t max_size);
 
@@ -232,10 +237,11 @@ CI_DECLARE_FUNC(int) ci_bzunzip_to_simple_file(const char *inbuf, size_t inlen, 
  \ingroup UTILITY
  *
  \param str is a buffer which holds the base64 encoded data
- \return a pointer to the decoded string. It uses malloc to allocate space for the 
- * decoded string so the free function should used to release allocated memory.
+ \return a pointer to the decoded string. It uses malloc to allocate space for
+ *       the decoded string so the free function should used to release the
+ *       allocated memory.
  */
-CI_DECLARE_FUNC(char *)             ci_base64_decode_dup(const char *str);
+CI_DECLARE_FUNC(char *) ci_base64_decode_dup(const char *str);
 
 /**
  */
@@ -243,9 +249,9 @@ CI_DECLARE_FUNC(char *)             ci_base64_decode_dup(const char *str);
  * Returns the HTTP response headers.
  \ingroup HTTP
  *
- * This function is only valid for an ICAP responce modification request. If the ICAP request is not
- * responce modification ICAP request or there are not response headers (HTTP 0.9) 
- * the function returns NULL.
+ * This function is only valid for an ICAP responce modification request. If
+ * the ICAP request is not responce modification ICAP request or there are
+ * not response headers (HTTP 0.9) the function returns NULL.
  \param req A pointer to the current ICAP request object.
  \return Pointer to the HTTP response headers or NULL.
  */
@@ -255,8 +261,8 @@ CI_DECLARE_FUNC(ci_headers_list_t *) ci_http_response_headers(ci_request_t *req)
  \ingroup HTTP
  \brief Returns the HTTP request headers.
  *
- * This function can used for an responce or request modification ICAP request to get
- * the HTTP request headers
+ * This function can used for an responce or request modification ICAP request
+ * to get the HTTP request headers
  \param req is a pointer to the current ICAP request object.
  \return Pointer to the HTTP request headers or NULL if fails.
  */
@@ -266,115 +272,120 @@ CI_DECLARE_FUNC(ci_headers_list_t *) ci_http_request_headers(ci_request_t *req);
  \ingroup HTTP
  \brief Add a custom header to the HTTP response headers.
  *
- * This function can used to add custom headers to the HTTP response and can be used only 
- * for response modification ICAP requests
+ * This function can used to add custom headers to the HTTP response and can
+ * be used only for response modification ICAP requests
  \param req is a pointer to the current ICAP request object.
  \param header is a string contains the header in the form "Header: value"
  \return Pointer to the header or NULL if fails.
  */
-CI_DECLARE_FUNC(const char *)              ci_http_response_add_header(ci_request_t *req,const char *header);
+CI_DECLARE_FUNC(const char *) ci_http_response_add_header(ci_request_t *req,const char *header);
 
 /**
  \ingroup HTTP
  \brief Add a custom header to the HTTP request headers.
  *
- * This function can used to add custom headers to the HTTP request and can be used only 
- * for request modification ICAP requests
+ * This function can used to add custom headers to the HTTP request and can be
+ * used only for request modification ICAP requests
  \param req is a pointer to the current ICAP request object.
  \param header is a string contains the header in the form "Header: value"
  \return Pointer to the header or NULL if fails.
  */
-CI_DECLARE_FUNC(const char *)              ci_http_request_add_header(ci_request_t *req,const char *header);
+CI_DECLARE_FUNC(const char *) ci_http_request_add_header(ci_request_t *req,const char *header);
 
 /**
  \ingroup HTTP
  \brief Remove a header from the HTTP response headers.
  *
- * This function can used to remove a header from the HTTP response and can be used only 
- * for response modification ICAP requests
+ * This function can used to remove a header from the HTTP response and can be
+ * used only for response modification ICAP requests
  \param req is a pointer to the current ICAP request object.
  \param header is a string contains the header name
  \return Non zero if success or zero otherwise
  */
-CI_DECLARE_FUNC(int)                 ci_http_response_remove_header(ci_request_t *req, const char *header);
+CI_DECLARE_FUNC(int) ci_http_response_remove_header(ci_request_t *req, const char *header);
 
 /**
  \ingroup HTTP
  \brief Remove a header from the HTTP request headers.
  *
- * This function can used to remove a header from the HTTP request and can be used only 
- * for request modification ICAP requests
+ * This function can used to remove a header from the HTTP request and can be
+ * used only for request modification ICAP requests
  \param req is a pointer to the current ICAP request object.
  \param header is a string contains the header name
  \return Non zero if success or zero otherwise
  */
-CI_DECLARE_FUNC(int)                 ci_http_request_remove_header(ci_request_t *req, const char *header);
+CI_DECLARE_FUNC(int) ci_http_request_remove_header(ci_request_t *req, const char *header);
 
 /**
  \ingroup HTTP
  \brief Get the value of the requested header from the HTTP response headers.
  *
- * This function can used to get the value of a header from the HTTP response headers. It can be used only 
- * for response modification ICAP requests
+ * This function can used to get the value of a header from the HTTP response
+ * headers. It can be used only for response modification ICAP requests
  \param req is a pointer to the current ICAP request object.
  \param head_name is a string contains the header name
  \return A string with the header value on success NULL otherwise
  */
-CI_DECLARE_FUNC(const char *)              ci_http_response_get_header(ci_request_t *req, const char *head_name);
+CI_DECLARE_FUNC(const char *) ci_http_response_get_header(ci_request_t *req, const char *head_name);
 
 /**
  \ingroup HTTP
  \brief Get the value of the requested header from the HTTP request headers.
  *
- * This function can used to get the value of a header from the HTTP request headers. It can be used 
- * on both request and response modification ICAP requests. 
+ * This function can used to get the value of a header from the HTTP request
+ * headers. It can be used on both request and response modification ICAP
+ * requests. 
  \param req is a pointer to the current ICAP request object.
  \param head_name is a string contains the header name
  \return A string with the header value on success NULL otherwise
  */
-CI_DECLARE_FUNC(const char *)              ci_http_request_get_header(ci_request_t *req, const char *head_name);
+CI_DECLARE_FUNC(const char *) ci_http_request_get_header(ci_request_t *req, const char *head_name);
 
 /**
  \ingroup HTTP
  \brief Completelly erase and initialize the  HTTP response headers.
  *
- * This function is usefull when the full rewrite of the HTTP response required. After this function called,
- * the HTTP response should filled with new HTTP headers, before send back to the ICAP client.
- * An example of usage of this function is in antivirus service when a virus detected in HTTP response, 
- * so the service blocks the response and sends a new HTTP object (a new html page, with HTTP headers) 
- * informing the user about the virus.
+ * This function is usefull when the full rewrite of the HTTP response is 
+ * required. After this function called, the HTTP response should be filled
+ * with new HTTP headers, before send back to the ICAP client.
+ * An example of usage of this function is in antivirus service when a
+ * virus detected in HTTP response, so the service blocks the response and
+ * sends a new HTTP object (a new html page, with HTTP headers) informing 
+ * the user about the virus.
  * It can be used with response modification ICAP requests. 
  \param req is a pointer to the current ICAP request object.
  \return non zero on success zero otherwise
  */
-CI_DECLARE_FUNC(int)                 ci_http_response_reset_headers(ci_request_t *req);
+CI_DECLARE_FUNC(int) ci_http_response_reset_headers(ci_request_t *req);
 
 /**
  \ingroup HTTP
  \brief Completelly erase and initialize the  HTTP request headers.
  *
- * This function is usefull when an HTTP request required should replaced by an other.After this function called,
- * the HTTP request should filled with new HTTP headers, before send back to the ICAP client.
- * It can be used to implement a HTTP redirector.
+ * This function is usefull when an HTTP request required should replaced by
+ * an other.After this function called, the HTTP request should filled with
+ * new HTTP headers, before send back to the ICAP client.
+ * An example use is to implement an HTTP redirector.
  * It can be used with request modification ICAP requests. 
  \param req is a pointer to the current ICAP request object.
  \return non zero on success zero otherwise
  */
-CI_DECLARE_FUNC(int)                 ci_http_request_reset_headers(ci_request_t *req);
+CI_DECLARE_FUNC(int) ci_http_request_reset_headers(ci_request_t *req);
 
 /**
  \ingroup HTTP
  \brief Creates a new HTTP response.
  *
- * This function is usefull when the service wants to respond with a self created message to a response or
- * request modification ICAP request.
+ * This function is usefull when the service wants to respond with a self
+ * created message to a response or request modification ICAP request.
  * It can be used with both request and response modification ICAP requests. 
  \param req is a pointer to the current ICAP request object.
- \param has_reshdr if it is non zero the HTTP response contrains HTTP headers (a non HTTP 0.9 response)
+ \param has_reshdr if it is non zero the HTTP response contrains HTTP headers
+ *      (a non HTTP 0.9 response)
  \param has_body if it is non zero the HTTP response contains HTTP body data
  \return non zero on success zero otherwise
  */
-CI_DECLARE_FUNC(int)                 ci_http_response_create(ci_request_t *req, int has_reshdr ,int has_body);
+CI_DECLARE_FUNC(int) ci_http_response_create(ci_request_t *req, int has_reshdr ,int has_body);
 
 /**
  \ingroup HTTP
@@ -385,29 +396,31 @@ CI_DECLARE_FUNC(int)                 ci_http_response_create(ci_request_t *req, 
  \param has_body if it is non zero the HTTP request contains HTTP body data
  \return non zero on success zero otherwise
  */
-CI_DECLARE_FUNC(int)                 ci_http_request_create(ci_request_t * req, int has_body);
+CI_DECLARE_FUNC(int) ci_http_request_create(ci_request_t * req, int has_body);
 
 /**
  \ingroup HTTP
- \brief Returns the value of the Content-Length header of the HTTP response or HTTP request for a 
- * response modification or request modification ICAP requests respectively.
+ \brief Returns the value of the Content-Length header of the HTTP response
+ *      or HTTP request for a response modification or request modification ICAP
+ *      requests respectively.
  *
  * If the header Content-Length is not included in HTTP response 
  * It can be used with both request and response modification ICAP requests. 
  \param req is a pointer to the current ICAP request object.
  \return The content length on success or a negative number otherwise
  */
-CI_DECLARE_FUNC(ci_off_t)            ci_http_content_length(ci_request_t *req);
+CI_DECLARE_FUNC(ci_off_t) ci_http_content_length(ci_request_t *req);
 
 /**
  \ingroup HTTP
- \brief Returns the request line (e.g "GET /index.html HTTP 1.0") from http request headers
+ \brief Returns the request line (e.g "GET /index.html HTTP 1.0") from http
+ *      request headers
  *
  * It can be used with both request and response modification ICAP requests. 
  \param req is a pointer to the current ICAP request object.
  \return The request line in success or NULL otherwise
  */
-CI_DECLARE_FUNC(const char *)              ci_http_request(ci_request_t *req);
+CI_DECLARE_FUNC(const char *) ci_http_request(ci_request_t *req);
 
 /**
  \ingroup HTTP
@@ -422,10 +435,11 @@ CI_DECLARE_FUNC(const char *)              ci_http_request(ci_request_t *req);
 CI_DECLARE_FUNC(int) ci_http_request_url(ci_request_t * req, char *buf, int buf_size);
 
 /**
-   \ingroup HTTP
-   \brief Return the http client ip address if this information is available
-   \param req is a pointer to the current ICAP request object.
-   \return A const pointer to a ci_ip_t object contain the client ip address or NULL
+ \ingroup HTTP
+ \brief Return the http client ip address if this information is available
+ \param req is a pointer to the current ICAP request object.
+ \return A const pointer to a ci_ip_t object contain the client ip address
+ *       or NULL
  */
 CI_DECLARE_FUNC(const ci_ip_t *) ci_http_client_ip(ci_request_t * req);
 
@@ -438,7 +452,7 @@ CI_DECLARE_FUNC(const ci_ip_t *) ci_http_client_ip(ci_request_t * req);
  \param header is the header to add in the form "Header: Value"
  \return pointer to the header in success or NULL otherwise
  */
-CI_DECLARE_FUNC(const char *)              ci_icap_add_xheader(ci_request_t *req, const char *header);
+CI_DECLARE_FUNC(const char *) ci_icap_add_xheader(ci_request_t *req, const char *header);
 
 /**
  \ingroup REQUEST
@@ -449,7 +463,7 @@ CI_DECLARE_FUNC(const char *)              ci_icap_add_xheader(ci_request_t *req
  \param headers is a pointer to the headers object to add
  \return pointer to the header in success or NULL otherwise
  */
-CI_DECLARE_FUNC(int)              ci_icap_append_xheaders(ci_request_t *req,ci_headers_list_t *headers);
+CI_DECLARE_FUNC(int) ci_icap_append_xheaders(ci_request_t *req,ci_headers_list_t *headers);
 
 
 #ifdef __CI_COMPAT
