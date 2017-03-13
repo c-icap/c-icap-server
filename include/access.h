@@ -43,9 +43,9 @@ extern "C"
 
 #define HTTP_MAX_PASS_LEN 256
 
-struct http_basic_auth_data{
-     char http_user[MAX_USERNAME_LEN+1];
-     char http_pass[HTTP_MAX_PASS_LEN+1];
+struct http_basic_auth_data {
+    char http_user[MAX_USERNAME_LEN+1];
+    char http_pass[HTTP_MAX_PASS_LEN+1];
 };
 
 

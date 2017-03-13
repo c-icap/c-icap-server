@@ -57,13 +57,13 @@ CI_DECLARE_FUNC(void) ci_cache_type_register(const struct ci_cache_type *type);
  * The ci_cache_t struct
  \ingroup CACHE
  */
-typedef struct ci_cache{
+typedef struct ci_cache {
     int (*init)(struct ci_cache *cache, const char *name);
 
     // If dup_from_cache is NULL return a ci_buffer object
     const void * (*search)(struct ci_cache *cache, const void *key, void **val, void *data, void *(*dup_from_cache)(const void *stored_val, size_t stored_val_size, void *data));
 
-    // buf is of size val_size and buf_size==val_size 
+    // buf is of size val_size and buf_size==val_size
     int (*update)(struct ci_cache *cache, const void *key, const void *val, size_t val_size, void *(*copy_to_cache)(void *buf, const void *val, size_t buf_size));
     void (*destroy)(struct ci_cache *cache);
 
@@ -88,16 +88,16 @@ typedef struct ci_cache{
  *              keys. By default keys are considered as c strings.
  */
 CI_DECLARE_FUNC(ci_cache_t *) ci_cache_build( const char *name,
-                                              const char *cache_type,
-                                              unsigned int cache_size,
-                                              unsigned int max_object_size,
-                                              int ttl,
-                                              const ci_type_ops_t *key_ops
-    );
+        const char *cache_type,
+        unsigned int cache_size,
+        unsigned int max_object_size,
+        int ttl,
+        const ci_type_ops_t *key_ops
+                                            );
 
 /**
  * Searchs a cache for a stored object
- * If the dup_from_cache parameter is NULL, the returned value must be 
+ * If the dup_from_cache parameter is NULL, the returned value must be
  * released using the ci_buffer_free function.
  \ingroup CACHE
  \param cache Pointer to the ci_cache_t object

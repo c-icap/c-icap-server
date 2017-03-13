@@ -35,9 +35,9 @@ extern "C"
  */
 
 enum ci_request_headers { ICAP_AUTHORIZATION, ICAP_ALLOW,
-                       ICAP_FROM, ICAP_HOST, ICAP_REFERER,
-                       ICAP_USERAGENT,ICAP_PREVIEW
-                      };
+                          ICAP_FROM, ICAP_HOST, ICAP_REFERER,
+                          ICAP_USERAGENT,ICAP_PREVIEW
+                        };
 
 
 extern const char *ci_common_headers[];
@@ -47,8 +47,9 @@ extern const char *ci_options_headers[];
 
 
 enum ci_encapsulated_entities {ICAP_REQ_HDR, ICAP_RES_HDR,
-			       ICAP_REQ_BODY, ICAP_RES_BODY,
-			       ICAP_NULL_BODY,ICAP_OPT_BODY };
+                               ICAP_REQ_BODY, ICAP_RES_BODY,
+                               ICAP_NULL_BODY,ICAP_OPT_BODY
+                              };
 CI_DECLARE_DATA extern const char *ci_encaps_entities[];
 
 #ifdef __CYGWIN__
@@ -59,7 +60,7 @@ const char *ci_encaps_entity_string(int e);
 
 #define ci_encaps_entity_string(e) (e<=ICAP_OPT_BODY&&e>=ICAP_REQ_HDR?ci_encaps_entities[e]:"UNKNOWN")
 
-#endif 
+#endif
 
 /**
  \typedef ci_headers_list_t
@@ -68,21 +69,21 @@ const char *ci_encaps_entity_string(int e);
  * The developers should not touch ci_headers_list_t objects directly but
  * they should use the documented macros and functions
  */
-typedef struct ci_headers_list{
-     int size;
-     int used;
-     char **headers;
-     int bufsize;
-     int bufused;
-     char *buf;
-     int packed;
+typedef struct ci_headers_list {
+    int size;
+    int used;
+    char **headers;
+    int bufsize;
+    int bufused;
+    char *buf;
+    int packed;
 } ci_headers_list_t;
 
 
-typedef struct ci_encaps_entity{
-     int start;
-     int type;
-     void *entity;
+typedef struct ci_encaps_entity {
+    int start;
+    int type;
+    void *entity;
 } ci_encaps_entity_t;
 
 
@@ -95,7 +96,7 @@ typedef struct ci_encaps_entity{
 #define ci_headers_is_empty(h) ((h)->used==0)
 
 /**
- * Allocate memory for a ci_headers_list_t object and initialize it. 
+ * Allocate memory for a ci_headers_list_t object and initialize it.
  \ingroup HEADERS
  \return the allocated object on success, NULL otherwise.
  *
@@ -175,7 +176,7 @@ CI_DECLARE_FUNC(int) ci_headers_remove(ci_headers_list_t *heads, const char *hea
  char *head;
  head=ci_headers_search(heads,"Content-Length")
  \endcode
- * In this example on success the head pointer will point to a 
+ * In this example on success the head pointer will point to a
  * \em "Content-Lenght: 1025" string
  *
  */
@@ -183,7 +184,7 @@ CI_DECLARE_FUNC(const char *)  ci_headers_search(ci_headers_list_t *heads, const
 
 /**
  * Similar to ci_headers_search but also sets to a parameter the size of
- * returned header 
+ * returned header
  \ingroup HEADERS
  */
 CI_DECLARE_FUNC(const char *) ci_headers_search2(ci_headers_list_t * h, const char *header, size_t *return_size);
@@ -250,7 +251,7 @@ CI_DECLARE_FUNC(int) ci_headers_iterate(ci_headers_list_t *heads, void *data, vo
 
 /**
  * Copy the headers to a buffer in a form they can be transmitted to the
- * network. 
+ * network.
  * WARNING: It produces an non-NULL-terminated string.
  \ingroup HEADERS
  \param heads is a pointer to the ci_headers_list_t object
@@ -277,7 +278,7 @@ CI_DECLARE_FUNC(const char *) ci_headers_first_line(ci_headers_list_t *heads);
  \return the first line on success, NULL otherwise
 */
 CI_DECLARE_FUNC(const char *) ci_headers_first_line2(ci_headers_list_t *heads, size_t *return_size);
-    
+
 /*compatibility macro*/
 #define ci_headers_copy_header_bytes ci_headers_pack_to_buffer
 

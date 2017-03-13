@@ -28,7 +28,7 @@ extern "C"
 {
 #endif
 
-typedef struct kbs{
+typedef struct kbs {
     uint64_t kb;
     unsigned int bytes;
 } kbs_t;
@@ -43,16 +43,16 @@ struct stat_memblock {
 };
 
 struct stat_area {
-   ci_thread_mutex_t mtx;
-   void (*release_mem)(void *);
-   struct stat_memblock *mem_block;
+    ci_thread_mutex_t mtx;
+    void (*release_mem)(void *);
+    struct stat_memblock *mem_block;
 };
 
 
 struct stat_entry {
-     char *label;
-     int type;
-     int gid;
+    char *label;
+    int type;
+    int gid;
 };
 
 struct stat_entry_list {
@@ -79,7 +79,7 @@ CI_DECLARE_FUNC(int) ci_stat_entry_register(char *label, int type, char *group);
 CI_DECLARE_FUNC(void) ci_stat_entry_release_lists();
 
 CI_DECLARE_FUNC(void) ci_stat_attach_mem(void *mem_block,
-                                         int size,void (*release_mem)(void *));
+        int size,void (*release_mem)(void *));
 CI_DECLARE_FUNC(void) ci_stat_release();
 CI_DECLARE_FUNC(void) ci_stat_uint64_inc(int ID, int count);
 CI_DECLARE_FUNC(void) ci_stat_kbs_inc(int ID, int count);

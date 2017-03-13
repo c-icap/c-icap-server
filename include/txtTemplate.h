@@ -33,8 +33,8 @@ extern "C"
 
 CI_DECLARE_FUNC (ci_membuf_t *)
 ci_txt_template_build_content(const ci_request_t *req,
-			      const char *SERVICE_NAME, 
-			      const char *TEMPLATE_NAME, struct ci_fmt_entry *user_table);
+                              const char *SERVICE_NAME,
+                              const char *TEMPLATE_NAME, struct ci_fmt_entry *user_table);
 CI_DECLARE_FUNC (void) ci_txt_template_reset(void);
 CI_DECLARE_FUNC (int)  ci_txt_template_init(void);
 CI_DECLARE_FUNC (void) ci_txt_template_close(void);

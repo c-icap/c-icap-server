@@ -83,53 +83,51 @@ ci_thread_mutex_t statsmtx;
 
 void print_stats()
 {
-     time_t rtime;
-     time(&rtime);
-     printf("Statistics:\n\t Files used :%d\n\t Number of threads :%d\n\t"
-            " Requests served :%d\n\t Requests failed :%d\n\t Requests soft failed :%d\n\t"
-	    " Incoming bytes :%d\n\t Outgoing bytes :%d\n"
-            " \t Write Errors :%d\n",
-            FILES_NUMBER,
-            threadsnum, requests_stats, 
-	    failed_requests_stats, soft_failed_requests_stats, 
-	    in_bytes_stats, out_bytes_stats,
-            req_errors_rw);
-     rtime = rtime - START_TIME;
-     printf("Running for %u seconds\n", (unsigned int) rtime);
+    time_t rtime;
+    time(&rtime);
+    printf("Statistics:\n\t Files used :%d\n\t Number of threads :%d\n\t"
+           " Requests served :%d\n\t Requests failed :%d\n\t Requests soft failed :%d\n\t"
+           " Incoming bytes :%d\n\t Outgoing bytes :%d\n"
+           " \t Write Errors :%d\n",
+           FILES_NUMBER,
+           threadsnum, requests_stats,
+           failed_requests_stats, soft_failed_requests_stats,
+           in_bytes_stats, out_bytes_stats,
+           req_errors_rw);
+    rtime = rtime - START_TIME;
+    printf("Running for %u seconds\n", (unsigned int) rtime);
 }
 
 
 static void sigint_handler(int sig)
 {
-     int i = 0;
+    int i = 0;
 
-/* */
-     signal(SIGINT, SIG_IGN);
-     signal(SIGCHLD, SIG_IGN);
+    /* */
+    signal(SIGINT, SIG_IGN);
+    signal(SIGCHLD, SIG_IGN);
 
-     if (sig == SIGTERM) {
-          printf("SIGTERM signal received for main server.\n");
-          printf("Going to term children....\n");
+    if (sig == SIGTERM) {
+        printf("SIGTERM signal received for main server.\n");
+        printf("Going to term children....\n");
 
-     }
-     else if (sig == SIGINT) {
-          printf("SIGINT signal received for icap-stretch.\n");
+    } else if (sig == SIGINT) {
+        printf("SIGINT signal received for icap-stretch.\n");
 
-     }
-     else {
-          printf("Signal %d received. Exiting ....\n", sig);
-     }
-     _THE_END = 1;
-     for (i = 0; i < threadsnum; i++) {
-          if (threads[i])
-               ci_thread_join(threads[i]);      //What if a child is blocked??????
-     }
+    } else {
+        printf("Signal %d received. Exiting ....\n", sig);
+    }
+    _THE_END = 1;
+    for (i = 0; i < threadsnum; i++) {
+        if (threads[i])
+            ci_thread_join(threads[i]);      //What if a child is blocked??????
+    }
 
-     ci_thread_mutex_destroy(&filemtx);
+    ci_thread_mutex_destroy(&filemtx);
 
-     print_stats();
+    print_stats();
 
-     exit(0);
+    exit(0);
 }
 
 void str_trim(char *str)
@@ -141,9 +139,9 @@ void str_trim(char *str)
 
     s = str;
     e = NULL;
-    while (*s == ' '){
+    while (*s == ' ') {
         e = s;
-        while (*e != '\0'){
+        while (*e != '\0') {
             *e = *(e+1);
             e++;
         }
@@ -151,7 +149,7 @@ void str_trim(char *str)
 
     /*if (e) e--;  else */
     e = str+strlen(str);
-    while(*(--e) == ' ' && e >= str) *e = '\0';
+    while (*(--e) == ' ' && e >= str) *e = '\0';
 }
 
 int load_urls(char *filename)
@@ -167,7 +165,7 @@ int load_urls(char *filename)
         printf("Error opening magic file: %s\n", filename);
         return 0;
     }
-    
+
     while (fgets(line,URL_SIZE,f)!= NULL && URLS_COUNT != MAX_URLS) {
         line[strlen(line)-1] = '\0';
         str_trim(line);
@@ -176,7 +174,7 @@ int load_urls(char *filename)
             URLS_COUNT++;
         }
     }
-    
+
     fclose(f);
     return 1;
 }
@@ -192,33 +190,33 @@ char *xclient_header()
 
 void build_headers(int fd, ci_headers_list_t *headers)
 {
-     struct stat filestat;
-     int filesize;
-     char lbuf[512];
-     time_t ltimet;
-     
-     ci_headers_add(headers, "200 OK HTTP/1.1");
-     ci_headers_add(headers, "Filetype: Unknown");
-     ci_headers_add(headers, "User: chtsanti");
+    struct stat filestat;
+    int filesize;
+    char lbuf[512];
+    time_t ltimet;
 
-     fstat(fd, &filestat);
-     filesize = filestat.st_size;
+    ci_headers_add(headers, "200 OK HTTP/1.1");
+    ci_headers_add(headers, "Filetype: Unknown");
+    ci_headers_add(headers, "User: chtsanti");
 
-     strcpy(lbuf, "Date: ");
-     time(&ltimet);
-     ctime_r(&ltimet, lbuf + strlen(lbuf));
-     lbuf[strlen(lbuf) - 1] = '\0';
-     ci_headers_add(headers, lbuf);
+    fstat(fd, &filestat);
+    filesize = filestat.st_size;
 
-     strcpy(lbuf, "Last-Modified: ");
-     ctime_r(&ltimet, lbuf + strlen(lbuf));
-     lbuf[strlen(lbuf) - 1] = '\0';
-     ci_headers_add(headers, lbuf);
+    strcpy(lbuf, "Date: ");
+    time(&ltimet);
+    ctime_r(&ltimet, lbuf + strlen(lbuf));
+    lbuf[strlen(lbuf) - 1] = '\0';
+    ci_headers_add(headers, lbuf);
 
-     sprintf(lbuf, "Content-Length: %d", filesize);
-     ci_headers_add(headers, lbuf);
-     if (http_resp_xheaders)
-         ci_headers_addheaders(headers, http_resp_xheaders);
+    strcpy(lbuf, "Last-Modified: ");
+    ctime_r(&ltimet, lbuf + strlen(lbuf));
+    lbuf[strlen(lbuf) - 1] = '\0';
+    ci_headers_add(headers, lbuf);
+
+    sprintf(lbuf, "Content-Length: %d", filesize);
+    ci_headers_add(headers, lbuf);
+    if (http_resp_xheaders)
+        ci_headers_addheaders(headers, http_resp_xheaders);
 
 }
 
@@ -226,7 +224,7 @@ void build_request_headers(const char *url, const char *method, ci_headers_list_
 {
     char lbuf[1024];
     time_t ltimet;
-     
+
     snprintf(lbuf,1024, "%s %s HTTP/1.0", method, url);
     lbuf[1023] = '\0';
     ci_headers_add(headers, lbuf);
@@ -237,341 +235,340 @@ void build_request_headers(const char *url, const char *method, ci_headers_list_
     lbuf[strlen(lbuf) - 1] = '\0';
     ci_headers_add(headers, lbuf);
     ci_headers_add(headers, "User-Agent: C-ICAP-Client/x.xx");
-    if(http_xheaders)
+    if (http_xheaders)
         ci_headers_addheaders(headers, http_xheaders);
 }
 
 
 int fileread(void *fd, char *buf, int len)
 {
-     int ret;
-     ret = read(*(int *) fd, buf, len);
-     if (ret == 0)
-         return CI_EOF;
-     return ret;
+    int ret;
+    ret = read(*(int *) fd, buf, len);
+    if (ret == 0)
+        return CI_EOF;
+    return ret;
 }
 
 int filewrite(void *fd, char *buf, int len)
 {
-     return len;
+    return len;
 }
 
 
-int do_req(ci_request_t *req, char *url, int *keepalive, int transparent) 
+int do_req(ci_request_t *req, char *url, int *keepalive, int transparent)
 {
-     int ret;
-     char lbuf[1024];
-     char host[512];
-     char path[512];
-     char *s;
-     time_t ltimet;
-     ci_headers_list_t *headers;
-     int fd_out = 0;
+    int ret;
+    char lbuf[1024];
+    char host[512];
+    char path[512];
+    char *s;
+    time_t ltimet;
+    ci_headers_list_t *headers;
+    int fd_out = 0;
 
-     headers = ci_headers_create();     
+    headers = ci_headers_create();
 
-     if (transparent) {
-         if ((s = strchr(url, '/'))!= NULL) {
-             strncpy(host, url, 512 > (s-url) ? (s-url): 512);
-             host[512 > (s-url) ? (s-url): 511] = '\0';
-             strncpy(path, s, 512);
-             path[511] = '\0';
-         }
-         else {
-             strncpy(host, url, 512);
-             host[511] = '\0';
-             strcpy(path, "/index.html");
-         }
-         snprintf(lbuf,1024, "GET %s HTTP/1.0", path);
-         lbuf[1023] = '\0';
-     }
-     else {
-         if (strstr(url, "://"))
-             snprintf(lbuf,1024, "GET %s HTTP/1.0", url);
-         else
-             snprintf(lbuf,1024, "GET http://%s HTTP/1.0", url);
-         lbuf[1023] = '\0';     
-     }
+    if (transparent) {
+        if ((s = strchr(url, '/'))!= NULL) {
+            strncpy(host, url, 512 > (s-url) ? (s-url): 512);
+            host[512 > (s-url) ? (s-url): 511] = '\0';
+            strncpy(path, s, 512);
+            path[511] = '\0';
+        } else {
+            strncpy(host, url, 512);
+            host[511] = '\0';
+            strcpy(path, "/index.html");
+        }
+        snprintf(lbuf,1024, "GET %s HTTP/1.0", path);
+        lbuf[1023] = '\0';
+    } else {
+        if (strstr(url, "://"))
+            snprintf(lbuf,1024, "GET %s HTTP/1.0", url);
+        else
+            snprintf(lbuf,1024, "GET http://%s HTTP/1.0", url);
+        lbuf[1023] = '\0';
+    }
 
-     ci_headers_add(headers, lbuf);
-     snprintf(lbuf,1024, "Host: %s", host);
-     lbuf[1023] = '\0';
-     ci_headers_add(headers, lbuf);
+    ci_headers_add(headers, lbuf);
+    snprintf(lbuf,1024, "Host: %s", host);
+    lbuf[1023] = '\0';
+    ci_headers_add(headers, lbuf);
 
-     strcpy(lbuf, "Date: ");
-     time(&ltimet);
-     ctime_r(&ltimet, lbuf + strlen(lbuf));
-     lbuf[strlen(lbuf) - 1] = '\0';
-     ci_headers_add(headers, lbuf);
-     ci_headers_add(headers, "User-Agent: C-ICAP-Stretch/x.xx");
-     if(http_xheaders)
-         ci_headers_addheaders(headers, http_xheaders);
+    strcpy(lbuf, "Date: ");
+    time(&ltimet);
+    ctime_r(&ltimet, lbuf + strlen(lbuf));
+    lbuf[strlen(lbuf) - 1] = '\0';
+    ci_headers_add(headers, lbuf);
+    ci_headers_add(headers, "User-Agent: C-ICAP-Stretch/x.xx");
+    if (http_xheaders)
+        ci_headers_addheaders(headers, http_xheaders);
 
-     req->type = ICAP_REQMOD;
+    req->type = ICAP_REQMOD;
 
-     ret = ci_client_icapfilter(req,
-				CONN_TIMEOUT,
-				headers,
-                                NULL,
-				NULL,
-				(int (*)(void *, char *, int)) fileread,
-				&fd_out,
-				(int (*)(void *, char *, int)) filewrite);
+    ret = ci_client_icapfilter(req,
+                               CONN_TIMEOUT,
+                               headers,
+                               NULL,
+                               NULL,
+                               (int (*)(void *, char *, int)) fileread,
+                               &fd_out,
+                               (int (*)(void *, char *, int)) filewrite);
 
 
-     if (ret <=0 && req->bytes_out == 0 ){
-          ci_debug_printf(2, "Is the ICAP connection  closed?\n");
-	  *keepalive = 0;
-	  return 0;
-     }
-     
-     if (ret <= 0) {
-          ci_debug_printf(1, "Error sending requests \n");
-	  *keepalive = 0;
-	  return -1;
-     }
+    if (ret <=0 && req->bytes_out == 0 ) {
+        ci_debug_printf(2, "Is the ICAP connection  closed?\n");
+        *keepalive = 0;
+        return 0;
+    }
 
-     *keepalive=req->keepalive;
+    if (ret <= 0) {
+        ci_debug_printf(1, "Error sending requests \n");
+        *keepalive = 0;
+        return -1;
+    }
 
-     ci_headers_destroy(headers);
+    *keepalive=req->keepalive;
 
-     ci_thread_mutex_lock(&statsmtx);
-     in_bytes_stats += req->bytes_in;
-     out_bytes_stats += req->bytes_out;
-     ci_thread_mutex_unlock(&statsmtx);
+    ci_headers_destroy(headers);
 
-     return 1;
+    ci_thread_mutex_lock(&statsmtx);
+    in_bytes_stats += req->bytes_in;
+    out_bytes_stats += req->bytes_out;
+    ci_thread_mutex_unlock(&statsmtx);
+
+    return 1;
 }
 
 int threadjobreqmod()
 {
-     ci_request_t *req;
-     ci_connection_t *conn;
-     char *xh;
-     int indx, keepalive, ret;
-     int arand=0, p;
-     while (!_THE_END) {
-         
-	  if (!(conn = ci_connect_to(servername, PORT, 0, CONN_TIMEOUT))) {
-	    ci_debug_printf(1, "Failed to connect to icap server.....\n");
-	    exit(-1);
-	  }
-	  req = ci_client_request(conn, servername, service);
-          req->type = ICAP_RESPMOD;
-	  req->preview = 512;
-          req->allow206 = 1;
-          req->allow204 = 1;
+    ci_request_t *req;
+    ci_connection_t *conn;
+    char *xh;
+    int indx, keepalive, ret;
+    int arand=0, p;
+    while (!_THE_END) {
 
-	  for(;;) {
-              xh = xclient_header();
-              if (xh)
-                  ci_icap_add_xheader(req, xh);
+        if (!(conn = ci_connect_to(servername, PORT, 0, CONN_TIMEOUT))) {
+            ci_debug_printf(1, "Failed to connect to icap server.....\n");
+            exit(-1);
+        }
+        req = ci_client_request(conn, servername, service);
+        req->type = ICAP_RESPMOD;
+        req->preview = 512;
+        req->allow206 = 1;
+        req->allow204 = 1;
 
-              if (xheaders)
-                  ci_icap_append_xheaders(req, xheaders);
+        for (;;) {
+            xh = xclient_header();
+            if (xh)
+                ci_icap_add_xheader(req, xh);
 
-	      keepalive = 0;
-	      indx = (int) ((((double) arand) / (double) RAND_MAX) * (double)URLS_COUNT);
-	      if ((ret = do_req(req, URLS[indx], &keepalive, DoTransparent)) <= 0) {
-		    ci_thread_mutex_lock(&statsmtx);
-		    if (ret == 0) 
-		         soft_failed_requests_stats++;
-		    else 
-		         failed_requests_stats++;
-                    requests_stats++;
-                    arand = rand();  /*rand is not thread safe .... */
-		    ci_thread_mutex_unlock(&statsmtx);
-                    printf("Request failed...\n");
-                    break;
-               }
+            if (xheaders)
+                ci_icap_append_xheaders(req, xheaders);
 
-	      ci_thread_mutex_lock(&statsmtx);
-	      requests_stats++;
-	      arand = rand();  /*rand is not thread safe .... */
-	      ci_thread_mutex_unlock(&statsmtx);
+            keepalive = 0;
+            indx = (int) ((((double) arand) / (double) RAND_MAX) * (double)URLS_COUNT);
+            if ((ret = do_req(req, URLS[indx], &keepalive, DoTransparent)) <= 0) {
+                ci_thread_mutex_lock(&statsmtx);
+                if (ret == 0)
+                    soft_failed_requests_stats++;
+                else
+                    failed_requests_stats++;
+                requests_stats++;
+                arand = rand();  /*rand is not thread safe .... */
+                ci_thread_mutex_unlock(&statsmtx);
+                printf("Request failed...\n");
+                break;
+            }
 
-	      if (_THE_END) {
-		  printf("The end: thread dying\n");
-		  ci_request_destroy(req);
-		  return 0;
-	      }
+            ci_thread_mutex_lock(&statsmtx);
+            requests_stats++;
+            arand = rand();  /*rand is not thread safe .... */
+            ci_thread_mutex_unlock(&statsmtx);
 
-	      if (keepalive == 0)
-		break;
-	      
-	      p = (int) ((((double) arand) / (double) RAND_MAX) * 10.0);
-	      if (p == 5 || p == 7 || p == 3) {    // 30% possibility ....
-		//                  printf("OK, closing the connection......\n");
-		break;
-	      }
-	      
-	      usleep(500000);
-	      ci_client_request_reuse(req);
-	  }
-	  ci_connection_hard_close(conn);
-	  ci_request_destroy(req);
-          if (!_THE_END)
-              usleep(1000000);
-     }
-     return 1;
+            if (_THE_END) {
+                printf("The end: thread dying\n");
+                ci_request_destroy(req);
+                return 0;
+            }
+
+            if (keepalive == 0)
+                break;
+
+            p = (int) ((((double) arand) / (double) RAND_MAX) * 10.0);
+            if (p == 5 || p == 7 || p == 3) {    // 30% possibility ....
+                //                  printf("OK, closing the connection......\n");
+                break;
+            }
+
+            usleep(500000);
+            ci_client_request_reuse(req);
+        }
+        ci_connection_hard_close(conn);
+        ci_request_destroy(req);
+        if (!_THE_END)
+            usleep(1000000);
+    }
+    return 1;
 }
 
 int do_file(ci_request_t *req, char *input_file, int *keepalive)
 {
-     int fd_in,fd_out;
-     int ret, arand;
-     int indx;
-     ci_headers_list_t *headers, *request_headers = NULL;
-     const char *useUrl = NULL;
+    int fd_in,fd_out;
+    int ret, arand;
+    int indx;
+    ci_headers_list_t *headers, *request_headers = NULL;
+    const char *useUrl = NULL;
 
-     if (URLS_COUNT > 0) {
-         ci_thread_mutex_lock(&statsmtx);
-         arand = rand();  /*rand is not thread safe .... */
-         ci_thread_mutex_unlock(&statsmtx);
+    if (URLS_COUNT > 0) {
+        ci_thread_mutex_lock(&statsmtx);
+        arand = rand();  /*rand is not thread safe .... */
+        ci_thread_mutex_unlock(&statsmtx);
 
-         indx = (int) ((((double) arand) / (double) RAND_MAX) * (double)URLS_COUNT);
-         useUrl = URLS[indx];
-     }
+        indx = (int) ((((double) arand) / (double) RAND_MAX) * (double)URLS_COUNT);
+        useUrl = URLS[indx];
+    }
 
-     if ((fd_in = open(input_file, O_RDONLY)) < 0) {
-          ci_debug_printf(1, "Error opening file %s\n", input_file);
-          return 0;
-     }
-     fd_out = 0;
+    if ((fd_in = open(input_file, O_RDONLY)) < 0) {
+        ci_debug_printf(1, "Error opening file %s\n", input_file);
+        return 0;
+    }
+    fd_out = 0;
 
-     headers = ci_headers_create();     
-     build_headers(fd_in, headers);
-     if (useUrl) {
-         request_headers = ci_headers_create();
-         build_request_headers(useUrl, "GET", request_headers);
-     }
+    headers = ci_headers_create();
+    build_headers(fd_in, headers);
+    if (useUrl) {
+        request_headers = ci_headers_create();
+        build_request_headers(useUrl, "GET", request_headers);
+    }
 
-     ret = ci_client_icapfilter(req,
-				CONN_TIMEOUT,
-                                request_headers,
-				headers,
-				&fd_in,
-				(int (*)(void *, char *, int)) fileread,
-				&fd_out,
-				(int (*)(void *, char *, int)) filewrite);
-     close(fd_in);
+    ret = ci_client_icapfilter(req,
+                               CONN_TIMEOUT,
+                               request_headers,
+                               headers,
+                               &fd_in,
+                               (int (*)(void *, char *, int)) fileread,
+                               &fd_out,
+                               (int (*)(void *, char *, int)) filewrite);
+    close(fd_in);
 
-     if (ret <=0 && req->bytes_out == 0 ){
-          ci_debug_printf(2, "Is the ICAP connection  closed?\n");
-	  *keepalive = 0;
-	  return 0;
-     }
-     
-     if (ret<= 0) {
-          ci_debug_printf(1, "Error sending requests \n");
-	  *keepalive = 0;
-	  return -1;
-     }
+    if (ret <=0 && req->bytes_out == 0 ) {
+        ci_debug_printf(2, "Is the ICAP connection  closed?\n");
+        *keepalive = 0;
+        return 0;
+    }
 
-     *keepalive=req->keepalive;
+    if (ret<= 0) {
+        ci_debug_printf(1, "Error sending requests \n");
+        *keepalive = 0;
+        return -1;
+    }
 
-     ci_headers_destroy(headers);
-     // printf("Done(%d bytes).\n",totalbytes);
-     ci_thread_mutex_lock(&statsmtx);
-     in_bytes_stats += req->bytes_in;
-     out_bytes_stats += req->bytes_out;
-     ci_thread_mutex_unlock(&statsmtx);
+    *keepalive=req->keepalive;
 
-     return 1;
+    ci_headers_destroy(headers);
+    // printf("Done(%d bytes).\n",totalbytes);
+    ci_thread_mutex_lock(&statsmtx);
+    in_bytes_stats += req->bytes_in;
+    out_bytes_stats += req->bytes_out;
+    ci_thread_mutex_unlock(&statsmtx);
+
+    return 1;
 }
 
 
 int threadjobsendfiles()
 {
-     ci_request_t *req;
-     ci_connection_t *conn;
-     char *xh;
-     int indx, keepalive, ret;
-     int arand;
+    ci_request_t *req;
+    ci_connection_t *conn;
+    char *xh;
+    int indx, keepalive, ret;
+    int arand;
 
-     while (1) {
+    while (1) {
 
-	  if (!(conn = ci_connect_to(servername, PORT, 0, CONN_TIMEOUT))) {
-	    ci_debug_printf(1, "Failed to connect to icap server.....\n");
-	    exit(-1);
-	  }
-	  req = ci_client_request(conn, servername, service);
+        if (!(conn = ci_connect_to(servername, PORT, 0, CONN_TIMEOUT))) {
+            ci_debug_printf(1, "Failed to connect to icap server.....\n");
+            exit(-1);
+        }
+        req = ci_client_request(conn, servername, service);
 
-          for (;;) {
-               ci_thread_mutex_lock(&filemtx);
-               indx = file_indx;
-               if (file_indx == (FILES_NUMBER - 1))
-                    file_indx = 0;
-               else
-                    file_indx++;
-               ci_thread_mutex_unlock(&filemtx);
+        for (;;) {
+            ci_thread_mutex_lock(&filemtx);
+            indx = file_indx;
+            if (file_indx == (FILES_NUMBER - 1))
+                file_indx = 0;
+            else
+                file_indx++;
+            ci_thread_mutex_unlock(&filemtx);
 
-               xh = xclient_header();
-               if (xh)
-                   ci_icap_add_xheader(req, xh);
-               if (xheaders)
-                   ci_icap_append_xheaders(req, xheaders);
+            xh = xclient_header();
+            if (xh)
+                ci_icap_add_xheader(req, xh);
+            if (xheaders)
+                ci_icap_append_xheaders(req, xheaders);
 
-               keepalive = 0;
-               req->type = ICAP_RESPMOD;
-               req->preview = 512;
-               req->allow206 = 1;
-               req->allow204 = 1;
-               if ((ret = do_file(req, FILES[indx], &keepalive)) <= 0) {
-		    ci_thread_mutex_lock(&statsmtx);
-		    if (ret == 0) 
-		         soft_failed_requests_stats++;
-		    else 
-		         failed_requests_stats++;
-		    ci_thread_mutex_unlock(&statsmtx);
-                    printf("Request failed...\n");
-                    break;
-               }
+            keepalive = 0;
+            req->type = ICAP_RESPMOD;
+            req->preview = 512;
+            req->allow206 = 1;
+            req->allow204 = 1;
+            if ((ret = do_file(req, FILES[indx], &keepalive)) <= 0) {
+                ci_thread_mutex_lock(&statsmtx);
+                if (ret == 0)
+                    soft_failed_requests_stats++;
+                else
+                    failed_requests_stats++;
+                ci_thread_mutex_unlock(&statsmtx);
+                printf("Request failed...\n");
+                break;
+            }
 
-               ci_thread_mutex_lock(&statsmtx);
-               requests_stats++;
-               arand = rand();  /*rand is not thread safe .... */
-               ci_thread_mutex_unlock(&statsmtx);
+            ci_thread_mutex_lock(&statsmtx);
+            requests_stats++;
+            arand = rand();  /*rand is not thread safe .... */
+            ci_thread_mutex_unlock(&statsmtx);
 
-               if (_THE_END) {
-                    printf("The end: thread dying\n");
-		    ci_request_destroy(req);
-                    return 0;
-               }
+            if (_THE_END) {
+                printf("The end: thread dying\n");
+                ci_request_destroy(req);
+                return 0;
+            }
 
-	       if (keepalive == 0)
-		 break;
+            if (keepalive == 0)
+                break;
 
-               arand = (int) ((((double) arand) / (double) RAND_MAX) * 10.0);
-               if (arand == 5 || arand == 7 || arand == 3) {    // 30% possibility ....
+            arand = (int) ((((double) arand) / (double) RAND_MAX) * 10.0);
+            if (arand == 5 || arand == 7 || arand == 3) {    // 30% possibility ....
 //                  printf("OK, closing the connection......\n");
-                    break;
-               }
+                break;
+            }
 //               sleep(1);
-               usleep(500000);
+            usleep(500000);
 
 //             printf("Keeping alive connection\n");
 
-	       ci_client_request_reuse(req);
-          }
-	  ci_connection_hard_close(conn);
-	  ci_request_destroy(req);
-          if (_THE_END) {
-              printf("The end: thread dying ps 2\n");
-              return 0;
-          }
+            ci_client_request_reuse(req);
+        }
+        ci_connection_hard_close(conn);
+        ci_request_destroy(req);
+        if (_THE_END) {
+            printf("The end: thread dying ps 2\n");
+            return 0;
+        }
 
-          usleep(1000000);
-     }
-     return 1;
+        usleep(1000000);
+    }
+    return 1;
 }
 
-void usage(char *myname){
-     printf("Usage:\n  %s servername service threadsnum max_requests file1 file2 .....\n",
-	    myname);
-     printf("or:\n");
-     printf("  %s -req servername service threadsnum max_requests file\n",
-	    myname);
+void usage(char *myname)
+{
+    printf("Usage:\n  %s servername service threadsnum max_requests file1 file2 .....\n",
+           myname);
+    printf("or:\n");
+    printf("  %s -req servername service threadsnum max_requests file\n",
+           myname);
 }
 
 int add_xheader(const char *directive, const char **argv, void *setdata)
@@ -580,18 +577,18 @@ int add_xheader(const char *directive, const char **argv, void *setdata)
     const char *h;
 
     if (argv == NULL || argv[0] == NULL) {
-	ci_debug_printf(1, "Missing arguments in directive:%s\n", directive);
-	return 0;
+        ci_debug_printf(1, "Missing arguments in directive:%s\n", directive);
+        return 0;
     }
     h = argv[0];
 
     if (!strchr(h, ':')) {
-	ci_debug_printf(1, "The header :%s should have the form \"header: value\" \n", h);
-	return 0;
+        ci_debug_printf(1, "The header :%s should have the form \"header: value\" \n", h);
+        return 0;
     }
 
     if (*xh == NULL)
-	*xh = ci_headers_create();
+        *xh = ci_headers_create();
 
     ci_headers_add(*xh, h);
     return 1;
@@ -603,10 +600,10 @@ int cfg_files_to_use(const char *directive, const char **argv, void *setdata)
     assert ((void *)FILES == *(void **)setdata);
 
     if (argv == NULL || argv[0] == NULL) {
-	ci_debug_printf(1, "Missing arguments in directive:%s\n", directive);
-	return 0;
+        ci_debug_printf(1, "Missing arguments in directive:%s\n", directive);
+        return 0;
     }
-   
+
     if (FILES == NULL) {
         FILES_SIZE = 1024;
         FILES = malloc(FILES_SIZE*sizeof(char*));
@@ -627,11 +624,11 @@ int add_xclient_headers(const char *directive, const char **argv, void *setdata)
     char *e;
     char buf[256];
     if (argv == NULL || argv[0] == NULL) {
-	ci_debug_printf(1, "Missing arguments in directive:%s\n", directive);
-	return 0;
+        ci_debug_printf(1, "Missing arguments in directive:%s\n", directive);
+        return 0;
     }
     ip = argv[0];
-    if(xclient_headers == NULL)
+    if (xclient_headers == NULL)
         xclient_headers = malloc(256*sizeof(char*));
 
     /*I am expecting something like this:
@@ -655,10 +652,9 @@ int add_xclient_headers(const char *directive, const char **argv, void *setdata)
     if (*e == '-') {
         s= e+1;
         ip4_end =  strtol(s, &e, 10);
-    }
-    else
+    } else
         ip4_end = ip4_start;
-    for(i=ip4_start; i<= ip4_end; i++) {
+    for (i=ip4_start; i<= ip4_end; i++) {
         sprintf(buf, "X-Client-IP: %d.%d.%d.%d", ip1, ip2,ip3,i);
         xclient_headers[xclient_headers_num++] = strdup(buf);
     }
@@ -669,128 +665,138 @@ char *urls_file = NULL;
 
 
 static struct ci_options_entry options[] = {
-     {"-V", NULL, &VERSION_MODE, ci_cfg_version, "Print version and exits"},
-     {"-VV", NULL, &VERSION_MODE, ci_cfg_build_info, "Print version and build informations and exits"},
-     {"-i", "icap_servername", &servername, ci_cfg_set_str,
-      "The ICAP server name"},
-     {"-p", "port", &PORT, ci_cfg_set_int, "The ICAP server port"},
-     {"-s", "service", &service, ci_cfg_set_str, "The service name"},
-     {"-urls", "filename", &urls_file, ci_cfg_set_str,
-      "File with urls to use for reqmod stress test"},
-     {"-req", NULL, &DoReqmod, ci_cfg_enable,
-      "Send a request modification instead of response modification requests"},
-     {"-m", "max-requests", &MAX_REQUESTS, ci_cfg_set_int, 
-      "the maximum requests to send"},
-     {"-t", "threads-number", &threadsnum, ci_cfg_set_int,
-     "number of threads to start"},
-     {"-d", "level", &CI_DEBUG_LEVEL, ci_cfg_set_int,
-      "debug level info to stdout"},
+    {"-V", NULL, &VERSION_MODE, ci_cfg_version, "Print version and exits"},
+    {"-VV", NULL, &VERSION_MODE, ci_cfg_build_info, "Print version and build informations and exits"},
+    {
+        "-i", "icap_servername", &servername, ci_cfg_set_str,
+        "The ICAP server name"
+    },
+    {"-p", "port", &PORT, ci_cfg_set_int, "The ICAP server port"},
+    {"-s", "service", &service, ci_cfg_set_str, "The service name"},
+    {
+        "-urls", "filename", &urls_file, ci_cfg_set_str,
+        "File with urls to use for reqmod stress test"
+    },
+    {
+        "-req", NULL, &DoReqmod, ci_cfg_enable,
+        "Send a request modification instead of response modification requests"
+    },
+    {
+        "-m", "max-requests", &MAX_REQUESTS, ci_cfg_set_int,
+        "the maximum requests to send"
+    },
+    {
+        "-t", "threads-number", &threadsnum, ci_cfg_set_int,
+        "number of threads to start"
+    },
+    {
+        "-d", "level", &CI_DEBUG_LEVEL, ci_cfg_set_int,
+        "debug level info to stdout"
+    },
 //     {"-nopreview", NULL, &send_preview, ci_cfg_disable, "Do not send preview data"},
-     {"-x", "xheader", &xheaders, add_xheader, "Include xheader in icap request headers"},
-     {"-hx", "xheader", &http_xheaders, add_xheader, "Include xheader in http request headers"},
-     {"-rhx", "xheader", &http_resp_xheaders, add_xheader, "Include xheader in http response headers"},
-     {"-hcx", "X-Client-IP", &xclient_headers, add_xclient_headers, "Include this X-Client-IP header in request"},
+    {"-x", "xheader", &xheaders, add_xheader, "Include xheader in icap request headers"},
+    {"-hx", "xheader", &http_xheaders, add_xheader, "Include xheader in http request headers"},
+    {"-rhx", "xheader", &http_resp_xheaders, add_xheader, "Include xheader in http response headers"},
+    {"-hcx", "X-Client-IP", &xclient_headers, add_xclient_headers, "Include this X-Client-IP header in request"},
 //     {"-w", "preview", &preview_size, ci_cfg_set_int, "Sets the maximum preview data size"},
-     {"$$", NULL, &FILES, cfg_files_to_use, "files to send"},
-     {NULL, NULL, NULL, NULL}
+    {"$$", NULL, &FILES, cfg_files_to_use, "files to send"},
+    {NULL, NULL, NULL, NULL}
 };
 
 void log_errors(ci_request_t * req, const char *format, ...)
 {
-     va_list ap;
-     va_start(ap, format);
-     vfprintf(stderr, format, ap);
-     va_end(ap);
+    va_list ap;
+    va_start(ap, format);
+    vfprintf(stderr, format, ap);
+    va_end(ap);
 }
 
 void vlog_errors(ci_request_t * req, const char *format, va_list ap)
 {
-     vfprintf(stderr, format, ap);
+    vfprintf(stderr, format, ap);
 }
 
 int main(int argc, char **argv)
 {
-     int i;
-     ci_client_library_init();
-     CI_DEBUG_LEVEL = 1;        /*Default debug level is 1 */
-     
-     int ret = ci_args_apply(argc, argv, options);
-     if (VERSION_MODE)
-         exit(0);
-     if (!ret || (DoReqmod != 0 && urls_file == NULL) 
-         || (DoReqmod == 0 && FILES == NULL))
-     {
-         ci_args_usage(argv[0], options);
-         exit(-1);
-     }
+    int i;
+    ci_client_library_init();
+    CI_DEBUG_LEVEL = 1;        /*Default debug level is 1 */
 
-     #if ! defined(_WIN32)
-     __log_error = (void (*)(void *, const char *,...)) log_errors;     /*set c-icap library log  function */
+    int ret = ci_args_apply(argc, argv, options);
+    if (VERSION_MODE)
+        exit(0);
+    if (!ret || (DoReqmod != 0 && urls_file == NULL)
+            || (DoReqmod == 0 && FILES == NULL)) {
+        ci_args_usage(argv[0], options);
+        exit(-1);
+    }
+
+#if ! defined(_WIN32)
+    __log_error = (void (*)(void *, const char *,...)) log_errors;     /*set c-icap library log  function */
 #else
-     __vlog_error = vlog_errors;        /*set c-icap library  log function for win32..... */
+    __vlog_error = vlog_errors;        /*set c-icap library  log function for win32..... */
 #endif
 
-     signal(SIGPIPE, SIG_IGN);
-     signal(SIGINT, sigint_handler);
+    signal(SIGPIPE, SIG_IGN);
+    signal(SIGINT, sigint_handler);
 
-     time(&START_TIME);
-     srand((int) START_TIME);
+    time(&START_TIME);
+    srand((int) START_TIME);
 
-     if (urls_file && !load_urls(urls_file)) {
-         ci_debug_printf(1, "The file contains URL list %s does not exist\n", urls_file);
-         exit(1);
-     }
+    if (urls_file && !load_urls(urls_file)) {
+        ci_debug_printf(1, "The file contains URL list %s does not exist\n", urls_file);
+        exit(1);
+    }
 
-     threads = malloc(sizeof(ci_thread_t) * threadsnum);
-     if (!threads) {
-          ci_debug_printf(1, "Error allocation memory for threads array\n");
-          exit(-1);
-     }
-     for (i = 0; i < threadsnum; i++)
-          threads[i] = 0;
+    threads = malloc(sizeof(ci_thread_t) * threadsnum);
+    if (!threads) {
+        ci_debug_printf(1, "Error allocation memory for threads array\n");
+        exit(-1);
+    }
+    for (i = 0; i < threadsnum; i++)
+        threads[i] = 0;
 
-     if (DoReqmod) {
-          for (i = 0; i < threadsnum; i++) {
-               printf("Create thread %d\n", i);
-               ci_thread_create(&(threads[i]),
-                                (void *(*)(void *)) threadjobreqmod,
-                                (void *) NULL /*data*/);
-               sleep(1);
-          }
-     }
-     else {
-          ci_thread_mutex_init(&filemtx);
-          ci_thread_mutex_init(&statsmtx);
+    if (DoReqmod) {
+        for (i = 0; i < threadsnum; i++) {
+            printf("Create thread %d\n", i);
+            ci_thread_create(&(threads[i]),
+                             (void *(*)(void *)) threadjobreqmod,
+                             (void *) NULL /*data*/);
+            sleep(1);
+        }
+    } else {
+        ci_thread_mutex_init(&filemtx);
+        ci_thread_mutex_init(&statsmtx);
 
-          printf("Files to send:%d\n", FILES_NUMBER);
-          for (i = 0; i < threadsnum; i++) {
-               printf("Create thread %d\n", i);
-               ci_thread_create(&(threads[i]),
-                                (void *(*)(void *)) threadjobsendfiles, NULL);
+        printf("Files to send:%d\n", FILES_NUMBER);
+        for (i = 0; i < threadsnum; i++) {
+            printf("Create thread %d\n", i);
+            ci_thread_create(&(threads[i]),
+                             (void *(*)(void *)) threadjobsendfiles, NULL);
 //             sleep(1);
-          }
-     }
+        }
+    }
 
-     while (1) {
-          sleep(1);
-          if (MAX_REQUESTS && requests_stats >= MAX_REQUESTS) {
-               printf("Oops max requests reached. Exiting .....\n");
-               _THE_END = 1;
-               break;
-          }
-          print_stats();
-     }
+    while (1) {
+        sleep(1);
+        if (MAX_REQUESTS && requests_stats >= MAX_REQUESTS) {
+            printf("Oops max requests reached. Exiting .....\n");
+            _THE_END = 1;
+            break;
+        }
+        print_stats();
+    }
 
 
 
-     for (i = 0; i < threadsnum; i++) {
-          ci_thread_join(threads[i]);
-          printf("Thread %d exited\n", i);
-     }
+    for (i = 0; i < threadsnum; i++) {
+        ci_thread_join(threads[i]);
+        printf("Thread %d exited\n", i);
+    }
 
-     print_stats();
-     ci_thread_mutex_destroy(&filemtx);
-     ci_thread_mutex_destroy(&statsmtx);
-     ci_client_library_release();
-     return 0;
+    print_stats();
+    ci_thread_mutex_destroy(&filemtx);
+    ci_thread_mutex_destroy(&statsmtx);
+    ci_client_library_release();
+    return 0;
 }

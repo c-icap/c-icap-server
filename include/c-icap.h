@@ -46,14 +46,14 @@
 # elif defined(PATH_MAX)
 #   define CI_MAX_PATH     PATH_MAX
 # else
-#   define CI_MAX_PATH     4096 
+#   define CI_MAX_PATH     4096
 # endif
 # define CI_FILENAME_LEN CI_MAX_PATH
 #endif
 
 
 #ifdef _WIN32
-# if defined(CI_BUILD_LIB) 
+# if defined(CI_BUILD_LIB)
 
 #   define CI_DECLARE_FUNC(type) __declspec(dllexport) type
 #   define CI_DECLARE_DATA       __declspec(dllexport)
@@ -73,7 +73,7 @@
 #else
 
 /*
-  
+
 */
 #if defined (USE_VISIBILITY_ATTRIBUTE)
 #define CI_DECLARE_FUNC(type) __attribute__ ((visibility ("default"))) type
@@ -90,32 +90,32 @@
   Here we are define the ci_off_t type to support large files.
 
   -A comment about lfs:
-  In Solaris and Linux to have lfs support, if you are using 
+  In Solaris and Linux to have lfs support, if you are using
   only lseek and open function, you are using off_t type for offsets
   and compile the program with -D_FILE_OFFSET_BITS=64. This flag
   forces the compiler to typedefs the off_t type as an 64bit integer,
-  uses open64, lseek64, mkstemp64 and fopen64 functions. 
-  
+  uses open64, lseek64, mkstemp64 and fopen64 functions.
+
   Instead for fseek and ftell the functions fseeko and ftello must be used.
   This functions uses off_t argument's instead of long.
-  Currently we are not using fseek and ftell in c-icap. 
+  Currently we are not using fseek and ftell in c-icap.
 
-  The open's manual page says that the flag O_LARGEFILE must be used. Looks that 
+  The open's manual page says that the flag O_LARGEFILE must be used. Looks that
   it does not actually needed for linux and solaris (version 10) (but must be checked again......)
 
   The off_t type in my linux system is a signed integer, but I am not
   sure if it is true for all operating systems
-  
+
 */
 typedef off_t ci_off_t;
-#if CI_SIZEOF_OFF_T > 4 
-#   define PRINTF_OFF_T "lld" 
+#if CI_SIZEOF_OFF_T > 4
+#   define PRINTF_OFF_T "lld"
 #   define CAST_OFF_T long long int
 #   define ci_strto_off_t strtoll
 #   define CI_STRTO_OFF_T_MAX LLONG_MAX
 #   define CI_STRTO_OFF_T_MIN LLONG_MIN
 #else
-#   define PRINTF_OFF_T "ld" 
+#   define PRINTF_OFF_T "ld"
 #   define CAST_OFF_T  long int
 #   define ci_strto_off_t strtol
 #   define CI_STRTO_OFF_T_MAX LONG_MAX
@@ -141,17 +141,17 @@ CI_DECLARE_DATA extern const char *ci_methods[];
 #define ci_method_string(method) (method<=ICAP_RESPMOD && method>=ICAP_OPTIONS ?ci_methods[method]:"UNKNOWN")
 
 
-enum ci_error_codes { EC_100, EC_200, EC_204, EC_206, EC_400, 
-                   EC_401, EC_403,
-		   EC_404, EC_405, EC_407, EC_408,
-		   EC_500, EC_501, EC_502, 
-		   EC_503, EC_505,
-                   EC_MAX
-};
+enum ci_error_codes { EC_100, EC_200, EC_204, EC_206, EC_400,
+                      EC_401, EC_403,
+                      EC_404, EC_405, EC_407, EC_408,
+                      EC_500, EC_501, EC_502,
+                      EC_503, EC_505,
+                      EC_MAX
+                    };
 
-typedef struct ci_error_code{
-  int code;
-  char *str;
+typedef struct ci_error_code {
+    int code;
+    char *str;
 } ci_error_code_t;
 
 CI_DECLARE_DATA extern const struct ci_error_code ci_error_codes[];

@@ -41,7 +41,7 @@
 #include <malloc.h>
 #endif
 
-#ifdef HAVE_DLFCN_H 
+#ifdef HAVE_DLFCN_H
 #include <dlfcn.h>
 #endif
 

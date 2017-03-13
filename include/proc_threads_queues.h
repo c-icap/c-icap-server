@@ -37,34 +37,34 @@ enum KILL_MODE {NO_KILL=0,GRACEFULLY,IMMEDIATELY};
 #ifdef _WIN32
 #define process_pid_t HANDLE
 #define ci_pipe_t     HANDLE
-#else 
+#else
 #define process_pid_t int
 #define ci_pipe_t   int
 #endif
 
 
-struct connections_queue{
-     ci_connection_t *connections;
-     int used;
-     int size;
-     ci_thread_mutex_t queue_mtx;
-     ci_thread_mutex_t cond_mtx;
-     ci_thread_cond_t queue_cond;
+struct connections_queue {
+    ci_connection_t *connections;
+    int used;
+    int size;
+    ci_thread_mutex_t queue_mtx;
+    ci_thread_mutex_t cond_mtx;
+    ci_thread_cond_t queue_cond;
 };
 
 
-typedef struct child_shared_data{
-     int freeservers;
-     int usedservers;
-     int requests;
-     int connections;
-     process_pid_t pid;
-     int idle;
-     int to_be_killed;
-     int father_said;
-     ci_pipe_t pipe;
-     struct stat_memblock *stats;
-     int stats_size;
+typedef struct child_shared_data {
+    int freeservers;
+    int usedservers;
+    int requests;
+    int connections;
+    process_pid_t pid;
+    int idle;
+    int to_be_killed;
+    int father_said;
+    ci_pipe_t pipe;
+    struct stat_memblock *stats;
+    int stats_size;
 } child_shared_data_t;
 
 struct server_statistics {
@@ -73,15 +73,15 @@ struct server_statistics {
     unsigned int crashed_childs;
 };
 
-struct childs_queue{
-     child_shared_data_t *childs;
-     int size;
-     int shared_mem_size;
-     int stats_block_size;
-     void  *stats_area;
-     struct stat_memblock *stats_history;
-     ci_shared_mem_id_t shmid;
-     ci_proc_mutex_t queue_mtx;
+struct childs_queue {
+    child_shared_data_t *childs;
+    int size;
+    int shared_mem_size;
+    int stats_block_size;
+    void  *stats_area;
+    struct stat_memblock *stats_history;
+    ci_shared_mem_id_t shmid;
+    ci_proc_mutex_t queue_mtx;
     struct server_statistics *srv_stats;
 };
 
@@ -102,18 +102,18 @@ int attach_childs_queue(struct childs_queue *q);
 int dettach_childs_queue(struct childs_queue *q);
 int childs_queue_is_empty(struct childs_queue *q);
 child_shared_data_t *get_child_data(struct childs_queue *q, process_pid_t pid);
-child_shared_data_t *register_child(struct childs_queue *q, 
-				    process_pid_t pid,
-				    int maxservers,
-				    ci_pipe_t pipe
-);
+child_shared_data_t *register_child(struct childs_queue *q,
+                                    process_pid_t pid,
+                                    int maxservers,
+                                    ci_pipe_t pipe
+                                   );
 
 int remove_child(struct childs_queue *q, process_pid_t pid, int status);
 int find_a_child_to_be_killed(struct childs_queue *q);
 int find_a_child_nrequests(struct childs_queue *q,int max_requests);
 int find_an_idle_child(struct childs_queue *q);
 int childs_queue_stats(struct childs_queue *q, int *childs,
-		       int *freeservers, int *used, int *maxrequests);
+                       int *freeservers, int *used, int *maxrequests);
 void dump_queue_statistics(struct childs_queue *q);
 
 #ifdef __cplusplus

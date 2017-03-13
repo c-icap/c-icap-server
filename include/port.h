@@ -37,21 +37,21 @@ typedef struct ci_port {
     char *address;
     int secs_to_linger;
 #ifdef USE_OPENSSL
-     int tls_enabled;
-     char *tls_server_cert;
-     char *tls_server_key;
-     char *tls_client_ca_certs;
-     char *tls_cafile;
-     char *tls_capath;
-     char *tls_method;
-     char *tls_ciphers;
-     long tls_options;
+    int tls_enabled;
+    char *tls_server_cert;
+    char *tls_server_key;
+    char *tls_client_ca_certs;
+    char *tls_cafile;
+    char *tls_capath;
+    char *tls_method;
+    char *tls_ciphers;
+    long tls_options;
 #endif
-     int configured;
-     ci_socket_t fd;
+    int configured;
+    ci_socket_t fd;
 #ifdef USE_OPENSSL
-     SSL_CTX *tls_context;
-     BIO* bio;
+    SSL_CTX *tls_context;
+    BIO* bio;
 #endif
 } ci_port_t;
 

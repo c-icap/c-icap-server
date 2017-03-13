@@ -25,59 +25,58 @@
 
 HMODULE ci_module_load(const char *module_file, const char *default_path)
 {
-     HMODULE handle;
-     WCHAR path[CI_MAX_PATH];
-     WCHAR c;
-     int len, i = 0;
-     DWORD load_flags = LOAD_WITH_ALTERED_SEARCH_PATH;
+    HMODULE handle;
+    WCHAR path[CI_MAX_PATH];
+    WCHAR c;
+    int len, i = 0;
+    DWORD load_flags = LOAD_WITH_ALTERED_SEARCH_PATH;
 
-     if (module_file[0] != '/') {
-          if (default_path) {
-               len = strlen(default_path) + strlen(module_file) + 1; /*plus the '/' delimiter */
-               if (len >= CI_MAX_PATH) {
-                    ci_debug_printf(1,
-                                    "Path name len of %s+%s is greater than "
-                                    "MAXPATH:%d, not loading\n",
-                                    default_path, module_file, CI_MAX_PATH);
-                    return NULL;
-               }
-          strcpy(path, default_path);
-          strcat(path, "/");
-          strcat(path, module_file);
-          } else
-              load_flags = LOAD_LIBRARY_SEARCH_DEFAULT_DIRS;
-     }
-     else
-          strncpy(path, module_file, CI_MAX_PATH - 1);
+    if (module_file[0] != '/') {
+        if (default_path) {
+            len = strlen(default_path) + strlen(module_file) + 1; /*plus the '/' delimiter */
+            if (len >= CI_MAX_PATH) {
+                ci_debug_printf(1,
+                                "Path name len of %s+%s is greater than "
+                                "MAXPATH:%d, not loading\n",
+                                default_path, module_file, CI_MAX_PATH);
+                return NULL;
+            }
+            strcpy(path, default_path);
+            strcat(path, "/");
+            strcat(path, module_file);
+        } else
+            load_flags = LOAD_LIBRARY_SEARCH_DEFAULT_DIRS;
+    } else
+        strncpy(path, module_file, CI_MAX_PATH - 1);
 
 
-     path[CI_MAX_PATH - 1] = '\0';
+    path[CI_MAX_PATH - 1] = '\0';
 
-     handle = LoadLibraryEx(filename, NULL, load_flags);
-     if (!handle)
-          handle = LoadLibraryEx(filename, NULL, NULL);
+    handle = LoadLibraryEx(filename, NULL, load_flags);
+    if (!handle)
+        handle = LoadLibraryEx(filename, NULL, NULL);
 
-     if (!handle) {
-          ci_debug_printf(1, "Error loading module %s:%d\n", module_file,
-                          GetLastError());
-          return NULL;
-     }
-     return handle;
+    if (!handle) {
+        ci_debug_printf(1, "Error loading module %s:%d\n", module_file,
+                        GetLastError());
+        return NULL;
+    }
+    return handle;
 }
 
 void *ci_module_sym(HMODULE handle, const char *symbol)
 {
-     return GetProcAddress(handle, symbol);
+    return GetProcAddress(handle, symbol);
 }
 
 
 int ci_module_unload(HMODULE handle, const char *name)
 {
-     int ret;
-     ret = FreeLibrary(handle);
-     if (ret == 1) {
-          ci_debug_printf(1, "Error unloading module:%s\n", name);
-          return 0;
-     }
-     return 1;
+    int ret;
+    ret = FreeLibrary(handle);
+    if (ret == 1) {
+        ci_debug_printf(1, "Error unloading module:%s\n", name);
+        return 0;
+    }
+    return 1;
 }

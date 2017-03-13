@@ -9,17 +9,19 @@
 #include "debug.h"
 
 void log_errors(void *unused, const char *format, ...)
-{                                                     
-     va_list ap;                                      
-     va_start(ap, format);                            
-     vfprintf(stderr, format, ap);                    
-     va_end(ap);                                      
+{
+    va_list ap;
+    va_start(ap, format);
+    vfprintf(stderr, format, ap);
+    va_end(ap);
 }
 
 
 static struct ci_options_entry options[] = {
-    {"-d", "debug_level", &CI_DEBUG_LEVEL, ci_cfg_set_int,
-     "The debug level"},
+    {
+        "-d", "debug_level", &CI_DEBUG_LEVEL, ci_cfg_set_int,
+        "The debug level"
+    },
     {NULL,NULL,NULL,NULL,NULL}
 };
 
@@ -69,13 +71,13 @@ struct cb_rm_data {
 
 int cb_remove_anobj(void *data, const void *obj)
 {
-   struct obj *o = (struct obj *)obj;
-   struct cb_rm_data *rd = (struct cb_rm_data *)data;
-   if (o->c == rd->item) {
-       ci_list_remove(rd->list, o);
-   }
-   ci_debug_printf(5, "item->%c %s\n", o->c, (o->c == rd->item ? "rm" : ""));
-   return 0;
+    struct obj *o = (struct obj *)obj;
+    struct cb_rm_data *rd = (struct cb_rm_data *)data;
+    if (o->c == rd->item) {
+        ci_list_remove(rd->list, o);
+    }
+    ci_debug_printf(5, "item->%c %s\n", o->c, (o->c == rd->item ? "rm" : ""));
+    return 0;
 }
 
 int main(int argc,char *argv[])
@@ -94,7 +96,7 @@ int main(int argc,char *argv[])
         ci_args_usage(argv[0], options);
         exit(-1);
     }
-    
+
     list = ci_list_create(4096, sizeof(struct obj));
     if (!list) {
         ci_debug_printf(1, "Error creating list\n");
@@ -122,12 +124,12 @@ int main(int argc,char *argv[])
         ci_debug_printf(1, "Remove all 's' objects...\n");
         k = 0;
         fill_obj(&o, 's');
-        while(ci_list_remove(list, &o)) {
+        while (ci_list_remove(list, &o)) {
             k++;
         }
 
         fill_obj(&o, 'k');
-        while(ci_list_remove(list, &o)) {
+        while (ci_list_remove(list, &o)) {
             k++;
         }
         ci_debug_printf(1, "Removed %d objects\n", k);

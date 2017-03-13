@@ -23,7 +23,7 @@
 #include "proc_mutex.h"
 #include <errno.h>
 #include <fcntl.h>
-#include <sys/stat.h> 
+#include <sys/stat.h>
 
 
 
@@ -35,65 +35,65 @@
 /*static int current_semkey=SEMKEY; */
 
 static struct sembuf op_lock[2] = {
-     {0, 0, 0},                 /*wait for sem to become 0 */
-     {0, 1, SEM_UNDO}           /*then increment sem by 1  */
+    {0, 0, 0},                 /*wait for sem to become 0 */
+    {0, 1, SEM_UNDO}           /*then increment sem by 1  */
 };
 
 static struct sembuf op_unlock[1] = {
-     {0, -1, (IPC_NOWAIT | SEM_UNDO)}   /*decrement sem by 1   */
+    {0, -1, (IPC_NOWAIT | SEM_UNDO)}   /*decrement sem by 1   */
 };
 
 #ifndef HAVE_UNION_SEMUN
 union semun {
-     int val;                   /* Value for SETVAL */
-     struct semid_ds *buf;      /* Buffer for IPC_STAT, IPC_SET */
-     unsigned short *array;     /* Array for GETALL, SETALL */
-     struct seminfo *__buf;     /* Buffer for IPC_INFO
+    int val;                   /* Value for SETVAL */
+    struct semid_ds *buf;      /* Buffer for IPC_STAT, IPC_SET */
+    unsigned short *array;     /* Array for GETALL, SETALL */
+    struct seminfo *__buf;     /* Buffer for IPC_INFO
                                    (Linux specific) */
 };
 #endif
 
 static int sysv_proc_mutex_init(ci_proc_mutex_t * mutex, const char *name)
 {
-     union semun arg;
-     if ((mutex->sysv.id = semget(IPC_PRIVATE, 1, IPC_CREAT | PERMS)) < 0) {
-          ci_debug_printf(1, "Error creating mutex\n");
-          return 0;
-     }
-     arg.val = 0;
-     if ((semctl(mutex->sysv.id, 0, SETVAL, arg)) < 0) {
-          ci_debug_printf(1, "Error setting default value for mutex, errno:%d\n",
-                          errno);
-          return 0;
-     }
-     strncpy(mutex->name, name, CI_PROC_MUTEX_NAME_SIZE);
-     mutex->name[CI_PROC_MUTEX_NAME_SIZE - 1] = '\0';
-     return 1;
+    union semun arg;
+    if ((mutex->sysv.id = semget(IPC_PRIVATE, 1, IPC_CREAT | PERMS)) < 0) {
+        ci_debug_printf(1, "Error creating mutex\n");
+        return 0;
+    }
+    arg.val = 0;
+    if ((semctl(mutex->sysv.id, 0, SETVAL, arg)) < 0) {
+        ci_debug_printf(1, "Error setting default value for mutex, errno:%d\n",
+                        errno);
+        return 0;
+    }
+    strncpy(mutex->name, name, CI_PROC_MUTEX_NAME_SIZE);
+    mutex->name[CI_PROC_MUTEX_NAME_SIZE - 1] = '\0';
+    return 1;
 }
 
 static int sysv_proc_mutex_destroy(ci_proc_mutex_t * mutex)
 {
-     if (semctl(mutex->sysv.id, 0, IPC_RMID, 0) < 0) {
-          ci_debug_printf(1, "Error removing mutex\n");
-          return 0;
-     }
-     return 1;
+    if (semctl(mutex->sysv.id, 0, IPC_RMID, 0) < 0) {
+        ci_debug_printf(1, "Error removing mutex\n");
+        return 0;
+    }
+    return 1;
 }
 
 static int sysv_proc_mutex_lock(ci_proc_mutex_t * mutex)
 {
-     if (semop(mutex->sysv.id, (struct sembuf *) &op_lock, 2) < 0) {
-          return 0;
-     }
-     return 1;
+    if (semop(mutex->sysv.id, (struct sembuf *) &op_lock, 2) < 0) {
+        return 0;
+    }
+    return 1;
 }
 
 static int sysv_proc_mutex_unlock(ci_proc_mutex_t * mutex)
 {
-     if (semop(mutex->sysv.id, (struct sembuf *) &op_unlock, 1) < 0) {
-          return 0;
-     }
-     return 1;
+    if (semop(mutex->sysv.id, (struct sembuf *) &op_unlock, 1) < 0) {
+        return 0;
+    }
+    return 1;
 }
 
 static int sysv_proc_mutex_print_info(ci_proc_mutex_t * mutex, char *buf, size_t buf_size)
@@ -119,7 +119,7 @@ static int posix_proc_mutex_init(ci_proc_mutex_t * mutex, const char *name)
 {
     int i = 0;
     mutex->posix.sem = SEM_FAILED;
-    for(i = 0; i < 1024; ++i) {
+    for (i = 0; i < 1024; ++i) {
         errno = 0;
         snprintf(mutex->name, CI_PROC_MUTEX_NAME_SIZE, "%s%s.%d", CI_PROC_MUTEX_NAME_TMPL, name, i);
         if ((mutex->posix.sem = sem_open(mutex->name, O_CREAT|O_EXCL, S_IREAD|S_IWRITE|S_IRGRP, 1)) != SEM_FAILED) {
@@ -138,28 +138,28 @@ static int posix_proc_mutex_init(ci_proc_mutex_t * mutex, const char *name)
 
 static int posix_proc_mutex_destroy(ci_proc_mutex_t * mutex)
 {
-     if (sem_unlink(mutex->name) < 0) {
-          return 0;
-     }
-     return 1;
+    if (sem_unlink(mutex->name) < 0) {
+        return 0;
+    }
+    return 1;
 }
 
 static int posix_proc_mutex_lock(ci_proc_mutex_t * mutex)
 {
-     if (sem_wait(mutex->posix.sem)) {
-         ci_debug_printf(1, "Failed to get lock of posix mutex\n");
-         return 0;
-     }
-     return 1;
+    if (sem_wait(mutex->posix.sem)) {
+        ci_debug_printf(1, "Failed to get lock of posix mutex\n");
+        return 0;
+    }
+    return 1;
 }
 
 static int posix_proc_mutex_unlock(ci_proc_mutex_t * mutex)
 {
-     if (sem_post(mutex->posix.sem)) {
-         ci_debug_printf(1, "Failed to unlock of posix mutex\n");
-         return 0;
-     }
-     return 1;
+    if (sem_post(mutex->posix.sem)) {
+        ci_debug_printf(1, "Failed to unlock of posix mutex\n");
+        return 0;
+    }
+    return 1;
 }
 
 static int posix_proc_mutex_print_info(ci_proc_mutex_t * mutex, char *buf, size_t buf_size)
@@ -184,45 +184,45 @@ static ci_proc_mutex_scheme_t posix_mutex_scheme = {
 /*NOTE: mkstemp does not exists for some platforms */
 static int file_proc_mutex_init(ci_proc_mutex_t * mutex, const char *name)
 {
-     strcpy(mutex->name, CI_MUTEX_FILE_TEMPLATE);
-     snprintf(mutex->name, CI_PROC_MUTEX_NAME_SIZE, "%s_%s.XXXXXX", CI_MUTEX_FILE_TEMPLATE, name);
-     if ((mutex->file.fd = mkstemp(mutex->name)) < 0)
-          return 0;
+    strcpy(mutex->name, CI_MUTEX_FILE_TEMPLATE);
+    snprintf(mutex->name, CI_PROC_MUTEX_NAME_SIZE, "%s_%s.XXXXXX", CI_MUTEX_FILE_TEMPLATE, name);
+    if ((mutex->file.fd = mkstemp(mutex->name)) < 0)
+        return 0;
 
-     return 1;
+    return 1;
 }
 
 static int file_proc_mutex_destroy(ci_proc_mutex_t * mutex)
 {
-     close(mutex->file.fd);
-     if (unlink(mutex->name) != 0)
-          return 0;
-     return 1;
+    close(mutex->file.fd);
+    if (unlink(mutex->name) != 0)
+        return 0;
+    return 1;
 }
 
 static int file_proc_mutex_lock(ci_proc_mutex_t * mutex)
 {
-     struct flock fl;
-     fl.l_type = F_WRLCK;
-     fl.l_whence = SEEK_SET;
-     fl.l_start = 0;
-     fl.l_len = 0;
+    struct flock fl;
+    fl.l_type = F_WRLCK;
+    fl.l_whence = SEEK_SET;
+    fl.l_start = 0;
+    fl.l_len = 0;
 
-     if (fcntl(mutex->file.fd, F_SETLKW, &fl) < 0)
-          return 0;
-     return 1;
+    if (fcntl(mutex->file.fd, F_SETLKW, &fl) < 0)
+        return 0;
+    return 1;
 }
 
 static int file_proc_mutex_unlock(ci_proc_mutex_t * mutex)
 {
-     struct flock fl;
-     fl.l_type = F_UNLCK;
-     fl.l_whence = SEEK_SET;
-     fl.l_start = 0;
-     fl.l_len = 0;
-     if (fcntl(mutex->file.fd, F_SETLK, &fl) < 0)
-          return 0;
-     return 1;
+    struct flock fl;
+    fl.l_type = F_UNLCK;
+    fl.l_whence = SEEK_SET;
+    fl.l_start = 0;
+    fl.l_len = 0;
+    if (fcntl(mutex->file.fd, F_SETLK, &fl) < 0)
+        return 0;
+    return 1;
 }
 
 static int file_proc_mutex_print_info(ci_proc_mutex_t * mutex, char *buf, size_t buf_size)
@@ -264,19 +264,19 @@ int ci_proc_mutex_set_scheme(const char *scheme)
     else
 #endif
 #if defined(USE_POSIX_SEMAPHORES)
-    if (strcasecmp(scheme, "posix") == 0)
-        default_mutex_scheme = &posix_mutex_scheme;
-    else
+        if (strcasecmp(scheme, "posix") == 0)
+            default_mutex_scheme = &posix_mutex_scheme;
+        else
 #endif
 #if  defined(USE_POSIX_FILE_LOCK)
-    if (strcasecmp(scheme, "file") == 0)
-    default_mutex_scheme = &file_mutex_scheme;
-    else
+            if (strcasecmp(scheme, "file") == 0)
+                default_mutex_scheme = &file_mutex_scheme;
+            else
 #endif
-    {
-        ci_debug_printf(1, "Unknown interprocess locking scheme: '%s'", scheme);
-        return 0;
-    }
+            {
+                ci_debug_printf(1, "Unknown interprocess locking scheme: '%s'", scheme);
+                return 0;
+            }
     return 1;
 }
 

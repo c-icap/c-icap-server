@@ -25,7 +25,7 @@ enum MTX_TYPE { MTX_MUTEX
 #ifdef USE_PTHREADS_RWLOCK
                 , MTX_RWLOCK
 #endif
-};
+              };
 struct mutex_itm {
     union {
         pthread_mutex_t *mutex;
@@ -43,7 +43,7 @@ static mutex_itm_t *last = NULL;
 
 static int init_child_mutexes_scheduled = 0;
 
-static void init_child_mutexes() 
+static void init_child_mutexes()
 {
     mutex_itm_t *m;
     pthread_mutex_init(&mutexes_lock, NULL);
@@ -89,8 +89,7 @@ static mutex_itm_t *add_mutex(void *pmutex, int type)
     if (mutexes == NULL) {
         mutexes = m;
         last = m;
-    }
-    else {
+    } else {
         last->next = m;
         last = last->next;
     }
@@ -158,32 +157,32 @@ int ci_thread_rwlock_destroy(ci_thread_rwlock_t *rwlock)
 }
 
 #else
-/*We can implement a better solution here using a mutex and a cond 
+/*We can implement a better solution here using a mutex and a cond
   object to simulate rwlocks (TODO)
 */
 int ci_thread_rwlock_init(ci_thread_rwlock_t * rwlock)
 {
-     return ci_thread_mutex_init(rwlock, NULL);
+    return ci_thread_mutex_init(rwlock, NULL);
 }
 
 int ci_thread_rwlock_destroy(ci_thread_rwlock_t * rwlock)
 {
-     return ci_thread_mutex_destroy(rwlock);
+    return ci_thread_mutex_destroy(rwlock);
 }
 
 int ci_thread_rwlock_rdlock(ci_thread_rwlock_t * rwlock)
 {
-     return ci_thread_mutex_lock(rwlock);
+    return ci_thread_mutex_lock(rwlock);
 }
 
 int ci_thread_rwlock_wrlock(ci_thread_rwlock_t * rwlock)
 {
-     return ci_thread_mutex_lock(rwlock);
+    return ci_thread_mutex_lock(rwlock);
 }
 
 int ci_thread_rwlock_unlock(ci_thread_rwlock_t * rwlock)
 {
-     return ci_thread_mutex_unlock(rwlock);
+    return ci_thread_mutex_unlock(rwlock);
 }
 
 #endif

@@ -9,9 +9,9 @@ extern "C"
 #endif
 
 struct ci_MD5Context {
-        uint32_t buf[4];
-        uint32_t bits[2];
-        unsigned char in[64];
+    uint32_t buf[4];
+    uint32_t bits[2];
+    unsigned char in[64];
 };
 typedef struct ci_MD5Context ci_MD5_CTX;
 CI_DECLARE_FUNC(void) ci_MD5Init(struct ci_MD5Context *ctx);

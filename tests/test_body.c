@@ -18,32 +18,37 @@ MDPrint(const char *label, unsigned char digest[16])
 }
 
 void log_errors(void *unused, const char *format, ...)
-{                                                     
-     va_list ap;                                      
-     va_start(ap, format);                            
-     vfprintf(stderr, format, ap);                    
-     va_end(ap);                                      
+{
+    va_list ap;
+    va_start(ap, format);
+    vfprintf(stderr, format, ap);
+    va_end(ap);
 }
 
 char *FILENAME = NULL;
 
 static struct ci_options_entry options[] = {
-    {"-d", "debug_level", &CI_DEBUG_LEVEL, ci_cfg_set_int,
-     "The debug level"},
-    {"-f", "file", &FILENAME, ci_cfg_set_str,
-     "The path of the file to load"},
+    {
+        "-d", "debug_level", &CI_DEBUG_LEVEL, ci_cfg_set_int,
+        "The debug level"
+    },
+    {
+        "-f", "file", &FILENAME, ci_cfg_set_str,
+        "The path of the file to load"
+    },
     {NULL,NULL,NULL,NULL,NULL}
 };
 
 int mem_init();
 int init_body_system();
-int main(int argc,char *argv[]) {
+int main(int argc,char *argv[])
+{
     ci_membuf_t *mb = NULL;
     ci_simple_file_t *sf = NULL;
     ci_cfg_lib_init();
     mem_init();
     init_body_system();
-    __log_error = (void (*)(void *, const char *,...)) log_errors;     /*set c-icap library log  function */                                                    
+    __log_error = (void (*)(void *, const char *,...)) log_errors;     /*set c-icap library log  function */
 
     if (!ci_args_apply(argc, argv, options) || !FILENAME) {
         ci_args_usage(argv[0], options);
@@ -85,7 +90,7 @@ int main(int argc,char *argv[]) {
 
     ci_MD5Init(&md);
     int len;
-    while((len = ci_membuf_read(mb, buf, sizeof(buf))) > 0) {
+    while ((len = ci_membuf_read(mb, buf, sizeof(buf))) > 0) {
         ci_MD5Update(&md, (unsigned char *)buf, len);
     }
     ci_MD5Final(digest, &md);

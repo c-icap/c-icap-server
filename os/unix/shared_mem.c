@@ -39,46 +39,46 @@
 
 void *sysv_shared_mem_create(ci_shared_mem_id_t * id, const char *name, int size)
 {
-     if ((id->sysv.id = shmget(IPC_PRIVATE, size, PERMS | IPC_CREAT)) < 0) {
-          return NULL;
-     }
+    if ((id->sysv.id = shmget(IPC_PRIVATE, size, PERMS | IPC_CREAT)) < 0) {
+        return NULL;
+    }
 
-     if ((id->mem = shmat(id->sysv.id, NULL, 0)) == (void *) -1) {
-          return NULL;
-     }
+    if ((id->mem = shmat(id->sysv.id, NULL, 0)) == (void *) -1) {
+        return NULL;
+    }
 
-     id->size = size;
-     snprintf(id->name, CI_SHARED_MEM_NAME_SIZE, "%s", name);
-     return id->mem;
+    id->size = size;
+    snprintf(id->name, CI_SHARED_MEM_NAME_SIZE, "%s", name);
+    return id->mem;
 }
 
 
 void *sysv_shared_mem_attach(ci_shared_mem_id_t * id)
 {
-     if ((id->mem = shmat(id->sysv.id, NULL, 0)) == (void *) -1) {
-          return NULL;
-     }
-     return id->mem;
+    if ((id->mem = shmat(id->sysv.id, NULL, 0)) == (void *) -1) {
+        return NULL;
+    }
+    return id->mem;
 }
 
 int sysv_shared_mem_detach(ci_shared_mem_id_t * id)
 {
-     if (shmdt(id->mem) < 0) {
-          return 0;
-     }
-     return 1;
+    if (shmdt(id->mem) < 0) {
+        return 0;
+    }
+    return 1;
 }
 
 
 int sysv_shared_mem_destroy(ci_shared_mem_id_t * id)
 {
-     if (shmdt(id->mem) < 0)
-          return 0;
+    if (shmdt(id->mem) < 0)
+        return 0;
 
-     if (shmctl(id->sysv.id, IPC_RMID, NULL) < 0)
-          return 0;
+    if (shmctl(id->sysv.id, IPC_RMID, NULL) < 0)
+        return 0;
 
-     return 1;
+    return 1;
 }
 
 int sysv_shared_mem_print_info(ci_shared_mem_id_t *id, char *buf, size_t buf_size)
@@ -103,35 +103,35 @@ const ci_shared_mem_scheme_t sysv_scheme = {
 void *mmap_shared_mem_create(ci_shared_mem_id_t * id, const char *name, int size)
 {
 
-     if ((id->mem =
-          mmap(0, size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1,
-               0)) == MAP_FAILED)
-          return NULL;
+    if ((id->mem =
+                mmap(0, size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1,
+                     0)) == MAP_FAILED)
+        return NULL;
 
-     id->size = size;
-     snprintf(id->name, CI_SHARED_MEM_NAME_SIZE, "%s", name);
+    id->size = size;
+    snprintf(id->name, CI_SHARED_MEM_NAME_SIZE, "%s", name);
 
-     return id->mem;
+    return id->mem;
 }
 
 
 void *mmap_shared_mem_attach(ci_shared_mem_id_t * id)
 {
-     return (void *) (id->mem);
+    return (void *) (id->mem);
 }
 
 
 int mmap_shared_mem_detach(ci_shared_mem_id_t * id)
 {
 
-     return 1;
+    return 1;
 }
 
 
 int mmap_shared_mem_destroy(ci_shared_mem_id_t * id)
 {
-     munmap(id->mem, id->size);
-     return 1;
+    munmap(id->mem, id->size);
+    return 1;
 }
 
 int mmap_shared_mem_print_info(ci_shared_mem_id_t *id, char *buf, size_t buf_size)
@@ -160,7 +160,7 @@ void *posix_shared_mem_create(ci_shared_mem_id_t * id, const char *name, int siz
     id->size = size;
     for (i = 0; i < 1024; ++i) {
         errno = 0;
-snprintf(id->name, CI_SHARED_MEM_NAME_SIZE, "%s-%s.%d", CI_SHARED_MEM_NAME_TMPL, name, i);
+        snprintf(id->name, CI_SHARED_MEM_NAME_SIZE, "%s-%s.%d", CI_SHARED_MEM_NAME_TMPL, name, i);
         id->posix.fd = shm_open(id->name, O_RDWR | O_CREAT | O_EXCL, S_IREAD | S_IWRITE);
         ret = ftruncate(id->posix.fd, id->size);
         if (ret < 0) {
@@ -235,19 +235,19 @@ int ci_shared_mem_set_scheme(const char *name)
     else
 #endif
 #if defined(USE_POSIX_MAPPED_FILES)
-    if (strcasecmp(name, "mmap") == 0)
-        default_scheme = &mmap_scheme;
-    else
+        if (strcasecmp(name, "mmap") == 0)
+            default_scheme = &mmap_scheme;
+        else
 #endif
 #if defined(USE_SYSV_IPC)
-    if (strcasecmp(name, "sysv") == 0)
-        default_scheme = &sysv_scheme;
-    else
+            if (strcasecmp(name, "sysv") == 0)
+                default_scheme = &sysv_scheme;
+            else
 #endif
-    {
-        ci_debug_printf(1, "Shared mem scheme '%s' does not supported by c-icap\n", name);
-        return 0;
-    }
+            {
+                ci_debug_printf(1, "Shared mem scheme '%s' does not supported by c-icap\n", name);
+                return 0;
+            }
 
     return 1;
 }

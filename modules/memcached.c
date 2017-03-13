@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2011 Christos Tsantilas  
+ *  Copyright (C) 2011 Christos Tsantilas
  *  email: christos@chtsanti.net
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -29,9 +29,9 @@
 #include <libmemcached/memcached.h>
 
 /*
-  Set it to 1 if you want to use c-icap memory pools and 
+  Set it to 1 if you want to use c-icap memory pools and
   custom c-icap memory allocators.
-  Currently libmemcached looks that does not handle well 
+  Currently libmemcached looks that does not handle well
   foreign mem allocators, so for nos it is disabled.
 */
 #define USE_CI_BUFFERS 0
@@ -42,7 +42,7 @@
 #else
 #include <libmemcached/util/pool.h>
 #endif /* LIBMEMCACHED_VERSION_HEX > 0x01000000*/
-#else 
+#else
 /* And older version of libmemcached*/
 #include <libmemcached/memcached_pool.h>
 #endif
@@ -50,7 +50,7 @@
 #include <crypt.h>
 
 int USE_MD5_SUM_KEYS = 1;
-   
+
 int mc_cfg_servers_set(const char *directive, const char **argv, void *setdata);
 /*Configuration Table .....*/
 static struct ci_conf_entry mc_conf_variables[] = {
@@ -100,7 +100,7 @@ void *mc_mem_malloc(const memcached_st *ptr, const size_t size, void *context);
 void mc_mem_free(const memcached_st *ptr, void *mem, void *context);
 void *mc_mem_realloc(const memcached_st *ptr, void *mem, const size_t size, void *context);
 void *mc_mem_calloc(const memcached_st *ptr, size_t nelem, const size_t elsize, void *context);
-#else 
+#else
 void *mc_mem_malloc(memcached_st *ptr, const size_t size);
 void mc_mem_free(memcached_st *ptr, void *mem);
 void *mc_mem_realloc(memcached_st *ptr, void *mem, const size_t size);
@@ -134,7 +134,7 @@ int mc_module_post_init(struct ci_server_conf *server_conf)
 #endif
     const mc_server_t *srv;
     const char *default_servers[] = {
-        "127.0.0.1", 
+        "127.0.0.1",
         NULL
     };
 
@@ -149,7 +149,7 @@ int mc_module_post_init(struct ci_server_conf *server_conf)
 #if defined(LIBMEMCACHED_VERSION_HEX)
                                        ,(void *)0x1
 #endif
-        );
+                                      );
 #else
     MC= calloc(1, sizeof(memcached_st));
 #endif
@@ -170,7 +170,7 @@ int mc_module_post_init(struct ci_server_conf *server_conf)
 #if defined(LIBMEMCACHED_VERSION_HEX)
                                          , (void *)0x1
 #endif
-        );
+                                        );
 
     if (rc != MEMCACHED_SUCCESS) {
         ci_debug_printf(1, "Failed to set ci-icap membuf memory allocators\n");
@@ -190,8 +190,8 @@ int mc_module_post_init(struct ci_server_conf *server_conf)
                 MC = NULL;
                 return 0;
             }
-        } else if (memcached_server_add(MC, srv->hostname, srv->port) != 
-            MEMCACHED_SUCCESS) {
+        } else if (memcached_server_add(MC, srv->hostname, srv->port) !=
+                   MEMCACHED_SUCCESS) {
             ci_debug_printf(1, "Failed to add localhost to the server pool\n");
             memcached_free(MC);
             MC = NULL;
@@ -249,16 +249,16 @@ int mc_cache_init(struct ci_cache *cache, const char *domain)
     useDomain[MC_DOMAINLEN] = '\0';
     i = 0;
     ci_thread_mutex_lock(&mc_mtx);
-    while(i < 1000 && ci_list_search2(mc_caches_list, useDomain, mc_cache_cmp)) {
-        snprintf(useDomain, MC_DOMAINLEN, "%.*s~%d", 
-                 MC_DOMAINLEN - 2 - (i < 10 ? 1 : (i < 100 ? 2 : 3)), 
+    while (i < 1000 && ci_list_search2(mc_caches_list, useDomain, mc_cache_cmp)) {
+        snprintf(useDomain, MC_DOMAINLEN, "%.*s~%d",
+                 MC_DOMAINLEN - 2 - (i < 10 ? 1 : (i < 100 ? 2 : 3)),
                  domain,
                  i);
         i++;
     }
     ci_thread_mutex_unlock(&mc_mtx);
 
-    if (i > 999) /*????*/ 
+    if (i > 999) /*????*/
         return 0;
 
     struct mc_cache_data *mc_data = malloc(sizeof(struct mc_cache_data));
@@ -305,7 +305,7 @@ const void *mc_cache_search(struct ci_cache *cache, const void *key, void **val,
     value = memcached_get(mlocal, mckey, mckeylen, &value_len, &flags, &rc);
 
     if ( rc != MEMCACHED_SUCCESS) {
-        ci_debug_printf(5, "Failed to retrieve %s object from cache: %s\n", 
+        ci_debug_printf(5, "Failed to retrieve %s object from cache: %s\n",
                         mckey,
                         memcached_strerror(mlocal, rc));
     } else {
@@ -365,7 +365,7 @@ int mc_cache_update(struct ci_cache *cache, const void *key, const void *val, si
 
     mlocal = memcached_pool_pop(MC_POOL, true, &rc);
     if (!mlocal) {
-        ci_debug_printf(1, "Error getting memcached_st object from pool: %s\n", 
+        ci_debug_printf(1, "Error getting memcached_st object from pool: %s\n",
                         memcached_strerror(MC, rc));
         return 0;
     }
@@ -381,7 +381,7 @@ int mc_cache_update(struct ci_cache *cache, const void *key, const void *val, si
                         memcached_strerror(mlocal, rc));
 
     if (memcached_pool_push(MC_POOL, mlocal) != MEMCACHED_SUCCESS) {
-        ci_debug_printf(1, "Failed to release memcached_st object:%s\n",                
+        ci_debug_printf(1, "Failed to release memcached_st object:%s\n",
                         memcached_strerror(MC, rc));
     }
 
@@ -395,7 +395,7 @@ int mc_cache_delete(const char *key, const char *search_domain)
     memcached_st *mlocal = memcached_pool_pop(MC_POOL, true, &rc);
 
     if (!mlocal) {
-        ci_debug_printf(1, "Error getting memcached_st object from pool: %s\n", 
+        ci_debug_printf(1, "Error getting memcached_st object from pool: %s\n",
                         memcached_strerror(MC, rc));
         return 0;
     }
@@ -429,8 +429,8 @@ int mc_cfg_servers_set(const char *directive, const char **argv, void *setdata)
         }
     }
 
-    for(argc = 0; argv[argc] != NULL; argc++) {
-        
+    for (argc = 0; argv[argc] != NULL; argc++) {
+
         strncpy(srv.hostname, argv[argc], HOSTNAME_LEN);
         srv.hostname[HOSTNAME_LEN - 1] = '\0';
         if (srv.hostname[0] != '/' && (s = strchr(srv.hostname, ':')) != NULL) {
@@ -439,13 +439,12 @@ int mc_cfg_servers_set(const char *directive, const char **argv, void *setdata)
             srv.port = atoi(s);
             if (!srv.port)
                 srv.port = 11211;
-        }
-        else
+        } else
             srv.port = 11211;
         ci_debug_printf(2, "Setup memcached server %s:%d\n", srv.hostname, srv.port);
     }
     ci_list_push_back(servers_list, &srv);
-    
+
     return argc;
 }
 
@@ -457,7 +456,7 @@ void *mc_mem_malloc(const memcached_st *ptr, const size_t size, void *context)
 void *mc_mem_malloc(memcached_st *ptr, const size_t size)
 #endif
 {
-    
+
     void *p= ci_buffer_alloc(size);
     ci_debug_printf(5, "mc_mem_malloc: %p of size %u\n", p, (unsigned int)size);
     return p;
@@ -510,25 +509,23 @@ int computekey(char *mckey, const char *key, const char *search_domain)
     ci_MD5_CTX md5;
     unsigned char digest[16];
     int mckeylen;
-    /*we need to use keys in the form "search_domain:key" 
+    /*we need to use keys in the form "search_domain:key"
       We can not use keys bigger than MC_MAXKEYLEN
      */
     if (strlen(key)+strlen(search_domain)+1 < MC_MAXKEYLEN) {
         mckeylen = sprintf(mckey, "v%s:%s", search_domain, key);
-    }
-    else if (USE_MD5_SUM_KEYS) {
+    } else if (USE_MD5_SUM_KEYS) {
         ci_MD5Init(&md5);
         ci_MD5Update(&md5, (const unsigned char *)key, strlen(key));
         ci_MD5Final(digest, &md5);
 
         mckeylen = sprintf(mckey, "v%s:%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
-                           search_domain, 
+                           search_domain,
                            digest[0], digest[1], digest[2], digest[3],
                            digest[4], digest[5], digest[6], digest[7],
                            digest[8], digest[9], digest[10], digest[11],
                            digest[12], digest[13], digest[14], digest[15]);
-    }
-    else {
+    } else {
         mckeylen = 0;
     }
 

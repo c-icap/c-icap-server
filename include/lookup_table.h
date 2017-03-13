@@ -42,7 +42,7 @@ extern "C"
 
 struct ci_lookup_table;
 struct ci_lookup_table_type {
-    void *(*open)(struct ci_lookup_table *table); 
+    void *(*open)(struct ci_lookup_table *table);
     void  (*close)(struct ci_lookup_table *table);
     void *(*search)(struct ci_lookup_table *table, void *key, void ***vals);
     void  (*release_result)(struct ci_lookup_table *table_data, void **val);
@@ -55,7 +55,7 @@ struct ci_lookup_table_type {
  * \ingroup LOOKUPTABLE
  */
 struct ci_lookup_table {
-    void *(*open)(struct ci_lookup_table *table); 
+    void *(*open)(struct ci_lookup_table *table);
     void  (*close)(struct ci_lookup_table *table);
     void *(*search)(struct ci_lookup_table *table, void *key, void ***vals);
     void  (*release_result)(struct ci_lookup_table *table, void **val);
@@ -79,7 +79,7 @@ CI_DECLARE_FUNC(const struct ci_lookup_table_type *) ci_lookup_table_type_search
 /**
  * \brief Create a lookup table
  * \ingroup LOOKUPTABLE
- * 
+ *
  \param table The path of the lookup table (eg file:/etc/c-icap/users.txt or
  *            ldap://hostname/o=base?cn,uid?uid=chtsanti)
  \return A pointer to  a lookup table object
@@ -99,7 +99,7 @@ CI_DECLARE_FUNC(void) ci_lookup_table_destroy(struct ci_lookup_table *lt);
  *
  * \param table The lookup table object
  */
-CI_DECLARE_FUNC(void *) ci_lookup_table_open(struct ci_lookup_table *table); 
+CI_DECLARE_FUNC(void *) ci_lookup_table_open(struct ci_lookup_table *table);
 
 
 /**
@@ -108,7 +108,7 @@ CI_DECLARE_FUNC(void *) ci_lookup_table_open(struct ci_lookup_table *table);
  * \param table The lookup table object
  * \param key The key value to search for
  * \param vals In this variable stored a 2d array which contains the return
- *            values 
+ *            values
  * \return NULL if none object matches, pointer to the object key value.
  */
 CI_DECLARE_FUNC(const char *) ci_lookup_table_search(struct ci_lookup_table *table, const char *key, char ***vals);

@@ -55,14 +55,14 @@ struct ci_shared_mem_id {
 #else
 
     const ci_shared_mem_scheme_t *scheme;
-    union{
+    union {
 #if defined (USE_POSIX_SHARED_MEM)
-        struct posix{
+        struct posix {
             int fd;
         } posix;
 #endif
 #if defined (USE_SYSV_IPC)
-        struct sysv{
+        struct sysv {
             int id;
         } sysv;
 #endif

@@ -24,7 +24,7 @@
 #include "registry.h"
 
 static ci_ptr_array_t *REGISTRIES = NULL;
-static int32_t REG_ITEMS_COUNT = 0; 
+static int32_t REG_ITEMS_COUNT = 0;
 
 int ci_registry_create(const char *name)
 {
@@ -54,7 +54,7 @@ void ci_registry_clean()
     if (!REGISTRIES)
         return;
 
-    while((registry = (ci_ptr_dyn_array_t *)ci_ptr_array_pop_value(REGISTRIES, buf, sizeof(buf))) != NULL) {
+    while ((registry = (ci_ptr_dyn_array_t *)ci_ptr_array_pop_value(REGISTRIES, buf, sizeof(buf))) != NULL) {
         ci_debug_printf(4, "Registry %s removed\n", buf);
         ci_ptr_dyn_array_destroy(registry);
     }
@@ -135,7 +135,7 @@ int ci_registry_get_id(const char *name)
 int ci_registry_id_iterate(int reg_id, void *data, int (*fn)(void *data, const char *label, const void *))
 {
     const ci_ptr_dyn_array_t *registry = NULL;
-    const ci_array_item_t *ai; 
+    const ci_array_item_t *ai;
     if (!REGISTRIES || (ai = ci_ptr_array_get_item(REGISTRIES, reg_id)) == NULL || (registry = ai->value) == NULL) {
         ci_debug_printf(1, "Registry with id='%d' does not exist!\n", reg_id);
         return 0;
@@ -147,7 +147,7 @@ int ci_registry_id_iterate(int reg_id, void *data, int (*fn)(void *data, const c
 const void * ci_registry_id_get_item(int reg_id, const char *label)
 {
     const ci_ptr_dyn_array_t *registry = NULL;
-    const ci_array_item_t *ai; 
+    const ci_array_item_t *ai;
     if (!REGISTRIES || (ai = ci_ptr_array_get_item(REGISTRIES, reg_id)) == NULL || (registry = ai->value) == NULL) {
         ci_debug_printf(1, "Registry with id='%d' does not exist!\n", reg_id);
         return 0;

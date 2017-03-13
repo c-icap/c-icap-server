@@ -24,69 +24,69 @@
 #include <time.h>
 
 static const char *days[] = {
-     "Sun",
-     "Mon",
-     "Tue",
-     "Wed",
-     "Thu",
-     "Fri",
-     "Sat"
+    "Sun",
+    "Mon",
+    "Tue",
+    "Wed",
+    "Thu",
+    "Fri",
+    "Sat"
 };
 
 static const char *months[] = {
-     "Jan",
-     "Feb",
-     "Mar",
-     "Apr",
-     "May",
-     "Jun",
-     "Jul",
-     "Aug",
-     "Sep",
-     "Oct",
-     "Nov",
-     "Dec"
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec"
 };
 
 void ci_strtime(char *buf)
 {
-     struct tm br_tm;
-     time_t tm;
-     time(&tm);
-     asctime_r(localtime_r(&tm, &br_tm), buf);
-     buf[STR_TIME_SIZE - 1] = '\0';
-     buf[strlen(buf) - 1] = '\0';
+    struct tm br_tm;
+    time_t tm;
+    time(&tm);
+    asctime_r(localtime_r(&tm, &br_tm), buf);
+    buf[STR_TIME_SIZE - 1] = '\0';
+    buf[strlen(buf) - 1] = '\0';
 }
 
 void ci_strtime_rfc822(char *buf)
 {
-     struct tm br_tm;
-     time_t tm;
-     time(&tm);
-     gmtime_r(&tm, &br_tm);
+    struct tm br_tm;
+    time_t tm;
+    time(&tm);
+    gmtime_r(&tm, &br_tm);
 
-     snprintf(buf, STR_TIME_SIZE, "%s, %.2d %s %d %.2d:%.2d:%.2d GMT",
-              days[br_tm.tm_wday],
-              br_tm.tm_mday,
-              months[br_tm.tm_mon],
-              br_tm.tm_year + 1900, br_tm.tm_hour, br_tm.tm_min, br_tm.tm_sec);
+    snprintf(buf, STR_TIME_SIZE, "%s, %.2d %s %d %.2d:%.2d:%.2d GMT",
+             days[br_tm.tm_wday],
+             br_tm.tm_mday,
+             months[br_tm.tm_mon],
+             br_tm.tm_year + 1900, br_tm.tm_hour, br_tm.tm_min, br_tm.tm_sec);
 
-     buf[STR_TIME_SIZE - 1] = '\0';
+    buf[STR_TIME_SIZE - 1] = '\0';
 }
 
 int ci_mktemp_file(char *dir, char *template, char *filename)
 {
-     snprintf(filename, CI_FILENAME_LEN, "%s%s",dir,template);
-     filename[CI_FILENAME_LEN-1] = '\0';
-     return mkstemp(filename);
+    snprintf(filename, CI_FILENAME_LEN, "%s%s",dir,template);
+    filename[CI_FILENAME_LEN-1] = '\0';
+    return mkstemp(filename);
 }
 
 
 int ci_usleep(unsigned long usec)
 {
-     struct timespec us, ur;
-     us.tv_sec = 0;
-     us.tv_nsec = usec * 1000;
-     nanosleep(&us, &ur);
-     return 0;
+    struct timespec us, ur;
+    us.tv_sec = 0;
+    us.tv_nsec = usec * 1000;
+    nanosleep(&us, &ur);
+    return 0;
 }

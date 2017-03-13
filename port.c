@@ -60,7 +60,7 @@ static void ci_port_move_configured(ci_port_t *dst, ci_port_t *src)
     dst->fd = src->fd;
     src->configured = 0;
     src->fd = -1;
-    
+
 #ifdef USE_OPENSSL
     dst->tls_enabled = src->tls_enabled;
     dst->tls_context = src->tls_context;
@@ -77,7 +77,7 @@ void ci_port_handle_reconfigure(ci_vector_t *new_ports, ci_vector_t *old_ports)
     int i, k;
     ci_port_t *find_port, *check_port, *check_old_port;
     for (i = 0; (check_port = (ci_port_t *)ci_vector_get(new_ports, i)) != NULL; ++i) {
-         for (k = 0, find_port = NULL; (find_port == NULL) && ((check_old_port = (ci_port_t *)ci_vector_get(old_ports, k)) != NULL); ++k ) {
+        for (k = 0, find_port = NULL; (find_port == NULL) && ((check_old_port = (ci_port_t *)ci_vector_get(old_ports, k)) != NULL); ++k ) {
             if (ci_port_compare_config(check_port, check_old_port)) {
                 find_port = check_port;
                 ci_port_move_configured(check_port, check_old_port);

@@ -33,8 +33,8 @@
 
 extern access_control_module_t default_acl;
 access_control_module_t *default_access_controllers[] = {
-     &default_acl,
-     NULL
+    &default_acl,
+    NULL
 };
 
 
@@ -42,58 +42,58 @@ access_control_module_t **used_access_controllers = default_access_controllers;
 
 int access_reset()
 {
-     used_access_controllers = default_access_controllers;
-     return 1;
+    used_access_controllers = default_access_controllers;
+    return 1;
 }
 
 int access_check_client(ci_request_t *req)
 {
-     int i = 0, res;
-     if (!used_access_controllers)
-          return CI_ACCESS_ALLOW;
+    int i = 0, res;
+    if (!used_access_controllers)
+        return CI_ACCESS_ALLOW;
 
-     i = 0;
-     while (used_access_controllers[i] != NULL) {
-          if (used_access_controllers[i]->client_access) {
-               res =
-                   used_access_controllers[i]->client_access(req);
-               if (res != CI_ACCESS_UNKNOWN)
-                    return res;
-          }
-          i++;
-     }
-     return CI_ACCESS_ALLOW;
+    i = 0;
+    while (used_access_controllers[i] != NULL) {
+        if (used_access_controllers[i]->client_access) {
+            res =
+                used_access_controllers[i]->client_access(req);
+            if (res != CI_ACCESS_UNKNOWN)
+                return res;
+        }
+        i++;
+    }
+    return CI_ACCESS_ALLOW;
 }
 
 
-int check_request(ci_request_t * req) 
+int check_request(ci_request_t * req)
 {
     int res, i = 0;
-     while (used_access_controllers[i] != NULL) {
-          if (used_access_controllers[i]->request_access) {
-	      res = used_access_controllers[i]->request_access(req);
-               if (res != CI_ACCESS_UNKNOWN)
-                    return res;
-          }
-          i++;
-     }
-     return CI_ACCESS_ALLOW;
+    while (used_access_controllers[i] != NULL) {
+        if (used_access_controllers[i]->request_access) {
+            res = used_access_controllers[i]->request_access(req);
+            if (res != CI_ACCESS_UNKNOWN)
+                return res;
+        }
+        i++;
+    }
+    return CI_ACCESS_ALLOW;
 }
 
 int access_check_request(ci_request_t * req)
 {
-     int  res;
+    int  res;
 
-     if (!used_access_controllers)
-          return CI_ACCESS_ALLOW;
+    if (!used_access_controllers)
+        return CI_ACCESS_ALLOW;
 
-     ci_debug_printf(9,"Going to check request for access control restrictions\n");
+    ci_debug_printf(9,"Going to check request for access control restrictions\n");
 
-     res = check_request(req);
+    res = check_request(req);
 
-     ci_debug_printf(9,"Access control: %s\n", (res==CI_ACCESS_ALLOW?
-					      "ALLOW":
-					      (res==CI_ACCESS_DENY?"DENY":"UNKNOWN")));
-     return res;
+    ci_debug_printf(9,"Access control: %s\n", (res==CI_ACCESS_ALLOW?
+                    "ALLOW":
+                    (res==CI_ACCESS_DENY?"DENY":"UNKNOWN")));
+    return res;
 }
 

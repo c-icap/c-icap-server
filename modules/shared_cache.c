@@ -131,7 +131,7 @@ int ci_shared_cache_init(struct ci_cache *cache, const char *name)
     data->entry_size = _CI_ALIGN(cache->max_object_size);
     data->entries = _CI_ALIGN(cache->mem_size) / data->entry_size;
 
-    while(next_hash < data->entries){
+    while (next_hash < data->entries) {
         final_max_hash = next_hash;
         next_hash++;
         next_hash = (next_hash << 1) -1;
@@ -172,7 +172,7 @@ int ci_shared_cache_init(struct ci_cache *cache, const char *name)
 
     cache->cache_data = data;
     ci_command_register_action("shared_cache_attach_cmd", CHILD_START_CMD, data, command_attach_shared_mem);
-     return 1;
+    return 1;
 }
 
 int rw_lock_page(struct shared_cache_data *cache_data, int pos)
@@ -214,8 +214,8 @@ const void *ci_shared_cache_search(struct ci_cache *cache, const void *key, void
     unsigned int pos;
     int done;
     for (pos = hash, done = 0, cache_key = NULL;
-         !cache_key && !done && ((pos >> cache_data->page_shift_op) == page);
-         ++pos) {
+            !cache_key && !done && ((pos >> cache_data->page_shift_op) == page);
+            ++pos) {
         struct shared_cache_slot *slot = cache_data->slots + (pos * cache_data->entry_size);
         cache_key = (const void *)slot->bytes;
         cache_val = (const void *)(&slot->bytes[slot->key_size + 1]);
@@ -263,7 +263,7 @@ int ci_shared_cache_update(struct ci_cache *cache, const void *key, const void *
     if (hash >= cache_data->entries)
         hash = cache_data->entries -1;
 
-    current_time = ci_internal_time(); 
+    current_time = ci_internal_time();
     expire_time = current_time + cache->ttl;
 
     if (!rw_lock_page(cache_data, hash))
@@ -275,15 +275,15 @@ int ci_shared_cache_update(struct ci_cache *cache, const void *key, const void *
     unsigned int pos;
     int done;
     for (pos = hash, ret = 0, done = 0;
-         ret == 0 && !done && ((hash >> cache_data->page_shift_op) == (pos >> cache_data->page_shift_op));
-         ++pos) {
+            ret == 0 && !done && ((hash >> cache_data->page_shift_op) == (pos >> cache_data->page_shift_op));
+            ++pos) {
         struct shared_cache_slot *slot = cache_data->slots + (pos * cache_data->entry_size);
 
         cache_key = (void *)slot->bytes;
         can_updated = 0;
-        if (slot->hash < hash){
+        if (slot->hash < hash) {
             can_updated = 1;
-        }else if (cache->key_ops->compare(cache_key, key) == 0) {
+        } else if (cache->key_ops->compare(cache_key, key) == 0) {
             /*we are updating key with a new value*/
             can_updated = 1;
         } else if (slot->expires < current_time + cache->ttl) {
@@ -291,7 +291,7 @@ int ci_shared_cache_update(struct ci_cache *cache, const void *key, const void *
         } else if (pos == hash && slot->expires < (current_time + (cache->ttl / 2))) {
             /*entries on pos==hash which are near to expire*/
             can_updated = 1;
-        } else if (pos != hash && slot->hash == pos){
+        } else if (pos != hash && slot->hash == pos) {
             /*entry is not expired, and it is not on a continues block we can use  */
             done = 1;
         }
@@ -335,7 +335,7 @@ void ci_shared_cache_destroy(struct ci_cache *cache)
         ci_debug_printf(3, "Last user, the cache will be destroyed\n");
         ci_debug_printf(3, "Cache updates: %" PRIu64 ", update hits:%" PRIu64 ", searches: %" PRIu64 ", hits: %" PRIu64 "\n",
                         updates, update_hits, searches, hits
-            );
+                       );
         ci_shared_mem_destroy(&data->id);
         ci_proc_mutex_destroy(&data->cache_mutex);
         for (i = 0; i < CACHE_PAGES; ++i) {

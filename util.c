@@ -32,7 +32,7 @@ const char *ci_strnstr(const char *s, const char *find, size_t slen)
     if (len == 0)
         return NULL;
 
-    while(len <= slen) {
+    while (len <= slen) {
         if (*s == *find && strncmp(s, find, len) == 0 )
             return s;
         s++,slen--;
@@ -63,7 +63,7 @@ const char *ci_strncasestr(const char *s, const char *find, size_t slen)
     if (len == 0)
         return NULL;
 
-    while(len <= slen) {
+    while (len <= slen) {
         if (tolower(*s) == tolower(*find) && strncasecmp(s, find, len) == 0 )
             return s;
         s++,slen--;
@@ -75,9 +75,10 @@ static const char *atol_err_erange = "ERANGE";
 static const char *atol_err_conversion = "CONVERSION_ERROR";
 static const char *atol_err_nonumber = "NO_DIGITS_ERROR";
 
-long int ci_atol_ext(const char *str, const char **error) {
+long int ci_atol_ext(const char *str, const char **error)
+{
     char *e;
-    
+
     long int val;
     errno = 0;
     val = strtol(str, &e, 10);
@@ -114,9 +115,9 @@ void ci_str_trim(char *str)
 
     s = str;
     e = NULL;
-    while (isspace(*s)){
+    while (isspace(*s)) {
         e = s;
-        while (*e != '\0'){
+        while (*e != '\0') {
             *e = *(e+1);
             e++;
         }
@@ -125,7 +126,7 @@ void ci_str_trim(char *str)
     /*if (e) e--;  else */
     e = str+strlen(str);
     e--;
-    while(isspace(*e) && e >= str) {*e = '\0'; --e;};
+    while (isspace(*e) && e >= str) {*e = '\0'; --e;};
 }
 
 char *ci_str_trim2(char *s)
@@ -138,7 +139,7 @@ char *ci_str_trim2(char *s)
     while (isspace(*s)) ++s;
     e = s + strlen(s);
     e--;
-    while(isspace(*e) && e >= s) {*e = '\0'; --e;};
+    while (isspace(*e) && e >= s) {*e = '\0'; --e;};
     return s;
 }
 

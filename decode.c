@@ -34,22 +34,22 @@
 
 
 unsigned char base64_table[] = {
-     255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-     255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-     255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,  62, 255, 255, 255,  63,
-      52,  53,  54,  55,  56,  57,  58,  59,  60,  61, 255, 255, 255,   0, 255, 255,
-     255,   0,   1,   2,   3,   4,   5,   6,   7,   8,   9,  10,  11,  12,  13,  14,
-      15,  16,  17,  18,  19,  20,  21,  22,  23,  24,  25, 255, 255, 255, 255, 255,
-     255,  26,  27,  28,  29,  30,  31,  32,  33,  34,  35,  36,  37,  38,  39,  40,
-      41,  42,  43,  44,  45,  46,  47,  48,  49,  50,  51, 255, 255, 255, 255, 255,
-     255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-     255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-     255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-     255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-     255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-     255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-     255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-     255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,  62, 255, 255, 255,  63,
+    52,  53,  54,  55,  56,  57,  58,  59,  60,  61, 255, 255, 255,   0, 255, 255,
+    255,   0,   1,   2,   3,   4,   5,   6,   7,   8,   9,  10,  11,  12,  13,  14,
+    15,  16,  17,  18,  19,  20,  21,  22,  23,  24,  25, 255, 255, 255, 255, 255,
+    255,  26,  27,  28,  29,  30,  31,  32,  33,  34,  35,  36,  37,  38,  39,  40,
+    41,  42,  43,  44,  45,  46,  47,  48,  49,  50,  51, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255
 };
 
 
@@ -57,52 +57,52 @@ int ci_base64_decode(const char *encoded, char *decoded, int len)
 {
     int i;
     unsigned char *str,*result;
-    
+
     if (!encoded || !decoded || !len)
-	return 0;
+        return 0;
 
     str = (unsigned char *)encoded;
     result = (unsigned char *)decoded;
-    
+
     for (i=len; i>3; i-=3) {
-	
-	/*if one of the last 4 bytes going to be proccessed is not valid just 
-	  stops processing. This "if" cover the '\0' string termination character
-	  of str (because base64_table[0]=255)
-	 */
-	if(base64_table[*str]>63 || base64_table[*(str+1)] > 63 || 
-	   base64_table[*(str+2)] > 63 ||base64_table[*(str+3)] > 63)
-	    break;
-	
-	/*6 bits from the first + 2 last bits from second*/
-	*(result++)=(base64_table[*str] << 2) | (base64_table[*(str+1)] >>4);
-	/*last 4 bits from second + first 4 bits from third*/
-	*(result++)=(base64_table[*(str+1)] << 4) | (base64_table[*(str+2)] >>2);
-	/*last 2 bits from third + 6 bits from forth */
-	*(result++)=(base64_table[*(str+2)] << 6) | (base64_table[*(str+3)]);
-	str += 4;
+
+        /*if one of the last 4 bytes going to be proccessed is not valid just
+          stops processing. This "if" cover the '\0' string termination character
+          of str (because base64_table[0]=255)
+         */
+        if (base64_table[*str]>63 || base64_table[*(str+1)] > 63 ||
+                base64_table[*(str+2)] > 63 ||base64_table[*(str+3)] > 63)
+            break;
+
+        /*6 bits from the first + 2 last bits from second*/
+        *(result++)=(base64_table[*str] << 2) | (base64_table[*(str+1)] >>4);
+        /*last 4 bits from second + first 4 bits from third*/
+        *(result++)=(base64_table[*(str+1)] << 4) | (base64_table[*(str+2)] >>2);
+        /*last 2 bits from third + 6 bits from forth */
+        *(result++)=(base64_table[*(str+2)] << 6) | (base64_table[*(str+3)]);
+        str += 4;
     }
     *result='\0';
     return len-i;
 }
 
 
-char *ci_base64_decode_dup(const char *encoded) 
+char *ci_base64_decode_dup(const char *encoded)
 {
     int len;
     char *result;
     len=strlen(encoded);
     len=((len+3)/4)*3+1;
-    if(!(result=malloc(len*sizeof(char))))
-	return NULL;
-   
+    if (!(result=malloc(len*sizeof(char))))
+        return NULL;
+
     ci_base64_decode(encoded,result,len);
     return result;
 }
 
 /* byte1____ byte2____ byte3____ */
 /* 123456 78 1234 5678 12 345678 */
-/* b64_1_ b64_2__ b64_3__ b64_4_ */ 
+/* b64_1_ b64_2__ b64_3__ b64_4_ */
 
 #define dobase64(s, b0, b1, b2)                                 \
     s[k++] = base64_set[(b0 >> 2) & 0x3F];                      \
@@ -114,9 +114,9 @@ int ci_base64_encode(const unsigned char *data, size_t len, char *out, size_t ou
 {
     int i, k;
     const char *base64_set = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"    \
-        "abcdefghijklmnopqrstuvwxyz"\
-        "0123456789"\
-        "+/";
+                             "abcdefghijklmnopqrstuvwxyz"\
+                             "0123456789"\
+                             "+/";
     for (i = 0, k=0; i < (len - 3) && k < (outlen - 4); i+=3) {
         dobase64(out, data[i], data[i + 1], data[i + 2]);
     }
@@ -134,31 +134,29 @@ CI_DECLARE_FUNC(int) url_decoder(const char *input,char *output, int output_len)
 {
     int i, k;
     char str[3];
-    
+
     i = 0;
     k = 0;
     while ((input[i] != '\0') && (k < output_len-1)) {
-	if (input[i] == '%'){ 
-	    str[0] = input[i+1];
-	    str[1] = input[i+2];
-	    str[2] = '\0';
-	    output[k] = strtol(str, NULL, 16);
-	    i = i + 3;
-	}
-	else if (input[i] == '+') {
-	    output[k] = ' ';
-	    i++;
-	}
-	else {
-	    output[k] = input[i];
-	    i++;
-	}
-	k++;
-	}
+        if (input[i] == '%') {
+            str[0] = input[i+1];
+            str[1] = input[i+2];
+            str[2] = '\0';
+            output[k] = strtol(str, NULL, 16);
+            i = i + 3;
+        } else if (input[i] == '+') {
+            output[k] = ' ';
+            i++;
+        } else {
+            output[k] = input[i];
+            i++;
+        }
+        k++;
+    }
     output[k] = '\0';
 
     if (k == output_len-1)
-	return -1;
+        return -1;
 
     return 1;
 }
@@ -166,26 +164,24 @@ CI_DECLARE_FUNC(int) url_decoder(const char *input,char *output, int output_len)
 CI_DECLARE_FUNC(int) url_decoder2(char *input)
 {
     int i, k;
-    char str[3];    
+    char str[3];
     i = 0;
     k = 0;
     while (input[i] != '\0') {
-	if (input[i] == '%') {
-	    str[0] = input[i+1];
-	    str[1] = input[i+2];
-	    str[2] = '\0';
-	    input[k] = strtol(str, NULL, 16);
-	    i = i + 3;
-	}
-	else if (input[i] == '+') {
-	    input[k] = ' ';
-	    i++;
-	}
-	else {
-	    input[k] = input[i];
-	    i++;
-	}
-	k++;
+        if (input[i] == '%') {
+            str[0] = input[i+1];
+            str[1] = input[i+2];
+            str[2] = '\0';
+            input[k] = strtol(str, NULL, 16);
+            i = i + 3;
+        } else if (input[i] == '+') {
+            input[k] = ' ';
+            i++;
+        } else {
+            input[k] = input[i];
+            i++;
+        }
+        k++;
     }
     input[k] = '\0';
     return 1;
@@ -238,7 +234,7 @@ static int write_once_to_outbuf(void *obj, const char *buf, size_t len)
     struct unzipBuf *ab = (struct unzipBuf *)obj;
     ab->out_len = ab->buf_size < len ? ab->buf_size : len;
     memcpy(ab->buf, buf, ab->out_len);
-    /*Return 0 to abort immediately uncompressing. 
+    /*Return 0 to abort immediately uncompressing.
       We are interesting only for the first bytes*/
     return 0;
 }
@@ -262,7 +258,8 @@ static void free_a_buffer(void *op, void *ptr)
 
 /*return CI_INFLATE_ERRORS
  */
-int ci_mem_inflate(const char *inbuf, size_t inlen, void *out_obj, char *(*get_outbuf)(void *obj, unsigned int *len), int (*writefunc)(void *obj, const char *buf, size_t len), ci_off_t max_size) {
+int ci_mem_inflate(const char *inbuf, size_t inlen, void *out_obj, char *(*get_outbuf)(void *obj, unsigned int *len), int (*writefunc)(void *obj, const char *buf, size_t len), ci_off_t max_size)
+{
     int ret, retriable;
     unsigned have, written, can_write, out_size;
     ci_off_t unzipped_size;
@@ -286,7 +283,7 @@ int ci_mem_inflate(const char *inbuf, size_t inlen, void *out_obj, char *(*get_o
 
     /* run inflate() on input until output buffer not full */
     do {
-    do_mem_inflate_retry:
+do_mem_inflate_retry:
         if (get_outbuf) {
             out = (unsigned char *)get_outbuf(out_obj, &out_size);
             strm.next_out = out;
@@ -331,14 +328,13 @@ int ci_mem_inflate(const char *inbuf, size_t inlen, void *out_obj, char *(*get_o
             if ( (unzipped_size/inlen) > 100) {
                 ci_debug_printf(1, "Compression ratio UncompSize/CompSize = %" PRINTF_OFF_T "/%" PRINTF_OFF_T " = %" PRINTF_OFF_T "! Is it a zip bomb? aborting!\n", (CAST_OFF_T)unzipped_size, (CAST_OFF_T)inlen, (CAST_OFF_T)(unzipped_size/inlen));
                 return CI_UNCOMP_ERR_BOMB;  /*Probably compression bomb object*/
-            }
-            else {
+            } else {
                 ci_debug_printf(4, "Object is bigger than max allowed file\n");
                 return CI_UNCOMP_ERR_NONE;
             }
         }
     } while (strm.avail_out == 0);
-    
+
     /* done when inflate() says it's done */
     assert(ret == Z_STREAM_END);
     /* clean up and return */
@@ -405,76 +401,75 @@ static void bzfree_a_buffer(void *op, void *ptr)
 int ci_mem_bzunzip(const char *buf, int inlen,  void *out_obj, char *(*get_outbuf)(void *obj, unsigned int *len), int (*writefunc)(void *obj, const char *buf, size_t len), ci_off_t max_size)
 {
     /*we can use  BZ2_bzBuffToBuffDecompress but we need to use our buffer_alloc interface...*/
-     int ret;
-     unsigned have, written, can_write, out_size;
-     ci_off_t unzipped_size;
-     bz_stream strm;
-     char *out, OUT[CHUNK];
+    int ret;
+    unsigned have, written, can_write, out_size;
+    ci_off_t unzipped_size;
+    bz_stream strm;
+    char *out, OUT[CHUNK];
 
-     strm.bzalloc = bzalloc_a_buffer;
-     strm.bzfree = bzfree_a_buffer;
-     strm.opaque = NULL;
-     strm.avail_in = 0;
-     strm.next_in = NULL;
-     ret = BZ2_bzDecompressInit(&strm, 0, 0);
-     if (ret != BZ_OK) {
-          ci_debug_printf(1,
-                          "Error initializing  bzlib (BZ2_bzDeompressInit return:%d)\n",
-                          ret);
-          return CI_UNCOMP_ERR_ERROR;
-     }
+    strm.bzalloc = bzalloc_a_buffer;
+    strm.bzfree = bzfree_a_buffer;
+    strm.opaque = NULL;
+    strm.avail_in = 0;
+    strm.next_in = NULL;
+    ret = BZ2_bzDecompressInit(&strm, 0, 0);
+    if (ret != BZ_OK) {
+        ci_debug_printf(1,
+                        "Error initializing  bzlib (BZ2_bzDeompressInit return:%d)\n",
+                        ret);
+        return CI_UNCOMP_ERR_ERROR;
+    }
 
-     strm.next_in = (char *)buf;
-     strm.avail_in = inlen;
+    strm.next_in = (char *)buf;
+    strm.avail_in = inlen;
 
-     unzipped_size = 0;
+    unzipped_size = 0;
 
-     do {
-         if (get_outbuf) {
-             out = get_outbuf(out_obj, &out_size);
-             strm.next_out = out;
-             strm.avail_out = out_size;
-             if (!out || !strm.avail_out) {
-                 BZ2_bzDecompressEnd(&strm);
-                 return CI_UNCOMP_ERR_OUTPUT;
-             }
-         } else {
-             strm.avail_out = out_size = CHUNK;
-             strm.next_out = out = OUT;
-         }
-         ret = BZ2_bzDecompress(&strm);
-         switch (ret) {
-         case BZ_PARAM_ERROR:
-         case BZ_DATA_ERROR:
-         case BZ_DATA_ERROR_MAGIC:
-         case BZ_MEM_ERROR:
-             BZ2_bzDecompressEnd(&strm);
-             return CI_UNCOMP_ERR_ERROR;
-         }
+    do {
+        if (get_outbuf) {
+            out = get_outbuf(out_obj, &out_size);
+            strm.next_out = out;
+            strm.avail_out = out_size;
+            if (!out || !strm.avail_out) {
+                BZ2_bzDecompressEnd(&strm);
+                return CI_UNCOMP_ERR_OUTPUT;
+            }
+        } else {
+            strm.avail_out = out_size = CHUNK;
+            strm.next_out = out = OUT;
+        }
+        ret = BZ2_bzDecompress(&strm);
+        switch (ret) {
+        case BZ_PARAM_ERROR:
+        case BZ_DATA_ERROR:
+        case BZ_DATA_ERROR_MAGIC:
+        case BZ_MEM_ERROR:
+            BZ2_bzDecompressEnd(&strm);
+            return CI_UNCOMP_ERR_ERROR;
+        }
 
-         have = out_size - strm.avail_out;
-         can_write = (max_size > 0 && (max_size - unzipped_size) < have) ? (max_size - unzipped_size) : have;
-         if (!have || (written = writefunc(out_obj, (char *)out, can_write)) != can_write) {
-             BZ2_bzDecompressEnd(&strm);
-             return CI_UNCOMP_ERR_OUTPUT;
-         }
-         unzipped_size += written;
-         if (written < have) {
-             BZ2_bzDecompressEnd(&strm);
-             if ( (unzipped_size/inlen) > 100) {
-                 ci_debug_printf(1, "Compression ratio UncompSize/CompSize = %" PRINTF_OFF_T "/%" PRINTF_OFF_T " = %" PRINTF_OFF_T "! Is it a zip bomb? aborting!\n", (CAST_OFF_T)unzipped_size, (CAST_OFF_T)inlen, (CAST_OFF_T)(unzipped_size/inlen));
-                 return CI_UNCOMP_ERR_BOMB;  /*Probably compression bomb object*/
-             }
-             else {
-                 ci_debug_printf(4, "Object is bigger than max allowed file\n");
-                 return CI_UNCOMP_ERR_NONE;
-             }
-         }
-     } while (strm.avail_out == 0);
-     
+        have = out_size - strm.avail_out;
+        can_write = (max_size > 0 && (max_size - unzipped_size) < have) ? (max_size - unzipped_size) : have;
+        if (!have || (written = writefunc(out_obj, (char *)out, can_write)) != can_write) {
+            BZ2_bzDecompressEnd(&strm);
+            return CI_UNCOMP_ERR_OUTPUT;
+        }
+        unzipped_size += written;
+        if (written < have) {
+            BZ2_bzDecompressEnd(&strm);
+            if ( (unzipped_size/inlen) > 100) {
+                ci_debug_printf(1, "Compression ratio UncompSize/CompSize = %" PRINTF_OFF_T "/%" PRINTF_OFF_T " = %" PRINTF_OFF_T "! Is it a zip bomb? aborting!\n", (CAST_OFF_T)unzipped_size, (CAST_OFF_T)inlen, (CAST_OFF_T)(unzipped_size/inlen));
+                return CI_UNCOMP_ERR_BOMB;  /*Probably compression bomb object*/
+            } else {
+                ci_debug_printf(4, "Object is bigger than max allowed file\n");
+                return CI_UNCOMP_ERR_NONE;
+            }
+        }
+    } while (strm.avail_out == 0);
 
-     BZ2_bzDecompressEnd(&strm);
-     return CI_UNCOMP_OK;
+
+    BZ2_bzDecompressEnd(&strm);
+    return CI_UNCOMP_OK;
 }
 
 int ci_bzunzip_to_membuf(const char *inbuf, size_t inlen, ci_membuf_t *outbuf, ci_off_t max_size)
@@ -520,7 +515,7 @@ int ci_bzunzip_to_simple_file(const char *inbuf, size_t inlen, struct ci_simple_
 #endif
 
 int ci_uncompress_preview(int compress_method, const char *buf, int len, char *unzipped_buf,
-                  int *unzipped_buf_len)
+                          int *unzipped_buf_len)
 {
 #ifdef HAVE_BZLIB
     if (compress_method == CI_ENCODE_BZIP2)

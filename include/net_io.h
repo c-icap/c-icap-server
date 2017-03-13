@@ -51,16 +51,16 @@ extern "C"
 #endif
 typedef ci_socket ci_socket_t;
 
-typedef struct ci_sockaddr{
+typedef struct ci_sockaddr {
 #ifdef USE_IPV6
-     struct sockaddr_storage  sockaddr;
+    struct sockaddr_storage  sockaddr;
 #else
-     struct sockaddr_in   sockaddr;
+    struct sockaddr_in   sockaddr;
 #endif
-     int ci_sin_family;/* #define ci_sin_family sockaddr.sin_family */
-     int ci_sin_port;  /* #define ci_sin_port   sockaddr.sin_port   */
-     void *ci_sin_addr;
-     int ci_inaddr_len;
+    int ci_sin_family;/* #define ci_sin_family sockaddr.sin_family */
+    int ci_sin_port;  /* #define ci_sin_port   sockaddr.sin_port   */
+    void *ci_sin_addr;
+    int ci_inaddr_len;
 }  ci_sockaddr_t;
 
 #define CI_MAXHOSTNAMELEN 256
@@ -68,8 +68,8 @@ typedef struct ci_sockaddr{
 #ifdef USE_IPV6
 
 typedef union ci_inaddr {
-     struct in_addr ipv4_addr;
-     struct in6_addr ipv6_addr;
+    struct in_addr ipv4_addr;
+    struct in6_addr ipv6_addr;
 } ci_in_addr_t;
 
 #define ci_inaddr_zero(addr) (memset(&(addr),0,sizeof(ci_in_addr_t)))
@@ -77,9 +77,9 @@ typedef union ci_inaddr {
 #define ci_ipv4_inaddr_hostnetmask(addr)((addr).ipv4_addr.s_addr=htonl(0xFFFFFFFF))
 #define ci_in6_addr_u32(addr) ((uint32_t *)&((addr).ipv6_addr))
 #define ci_ipv6_inaddr_hostnetmask(addr)(ci_in6_addr_u32(addr)[0]=htonl(0xFFFFFFFF),\
-					 ci_in6_addr_u32(addr)[1]=htonl(0xFFFFFFFF), \
-					 ci_in6_addr_u32(addr)[2]=htonl(0xFFFFFFFF), \
-					 ci_in6_addr_u32(addr)[3]=htonl(0xFFFFFFFF))
+                     ci_in6_addr_u32(addr)[1]=htonl(0xFFFFFFFF), \
+                     ci_in6_addr_u32(addr)[2]=htonl(0xFFFFFFFF), \
+                     ci_in6_addr_u32(addr)[3]=htonl(0xFFFFFFFF))
 
 #define CI_IPLEN      46
 #define CI_SOCKADDR_SIZE sizeof(struct sockaddr_storage)
@@ -115,10 +115,10 @@ typedef struct ci_ip {
 /*Flags for ci_connection_t object*/
 #define CI_CONNECTION_CONNECTED 0x1
 
-typedef struct ci_connection{
-     ci_socket fd;
-     ci_sockaddr_t claddr;
-     ci_sockaddr_t srvaddr;
+typedef struct ci_connection {
+    ci_socket fd;
+    ci_sockaddr_t claddr;
+    ci_sockaddr_t srvaddr;
 #ifdef USE_OPENSSL
     BIO* bio;
 #endif

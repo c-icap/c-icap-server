@@ -48,26 +48,26 @@ static int RING_BUF_POOL = -1;
 
 CI_DECLARE_FUNC(int) init_body_system()
 {
-    MEMBUF_POOL = ci_object_pool_register("ci_membuf_t", 
+    MEMBUF_POOL = ci_object_pool_register("ci_membuf_t",
                                           sizeof(ci_membuf_t));
     if (MEMBUF_POOL < 0)
         return CI_ERROR;
 
-    CACHED_FILE_POOL = ci_object_pool_register("ci_cached_file_t", 
-                                               sizeof(ci_cached_file_t));
+    CACHED_FILE_POOL = ci_object_pool_register("ci_cached_file_t",
+                       sizeof(ci_cached_file_t));
     if (CACHED_FILE_POOL < 0)
         return CI_ERROR;
 
-    SIMPLE_FILE_POOL = ci_object_pool_register("ci_simple_file_t", 
-                                               sizeof(ci_simple_file_t));
+    SIMPLE_FILE_POOL = ci_object_pool_register("ci_simple_file_t",
+                       sizeof(ci_simple_file_t));
     if (SIMPLE_FILE_POOL < 0)
         return CI_ERROR;
 
-    RING_BUF_POOL = ci_object_pool_register("ci_ring_buf_t", 
+    RING_BUF_POOL = ci_object_pool_register("ci_ring_buf_t",
                                             sizeof(ci_ring_buf_t));
     if (RING_BUF_POOL < 0)
         return CI_ERROR;
-    
+
     return CI_OK;
 }
 
@@ -86,62 +86,62 @@ struct ci_membuf *ci_membuf_new()
 
 struct ci_membuf *ci_membuf_new_sized(int size)
 {
-     struct ci_membuf *b;
-     b = ci_object_pool_alloc(MEMBUF_POOL);
-     if (!b)
-          return NULL;
+    struct ci_membuf *b;
+    b = ci_object_pool_alloc(MEMBUF_POOL);
+    if (!b)
+        return NULL;
 
-     b->endpos = 0;
-     b->readpos = 0;
-     b->flags = 0;
-     b->buf = ci_buffer_alloc(size * sizeof(char));
-     if (b->buf == NULL) {
-          ci_object_pool_free(b);
-          return NULL;
-     }
-     b->bufsize = size;
-     b->unlocked = -1;
-     b->attributes = NULL;
-     return b;
+    b->endpos = 0;
+    b->readpos = 0;
+    b->flags = 0;
+    b->buf = ci_buffer_alloc(size * sizeof(char));
+    if (b->buf == NULL) {
+        ci_object_pool_free(b);
+        return NULL;
+    }
+    b->bufsize = size;
+    b->unlocked = -1;
+    b->attributes = NULL;
+    return b;
 }
 
 struct ci_membuf *ci_membuf_from_content(char *buf, size_t buf_size, size_t content_size, unsigned int flags)
 {
-     struct ci_membuf *b;
+    struct ci_membuf *b;
 
-     if (!buf || buf_size <= 0 || buf_size < content_size) {
-         ci_debug_printf(1, "ci_membuf_from_content: Wrong arguments: %p, of size=%u and content size=%u\n", buf, (unsigned int)buf_size, (unsigned int)content_size);
-         return NULL;
-     }
+    if (!buf || buf_size <= 0 || buf_size < content_size) {
+        ci_debug_printf(1, "ci_membuf_from_content: Wrong arguments: %p, of size=%u and content size=%u\n", buf, (unsigned int)buf_size, (unsigned int)content_size);
+        return NULL;
+    }
 
-     if ((flags & CI_MEMBUF_FROM_CONTENT_FLAGS) != flags) {
-         ci_debug_printf(1, "ci_membuf_from_content: Wrong flags: %u\n", flags);
-         return NULL;
-     }
+    if ((flags & CI_MEMBUF_FROM_CONTENT_FLAGS) != flags) {
+        ci_debug_printf(1, "ci_membuf_from_content: Wrong flags: %u\n", flags);
+        return NULL;
+    }
 
-     if ((flags & CI_MEMBUF_NULL_TERMINATED)) {
-         if (buf[content_size - 1] == '\0')
-             content_size--; 
-         else if (content_size >= buf_size || buf[content_size] != '\0') {
-             ci_debug_printf(1, "ci_membuf_from_content: content is not NULL terminated!\n");
-             return NULL;
-         }
-     }
+    if ((flags & CI_MEMBUF_NULL_TERMINATED)) {
+        if (buf[content_size - 1] == '\0')
+            content_size--;
+        else if (content_size >= buf_size || buf[content_size] != '\0') {
+            ci_debug_printf(1, "ci_membuf_from_content: content is not NULL terminated!\n");
+            return NULL;
+        }
+    }
 
-     b = ci_object_pool_alloc(MEMBUF_POOL);
-     if (!b) {
-         ci_debug_printf(1, "ci_membuf_from_content: memory allocation failed\n");
-         return NULL;
-     }
+    b = ci_object_pool_alloc(MEMBUF_POOL);
+    if (!b) {
+        ci_debug_printf(1, "ci_membuf_from_content: memory allocation failed\n");
+        return NULL;
+    }
 
-     b->flags = CI_MEMBUF_FOREIGN_BUF | flags;
-     b->endpos = content_size;
-     b->readpos = 0;
-     b->buf = buf;
-     b->bufsize = buf_size;
-     b->unlocked = -1;
-     b->attributes = NULL;
-     return b;
+    b->flags = CI_MEMBUF_FOREIGN_BUF | flags;
+    b->endpos = content_size;
+    b->readpos = 0;
+    b->buf = buf;
+    b->bufsize = buf_size;
+    b->unlocked = -1;
+    b->attributes = NULL;
+    return b;
 }
 
 void ci_membuf_free(struct ci_membuf *b)
@@ -166,81 +166,81 @@ unsigned int ci_membuf_set_flag(struct ci_membuf *body, unsigned int flag)
 
 int ci_membuf_write(struct ci_membuf *b, const char *data, int len, int iseof)
 {
-     int remains, newsize;
-     char *newbuf;
-     int terminate = b->flags & CI_MEMBUF_NULL_TERMINATED;
+    int remains, newsize;
+    char *newbuf;
+    int terminate = b->flags & CI_MEMBUF_NULL_TERMINATED;
 
-     if ((b->flags & CI_MEMBUF_RO) || (b->flags & CI_MEMBUF_CONST)) {
-         ci_debug_printf( 1, "ci_membuf_write: can not write: buffer is read-only!\n");
-         return 0;
-     }
+    if ((b->flags & CI_MEMBUF_RO) || (b->flags & CI_MEMBUF_CONST)) {
+        ci_debug_printf( 1, "ci_membuf_write: can not write: buffer is read-only!\n");
+        return 0;
+    }
 
-     if ((b->flags & CI_MEMBUF_HAS_EOF)) {
-         if (len > 0) {
-             ci_debug_printf( 1, "Cannot write to membuf: the eof flag is set!\n");
-         }
-         return 0;
-     }
+    if ((b->flags & CI_MEMBUF_HAS_EOF)) {
+        if (len > 0) {
+            ci_debug_printf( 1, "Cannot write to membuf: the eof flag is set!\n");
+        }
+        return 0;
+    }
 
-     if (iseof) {
-          b->flags |= CI_MEMBUF_HAS_EOF;
-/*	  ci_debug_printf(10,"Buffer size=%d, Data size=%d\n ",
-		       ((struct membuf *)b)->bufsize,((struct membuf *)b)->endpos);
-*/
-     }
+    if (iseof) {
+        b->flags |= CI_MEMBUF_HAS_EOF;
+        /*    ci_debug_printf(10,"Buffer size=%d, Data size=%d\n ",
+                       ((struct membuf *)b)->bufsize,((struct membuf *)b)->endpos);
+        */
+    }
 
-     remains = b->bufsize - b->endpos - (terminate ? 1 : 0);
-     assert(remains >= -1); /*can be -1 when NULL_TERMINATED flag just set by user and no space to*/
+    remains = b->bufsize - b->endpos - (terminate ? 1 : 0);
+    assert(remains >= -1); /*can be -1 when NULL_TERMINATED flag just set by user and no space to*/
 
-     while (remains < len) {
-          newsize = b->bufsize + INCSTEP;
-          newbuf = ci_buffer_realloc(b->buf, newsize);
-          if (newbuf == NULL) {
-               ci_debug_printf( 1, "ci_membuf_write: Failed to grow membuf for new data!\n");
-               if (remains >= 0) {
-                   if (remains)
-                       memcpy(b->buf + b->endpos, data, remains);
-                    if (terminate) {
-                        b->endpos = b->bufsize  - 1;
-                        b->buf[b->endpos] = '\0';
-                    } else
-                        b->endpos = b->bufsize;
-               } else {
-                   ci_debug_printf( 1, "ci_membuf_write: Failed to NULL terminate membuf!\n");
-               }
-               return remains;
-          }
-          b->buf = newbuf;
-          b->bufsize = newsize;
-          remains = b->bufsize - b->endpos - (terminate ? 1 : 0);
-     }                          /*while remains<len */
-     if (len) {
-          memcpy(b->buf + b->endpos, data, len);
-          b->endpos += len;
-     }
-     if (terminate)
-         b->buf[b->endpos] = '\0';
+    while (remains < len) {
+        newsize = b->bufsize + INCSTEP;
+        newbuf = ci_buffer_realloc(b->buf, newsize);
+        if (newbuf == NULL) {
+            ci_debug_printf( 1, "ci_membuf_write: Failed to grow membuf for new data!\n");
+            if (remains >= 0) {
+                if (remains)
+                    memcpy(b->buf + b->endpos, data, remains);
+                if (terminate) {
+                    b->endpos = b->bufsize  - 1;
+                    b->buf[b->endpos] = '\0';
+                } else
+                    b->endpos = b->bufsize;
+            } else {
+                ci_debug_printf( 1, "ci_membuf_write: Failed to NULL terminate membuf!\n");
+            }
+            return remains;
+        }
+        b->buf = newbuf;
+        b->bufsize = newsize;
+        remains = b->bufsize - b->endpos - (terminate ? 1 : 0);
+    }                          /*while remains<len */
+    if (len) {
+        memcpy(b->buf + b->endpos, data, len);
+        b->endpos += len;
+    }
+    if (terminate)
+        b->buf[b->endpos] = '\0';
 
-     return len;
+    return len;
 }
 
 int ci_membuf_read(struct ci_membuf *b, char *data, int len)
 {
-     int remains, copybytes;
-     if (b->unlocked >= 0)
-          remains = b->unlocked - b->readpos;
-     else
-          remains = b->endpos - b->readpos;
-     assert(remains >= 0);
-     if (remains == 0 && (b->flags & CI_MEMBUF_HAS_EOF))
-          return CI_EOF;
-     copybytes = (len <= remains ? len : remains);
-     if (copybytes) {
-          memcpy(data, b->buf + b->readpos, copybytes);
-          b->readpos += copybytes;
-     }
+    int remains, copybytes;
+    if (b->unlocked >= 0)
+        remains = b->unlocked - b->readpos;
+    else
+        remains = b->endpos - b->readpos;
+    assert(remains >= 0);
+    if (remains == 0 && (b->flags & CI_MEMBUF_HAS_EOF))
+        return CI_EOF;
+    copybytes = (len <= remains ? len : remains);
+    if (copybytes) {
+        memcpy(data, b->buf + b->readpos, copybytes);
+        b->readpos += copybytes;
+    }
 
-     return copybytes;
+    return copybytes;
 }
 
 #define BODY_ATTRS_SIZE 1024
@@ -282,22 +282,24 @@ int ci_membuf_truncate(struct ci_membuf *body, int new_size)
 }
 
 /****/
-int do_write(int fd, const void *buf, size_t count) {
+int do_write(int fd, const void *buf, size_t count)
+{
     int bytes;
     errno = 0;
     do {
         bytes = write(fd, buf, count);
-    }while ( bytes < 0 && errno == EINTR);
+    } while ( bytes < 0 && errno == EINTR);
 
     return bytes;
 }
 
-int do_read(int fd, void *buf, size_t count) {
+int do_read(int fd, void *buf, size_t count)
+{
     int bytes;
     errno = 0;
     do {
         bytes = read(fd, buf, count);
-    }while ( bytes < 0 && errno == EINTR);
+    } while ( bytes < 0 && errno == EINTR);
 
     return bytes;
 }
@@ -308,7 +310,8 @@ int do_read(int fd, void *buf, size_t count) {
 #define F_PERM S_IREAD|S_IWRITE|S_IRGRP|S_IROTH
 #endif
 
-int do_open(const char *pathname, int flags) {
+int do_open(const char *pathname, int flags)
+{
     int fd;
     errno = 0;
     do {
@@ -318,7 +321,8 @@ int do_open(const char *pathname, int flags) {
     return fd;
 }
 
-void do_close(int fd) {
+void do_close(int fd)
+{
     errno = 0;
     while (close(fd) < 0 && errno == EINTR);
 }
@@ -345,174 +349,171 @@ int open_tmp_file(char *tmpdir,char *filename){
 
 int resize_buffer(ci_cached_file_t * body, int new_size)
 {
-     char *newbuf;
+    char *newbuf;
 
-     if (new_size < body->bufsize)
-          return 1;
-     if (new_size > CI_BODY_MAX_MEM)
-          return 0;
+    if (new_size < body->bufsize)
+        return 1;
+    if (new_size > CI_BODY_MAX_MEM)
+        return 0;
 
-     newbuf = ci_buffer_realloc(body->buf, new_size);
-     if (newbuf) {
-          body->buf = newbuf;
-          body->bufsize = new_size;
-     }
-     return 1;
+    newbuf = ci_buffer_realloc(body->buf, new_size);
+    if (newbuf) {
+        body->buf = newbuf;
+        body->bufsize = new_size;
+    }
+    return 1;
 }
 
 ci_cached_file_t *ci_cached_file_new(int size)
 {
-     ci_cached_file_t *body;
-     if (!(body = ci_object_pool_alloc(CACHED_FILE_POOL)))
-          return NULL;
+    ci_cached_file_t *body;
+    if (!(body = ci_object_pool_alloc(CACHED_FILE_POOL)))
+        return NULL;
 
-     if (size == 0)
-          size = CI_BODY_MAX_MEM;
+    if (size == 0)
+        size = CI_BODY_MAX_MEM;
 
-     if (size > 0 && size <= CI_BODY_MAX_MEM) {
-          body->buf = ci_buffer_alloc(size * sizeof(char));
-     }
-     else
-          body->buf = NULL;
+    if (size > 0 && size <= CI_BODY_MAX_MEM) {
+        body->buf = ci_buffer_alloc(size * sizeof(char));
+    } else
+        body->buf = NULL;
 
-     if (body->buf == NULL) {
-          body->bufsize = 0;
-          if ((body->fd =
-               ci_mktemp_file(CI_TMPDIR, tmp_template, body->filename)) < 0) {
-               ci_debug_printf(1,
-                               "Can not open temporary filename in directory:%s\n",
-                               CI_TMPDIR);
-               ci_object_pool_free(body);
-               return NULL;
-          }
-     }
-     else {
-          body->bufsize = size;
-          body->fd = -1;
-     }
-     body->endpos = 0;
-     body->readpos = 0;
-     body->flags = 0;
-     body->unlocked = 0;
-     body->attributes = NULL;
-     return body;
+    if (body->buf == NULL) {
+        body->bufsize = 0;
+        if ((body->fd =
+                    ci_mktemp_file(CI_TMPDIR, tmp_template, body->filename)) < 0) {
+            ci_debug_printf(1,
+                            "Can not open temporary filename in directory:%s\n",
+                            CI_TMPDIR);
+            ci_object_pool_free(body);
+            return NULL;
+        }
+    } else {
+        body->bufsize = size;
+        body->fd = -1;
+    }
+    body->endpos = 0;
+    body->readpos = 0;
+    body->flags = 0;
+    body->unlocked = 0;
+    body->attributes = NULL;
+    return body;
 }
 
 void ci_cached_file_reset(ci_cached_file_t * body, int new_size)
 {
 
-     if (body->fd > 0) {
-          do_close(body->fd);
-          unlink(body->filename);       /*Comment out for debuging reasons */
-     }
+    if (body->fd > 0) {
+        do_close(body->fd);
+        unlink(body->filename);       /*Comment out for debuging reasons */
+    }
 
-     body->endpos = 0;
-     body->readpos = 0;
-     body->flags = 0;
-     body->unlocked = 0;
-     body->fd = -1;
+    body->endpos = 0;
+    body->readpos = 0;
+    body->flags = 0;
+    body->unlocked = 0;
+    body->fd = -1;
 
-     if (body->attributes)
-         ci_array_destroy(body->attributes);
-     body->attributes = NULL;
+    if (body->attributes)
+        ci_array_destroy(body->attributes);
+    body->attributes = NULL;
 
-     if (!resize_buffer(body, new_size)) {
-          /*free memory and open a file. */
-     }
+    if (!resize_buffer(body, new_size)) {
+        /*free memory and open a file. */
+    }
 }
 
 
 
 void ci_cached_file_destroy(ci_cached_file_t * body)
 {
-     if (!body)
-          return;
-     if (body->buf)
-          ci_buffer_free(body->buf);
+    if (!body)
+        return;
+    if (body->buf)
+        ci_buffer_free(body->buf);
 
-     if (body->fd >= 0) {
-          do_close(body->fd);
-          unlink(body->filename);       /*Comment out for debuging reasons */
-     }
+    if (body->fd >= 0) {
+        do_close(body->fd);
+        unlink(body->filename);       /*Comment out for debuging reasons */
+    }
 
     if (body->attributes)
         ci_array_destroy(body->attributes);
 
-     ci_object_pool_free(body);
+    ci_object_pool_free(body);
 }
 
 
 void ci_cached_file_release(ci_cached_file_t * body)
 {
-     if (!body)
-          return;
-     if (body->buf)
-          ci_buffer_free(body->buf);
+    if (!body)
+        return;
+    if (body->buf)
+        ci_buffer_free(body->buf);
 
-     if (body->fd >= 0) {
-          do_close(body->fd);
-     }
+    if (body->fd >= 0) {
+        do_close(body->fd);
+    }
 
     if (body->attributes)
         ci_array_destroy(body->attributes);
 
-     ci_object_pool_free(body);
+    ci_object_pool_free(body);
 }
 
 
 
 int ci_cached_file_write(ci_cached_file_t * body, const char *buf, int len, int iseof)
 {
-     int remains;
-     int ret;
+    int remains;
+    int ret;
 
-     if (iseof) {
-          body->flags |= CI_FILE_HAS_EOF;
-          ci_debug_printf(10, "Buffer size=%d, Data size=%" PRINTF_OFF_T "\n ",
-                          ((ci_cached_file_t *) body)->bufsize,
-                          (CAST_OFF_T) ((ci_cached_file_t *) body)->endpos);
-     }
+    if (iseof) {
+        body->flags |= CI_FILE_HAS_EOF;
+        ci_debug_printf(10, "Buffer size=%d, Data size=%" PRINTF_OFF_T "\n ",
+                        ((ci_cached_file_t *) body)->bufsize,
+                        (CAST_OFF_T) ((ci_cached_file_t *) body)->endpos);
+    }
 
-     if(len == 0)  /*If no data to write just return 0;*/
-	 return 0;
+    if (len == 0) /*If no data to write just return 0;*/
+        return 0;
 
-     if (body->fd > 0) {        /*A file was open so write the data at the end of file....... */
-          lseek(body->fd, 0, SEEK_END);
-          if ((ret = do_write(body->fd, buf, len)) < 0) {
-               ci_debug_printf(1, "Cannot write to file!!! (errno=%d)\n",
-                               errno);
-          }
-          body->endpos += len;
-          return len;
-     }
+    if (body->fd > 0) {        /*A file was open so write the data at the end of file....... */
+        lseek(body->fd, 0, SEEK_END);
+        if ((ret = do_write(body->fd, buf, len)) < 0) {
+            ci_debug_printf(1, "Cannot write to file!!! (errno=%d)\n",
+                            errno);
+        }
+        body->endpos += len;
+        return len;
+    }
 
-     remains = body->bufsize - body->endpos;
-     assert(remains >= 0);
-     if (remains < len) {
+    remains = body->bufsize - body->endpos;
+    assert(remains >= 0);
+    if (remains < len) {
 
-          if ((body->fd =
-               ci_mktemp_file(CI_TMPDIR, tmp_template, body->filename)) < 0) {
-               ci_debug_printf(1,
-                               "I cannot create the temporary file: %s!!!!!!\n",
-                               body->filename);
-               return -1;
-          }
-          ret = do_write(body->fd, body->buf, body->endpos);
-	  if( ret>=0 && do_write(body->fd, buf, len) >=0 ) {
-	      body->endpos += len;
-	      return len;
-	  }
-	  else {
-	      ci_debug_printf( 1, "Cannot write to cachefile: %s\n", strerror( errno ) );
-	      return CI_ERROR;
-	  }
-     }                          /*  if remains<len */
+        if ((body->fd =
+                    ci_mktemp_file(CI_TMPDIR, tmp_template, body->filename)) < 0) {
+            ci_debug_printf(1,
+                            "I cannot create the temporary file: %s!!!!!!\n",
+                            body->filename);
+            return -1;
+        }
+        ret = do_write(body->fd, body->buf, body->endpos);
+        if ( ret>=0 && do_write(body->fd, buf, len) >=0 ) {
+            body->endpos += len;
+            return len;
+        } else {
+            ci_debug_printf( 1, "Cannot write to cachefile: %s\n", strerror( errno ) );
+            return CI_ERROR;
+        }
+    }                          /*  if remains<len */
 
-     if (len > 0) {
-          memcpy(body->buf + body->endpos, buf, len);
-          body->endpos += len;
-     }
-     return len;
+    if (len > 0) {
+        memcpy(body->buf + body->endpos, buf, len);
+        body->endpos += len;
+    }
+    return len;
 
 }
 
@@ -522,49 +523,48 @@ body->unlocked=?
 
 int ci_cached_file_read(ci_cached_file_t * body, char *buf, int len)
 {
-     int remains, bytes;
+    int remains, bytes;
 
-     if ((body->readpos == body->endpos) && (body->flags & CI_FILE_HAS_EOF))
-          return CI_EOF;
-     
-     if(len == 0)  /*If no data to read just return 0*/
-	 return 0;
+    if ((body->readpos == body->endpos) && (body->flags & CI_FILE_HAS_EOF))
+        return CI_EOF;
+
+    if (len == 0) /*If no data to read just return 0*/
+        return 0;
 
 
-     if (body->fd > 0) {
-          if ((body->flags & CI_FILE_USELOCK) && body->unlocked >= 0)
-               remains = body->unlocked - body->readpos;
-          else
-               remains = len;
+    if (body->fd > 0) {
+        if ((body->flags & CI_FILE_USELOCK) && body->unlocked >= 0)
+            remains = body->unlocked - body->readpos;
+        else
+            remains = len;
 
-	  assert(remains >= 0);
+        assert(remains >= 0);
 
-          bytes = (remains > len ? len : remains);      /*Number of bytes that we are going to read from file..... */
+        bytes = (remains > len ? len : remains);      /*Number of bytes that we are going to read from file..... */
 
-          lseek(body->fd, body->readpos, SEEK_SET);
-          if ((bytes = do_read(body->fd, buf, bytes)) > 0)
-               body->readpos += bytes;
-          return bytes;
-     }
+        lseek(body->fd, body->readpos, SEEK_SET);
+        if ((bytes = do_read(body->fd, buf, bytes)) > 0)
+            body->readpos += bytes;
+        return bytes;
+    }
 
-     if ((body->flags & CI_FILE_USELOCK) && body->unlocked >= 0)
-          remains = body->unlocked - body->readpos;
-     else
-          remains = body->endpos - body->readpos;
+    if ((body->flags & CI_FILE_USELOCK) && body->unlocked >= 0)
+        remains = body->unlocked - body->readpos;
+    else
+        remains = body->endpos - body->readpos;
 
-     assert(remains >= 0);
+    assert(remains >= 0);
 
-     bytes = (len <= remains ? len : remains);
-     if (bytes > 0) {
-          memcpy(buf, body->buf + body->readpos, bytes);
-          body->readpos += bytes;
-     }
-     else {                     /*?????????????????????????????? */
-          bytes = 0;
-          ci_debug_printf(10, "Read 0, %" PRINTF_OFF_T " %" PRINTF_OFF_T "\n",
-                          (CAST_OFF_T) body->readpos, (CAST_OFF_T) body->endpos);
-     }
-     return bytes;
+    bytes = (len <= remains ? len : remains);
+    if (bytes > 0) {
+        memcpy(buf, body->buf + body->readpos, bytes);
+        body->readpos += bytes;
+    } else {                   /*?????????????????????????????? */
+        bytes = 0;
+        ci_debug_printf(10, "Read 0, %" PRINTF_OFF_T " %" PRINTF_OFF_T "\n",
+                        (CAST_OFF_T) body->readpos, (CAST_OFF_T) body->endpos);
+    }
+    return bytes;
 }
 
 
@@ -573,228 +573,219 @@ int ci_cached_file_read(ci_cached_file_t * body, char *buf, int len)
 
 ci_simple_file_t *ci_simple_file_new(ci_off_t maxsize)
 {
-     ci_simple_file_t *body;
+    ci_simple_file_t *body;
 
-     if (!(body = ci_object_pool_alloc(SIMPLE_FILE_POOL)))
-          return NULL;
+    if (!(body = ci_object_pool_alloc(SIMPLE_FILE_POOL)))
+        return NULL;
 
-     if ((body->fd =
-          ci_mktemp_file(CI_TMPDIR, tmp_template, body->filename)) < 0) {
-          ci_debug_printf(1,
-                          "ci_simple_file_new: Can not open temporary filename in directory:%s\n",
-                          CI_TMPDIR);
-          ci_object_pool_free(body);
-          return NULL;
-     }
-     ci_debug_printf(5, "ci_simple_file_new: Use temporary filename: %s\n", body->filename);
-     body->endpos = 0;
-     body->readpos = 0;
-     body->flags = 0;
-     body->unlocked = 0;        /*Not use look */
-     body->max_store_size = (maxsize>0?maxsize:0);
-     body->bytes_in = 0;
-     body->bytes_out = 0;
-     body->attributes = NULL;
+    if ((body->fd =
+                ci_mktemp_file(CI_TMPDIR, tmp_template, body->filename)) < 0) {
+        ci_debug_printf(1,
+                        "ci_simple_file_new: Can not open temporary filename in directory:%s\n",
+                        CI_TMPDIR);
+        ci_object_pool_free(body);
+        return NULL;
+    }
+    ci_debug_printf(5, "ci_simple_file_new: Use temporary filename: %s\n", body->filename);
+    body->endpos = 0;
+    body->readpos = 0;
+    body->flags = 0;
+    body->unlocked = 0;        /*Not use look */
+    body->max_store_size = (maxsize>0?maxsize:0);
+    body->bytes_in = 0;
+    body->bytes_out = 0;
+    body->attributes = NULL;
 
-     return body;
+    return body;
 }
 
 
 
 ci_simple_file_t *ci_simple_file_named_new(char *dir, char *filename,ci_off_t maxsize)
 {
-     ci_simple_file_t *body;
+    ci_simple_file_t *body;
 
-     if (!(body = ci_object_pool_alloc(SIMPLE_FILE_POOL)))
-          return NULL;
+    if (!(body = ci_object_pool_alloc(SIMPLE_FILE_POOL)))
+        return NULL;
 
-     if (filename) {
-          snprintf(body->filename, CI_FILENAME_LEN, "%s/%s", dir, filename);
-          if ((body->fd =
-               do_open(body->filename, O_CREAT | O_RDWR | O_EXCL)) < 0) {
-               ci_debug_printf(1, "Can not open temporary filename: %s\n",
-                               body->filename);
-               ci_object_pool_free(body);
-               return NULL;
-          }
-     }
-     else if ((body->fd =
-               ci_mktemp_file(dir, tmp_template, body->filename)) < 0) {
-          ci_debug_printf(1,
-                          "Can not open temporary filename in directory: %s\n",
-                          dir);
-          ci_object_pool_free(body);
-          return NULL;
-     }
-     body->endpos = 0;
-     body->readpos = 0;
-     body->flags = 0;
-     body->unlocked = 0;
-     body->max_store_size = (maxsize>0?maxsize:0);
-     body->bytes_in = 0;
-     body->bytes_out = 0;
-     body->attributes = NULL;
+    if (filename) {
+        snprintf(body->filename, CI_FILENAME_LEN, "%s/%s", dir, filename);
+        if ((body->fd =
+                    do_open(body->filename, O_CREAT | O_RDWR | O_EXCL)) < 0) {
+            ci_debug_printf(1, "Can not open temporary filename: %s\n",
+                            body->filename);
+            ci_object_pool_free(body);
+            return NULL;
+        }
+    } else if ((body->fd =
+                    ci_mktemp_file(dir, tmp_template, body->filename)) < 0) {
+        ci_debug_printf(1,
+                        "Can not open temporary filename in directory: %s\n",
+                        dir);
+        ci_object_pool_free(body);
+        return NULL;
+    }
+    body->endpos = 0;
+    body->readpos = 0;
+    body->flags = 0;
+    body->unlocked = 0;
+    body->max_store_size = (maxsize>0?maxsize:0);
+    body->bytes_in = 0;
+    body->bytes_out = 0;
+    body->attributes = NULL;
 #if defined(USE_POSIX_MAPPED_FILES)
-     body->mmap_addr = NULL;
-     body->mmap_size = 0;
+    body->mmap_addr = NULL;
+    body->mmap_size = 0;
 #endif
 
-     return body;
+    return body;
 }
 
 
 void ci_simple_file_destroy(ci_simple_file_t * body)
 {
-     if (!body)
-          return;
+    if (!body)
+        return;
 
-     if (body->fd >= 0) {
-          do_close(body->fd);
-          unlink(body->filename);       /*Comment out for debuging reasons */
-     }
+    if (body->fd >= 0) {
+        do_close(body->fd);
+        unlink(body->filename);       /*Comment out for debuging reasons */
+    }
 
-     if (body->attributes)
+    if (body->attributes)
         ci_array_destroy(body->attributes);
 
 #if defined(USE_POSIX_MAPPED_FILES)
-     if (body->mmap_addr)
-         munmap(body->mmap_addr, body->mmap_size);
+    if (body->mmap_addr)
+        munmap(body->mmap_addr, body->mmap_size);
 #endif
 
-     ci_object_pool_free(body);
+    ci_object_pool_free(body);
 }
 
 
 void ci_simple_file_release(ci_simple_file_t * body)
 {
-     if (!body)
-          return;
+    if (!body)
+        return;
 
-     if (body->fd >= 0) {
-          do_close(body->fd);
-     }
+    if (body->fd >= 0) {
+        do_close(body->fd);
+    }
 
-     if (body->attributes)
+    if (body->attributes)
         ci_array_destroy(body->attributes);
 
 #if defined(USE_POSIX_MAPPED_FILES)
-     if (body->mmap_addr)
-         munmap(body->mmap_addr, body->mmap_size);
+    if (body->mmap_addr)
+        munmap(body->mmap_addr, body->mmap_size);
 #endif
 
-     ci_object_pool_free(body);
+    ci_object_pool_free(body);
 }
 
 
 int ci_simple_file_write(ci_simple_file_t * body, const char *buf, int len, int iseof)
 {
-     int ret;
-     int wsize = 0;
+    int ret;
+    int wsize = 0;
 
-     if (body->flags & CI_FILE_HAS_EOF) {
-         if (len > 0) {
-             ci_debug_printf( 1, "Cannot write to file: '%s', the eof flag is set!\n", body->filename);
-         }
-         return 0;
-     }
+    if (body->flags & CI_FILE_HAS_EOF) {
+        if (len > 0) {
+            ci_debug_printf( 1, "Cannot write to file: '%s', the eof flag is set!\n", body->filename);
+        }
+        return 0;
+    }
 
-     if(len <= 0) {
-	 if (iseof)
-	     body->flags |= CI_FILE_HAS_EOF;
-	 return 0;
-     }
+    if (len <= 0) {
+        if (iseof)
+            body->flags |= CI_FILE_HAS_EOF;
+        return 0;
+    }
 
-     if (body->endpos < body->readpos) {
-         wsize = min(body->readpos-body->endpos-1, len);
-     }
-     else if(body->max_store_size && body->endpos >= body->max_store_size) {
-       /*If we are going to entre ring mode. If we are using locking we can not enter ring mode.*/
-         if (body->readpos!=0 && (body->flags & CI_FILE_USELOCK)==0) {
-             body->endpos = 0;
-	     if (!(body->flags & CI_FILE_RING_MODE)) {
-		 body->flags |= CI_FILE_RING_MODE;
-		 ci_debug_printf(9, "Entering Ring mode!\n");
-	     }	     
-             wsize = min(body->readpos-body->endpos-1, len);
-         } 
-         else {
-	     if ((body->flags & CI_FILE_USELOCK) != 0)
-		 ci_debug_printf(1, "File locked and no space on file for writing data, (Is this a bug?)!\n");
-             return 0;
-	 }
-     }
-     else {
-	if (body->max_store_size)
-	    wsize = min(body->max_store_size - body->endpos, len);
-	else
-	    wsize = len;
-     }
+    if (body->endpos < body->readpos) {
+        wsize = min(body->readpos-body->endpos-1, len);
+    } else if (body->max_store_size && body->endpos >= body->max_store_size) {
+        /*If we are going to entre ring mode. If we are using locking we can not enter ring mode.*/
+        if (body->readpos!=0 && (body->flags & CI_FILE_USELOCK)==0) {
+            body->endpos = 0;
+            if (!(body->flags & CI_FILE_RING_MODE)) {
+                body->flags |= CI_FILE_RING_MODE;
+                ci_debug_printf(9, "Entering Ring mode!\n");
+            }
+            wsize = min(body->readpos-body->endpos-1, len);
+        } else {
+            if ((body->flags & CI_FILE_USELOCK) != 0)
+                ci_debug_printf(1, "File locked and no space on file for writing data, (Is this a bug?)!\n");
+            return 0;
+        }
+    } else {
+        if (body->max_store_size)
+            wsize = min(body->max_store_size - body->endpos, len);
+        else
+            wsize = len;
+    }
 
-     lseek(body->fd, body->endpos, SEEK_SET);
-     if ((ret = do_write(body->fd, buf, wsize)) < 0) {
-	 ci_debug_printf( 1, "Cannot write to file: %s\n", strerror( errno ) );
-     }
-     else {
-	 body->endpos += ret;
-	 body->bytes_in += ret;
-     }
+    lseek(body->fd, body->endpos, SEEK_SET);
+    if ((ret = do_write(body->fd, buf, wsize)) < 0) {
+        ci_debug_printf( 1, "Cannot write to file: %s\n", strerror( errno ) );
+    } else {
+        body->endpos += ret;
+        body->bytes_in += ret;
+    }
 
-     if (iseof && ret == len) {
-          body->flags |= CI_FILE_HAS_EOF;
-          ci_debug_printf(9, "Body data size=%" PRINTF_OFF_T "\n ",
-                          (CAST_OFF_T) body->endpos);
-     }
+    if (iseof && ret == len) {
+        body->flags |= CI_FILE_HAS_EOF;
+        ci_debug_printf(9, "Body data size=%" PRINTF_OFF_T "\n ",
+                        (CAST_OFF_T) body->endpos);
+    }
 
-     return ret;
+    return ret;
 }
 
 
 
 int ci_simple_file_read(ci_simple_file_t * body, char *buf, int len)
 {
-     int remains, bytes;
- 
-     if (len <= 0)
-         return 0;
+    int remains, bytes;
 
-     if ((body->readpos == body->endpos)) {
-	 if((body->flags & CI_FILE_HAS_EOF)) {
-	     ci_debug_printf(9, "Has EOF and no data to read, send EOF\n");
-	     return CI_EOF;
-	 }
-	 else {
-	     return 0;
-	 }
-     }
+    if (len <= 0)
+        return 0;
 
-     if(body->max_store_size && body->readpos == body->max_store_size) {
-       body->readpos = 0;
-     }
+    if ((body->readpos == body->endpos)) {
+        if ((body->flags & CI_FILE_HAS_EOF)) {
+            ci_debug_printf(9, "Has EOF and no data to read, send EOF\n");
+            return CI_EOF;
+        } else {
+            return 0;
+        }
+    }
 
-     if ((body->flags & CI_FILE_USELOCK) && body->unlocked >= 0) {
-          remains = body->unlocked - body->readpos;
-     }
-     else if(body->endpos > body->readpos) {
-          remains = body->endpos - body->readpos;
-     }
-     else {
-	 if(body->max_store_size) {
-	     remains = body->max_store_size - body->readpos;
-	 }
-	 else {
-	     ci_debug_printf(9, "Error? anyway send EOF\n");
-	     return CI_EOF;
-	 }
-     }
+    if (body->max_store_size && body->readpos == body->max_store_size) {
+        body->readpos = 0;
+    }
 
-     assert(remains >= 0);
-     bytes = (remains > len ? len : remains);   /*Number of bytes that we are going to read from file..... */
-     lseek(body->fd, body->readpos, SEEK_SET);
-     if ((bytes = do_read(body->fd, buf, bytes)) > 0) {
-          body->readpos += bytes;
-	  body->bytes_out += bytes;
-     }
-     return bytes;
+    if ((body->flags & CI_FILE_USELOCK) && body->unlocked >= 0) {
+        remains = body->unlocked - body->readpos;
+    } else if (body->endpos > body->readpos) {
+        remains = body->endpos - body->readpos;
+    } else {
+        if (body->max_store_size) {
+            remains = body->max_store_size - body->readpos;
+        } else {
+            ci_debug_printf(9, "Error? anyway send EOF\n");
+            return CI_EOF;
+        }
+    }
+
+    assert(remains >= 0);
+    bytes = (remains > len ? len : remains);   /*Number of bytes that we are going to read from file..... */
+    lseek(body->fd, body->readpos, SEEK_SET);
+    if ((bytes = do_read(body->fd, buf, bytes)) > 0) {
+        body->readpos += bytes;
+        body->bytes_out += bytes;
+    }
+    return bytes;
 
 }
 
@@ -866,21 +857,21 @@ ci_membuf_t *ci_simple_file_to_membuf(ci_simple_file_t *body, unsigned int flags
 
 struct ci_ring_buf *ci_ring_buf_new(int size)
 {
-  struct ci_ring_buf *buf = ci_object_pool_alloc(RING_BUF_POOL);
-  if (!buf)
-      return NULL;
+    struct ci_ring_buf *buf = ci_object_pool_alloc(RING_BUF_POOL);
+    if (!buf)
+        return NULL;
 
-  buf->buf = ci_buffer_alloc(size);
-  if (!buf->buf) {
-      ci_object_pool_free(buf);
-      return NULL;
-  }
+    buf->buf = ci_buffer_alloc(size);
+    if (!buf->buf) {
+        ci_object_pool_free(buf);
+        return NULL;
+    }
 
-  buf->end_buf=buf->buf+size-1; 
-  buf->read_pos = buf->buf;
-  buf->write_pos = buf->buf;
-  buf->full = 0;
-  return buf;
+    buf->end_buf=buf->buf+size-1;
+    buf->read_pos = buf->buf;
+    buf->write_pos = buf->buf;
+    buf->full = 0;
+    return buf;
 }
 
 void ci_ring_buf_destroy(struct ci_ring_buf *buf)
@@ -891,106 +882,102 @@ void ci_ring_buf_destroy(struct ci_ring_buf *buf)
 
 int ci_ring_buf_is_empty(struct ci_ring_buf *buf)
 {
-  return (buf->read_pos==buf->write_pos) && (buf->full==0);
+    return (buf->read_pos==buf->write_pos) && (buf->full==0);
 }
 
 int ci_ring_buf_write_block(struct ci_ring_buf *buf, char **wb, int *len)
 {
-   if(buf->read_pos == buf->write_pos && buf->full == 0) {
-       *wb = buf->write_pos;
-       *len = buf->end_buf - buf->write_pos + 1;
-       return 0;
-   }
-   else if(buf->read_pos >= buf->write_pos) {
-       *wb = buf->write_pos; 
-       *len = buf->read_pos - buf->write_pos;
-       return 0;
-   }
-   else { /*buf->read_pos < buf->write_pos*/
-       *wb = buf->write_pos;
-       *len = buf->end_buf - buf->write_pos + 1;
-       return 1;
-   }
+    if (buf->read_pos == buf->write_pos && buf->full == 0) {
+        *wb = buf->write_pos;
+        *len = buf->end_buf - buf->write_pos + 1;
+        return 0;
+    } else if (buf->read_pos >= buf->write_pos) {
+        *wb = buf->write_pos;
+        *len = buf->read_pos - buf->write_pos;
+        return 0;
+    } else { /*buf->read_pos < buf->write_pos*/
+        *wb = buf->write_pos;
+        *len = buf->end_buf - buf->write_pos + 1;
+        return 1;
+    }
 }
 
 int ci_ring_buf_read_block(struct ci_ring_buf *buf, char **rb, int *len)
 {
-   if (buf->read_pos == buf->write_pos && buf->full == 0) {
-       *rb = buf->read_pos;
-       *len = 0;
-       return 0;
-   }
-   else if(buf->read_pos >= buf->write_pos) {
-       *rb = buf->read_pos;
-       *len = buf->end_buf - buf->read_pos +1;
-       return (buf->read_pos!=buf->buf? 1:0);
-   }
-   else { /*buf->read_pos < buf->write_pos*/
-       *rb = buf->read_pos;
-       *len = buf->write_pos - buf->read_pos;
-       return 0;
-   }
+    if (buf->read_pos == buf->write_pos && buf->full == 0) {
+        *rb = buf->read_pos;
+        *len = 0;
+        return 0;
+    } else if (buf->read_pos >= buf->write_pos) {
+        *rb = buf->read_pos;
+        *len = buf->end_buf - buf->read_pos +1;
+        return (buf->read_pos!=buf->buf? 1:0);
+    } else { /*buf->read_pos < buf->write_pos*/
+        *rb = buf->read_pos;
+        *len = buf->write_pos - buf->read_pos;
+        return 0;
+    }
 }
 
 void ci_ring_buf_consume(struct ci_ring_buf *buf, int len)
 {
-  if(len <= 0)
-    return;
-  buf->read_pos += len;
-  if(buf->read_pos > buf->end_buf)
-    buf->read_pos = buf->buf;
-  if(buf->full)
-    buf->full = 0;
+    if (len <= 0)
+        return;
+    buf->read_pos += len;
+    if (buf->read_pos > buf->end_buf)
+        buf->read_pos = buf->buf;
+    if (buf->full)
+        buf->full = 0;
 }
 
 void ci_ring_buf_produce(struct ci_ring_buf *buf, int len)
 {
-  if(len <= 0)
-    return;
-  buf->write_pos += len;
-  if (buf->write_pos > buf->end_buf)
-    buf->write_pos = buf->buf;
-  
-  if(buf->write_pos == buf->read_pos)
-    buf->full = 1;
+    if (len <= 0)
+        return;
+    buf->write_pos += len;
+    if (buf->write_pos > buf->end_buf)
+        buf->write_pos = buf->buf;
+
+    if (buf->write_pos == buf->read_pos)
+        buf->full = 1;
 
 }
 
 int ci_ring_buf_write(struct ci_ring_buf *buf, const char *data,int size)
 {
-  char *wb;
-  int wb_len, ret, written;
-  written = 0;
-  do {
-    ret = ci_ring_buf_write_block(buf, &wb, &wb_len);
-    if (wb_len) {
-	wb_len = min(size, wb_len);
-	memcpy(wb, data, wb_len);
-	ci_ring_buf_produce(buf, wb_len);
-	size -= wb_len;
-	data += wb_len;
-	written += wb_len;
-    }
-  } while ((ret!=0) && (size>0));
-  return written;
+    char *wb;
+    int wb_len, ret, written;
+    written = 0;
+    do {
+        ret = ci_ring_buf_write_block(buf, &wb, &wb_len);
+        if (wb_len) {
+            wb_len = min(size, wb_len);
+            memcpy(wb, data, wb_len);
+            ci_ring_buf_produce(buf, wb_len);
+            size -= wb_len;
+            data += wb_len;
+            written += wb_len;
+        }
+    } while ((ret!=0) && (size>0));
+    return written;
 }
 
 
 int ci_ring_buf_read(struct ci_ring_buf *buf, char *data,int size)
 {
-  char *rb;
-  int rb_len, ret, data_read;
-  data_read = 0;
-  do {
-    ret = ci_ring_buf_read_block(buf, &rb, &rb_len);
-    if (rb_len) {
-	rb_len = min(size, rb_len);
-	memcpy(data, rb, rb_len);
-	ci_ring_buf_consume(buf, rb_len);
-	size -= rb_len;
-	data += rb_len;
-	data_read += rb_len;
-    }
-  } while ((ret!=0) && (size>0 ));
-  return data_read;
+    char *rb;
+    int rb_len, ret, data_read;
+    data_read = 0;
+    do {
+        ret = ci_ring_buf_read_block(buf, &rb, &rb_len);
+        if (rb_len) {
+            rb_len = min(size, rb_len);
+            memcpy(data, rb, rb_len);
+            ci_ring_buf_consume(buf, rb_len);
+            size -= rb_len;
+            data += rb_len;
+            data_read += rb_len;
+        }
+    } while ((ret!=0) && (size>0 ));
+    return data_read;
 }

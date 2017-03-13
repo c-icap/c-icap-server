@@ -23,8 +23,8 @@ extern "C"
  */
 typedef struct ci_tls_client_options {
     /**
-     \brief The TLS method to use. 
-     * Can be set to one of TLSv1_2, TLSv1_1, TLSv1, SSLv23, SSLv3 
+     \brief The TLS method to use.
+     * Can be set to one of TLSv1_2, TLSv1_1, TLSv1, SSLv23, SSLv3
      */
     const char *method;
 
@@ -117,10 +117,10 @@ CI_DECLARE_FUNC(ci_connection_t*) ci_tls_connect(const char *servername, int por
            int ret = ci_tls_connect_nonblock(connection, servername, port, proto, use_ctx);
            while (ret == 0) {
                int wants_read = ci_connection_should_read_tls(connection);
-               int wants_write = ci_connection_should_write_tls(connection); 
+               int wants_write = ci_connection_should_write_tls(connection);
                if (wants_read == 0 && wants_write == 0)
                    wants_write = 1;
-               int mresult = monitor_fd(connection->fd, 
+               int mresult = monitor_fd(connection->fd,
                                         (wants_read > 0 ? MONITOR_FD_FOR_READ : 0),
                                         (wants_write > 0 ? MONITOR_FD_FOR_WRITE : 0)
                    );
@@ -153,14 +153,14 @@ CI_DECLARE_FUNC(int) ci_connection_should_write_tls(ci_connection_t *connection)
 /**
  \ingroup TLS
  \brief There are pending bytes to read from TLS connection
- \return The number of pending bytes or 0 
+ \return The number of pending bytes or 0
  */
 CI_DECLARE_FUNC(int) ci_connection_read_pending_tls(ci_connection_t *conn);
 
 /**
  \ingroup TLS
  \brief There are pending bytes to write to TLS connection
- \return The number of pending bytes or 0 
+ \return The number of pending bytes or 0
  */
 CI_DECLARE_FUNC(int) ci_connection_write_pending_tls(ci_connection_t *conn);
 

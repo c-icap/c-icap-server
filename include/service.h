@@ -47,10 +47,10 @@ extern "C"
 #define MAX_SERVICE_NAME  63
 #define MAX_SERVICE_ARGS 255
 #define SRV_ISTAG_SIZE    39 /* contains the ISTag: field, the istag part 
-				 of server and the istag part of service (32+7) */
+                 of server and the istag part of service (32+7) */
 #define SRV_ISTAG_POS     13 /* strlen("ISTAG: ")+6, 6 is the size of server 
-				 part of istag */
-#define SERVICE_ISTAG_SIZE 26 
+                 part of istag */
+#define SERVICE_ISTAG_SIZE 26
 #define XINCLUDES_SIZE    511 /* it is enough I think ....*/
 
 #define CI_XCLIENTIP              1
@@ -64,10 +64,10 @@ struct ci_list;
 
 typedef struct  ci_service_module ci_service_module_t;
 
-enum SERVICE_STATUS {CI_SERVICE_NOT_INITIALIZED = -1, 
-                     CI_SERVICE_OK = 0,  
+enum SERVICE_STATUS {CI_SERVICE_NOT_INITIALIZED = -1,
+                     CI_SERVICE_OK = 0,
                      CI_SERVICE_ERROR = 1
-};
+                    };
 
 /*For internal use only*/
 struct ci_option_handler {
@@ -82,40 +82,40 @@ struct ci_option_handler {
  *Stores required data and settings for a service
  */
 typedef struct ci_service_xdata {
-     ci_thread_rwlock_t lock;
-     int status;
-     struct ci_conf_entry *intl_srv_conf_table;
-     uint64_t xopts;
-     char ISTag[SRV_ISTAG_SIZE+1];
-     char xincludes[XINCLUDES_SIZE+1];
-     char TransferPreview[MAX_HEADER_SIZE+1];
-     char TransferIgnore[MAX_HEADER_SIZE+1];
-     char TransferComplete[MAX_HEADER_SIZE+1];
-     int preview_size;
-     int max_connections;
-     int options_ttl;
-     int allow_204;
-     int allow_206;
-     int disable_206; /*even if service support it do not use 206*/
-     struct ci_list *option_handlers;
-     /*statistics IDS*/
-     int stat_bytes_in;
-     int stat_bytes_out;
-     int stat_http_bytes_in;
-     int stat_http_bytes_out;
-     int stat_body_bytes_in;
-     int stat_body_bytes_out;
-     int stat_reqmods;
-     int stat_respmods;
-     int stat_options;
-     int stat_allow204;
+    ci_thread_rwlock_t lock;
+    int status;
+    struct ci_conf_entry *intl_srv_conf_table;
+    uint64_t xopts;
+    char ISTag[SRV_ISTAG_SIZE+1];
+    char xincludes[XINCLUDES_SIZE+1];
+    char TransferPreview[MAX_HEADER_SIZE+1];
+    char TransferIgnore[MAX_HEADER_SIZE+1];
+    char TransferComplete[MAX_HEADER_SIZE+1];
+    int preview_size;
+    int max_connections;
+    int options_ttl;
+    int allow_204;
+    int allow_206;
+    int disable_206; /*even if service support it do not use 206*/
+    struct ci_list *option_handlers;
+    /*statistics IDS*/
+    int stat_bytes_in;
+    int stat_bytes_out;
+    int stat_http_bytes_in;
+    int stat_http_bytes_out;
+    int stat_body_bytes_in;
+    int stat_body_bytes_out;
+    int stat_reqmods;
+    int stat_respmods;
+    int stat_options;
+    int stat_allow204;
 } ci_service_xdata_t;
 
 /**
  \ingroup SERVICES
  * Is the structure  which implements a service
  *
- * To implement a service someones needs to implement the member functions of 
+ * To implement a service someones needs to implement the member functions of
  * this struct. These functions will be called by c-icap as follows:
  *   - When a new request arrives for this service then the
  *     ci_service_module::mod_init_request_data is called
@@ -124,46 +124,46 @@ typedef struct ci_service_xdata {
  *     If this function return CI_MOD_ALLOW204 the ICAP transaction stops here.
  *     If this function return CI_MOD_CONTINUE the ICAP client will send the
  *     rest body data if exists.
- *   - When he client starts sends more data then the  
+ *   - When he client starts sends more data then the
  *     ci_service_module::mod_service_io is called multiple times
  *     untill the client has send all the body data. The service
- *     can start send data using this function to the client 
- *     before all data received 
+ *     can start send data using this function to the client
+ *     before all data received
  *   - When the client finishes sending body data the
  *     ci_service_module::mod_end_of_data_handler is called
- *   - While the icap client waits to read the body data from 
+ *   - While the icap client waits to read the body data from
  *     the c-icap then the ci_service_module::mod_service_io
  *     is called multiple times until all the body data sent to
  *     the client
  */
-struct  ci_service_module{
-
-/**
- \example services/echo/srv_echo.c
- \ingroup SERVICES
- \brief The srv_echo.c is an example service implementation, 
- *       which does not modifies the content
- *
- */
-     /**
-       \brief The service name 
-      */
-     const char *mod_name;
+struct  ci_service_module {
 
     /**
-      \brief Service short description 
+     \example services/echo/srv_echo.c
+     \ingroup SERVICES
+     \brief The srv_echo.c is an example service implementation,
+     *       which does not modifies the content
+     *
      */
-     const char *mod_short_descr;
+    /**
+      \brief The service name
+     */
+    const char *mod_name;
 
     /**
-     \brief Service type 
+      \brief Service short description
+     */
+    const char *mod_short_descr;
+
+    /**
+     \brief Service type
      *
      * The service type can be ICAP_RESPMOD for a responce modification
-     * service, ICAP_REQMOD for request modification service or 
-     * ICAP_RESPMOD|ICAP_REQMOD for a service implements both response and 
+     * service, ICAP_REQMOD for request modification service or
+     * ICAP_RESPMOD|ICAP_REQMOD for a service implements both response and
      * request modification
      */
-     int  mod_type;
+    int  mod_type;
 
     /**
        \brief Pointer to the function called when the service loaded.
@@ -175,13 +175,13 @@ struct  ci_service_module{
             configuration
      \return CI_OK on success, CI_ERROR on any error.
      */
-     int (*mod_init_service)(ci_service_xdata_t *srv_xdata,struct ci_server_conf *server_conf);
-    
+    int (*mod_init_service)(ci_service_xdata_t *srv_xdata,struct ci_server_conf *server_conf);
+
     /**
        \brief Pointer to the function which called after the c-icap initialized,
      * but before the c-icap start serves requests.
      *
-     * This function can be used to initialize the service. Unlike to the 
+     * This function can be used to initialize the service. Unlike to the
      * ci_service_module::mod_init_service, when this function called the
      * c-icap has initialized and it is known system parameters like the
      * services and modules which are loaded, network ports and addresses
@@ -191,14 +191,14 @@ struct  ci_service_module{
             configuration
      \return CI_OK on success, CI_ERROR on errors.
      */
-     int (*mod_post_init_service)(ci_service_xdata_t *srv_xdata,struct ci_server_conf *server_conf);
+    int (*mod_post_init_service)(ci_service_xdata_t *srv_xdata,struct ci_server_conf *server_conf);
 
     /**
      \brief Pointer to the function which called on c-icap server shutdown
      *
      * This function can be used to release service allocated resources
      */
-     void (*mod_close_service)();
+    void (*mod_close_service)();
 
     /**
      \brief Pointer to the function called when a new request for this services
@@ -206,15 +206,15 @@ struct  ci_service_module{
      *
      * This function should inititalize the data and structures required for
      * serving the request.
-     * 
+     *
      \param req a pointer to the related ci_request_t structure
      \return a void pointer to the "service data", the user defined data
      *       required for serving the
      *       request.The developer can obtain the service data from the
      *       related ci_request_t object using the macro ci_service_data
      */
-     void *(*mod_init_request_data)(struct ci_request *req);
-    
+    void *(*mod_init_request_data)(struct ci_request *req);
+
     /**
      \brief Pointer to the function which releases the service data.
      *
@@ -223,7 +223,7 @@ struct  ci_service_module{
      \param srv_data pointer to the service data returned by the
      *      ci_service_module::mod_init_request_data call
      */
-     void (*mod_release_request_data)(void *srv_data);
+    void (*mod_release_request_data)(void *srv_data);
 
     /**
      \brief Pointer to the function which is used to preview the ICAP client
@@ -239,8 +239,8 @@ struct  ci_service_module{
      \return CI_MOD_CONTINUE if the client must send more data, CI_MOD_ALLOW204
      * if the service does not want to modify anything, or CI_ERROR on errors.
      */
-     int (*mod_check_preview_handler)(char *preview_data,int preview_data_len,struct ci_request *req);
-    
+    int (*mod_check_preview_handler)(char *preview_data,int preview_data_len,struct ci_request *req);
+
     /**
      \brief Pointer to the function called when the icap client has send all the data to the service
      *
@@ -254,7 +254,7 @@ struct  ci_service_module{
      *       allow204 responses. To examine if client supports 204 responses
      *       the ci_req_allow204 macro can be used
      */
-     int (*mod_end_of_data_handler)(struct ci_request *req);
+    int (*mod_end_of_data_handler)(struct ci_request *req);
 
     /**
      \brief Pointer to the function called to read/send body data from/to
@@ -277,7 +277,7 @@ struct  ci_service_module{
      \param req pointer to the related ci_request struct
      \return Return CI_OK if all are OK or CI_ERROR on errors
      */
-     int (*mod_service_io)(char *wbuf,int *wlen,char *rbuf,int *rlen,int iseof, struct ci_request *req);
+    int (*mod_service_io)(char *wbuf,int *wlen,char *rbuf,int *rlen,int iseof, struct ci_request *req);
 
     /**
      \brief Pointer to the config table of the service
@@ -286,20 +286,20 @@ struct  ci_service_module{
      * used by the service. The configuration parameters defined in this array
      * can be used in c-icap.conf file.
      */
-     struct ci_conf_entry *mod_conf_table;
+    struct ci_conf_entry *mod_conf_table;
 
     /**
      \brief NULL pointer
      *
      * This field does not used. Set it to NULL.
      */
-     void *mod_data;
+    void *mod_data;
 };
 
 typedef struct service_alias {
-     char alias[MAX_SERVICE_NAME+1];
-     char args[MAX_SERVICE_ARGS+1];
-     ci_service_module_t *service;
+    char alias[MAX_SERVICE_NAME+1];
+    char args[MAX_SERVICE_ARGS+1];
+    ci_service_module_t *service;
 } service_alias_t;
 
 /*Internal function */
@@ -314,7 +314,7 @@ int init_services();
 int post_init_services();
 int release_services();
 int run_services_option_handlers(ci_service_xdata_t *srv_xdata, struct ci_request *req);
-    
+
 /*Library functions */
 /*Undocumented, are not usefull to users*/
 CI_DECLARE_FUNC(void) ci_service_data_read_lock(ci_service_xdata_t *srv_xdata);
@@ -355,15 +355,15 @@ CI_DECLARE_FUNC(void) ci_service_set_istag(ci_service_xdata_t *srv_xdata, const 
  *   unique subscriber ID of the user who issued the HTTP request
  * - CI_XAUTHENTICATEDUSER: The X-Authenticated-User header. If the user
  *   authenticated on  HTTP proxy side includes the username
- * - CI_XAUTHENTICATEDGROUPS: The X-Authenticated-Group header. If the user is 
+ * - CI_XAUTHENTICATEDGROUPS: The X-Authenticated-Group header. If the user is
  *   authenticated on HTTP proxy side includes the user groups
  *
  * example usage:
  \code
  * ci_service_set_xopts(srv_xdata,CI_XCLIENTIP|CI_XAUTHENTICATEDUSER);
  \endcode
- * 
- * For more informations about ICAP common X-Headers look at: 
+ *
+ * For more informations about ICAP common X-Headers look at:
  * http://www.icap-forum.org/documents/specification/draft-stecher-icap-subid-00.txt
  */
 CI_DECLARE_FUNC(void) ci_service_set_xopts(ci_service_xdata_t *srv_xdata, uint64_t xopts);
@@ -484,7 +484,7 @@ CI_DECLARE_FUNC(void) ci_service_add_xincludes(ci_service_xdata_t *srv_xdata, ch
   \ingroup SERVICES
   \brief Add a service handler for the service
   *
-  * Normally this function called in ci_service_module::mod_init_service()  or 
+  * Normally this function called in ci_service_module::mod_init_service()  or
   * ci_service_module::mod_post_init_service() function.
   * The options handlers are running when the service receives an OPTIONS
   * request to check for service health. They can add ICAP headers to the

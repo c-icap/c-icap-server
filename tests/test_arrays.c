@@ -9,17 +9,19 @@
 #include "debug.h"
 
 void log_errors(void *unused, const char *format, ...)
-{                                                     
-     va_list ap;                                      
-     va_start(ap, format);                            
-     vfprintf(stderr, format, ap);                    
-     va_end(ap);                                      
+{
+    va_list ap;
+    va_start(ap, format);
+    vfprintf(stderr, format, ap);
+    va_end(ap);
 }
 
 
 static struct ci_options_entry options[] = {
-    {"-d", "debug_level", &CI_DEBUG_LEVEL, ci_cfg_set_int,
-     "The debug level"},
+    {
+        "-d", "debug_level", &CI_DEBUG_LEVEL, ci_cfg_set_int,
+        "The debug level"
+    },
     {NULL,NULL,NULL,NULL,NULL}
 };
 
@@ -80,7 +82,7 @@ int main(int argc,char *argv[])
         sprintf(value, "value%d", i);
         ci_str_array_add(arr_str, name, value);
     }
-    
+
     ci_debug_printf(2, "Result: \n");
     ci_str_array_iterate(arr_str, NULL, print_str);
 
@@ -106,7 +108,7 @@ int main(int argc,char *argv[])
     ci_debug_printf(1, "done\n");
     char buf[1024];
     ci_debug_printf(1, "Test pop on array of pointers...");
-    while((data = ci_ptr_array_pop_value(arr_ptr, buf, sizeof(buf))) != NULL) {
+    while ((data = ci_ptr_array_pop_value(arr_ptr, buf, sizeof(buf))) != NULL) {
         ci_debug_printf(3, "Deleting : %s: %s\n", buf, (char *)data);
         free(data);
     }
@@ -127,13 +129,13 @@ int main(int argc,char *argv[])
         ci_debug_printf(1, "Test casting for vectors:");
         const char **p = ci_str_vector_cast_to_charchar(vect_str);
         const char **s;
-        for(s = p; *s!=NULL; s++) {
+        for (s = p; *s!=NULL; s++) {
             ci_debug_printf(2, "from charchar value: %s\n", *s);
         }
         ci_str_vector_t *v = ci_str_vector_cast_from_charchar(p);
         ci_debug_printf(1, "Returned vector max size: %d, itmes %d\n", (int)v->max_size, v->count);
-        
-        while((strdata = ci_str_vector_pop(vect_str)) != NULL) {
+
+        while ((strdata = ci_str_vector_pop(vect_str)) != NULL) {
             ci_debug_printf(2, "Popped value: %s\n", strdata);
         }
     }

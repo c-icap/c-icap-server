@@ -49,54 +49,54 @@ void commands_init()
 
 void register_command(const char *name, int type,
                       void (*command_action) (const char *name, int type,
-                                              const char **argv))
+                              const char **argv))
 {
-     if (! (type & ALL_PROC_CMD)) {
-          ci_debug_printf(1, "Can not register command %s ! Wrong type\n", name );
-          return;
-     }
-     ci_command_t cmd;
-     strncpy(cmd.name, name, CMD_NM_SIZE);
-     cmd.name[CMD_NM_SIZE - 1] = '\0';
-     cmd.type = type;
-     cmd.data = NULL;
-     cmd.command_action = command_action;
-     ci_thread_mutex_lock(&COMMANDS_MTX);
-     ci_list_push(COMMANDS_LIST, &cmd);
-     ci_thread_mutex_unlock(&COMMANDS_MTX);
-     ci_debug_printf(5, "Command %s registered\n", name);
+    if (! (type & ALL_PROC_CMD)) {
+        ci_debug_printf(1, "Can not register command %s ! Wrong type\n", name );
+        return;
+    }
+    ci_command_t cmd;
+    strncpy(cmd.name, name, CMD_NM_SIZE);
+    cmd.name[CMD_NM_SIZE - 1] = '\0';
+    cmd.type = type;
+    cmd.data = NULL;
+    cmd.command_action = command_action;
+    ci_thread_mutex_lock(&COMMANDS_MTX);
+    ci_list_push(COMMANDS_LIST, &cmd);
+    ci_thread_mutex_unlock(&COMMANDS_MTX);
+    ci_debug_printf(5, "Command %s registered\n", name);
 }
 
 void register_command_extend(const char *name, int type, void *data,
-			     void (*command_action) (const char *name, int type,
-						     void *data))
+                             void (*command_action) (const char *name, int type,
+                                     void *data))
 {
-     if (type != CHILD_START_CMD && type != CHILD_STOP_CMD && type != ONDEMAND_CMD) {
-          ci_debug_printf(1, "Can not register extend command %s ! wrong type\n", name );
-          return;
-     }
-     ci_command_t cmd;
-     strncpy(cmd.name, name, CMD_NM_SIZE);
-     cmd.name[CMD_NM_SIZE - 1] = '\0';
-     cmd.type = type;
-     cmd.data = data;
-     cmd.command_action_extend = command_action;
-     ci_thread_mutex_lock(&COMMANDS_MTX);
-     ci_list_push(COMMANDS_LIST, &cmd);
-     ci_thread_mutex_unlock(&COMMANDS_MTX);
-     ci_debug_printf(5, "Extend command %s registered\n", name);
+    if (type != CHILD_START_CMD && type != CHILD_STOP_CMD && type != ONDEMAND_CMD) {
+        ci_debug_printf(1, "Can not register extend command %s ! wrong type\n", name );
+        return;
+    }
+    ci_command_t cmd;
+    strncpy(cmd.name, name, CMD_NM_SIZE);
+    cmd.name[CMD_NM_SIZE - 1] = '\0';
+    cmd.type = type;
+    cmd.data = data;
+    cmd.command_action_extend = command_action;
+    ci_thread_mutex_lock(&COMMANDS_MTX);
+    ci_list_push(COMMANDS_LIST, &cmd);
+    ci_thread_mutex_unlock(&COMMANDS_MTX);
+    ci_debug_printf(5, "Extend command %s registered\n", name);
 }
 
 void commands_reset()
 {
-     if (COMMANDS_QUEUE) {
-         ci_list_destroy(COMMANDS_QUEUE);
-         COMMANDS_QUEUE = ci_list_create(64, sizeof(struct schedule_data));
-     }
-     if (COMMANDS_LIST) {
-         ci_list_destroy(COMMANDS_LIST);
-         COMMANDS_LIST = ci_list_create(64, sizeof(ci_command_t));
-     }
+    if (COMMANDS_QUEUE) {
+        ci_list_destroy(COMMANDS_QUEUE);
+        COMMANDS_QUEUE = ci_list_create(64, sizeof(struct schedule_data));
+    }
+    if (COMMANDS_LIST) {
+        ci_list_destroy(COMMANDS_LIST);
+        COMMANDS_LIST = ci_list_create(64, sizeof(ci_command_t));
+    }
 }
 
 /*
@@ -120,52 +120,52 @@ int cb_check_command(void *data, const void *obj)
 
 ci_command_t *find_command(const char *cmd_line)
 {
-     int len;
-     char *s;
-     ci_command_t tmpCmd;
-     ci_command_t *cmd;
+    int len;
+    char *s;
+    ci_command_t tmpCmd;
+    ci_command_t *cmd;
 
-     if (COMMANDS_LIST == NULL) {
-         ci_debug_printf(5, "None command registered\n");
-         return NULL;
-     }
+    if (COMMANDS_LIST == NULL) {
+        ci_debug_printf(5, "None command registered\n");
+        return NULL;
+    }
 
-     s = strchr(cmd_line, ' ');
-     if (s)
-          len = s - cmd_line;
-     else
-          len = strlen(cmd_line);
+    s = strchr(cmd_line, ' ');
+    if (s)
+        len = s - cmd_line;
+    else
+        len = strlen(cmd_line);
 
-     if (len && len < CMD_NM_SIZE) {
-         strncpy(tmpCmd.name, cmd_line, len);
-         tmpCmd.name[len] = '\0';
-         cmd = &tmpCmd;
-         ci_list_iterate(COMMANDS_LIST, &cmd, cb_check_command);
-         if(cmd != &tmpCmd)
-             /*We found an cmd stored in list. Return it*/
-             return cmd;
-     }
+    if (len && len < CMD_NM_SIZE) {
+        strncpy(tmpCmd.name, cmd_line, len);
+        tmpCmd.name[len] = '\0';
+        cmd = &tmpCmd;
+        ci_list_iterate(COMMANDS_LIST, &cmd, cb_check_command);
+        if (cmd != &tmpCmd)
+            /*We found an cmd stored in list. Return it*/
+            return cmd;
+    }
 
-     return NULL;
+    return NULL;
 }
 
 int execute_command(ci_command_t * command, char *cmdline, int exec_type)
 {
-     char **args;
+    char **args;
 
-     if (!command)
-          return 0;
-     args = split_args(cmdline);
-     command->command_action(args[0], exec_type, (const char **)(args + 1));
-     free_args(args);
-     return 1;
+    if (!command)
+        return 0;
+    args = split_args(cmdline);
+    command->command_action(args[0], exec_type, (const char **)(args + 1));
+    free_args(args);
+    return 1;
 }
 
 static int exec_cmd_step(void *data, const void *cmd)
 {
     int cmd_type = *((int *)data);
     ci_command_t *command = (ci_command_t *)cmd;
-    ci_debug_printf(7, "Check command:%s, type: %d \n", 
+    ci_debug_printf(7, "Check command:%s, type: %d \n",
                     command->name, command->type);
     if (command->type == cmd_type) {
         ci_debug_printf(5, "Execute command:%s \n", command->name);
@@ -201,7 +201,7 @@ void ci_command_register_ctl_cmd(const char *name, int type, void (*command_acti
 }
 
 void ci_command_register_action(const char *name, int type, void *data,
-                                                 void (*command_action) (const char *name, int type, void *data))
+                                void (*command_action) (const char *name, int type, void *data))
 {
     register_command_extend(name, type, data, command_action);
 }

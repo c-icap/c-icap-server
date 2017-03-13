@@ -27,81 +27,81 @@
 
 void *ci_shared_mem_create(ci_shared_mem_id_t * id, const char *name, int size)
 {
-     HANDLE hMapFile;
-     LPVOID lpMapAddress;
-     SECURITY_ATTRIBUTES saAttr;
+    HANDLE hMapFile;
+    LPVOID lpMapAddress;
+    SECURITY_ATTRIBUTES saAttr;
 
-     saAttr.nLength = sizeof(SECURITY_ATTRIBUTES);
-     saAttr.bInheritHandle = TRUE;
-     saAttr.lpSecurityDescriptor = NULL;
+    saAttr.nLength = sizeof(SECURITY_ATTRIBUTES);
+    saAttr.bInheritHandle = TRUE;
+    saAttr.lpSecurityDescriptor = NULL;
 
-     hMapFile = CreateFileMapping(INVALID_HANDLE_VALUE, // current file handle 
-                                  NULL, // default security 
-                                  PAGE_READWRITE,       // read/write permission 
-                                  0,    // First 32 bit of size (Not used) 
-                                  size, // Second 32 bit of size 
-                                  NULL);        // name of mapping object 
+    hMapFile = CreateFileMapping(INVALID_HANDLE_VALUE, // current file handle
+                                 NULL, // default security
+                                 PAGE_READWRITE,       // read/write permission
+                                 0,    // First 32 bit of size (Not used)
+                                 size, // Second 32 bit of size
+                                 NULL);        // name of mapping object
 
-     if (hMapFile == NULL) {
-          ci_debug_printf(1,
-                          "Could not create file mapping object:(error:%d)\n",
-                          GetLastError());
-          return NULL;
-     }
+    if (hMapFile == NULL) {
+        ci_debug_printf(1,
+                        "Could not create file mapping object:(error:%d)\n",
+                        GetLastError());
+        return NULL;
+    }
 
 
-     lpMapAddress = MapViewOfFile(hMapFile,     // handle to mapping object 
-                                  FILE_MAP_ALL_ACCESS,  // read/write permission 
-                                  0,    // max. object size 
-                                  0,    // size of hFile 
-                                  0);   // map entire file 
+    lpMapAddress = MapViewOfFile(hMapFile,     // handle to mapping object
+                                 FILE_MAP_ALL_ACCESS,  // read/write permission
+                                 0,    // max. object size
+                                 0,    // size of hFile
+                                 0);   // map entire file
 
-     if (lpMapAddress == NULL) {
-          ci_debug_printf(1, "Could not map view of file.(error:%d)\n",
-                          GetLastError());
-          CloseHandle(hMapFile);
-          return NULL;
-     }
+    if (lpMapAddress == NULL) {
+        ci_debug_printf(1, "Could not map view of file.(error:%d)\n",
+                        GetLastError());
+        CloseHandle(hMapFile);
+        return NULL;
+    }
 
-     strncpy(id->name, name, CI_SHARED_MEM_NAME_SIZE);
-     id->size = size;
-     id->id = hMapFile;
-     id->mem = lpMapAddress;
-     return lpMapAddress;
+    strncpy(id->name, name, CI_SHARED_MEM_NAME_SIZE);
+    id->size = size;
+    id->id = hMapFile;
+    id->mem = lpMapAddress;
+    return lpMapAddress;
 }
 
 
 void *ci_shared_mem_attach(ci_shared_mem_id_t * id)
 {
-     LPVOID lpMapAddress;
-     lpMapAddress = MapViewOfFile(id->id,  // handle to mapping object 
-                                  FILE_MAP_ALL_ACCESS,  // read/write permission 
-                                  0,    // max. object size 
-                                  0,    // size of hFile 
-                                  0);   // map entire file 
+    LPVOID lpMapAddress;
+    lpMapAddress = MapViewOfFile(id->id,  // handle to mapping object
+                                 FILE_MAP_ALL_ACCESS,  // read/write permission
+                                 0,    // max. object size
+                                 0,    // size of hFile
+                                 0);   // map entire file
 
-     if (lpMapAddress == NULL) {
-          ci_debug_printf(1, "Could not map view of file.(error:%d)\n",
-                          GetLastError());
-          CloseHandle(id->id);
-          return NULL;
-     }
+    if (lpMapAddress == NULL) {
+        ci_debug_printf(1, "Could not map view of file.(error:%d)\n",
+                        GetLastError());
+        CloseHandle(id->id);
+        return NULL;
+    }
 
-     id->mem = lpMapAddress;
-     return lpMapAddress;
+    id->mem = lpMapAddress;
+    return lpMapAddress;
 }
 
 int ci_shared_mem_detach(ci_shared_mem_id_t * id)
 {
-     CloseHandle(id->id);
-     UnmapViewOfFile(id->mem);
-     return 1;
+    CloseHandle(id->id);
+    UnmapViewOfFile(id->mem);
+    return 1;
 }
 
 
 int ci_shared_mem_destroy(ci_shared_mem_id_t * id)
 {
-     CloseHandle(id->id);
-     UnmapViewOfFile(id->mem);
-     return 1;
+    CloseHandle(id->id);
+    UnmapViewOfFile(id->mem);
+    return 1;
 }

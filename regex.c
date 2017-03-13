@@ -20,7 +20,7 @@ char *ci_regex_parse(const char *str, int *flags, int *recursive)
     ++str;
     slen = strlen(str);
     e = str + slen;
-    while(*e != '/' && e != str) --e;
+    while (*e != '/' && e != str) --e;
     if (*e != '/')
         return NULL;
     slen = e - str;
@@ -37,9 +37,9 @@ char *ci_regex_parse(const char *str, int *flags, int *recursive)
 //    *flags |= REG_NOSUB;
 #endif
 
-    while(*e != '\0') {
+    while (*e != '\0') {
 #ifdef HAVE_PCRE
-        if(*e == 'i')
+        if (*e == 'i')
             *flags = *flags | PCRE_CASELESS;
         else if (*e == 'm')
             *flags |= PCRE_MULTILINE;
@@ -60,7 +60,7 @@ char *ci_regex_parse(const char *str, int *flags, int *recursive)
         else if (*e == 'u')
             *flags |= PCRE_UTF8;
 #else
-        if(*e == 'i')
+        if (*e == 'i')
             *flags = *flags | REG_ICASE;
         else if (*e == 'm')
             *flags |= REG_NEWLINE;
@@ -93,7 +93,7 @@ ci_regex_t ci_regex_build(const char *regex_str, int regex_flags)
     /*reset regex_struct*/
     memset(regex, 0, sizeof(regex_t));
     retcode = regcomp(regex, regex_str, regex_flags);
-    if (retcode) {        
+    if (retcode) {
         free(regex);
         regex = NULL;
     }
@@ -157,16 +157,16 @@ int ci_regex_apply(const ci_regex_t regex, const char *str, int len, int recurs,
             ++count;
             ci_debug_printf(9, "Match pattern (pos:%d-%d): '%.*s'\n", pmatch[0].rm_so, pmatch[0].rm_eo, pmatch[0].rm_eo - pmatch[0].rm_so, str+pmatch[0].rm_so);
 
-               if (matches) {
-                   parts.user_data = user_data;
-                   memset(parts.matches, 0, sizeof(ci_regex_matches_t));
-                   for (i = 0; i < 10 && pmatch[i].rm_eo > pmatch[i].rm_so; ++i) {
-                       ci_debug_printf(9, "\t sub-match pattern (pos:%d-%d): '%.*s'\n", pmatch[i].rm_so, pmatch[i].rm_eo, pmatch[i].rm_eo - pmatch[i].rm_so, str+pmatch[i].rm_so);
-                       parts.matches[i].s = pmatch[i].rm_so;
-                       parts.matches[i].e = pmatch[i].rm_eo;
-                   }
-                   ci_list_push_back(matches, (void *)&parts);
-               }
+            if (matches) {
+                parts.user_data = user_data;
+                memset(parts.matches, 0, sizeof(ci_regex_matches_t));
+                for (i = 0; i < 10 && pmatch[i].rm_eo > pmatch[i].rm_so; ++i) {
+                    ci_debug_printf(9, "\t sub-match pattern (pos:%d-%d): '%.*s'\n", pmatch[i].rm_so, pmatch[i].rm_eo, pmatch[i].rm_eo - pmatch[i].rm_so, str+pmatch[i].rm_so);
+                    parts.matches[i].s = pmatch[i].rm_so;
+                    parts.matches[i].e = pmatch[i].rm_eo;
+                }
+                ci_list_push_back(matches, (void *)&parts);
+            }
 
             if (pmatch[0].rm_so >= 0 && pmatch[0].rm_eo >= 0 && pmatch[0].rm_so != pmatch[0].rm_eo) {
                 str += pmatch[0].rm_eo;

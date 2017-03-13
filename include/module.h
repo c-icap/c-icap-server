@@ -38,77 +38,77 @@ struct ci_request;
 #define CI_MOD_DISABLE_FORCE_UNLOAD_STR "__c_icap_module_disable_force_unload"
 #define CI_MOD_DISABLE_FORCE_UNLOAD() CI_DECLARE_MOD_DATA const char * __c_icap_module_disable_force_unload = "off;"
 
-enum module_type{
-     UNKNOWN,
-     SERVICE_HANDLER, 
-     LOGGER,
-     ACCESS_CONTROLLER,
-     AUTH_METHOD,
-     AUTHENTICATOR,
-     COMMON,
-     MODS_TABLE_END
+enum module_type {
+    UNKNOWN,
+    SERVICE_HANDLER,
+    LOGGER,
+    ACCESS_CONTROLLER,
+    AUTH_METHOD,
+    AUTHENTICATOR,
+    COMMON,
+    MODS_TABLE_END
 };
 
-typedef struct  service_handler_module{
-     const char *name;
-     const char *extensions;
-     int (*init_service_handler)(struct ci_server_conf *server_conf);
-     int (*post_init_service_handler)(struct ci_server_conf *server_conf);
-     void (*release_service_handler)();
+typedef struct  service_handler_module {
+    const char *name;
+    const char *extensions;
+    int (*init_service_handler)(struct ci_server_conf *server_conf);
+    int (*post_init_service_handler)(struct ci_server_conf *server_conf);
+    void (*release_service_handler)();
     ci_service_module_t *(*create_service)(const char *service_file, const char *argv[]);
-     struct ci_conf_entry *conf_table;
+    struct ci_conf_entry *conf_table;
 } service_handler_module_t;
 
-typedef struct common_module{
-     const char *name;
-     int (*init_module)(struct ci_server_conf *server_conf);
-     int (*post_init_module)(struct ci_server_conf *server_conf);
-     void (*close_module)();
-     struct ci_conf_entry *conf_table;
+typedef struct common_module {
+    const char *name;
+    int (*init_module)(struct ci_server_conf *server_conf);
+    int (*post_init_module)(struct ci_server_conf *server_conf);
+    void (*close_module)();
+    struct ci_conf_entry *conf_table;
 } common_module_t;
 
-typedef struct  logger_module{
-     const char *name;
-     int  (*init_logger)(struct ci_server_conf *server_conf);
-     int  (*log_open)(); /*Or better post_init_logger .......*/
-     void (*log_close)();
-     void  (*log_access)(ci_request_t *req);
-     void  (*log_server)(const char *server, const char *format, va_list ap);
-     struct ci_conf_entry *conf_table;
+typedef struct  logger_module {
+    const char *name;
+    int  (*init_logger)(struct ci_server_conf *server_conf);
+    int  (*log_open)(); /*Or better post_init_logger .......*/
+    void (*log_close)();
+    void  (*log_access)(ci_request_t *req);
+    void  (*log_server)(const char *server, const char *format, va_list ap);
+    struct ci_conf_entry *conf_table;
 } logger_module_t;
 
-typedef struct  access_control_module{
-     const char *name;
-     int (*init_access_controller)(struct ci_server_conf *server_conf);
-     int (*post_init_access_controller)(struct ci_server_conf *server_conf);
-     void (*release_access_controller)();
-     int (*client_access)(ci_request_t *req);
-     int (*request_access)(ci_request_t *req);
-     struct ci_conf_entry *conf_table;
+typedef struct  access_control_module {
+    const char *name;
+    int (*init_access_controller)(struct ci_server_conf *server_conf);
+    int (*post_init_access_controller)(struct ci_server_conf *server_conf);
+    void (*release_access_controller)();
+    int (*client_access)(ci_request_t *req);
+    int (*request_access)(ci_request_t *req);
+    struct ci_conf_entry *conf_table;
 } access_control_module_t;
 
 
-typedef struct http_auth_method{
-     const char *name;
-     int (*init_auth_method)(struct ci_server_conf *server_conf);
-     int (*post_init_auth_method)(struct ci_server_conf *server_conf);
-     void (*close_auth_method)();
-     void *(*create_auth_data)(const char *authorization_header,const char **username);
-     void (*release_auth_data)(void *data);
-     char *(*authentication_header)();
-     void (*release_authentication_header)();
-     struct ci_conf_entry *conf_table;
+typedef struct http_auth_method {
+    const char *name;
+    int (*init_auth_method)(struct ci_server_conf *server_conf);
+    int (*post_init_auth_method)(struct ci_server_conf *server_conf);
+    void (*close_auth_method)();
+    void *(*create_auth_data)(const char *authorization_header,const char **username);
+    void (*release_auth_data)(void *data);
+    char *(*authentication_header)();
+    void (*release_authentication_header)();
+    struct ci_conf_entry *conf_table;
 } http_auth_method_t;
 
 
-typedef struct authenticator_module{
-     const char *name;
-     const char *method;
-     int (*init_authenticator)(struct ci_server_conf *server_conf);
-     int (*post_init_authenticator)(struct ci_server_conf *server_conf);
-     void (*close_authenticator)();
+typedef struct authenticator_module {
+    const char *name;
+    const char *method;
+    int (*init_authenticator)(struct ci_server_conf *server_conf);
+    int (*post_init_authenticator)(struct ci_server_conf *server_conf);
+    void (*close_authenticator)();
     int (*authenticate)(void *data, const char *usedb);
-     struct ci_conf_entry *conf_table;
+    struct ci_conf_entry *conf_table;
 } authenticator_module_t;
 
 

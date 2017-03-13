@@ -34,47 +34,46 @@
 #ifdef USE_IPV6
 void ci_fill_sockaddr(ci_sockaddr_t * addr)
 {
-     addr->ci_sin_family = addr->sockaddr.ss_family;
-     if (addr->ci_sin_family == AF_INET6) {
-          addr->ci_sin_port =
-              ((struct sockaddr_in6 *) &(addr->sockaddr))->sin6_port;
-          addr->ci_sin_addr =
-              &(((struct sockaddr_in6 *) &(addr->sockaddr))->sin6_addr);
-          addr->ci_inaddr_len = sizeof(struct in6_addr);
-     }
-     else {
-          addr->ci_sin_port =
-              ((struct sockaddr_in *) &(addr->sockaddr))->sin_port;
-          addr->ci_sin_addr =
-              &(((struct sockaddr_in *) &(addr->sockaddr))->sin_addr);
-          addr->ci_inaddr_len = sizeof(struct in_addr);
-     }
+    addr->ci_sin_family = addr->sockaddr.ss_family;
+    if (addr->ci_sin_family == AF_INET6) {
+        addr->ci_sin_port =
+            ((struct sockaddr_in6 *) &(addr->sockaddr))->sin6_port;
+        addr->ci_sin_addr =
+            &(((struct sockaddr_in6 *) &(addr->sockaddr))->sin6_addr);
+        addr->ci_inaddr_len = sizeof(struct in6_addr);
+    } else {
+        addr->ci_sin_port =
+            ((struct sockaddr_in *) &(addr->sockaddr))->sin_port;
+        addr->ci_sin_addr =
+            &(((struct sockaddr_in *) &(addr->sockaddr))->sin_addr);
+        addr->ci_inaddr_len = sizeof(struct in_addr);
+    }
 }
 
 void ci_copy_sockaddr(ci_sockaddr_t * dest, ci_sockaddr_t * src)
 {
-     memcpy(dest, src, sizeof(ci_sockaddr_t));
-     if (dest->ci_sin_family == AF_INET6)
-          dest->ci_sin_addr =
-              &(((struct sockaddr_in6 *) &(dest->sockaddr))->sin6_addr);
-     else
-          dest->ci_sin_addr =
-              &(((struct sockaddr_in *) &(dest->sockaddr))->sin_addr);
+    memcpy(dest, src, sizeof(ci_sockaddr_t));
+    if (dest->ci_sin_family == AF_INET6)
+        dest->ci_sin_addr =
+            &(((struct sockaddr_in6 *) &(dest->sockaddr))->sin6_addr);
+    else
+        dest->ci_sin_addr =
+            &(((struct sockaddr_in *) &(dest->sockaddr))->sin_addr);
 }
 
 #else
 void ci_fill_sockaddr(ci_sockaddr_t * addr)
 {
-     addr->ci_sin_family = addr->sockaddr.sin_family;
-     addr->ci_sin_port = addr->sockaddr.sin_port;
-     addr->ci_sin_addr = &(addr->sockaddr.sin_addr);
-     addr->ci_inaddr_len = sizeof(struct in_addr);
+    addr->ci_sin_family = addr->sockaddr.sin_family;
+    addr->ci_sin_port = addr->sockaddr.sin_port;
+    addr->ci_sin_addr = &(addr->sockaddr.sin_addr);
+    addr->ci_inaddr_len = sizeof(struct in_addr);
 }
 
 void ci_copy_sockaddr(ci_sockaddr_t * dest, ci_sockaddr_t * src)
 {
-     memcpy(dest, src, sizeof(ci_sockaddr_t));
-     dest->ci_sin_addr = &(dest->sockaddr.sin_addr);
+    memcpy(dest, src, sizeof(ci_sockaddr_t));
+    dest->ci_sin_addr = &(dest->sockaddr.sin_addr);
 }
 #endif
 
@@ -82,12 +81,12 @@ void ci_fill_ip_t(ci_ip_t *ip_dest, ci_sockaddr_t *src)
 {
     ip_dest->family = src->ci_sin_family;
     memcpy(&ip_dest->address,src->ci_sin_addr,sizeof(ci_in_addr_t));
-    
+
 #ifdef USE_IPV6
-    if(ip_dest->family == AF_INET6)
-	ci_ipv6_inaddr_hostnetmask(ip_dest->netmask);
+    if (ip_dest->family == AF_INET6)
+        ci_ipv6_inaddr_hostnetmask(ip_dest->netmask);
     else
-	ci_ipv4_inaddr_hostnetmask(ip_dest->netmask);
+        ci_ipv4_inaddr_hostnetmask(ip_dest->netmask);
 #else
     ci_ipv4_inaddr_hostnetmask(ip_dest->netmask);
 #endif
@@ -97,23 +96,23 @@ void ci_fill_ip_t(ci_ip_t *ip_dest, ci_sockaddr_t *src)
 
 void ci_sockaddr_set_port(ci_sockaddr_t * addr, int port)
 {
-     if (addr->sockaddr.ss_family == AF_INET) {
-          ((struct sockaddr_in *) &(addr->sockaddr))->sin_port = htons(port);
-          addr->ci_sin_port =
-               ((struct sockaddr_in6 *) &(addr->sockaddr))->sin6_port;
-     } else {
-          ((struct sockaddr_in6 *) &(addr->sockaddr))->sin6_port = htons(port);
-          addr->ci_sin_port =
-               ((struct sockaddr_in *) &(addr->sockaddr))->sin_port;
-     }
+    if (addr->sockaddr.ss_family == AF_INET) {
+        ((struct sockaddr_in *) &(addr->sockaddr))->sin_port = htons(port);
+        addr->ci_sin_port =
+            ((struct sockaddr_in6 *) &(addr->sockaddr))->sin6_port;
+    } else {
+        ((struct sockaddr_in6 *) &(addr->sockaddr))->sin6_port = htons(port);
+        addr->ci_sin_port =
+            ((struct sockaddr_in *) &(addr->sockaddr))->sin_port;
+    }
 }
 
 #else
 
 void ci_sockaddr_set_port(ci_sockaddr_t * addr, int port)
 {
-     addr->sockaddr.sin_port = htons(port);
-     addr->ci_sin_port = addr->sockaddr.sin_port;
+    addr->sockaddr.sin_port = htons(port);
+    addr->ci_sin_port = addr->sockaddr.sin_port;
 }
 #endif
 
@@ -121,29 +120,29 @@ void ci_sockaddr_set_port(ci_sockaddr_t * addr, int port)
 
 const char *ci_sockaddr_t_to_ip(ci_sockaddr_t * addr, char *ip, int maxlen)
 {
-     return ci_inet_ntoa(addr->ci_sin_family, addr->ci_sin_addr, ip, maxlen);
+    return ci_inet_ntoa(addr->ci_sin_family, addr->ci_sin_addr, ip, maxlen);
 }
 
 
 /*
   Needed check in configure.in for inet_pton and inet_ntop ?
-  For Linux and Solaris exists. 
+  For Linux and Solaris exists.
   But I did not found these functions in win32 for example .
 */
 
 int ci_inet_aton(int af, const char *cp, void *addr)
 {
 #ifdef USE_IPV6
-     return inet_pton(af, cp, addr);
+    return inet_pton(af, cp, addr);
 #else
 #ifdef HAVE_INET_ATON
-     return inet_aton(cp, (struct in_addr *) addr);
+    return inet_aton(cp, (struct in_addr *) addr);
 #else
-     ((struct in_addr *) addr)->s_addr = inet_addr(cp);
-     if (((struct in_addr *) addr)->s_addr == 0xffffffff
-         && strcmp(cp, "255.255.255.255") != 0)
-          return 0;             /*0xffffffff =255.255.255.255 which is a valid address */
-     return 1;
+    ((struct in_addr *) addr)->s_addr = inet_addr(cp);
+    if (((struct in_addr *) addr)->s_addr == 0xffffffff
+            && strcmp(cp, "255.255.255.255") != 0)
+        return 0;             /*0xffffffff =255.255.255.255 which is a valid address */
+    return 1;
 #endif
 #endif                          /*USE_IPV6 */
 }
@@ -153,63 +152,63 @@ int ci_inet_aton(int af, const char *cp, void *addr)
 const char *ci_inet_ntoa(int af, const void *src, char *dst, int cnt)
 {
 #ifdef USE_IPV6
-     return inet_ntop(af, src, dst, cnt);
+    return inet_ntop(af, src, dst, cnt);
 #else
-     unsigned char *addr_bytes;
-     addr_bytes = (unsigned char *) src;
-     snprintf(dst, cnt, "%d.%d.%d.%d", addr_bytes[0], addr_bytes[1],
-              addr_bytes[2], addr_bytes[3]);
-     dst[cnt - 1] = '\0';
-     return (const char *) dst;
+    unsigned char *addr_bytes;
+    addr_bytes = (unsigned char *) src;
+    snprintf(dst, cnt, "%d.%d.%d.%d", addr_bytes[0], addr_bytes[1],
+             addr_bytes[2], addr_bytes[3]);
+    dst[cnt - 1] = '\0';
+    return (const char *) dst;
 #endif
 }
 
 
 void ci_copy_connection(ci_connection_t * dest, ci_connection_t * src)
 {
-     dest->fd = src->fd;
-     ci_copy_sockaddr(&dest->claddr, &src->claddr);
-     ci_copy_sockaddr(&dest->srvaddr, &src->srvaddr);
+    dest->fd = src->fd;
+    ci_copy_sockaddr(&dest->claddr, &src->claddr);
+    ci_copy_sockaddr(&dest->srvaddr, &src->srvaddr);
 #if defined(USE_OPENSSL)
-     dest->bio = src->bio;
+    dest->bio = src->bio;
 #endif
-     dest->flags = src->flags;
+    dest->flags = src->flags;
 }
 
 void ci_connection_reset(ci_connection_t *conn)
 {
-     conn->fd = -1;
+    conn->fd = -1;
 #if defined(USE_OPENSSL)
-     conn->bio = NULL;
+    conn->bio = NULL;
 #endif
-     conn->flags = 0;
+    conn->flags = 0;
 }
 
 int ci_host_to_sockaddr_t(const char *servername, ci_sockaddr_t * addr, int proto)
 {
-     int ret = 0;
-     struct addrinfo hints, *res;
-     memset(&hints, 0, sizeof(hints));
-     hints.ai_family = proto;
-     hints.ai_socktype = SOCK_STREAM;
-     hints.ai_protocol = 0;
-     if ((ret = getaddrinfo(servername, NULL, &hints, &res)) != 0) {
-         ci_debug_printf(5, "Error getting addrinfo for '%s':%s\n", servername, gai_strerror(ret));
-	 return 0;
-     }
-     //fill the addr..... and
-     memcpy(&(addr->sockaddr), res->ai_addr, CI_SOCKADDR_SIZE);
-     freeaddrinfo(res);
-     ci_fill_sockaddr(addr);
-     return 1;
+    int ret = 0;
+    struct addrinfo hints, *res;
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = proto;
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_protocol = 0;
+    if ((ret = getaddrinfo(servername, NULL, &hints, &res)) != 0) {
+        ci_debug_printf(5, "Error getting addrinfo for '%s':%s\n", servername, gai_strerror(ret));
+        return 0;
+    }
+    //fill the addr..... and
+    memcpy(&(addr->sockaddr), res->ai_addr, CI_SOCKADDR_SIZE);
+    freeaddrinfo(res);
+    ci_fill_sockaddr(addr);
+    return 1;
 }
 
 ci_connection_t *ci_connection_create()
 {
-     ci_connection_t *connection = malloc(sizeof(ci_connection_t));
-     if (connection)
-          ci_connection_reset(connection);
-     return connection;
+    ci_connection_t *connection = malloc(sizeof(ci_connection_t));
+    if (connection)
+        ci_connection_reset(connection);
+    return connection;
 }
 
 /**
@@ -226,74 +225,74 @@ void ci_connection_destroy(ci_connection_t *connection)
 
 int ci_connect_to_nonblock(ci_connection_t *connection, const char *servername, int port, int proto)
 {
-     unsigned int addrlen = 0;
-     char errBuf[512];
-     
-     if (!connection)
-          return -1;
+    unsigned int addrlen = 0;
+    char errBuf[512];
 
-     if (connection->fd < 0) {
-          if (!ci_host_to_sockaddr_t(servername, &(connection->srvaddr), proto)) {
-               ci_debug_printf(1, "Error getting address info for host '%s'\n", servername);
-               return -1;
-          }
-          ci_sockaddr_set_port(&(connection->srvaddr), port);
+    if (!connection)
+        return -1;
 
-          connection->fd = socket(connection->srvaddr.ci_sin_family, SOCK_STREAM, 0);
-          if (connection->fd == -1) {
-               ci_debug_printf(1, "Error opening socket :%d:%s....\n",
-                               errno,
-                               ci_strerror(errno,  errBuf, sizeof(errBuf)));
-               return -1;
-          }
+    if (connection->fd < 0) {
+        if (!ci_host_to_sockaddr_t(servername, &(connection->srvaddr), proto)) {
+            ci_debug_printf(1, "Error getting address info for host '%s'\n", servername);
+            return -1;
+        }
+        ci_sockaddr_set_port(&(connection->srvaddr), port);
+
+        connection->fd = socket(connection->srvaddr.ci_sin_family, SOCK_STREAM, 0);
+        if (connection->fd == -1) {
+            ci_debug_printf(1, "Error opening socket :%d:%s....\n",
+                            errno,
+                            ci_strerror(errno,  errBuf, sizeof(errBuf)));
+            return -1;
+        }
 
 #ifdef USE_IPV6
-          if (connection->srvaddr.ci_sin_family == AF_INET6)
-               addrlen = sizeof(struct sockaddr_in6);
-          else
+        if (connection->srvaddr.ci_sin_family == AF_INET6)
+            addrlen = sizeof(struct sockaddr_in6);
+        else
 #endif
-               addrlen = sizeof(struct sockaddr_in);
+            addrlen = sizeof(struct sockaddr_in);
 
-          // Sets the fd to non-block mode
-          ci_connection_set_nonblock(connection);
+        // Sets the fd to non-block mode
+        ci_connection_set_nonblock(connection);
 
-          int ret;
-          ret = connect(connection->fd, (struct sockaddr *) &(connection->srvaddr.sockaddr), addrlen);
-          if (ret < 0 && errno != EINPROGRESS) {
-              ci_debug_printf(1, "Error connecting to host  '%s': %s \n",
-                              servername,
-                              ci_strerror(errno,  errBuf, sizeof(errBuf)));
-              close(connection->fd);
-              connection->fd = -1;
-              return -1;
-          }
+        int ret;
+        ret = connect(connection->fd, (struct sockaddr *) &(connection->srvaddr.sockaddr), addrlen);
+        if (ret < 0 && errno != EINPROGRESS) {
+            ci_debug_printf(1, "Error connecting to host  '%s': %s \n",
+                            servername,
+                            ci_strerror(errno,  errBuf, sizeof(errBuf)));
+            close(connection->fd);
+            connection->fd = -1;
+            return -1;
+        }
 
-          return 0;
-     }
+        return 0;
+    }
 
-     if (!(connection->flags & CI_CONNECTION_CONNECTED)) {
-          int errcode = 0;
-          socklen_t len = sizeof(errcode);
-          if (getsockopt(connection->fd, SOL_SOCKET, SO_ERROR, &errcode, &len) != 0)
-               errcode = errno;
+    if (!(connection->flags & CI_CONNECTION_CONNECTED)) {
+        int errcode = 0;
+        socklen_t len = sizeof(errcode);
+        if (getsockopt(connection->fd, SOL_SOCKET, SO_ERROR, &errcode, &len) != 0)
+            errcode = errno;
 
-          if (errcode) {
-              ci_debug_printf(1, "Error while connecting to host '%s': %s\n",
-                              servername,
-                              ci_strerror(errcode,  errBuf, sizeof(errBuf)));
-              return -1;
-          }
+        if (errcode) {
+            ci_debug_printf(1, "Error while connecting to host '%s': %s\n",
+                            servername,
+                            ci_strerror(errcode,  errBuf, sizeof(errBuf)));
+            return -1;
+        }
 
-          if (!ci_connection_init(connection, ci_connection_client_side)) {
-               ci_debug_printf(1, "Error initializing connection to '%s': %s\n",
-                               servername,
-                               ci_strerror(errno,  errBuf, sizeof(errBuf)));
-               return -1;
-          }
-          connection->flags &= CI_CONNECTION_CONNECTED;
-     }
+        if (!ci_connection_init(connection, ci_connection_client_side)) {
+            ci_debug_printf(1, "Error initializing connection to '%s': %s\n",
+                            servername,
+                            ci_strerror(errno,  errBuf, sizeof(errBuf)));
+            return -1;
+        }
+        connection->flags &= CI_CONNECTION_CONNECTED;
+    }
 
-     return 1;
+    return 1;
 }
 
 ci_connection_t *ci_connect_to(const char *servername, int port, int proto, int timeout)
@@ -310,20 +309,20 @@ ci_connection_t *ci_connect_to(const char *servername, int port, int proto, int 
         return NULL;
 
     do {
-         ret = ci_wait_for_data(connection->fd, timeout, ci_wait_for_write);
-    } while(ret > 0 && (ret & ci_wait_should_retry)); //while iterrupted by signal
+        ret = ci_wait_for_data(connection->fd, timeout, ci_wait_for_write);
+    } while (ret > 0 && (ret & ci_wait_should_retry)); //while iterrupted by signal
 
     if (ret > 0)
         ret = ci_connect_to_nonblock(connection, servername, port, proto);
 
-     if (ret <= 0) {
-          ci_debug_printf(1, "Connection to '%s:%d' failed/timedout\n",
-                          servername, port);
-          ci_connection_destroy(connection);
-          return NULL;
-     }
+    if (ret <= 0) {
+        ci_debug_printf(1, "Connection to '%s:%d' failed/timedout\n",
+                        servername, port);
+        ci_connection_destroy(connection);
+        return NULL;
+    }
 
-     return connection;
+    return connection;
 }
 
 int ci_connection_wait(ci_connection_t *conn, int secs, int what_wait)

@@ -1,6 +1,6 @@
 /*
  * This code implements the MD5 message-digest algorithm.
- * The algorithm is due to Ron Rivest.	This code was
+ * The algorithm is due to Ron Rivest.  This code was
  * written by Colin Plumb in 1993, no copyright is claimed.
  * This code is in the public domain; do with it what you wish.
  *
@@ -20,7 +20,7 @@
 
 static void MD5Transform(uint32_t buf[4], uint32_t in[16]);
 #ifdef WORDS_BIGENDIAN
-#define byteReverse(buf, len)	/* Nothing */
+#define byteReverse(buf, len)   /* Nothing */
 #else
 /*
  * Note: this code is harmless on little-endian machines.
@@ -29,10 +29,10 @@ static void byteReverse(unsigned char *buf, unsigned longs)
 {
     uint32_t t;
     do {
-	t = (uint32_t) ((unsigned) buf[3] << 8 | buf[2]) << 16 |
-	    ((unsigned) buf[1] << 8 | buf[0]);
-	*(uint32_t *) buf = t;
-	buf += 4;
+        t = (uint32_t) ((unsigned) buf[3] << 8 | buf[2]) << 16 |
+            ((unsigned) buf[1] << 8 | buf[0]);
+        *(uint32_t *) buf = t;
+        buf += 4;
     } while (--longs);
 }
 #endif
@@ -64,35 +64,35 @@ void ci_MD5Update(struct ci_MD5Context *ctx, const unsigned char *buf, size_t le
 
     t = ctx->bits[0];
     if ((ctx->bits[0] = t + ((uint32_t) len << 3)) < t)
-	ctx->bits[1]++; 	/* Carry from low to high */
+        ctx->bits[1]++;     /* Carry from low to high */
     ctx->bits[1] += len >> 29;
 
-    t = (t >> 3) & 0x3f;	/* Bytes already in shsInfo->data */
+    t = (t >> 3) & 0x3f;    /* Bytes already in shsInfo->data */
 
     /* Handle any leading odd-sized chunks */
 
     if (t) {
-	unsigned char *p = (unsigned char *) ctx->in + t;
+        unsigned char *p = (unsigned char *) ctx->in + t;
 
-	t = 64 - t;
-	if (len < t) {
-	    memcpy(p, buf, len);
-	    return;
-	}
-	memcpy(p, buf, t);
-	byteReverse(ctx->in, 16);
-	MD5Transform(ctx->buf, (uint32_t *) ctx->in);
-	buf += t;
-	len -= t;
+        t = 64 - t;
+        if (len < t) {
+            memcpy(p, buf, len);
+            return;
+        }
+        memcpy(p, buf, t);
+        byteReverse(ctx->in, 16);
+        MD5Transform(ctx->buf, (uint32_t *) ctx->in);
+        buf += t;
+        len -= t;
     }
     /* Process data in 64-byte chunks */
 
     while (len >= 64) {
-	memcpy(ctx->in, buf, 64);
-	byteReverse(ctx->in, 16);
-	MD5Transform(ctx->buf, (uint32_t *) ctx->in);
-	buf += 64;
-	len -= 64;
+        memcpy(ctx->in, buf, 64);
+        byteReverse(ctx->in, 16);
+        MD5Transform(ctx->buf, (uint32_t *) ctx->in);
+        buf += 64;
+        len -= 64;
     }
 
     /* Handle any remaining bytes of data. */
@@ -101,7 +101,7 @@ void ci_MD5Update(struct ci_MD5Context *ctx, const unsigned char *buf, size_t le
 }
 
 /*
- * Final wrapup - pad to 64-byte boundary with the bit pattern 
+ * Final wrapup - pad to 64-byte boundary with the bit pattern
  * 1 0* (64-bit count of bits processed, MSB-first)
  */
 void ci_MD5Final(unsigned char digest[16], struct ci_MD5Context *ctx)
@@ -123,16 +123,16 @@ void ci_MD5Final(unsigned char digest[16], struct ci_MD5Context *ctx)
 
     /* Pad out to 56 mod 64 */
     if (count < 8) {
-	/* Two lots of padding:  Pad the first block to 64 bytes */
-	memset(p, 0, count);
-	byteReverse(ctx->in, 16);
-	MD5Transform(ctx->buf, (uint32_t *) ctx->in);
+        /* Two lots of padding:  Pad the first block to 64 bytes */
+        memset(p, 0, count);
+        byteReverse(ctx->in, 16);
+        MD5Transform(ctx->buf, (uint32_t *) ctx->in);
 
-	/* Now fill the next block with 56 bytes */
-	memset(ctx->in, 0, 56);
+        /* Now fill the next block with 56 bytes */
+        memset(ctx->in, 0, 56);
     } else {
-	/* Pad block to 56 bytes */
-	memset(p, 0, count - 8);
+        /* Pad block to 56 bytes */
+        memset(p, 0, count - 8);
     }
     byteReverse(ctx->in, 14);
 
@@ -158,7 +158,7 @@ void ci_MD5Final(unsigned char digest[16], struct ci_MD5Context *ctx)
 
 /* This is the central step in the MD5 algorithm. */
 #define MD5STEP(f, w, x, y, z, data, s) \
-	( w += f(x, y, z) + data,  w = w<<s | w>>(32-s),  w += x )
+    ( w += f(x, y, z) + data,  w = w<<s | w>>(32-s),  w += x )
 
 /*
  * The core of the MD5 algorithm, this alters an existing MD5 hash to

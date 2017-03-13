@@ -94,10 +94,10 @@ enum CLIENT_STATUS {
 #define MAX_CHUNK_SIZE    4064   /*4096 -EXTRA_CHUNK_SIZE-2*/
 #define MAX_USERNAME_LEN 255
 
-typedef struct ci_buf{
-     char *buf;
-     int size;
-     int used;
+typedef struct ci_buf {
+    char *buf;
+    int size;
+    int used;
 } ci_buf_t;
 
 
@@ -111,72 +111,72 @@ struct ci_ring_buf;
    * request. The developers should not access directly the fields of
    * this struct but better use the documented macros and functions
 */
-typedef struct ci_request{
-     ci_connection_t *connection;
-     int packed;
-     int type;
-     char req_server[CI_MAXHOSTNAMELEN+1];
-     int access_type;
-     char user[MAX_USERNAME_LEN+1];
-     char service[MAX_SERVICE_NAME+1];
-     char args[MAX_SERVICE_ARGS];
-     int preview;
-     int keepalive;
-     int allow204;
-     int hasbody;
-     int responce_hasbody;
-     struct ci_buf preview_data;
-     struct ci_service_module *current_service_mod;
-     ci_headers_list_t *request_header;
-     ci_headers_list_t *response_header;
-     ci_encaps_entity_t *entities[5];//At most 3 and 1 for termination.....
-     ci_encaps_entity_t *trash_entities[7];
-     ci_headers_list_t *xheaders;
+typedef struct ci_request {
+    ci_connection_t *connection;
+    int packed;
+    int type;
+    char req_server[CI_MAXHOSTNAMELEN+1];
+    int access_type;
+    char user[MAX_USERNAME_LEN+1];
+    char service[MAX_SERVICE_NAME+1];
+    char args[MAX_SERVICE_ARGS];
+    int preview;
+    int keepalive;
+    int allow204;
+    int hasbody;
+    int responce_hasbody;
+    struct ci_buf preview_data;
+    struct ci_service_module *current_service_mod;
+    ci_headers_list_t *request_header;
+    ci_headers_list_t *response_header;
+    ci_encaps_entity_t *entities[5];//At most 3 and 1 for termination.....
+    ci_encaps_entity_t *trash_entities[7];
+    ci_headers_list_t *xheaders;
 
-     void *service_data;
+    void *service_data;
 
-     char rbuf[BUFSIZE];
-     char wbuf[MAX_CHUNK_SIZE+EXTRA_CHUNK_SIZE+2];
-     int eof_received;
-     int eof_sent;
-     int data_locked;
+    char rbuf[BUFSIZE];
+    char wbuf[MAX_CHUNK_SIZE+EXTRA_CHUNK_SIZE+2];
+    int eof_received;
+    int eof_sent;
+    int data_locked;
 
-     char *pstrblock_read; 
-     int  pstrblock_read_len;
-     unsigned int current_chunk_len;
-     unsigned int chunk_bytes_read;
-     unsigned int write_to_module_pending;
+    char *pstrblock_read;
+    int  pstrblock_read_len;
+    unsigned int current_chunk_len;
+    unsigned int chunk_bytes_read;
+    unsigned int write_to_module_pending;
 
-     int status;
-     int return_code;
-     char *pstrblock_responce;
-     int remain_send_block_bytes;
+    int status;
+    int return_code;
+    char *pstrblock_responce;
+    int remain_send_block_bytes;
 
-     /*Used to echo data back to a client which does not support preview
-       in the case of 204 outside preview.*/
-     struct ci_ring_buf *echo_body;
+    /*Used to echo data back to a client which does not support preview
+      in the case of 204 outside preview.*/
+    struct ci_ring_buf *echo_body;
 
-     /*Caching values for various subsystems*/
-     int preview_data_type;
-     int auth_required;
+    /*Caching values for various subsystems*/
+    int preview_data_type;
+    int auth_required;
 
-     /*log string*/
-     char *log_str;
+    /*log string*/
+    char *log_str;
     ci_str_array_t *attributes;
 
-     /* statistics */
-     uint64_t bytes_in; /*May include bytes from next pipelined request*/
-     uint64_t bytes_out;
-     uint64_t request_bytes_in; /*Current request input bytes*/
-     uint64_t http_bytes_in;
-     uint64_t http_bytes_out;
-     uint64_t body_bytes_in;
-     uint64_t body_bytes_out;
+    /* statistics */
+    uint64_t bytes_in; /*May include bytes from next pipelined request*/
+    uint64_t bytes_out;
+    uint64_t request_bytes_in; /*Current request input bytes*/
+    uint64_t http_bytes_in;
+    uint64_t http_bytes_out;
+    uint64_t body_bytes_in;
+    uint64_t body_bytes_out;
 
-     /* added flags/variables*/
-     int allow206;
-     int64_t i206_use_original_body;
-     ci_ip_t xclient_ip;
+    /* added flags/variables*/
+    int allow206;
+    int64_t i206_use_original_body;
+    ci_ip_t xclient_ip;
 } ci_request_t;
 
 #define lock_data(req) (req->data_locked=1)
@@ -228,13 +228,13 @@ CI_DECLARE_FUNC(int)          ci_client_get_server_options(ci_request_t *req,int
 CI_DECLARE_FUNC(int)          ci_client_get_server_options_non_blocking(ci_request_t *req);
 
 CI_DECLARE_FUNC(int)          ci_client_icapfilter(ci_request_t *req,
-						   int timeout,
-						   ci_headers_list_t *req_headers,
-                                                   ci_headers_list_t *resp_headers,
-						   void *data_source,
-						   int (*source_read)(void *,char *,int),
-						   void *data_dest,  
-						   int (*dest_write) (void *,char *,int));
+        int timeout,
+        ci_headers_list_t *req_headers,
+        ci_headers_list_t *resp_headers,
+        void *data_source,
+        int (*source_read)(void *,char *,int),
+        void *data_dest,
+        int (*dest_write) (void *,char *,int));
 
 /**
  \ingroup ICAPCLIENT
@@ -256,12 +256,12 @@ CI_DECLARE_FUNC(int)          ci_client_icapfilter(ci_request_t *req,
  *       NEEDS_TO_WRITE_USER_DATA.
  */
 CI_DECLARE_FUNC(int) ci_client_icapfilter_nonblocking(ci_request_t * req, int io_action,
-                                                      ci_headers_list_t * req_headers,
-                                                      ci_headers_list_t * resp_headers,
-                                                      void *data_source,
-                                                      int (*source_read) (void *, char *, int),
-                                                      void *data_dest,
-                                                      int (*dest_write) (void *, char *, int));
+        ci_headers_list_t * req_headers,
+        ci_headers_list_t * resp_headers,
+        void *data_source,
+        int (*source_read) (void *, char *, int),
+        void *data_dest,
+        int (*dest_write) (void *, char *, int));
 
 CI_DECLARE_FUNC(int) ci_client_http_headers_completed(ci_request_t * req);
 

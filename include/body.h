@@ -41,13 +41,13 @@ extern "C"
 #define CI_MEMBUF_USER_FLAGS (CI_MEMBUF_NULL_TERMINATED | CI_MEMBUF_RO)
 #define CI_MEMBUF_FROM_CONTENT_FLAGS (CI_MEMBUF_NULL_TERMINATED | CI_MEMBUF_RO | CI_MEMBUF_CONST | CI_MEMBUF_HAS_EOF)
 
-typedef struct ci_membuf{
-     int endpos;
-     int readpos;
-     int bufsize;
-     int unlocked;
-     unsigned int flags;
-     char *buf;
+typedef struct ci_membuf {
+    int endpos;
+    int readpos;
+    int bufsize;
+    int unlocked;
+    unsigned int flags;
+    char *buf;
     ci_array_t *attributes;
 } ci_membuf_t;
 
@@ -75,15 +75,15 @@ CI_DECLARE_FUNC(unsigned int) ci_membuf_set_flag(struct ci_membuf *body, unsigne
 #define CI_FILE_HAS_EOF    0x02
 #define CI_FILE_RING_MODE  0x04
 
-typedef struct ci_cached_file{
-     ci_off_t endpos;
-     ci_off_t readpos;
-     int      bufsize;
-     int flags;
-     ci_off_t unlocked;
-     char *buf;
-     int fd;
-     char filename[CI_FILENAME_LEN+1];
+typedef struct ci_cached_file {
+    ci_off_t endpos;
+    ci_off_t readpos;
+    int      bufsize;
+    int flags;
+    ci_off_t unlocked;
+    char *buf;
+    int fd;
+    char filename[CI_FILENAME_LEN+1];
     ci_array_t *attributes;
 } ci_cached_file_t;
 
@@ -94,7 +94,7 @@ CI_DECLARE_DATA extern char *CI_TMPDIR;
 CI_DECLARE_FUNC(ci_cached_file_t) * ci_cached_file_new(int size);
 CI_DECLARE_FUNC(void) ci_cached_file_destroy(ci_cached_file_t *);
 CI_DECLARE_FUNC(int) ci_cached_file_write(ci_cached_file_t *body,
-					  const char *buf,int len, int iseof);
+        const char *buf,int len, int iseof);
 CI_DECLARE_FUNC(int) ci_cached_file_read(ci_cached_file_t *body,char *buf,int len);
 CI_DECLARE_FUNC(void) ci_cached_file_reset(ci_cached_file_t *body,int new_size);
 CI_DECLARE_FUNC(void) ci_cached_file_release(ci_cached_file_t *body);
@@ -111,16 +111,16 @@ CI_DECLARE_FUNC(void) ci_cached_file_release(ci_cached_file_t *body);
 /*****************************************************************/
 /* simple file function and structures                           */
 
-typedef struct ci_simple_file{
-     ci_off_t endpos;
-     ci_off_t readpos;
-     ci_off_t max_store_size;
-     ci_off_t bytes_in;
-     ci_off_t bytes_out;
-     unsigned int flags;
-     ci_off_t unlocked;
-     int fd;
-     char filename[CI_FILENAME_LEN+1];
+typedef struct ci_simple_file {
+    ci_off_t endpos;
+    ci_off_t readpos;
+    ci_off_t max_store_size;
+    ci_off_t bytes_in;
+    ci_off_t bytes_out;
+    unsigned int flags;
+    ci_off_t unlocked;
+    int fd;
+    char filename[CI_FILENAME_LEN+1];
     ci_array_t *attributes;
 #if defined(USE_POSIX_MAPPED_FILES)
     char *mmap_addr;
@@ -135,7 +135,7 @@ CI_DECLARE_FUNC(ci_simple_file_t) * ci_simple_file_named_new(char *tmp,char*file
 CI_DECLARE_FUNC(void) ci_simple_file_release(ci_simple_file_t *);
 CI_DECLARE_FUNC(void) ci_simple_file_destroy(ci_simple_file_t *body);
 CI_DECLARE_FUNC(int) ci_simple_file_write(ci_simple_file_t *body,
-					  const char *buf,int len, int iseof);
+        const char *buf,int len, int iseof);
 CI_DECLARE_FUNC(int) ci_simple_file_read(ci_simple_file_t *body,char *buf,int len);
 CI_DECLARE_FUNC(int) ci_simple_file_truncate(ci_simple_file_t *body, ci_off_t new_size);
 

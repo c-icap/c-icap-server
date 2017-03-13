@@ -26,29 +26,29 @@
 
 int ci_proc_mutex_init(ci_proc_mutex_t * mutex, const char *name)
 {
-     snprintf(mutex->name, CI_PROC_MUTEX_NAME_SIZE, "Local\%s", name);
-     /*TODO: use named mutex*/
-     if ((mutex->id = CreateMutex(NULL, FALSE, NULL)) == NULL) {
-          ci_debug_printf(1, "Error creating mutex:%d\n", GetLastError());
-          return 0;
-     }
-     return 1;
+    snprintf(mutex->name, CI_PROC_MUTEX_NAME_SIZE, "Local\%s", name);
+    /*TODO: use named mutex*/
+    if ((mutex->id = CreateMutex(NULL, FALSE, NULL)) == NULL) {
+        ci_debug_printf(1, "Error creating mutex:%d\n", GetLastError());
+        return 0;
+    }
+    return 1;
 }
 
 int ci_proc_mutex_destroy(ci_proc_mutex_t * mutex)
 {
-     CloseHandle(mutex->id);
-     return 1;
+    CloseHandle(mutex->id);
+    return 1;
 }
 
 int ci_proc_mutex_lock(ci_proc_mutex_t * mutex)
 {
-     WaitForSingleObject(mutex->id, INFINITE);
-     return 1;
+    WaitForSingleObject(mutex->id, INFINITE);
+    return 1;
 }
 
 int ci_proc_mutex_unlock(ci_proc_mutex_t * mutex)
 {
-     ReleaseMutex(mutex->id);
-     return 1;
+    ReleaseMutex(mutex->id);
+    return 1;
 }

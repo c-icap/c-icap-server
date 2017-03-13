@@ -32,7 +32,7 @@ extern "C"
 /**
  \defgroup HTTP API for HTTP object manipulation
  \ingroup API
- * Macros, functions and structures used for manipulating the encupsulated 
+ * Macros, functions and structures used for manipulating the encupsulated
  * HTTP objects (HTTP requests or HTTP responses).
  */
 
@@ -70,7 +70,7 @@ extern "C"
 #define ci_req_hasbody(req) ((req)->hasbody)
 
 /**
- \def ci_req_type(ci_request_t) 
+ \def ci_req_type(ci_request_t)
  \ingroup REQUEST
  \return  ICAP_OPTIONS, ICAP_REQMOD or ICAP_RESPMOD if the ICAP request is
  * options, request modification or response modification ICAP request
@@ -78,7 +78,7 @@ extern "C"
 #define ci_req_type(req) ((req)->type)
 
 /**
- \def ci_req_preview_size(ci_request_t) 
+ \def ci_req_preview_size(ci_request_t)
  \ingroup REQUEST
  \param req  is pointer to an object of type ci_request_t
  \return The ICAP preview size
@@ -86,7 +86,7 @@ extern "C"
 #define ci_req_preview_size(req) ((req)->preview) /*The preview data size*/
 
 /**
- \def ci_req_allow204(ci_request_t) 
+ \def ci_req_allow204(ci_request_t)
  \ingroup REQUEST
  \param req  is pointer to an object of type ci_request_t
  \return True (non zero int) if the ICAP request supports "Allow 204"
@@ -94,7 +94,7 @@ extern "C"
 #define ci_req_allow204(req) ((req)->allow204)
 
 /**
- \def ci_req_allow206(ci_request_t) 
+ \def ci_req_allow206(ci_request_t)
  \ingroup REQUEST
  \param req  is pointer to an object of type ci_request_t
  \return True (non zero int) if the ICAP request supports "Allow 206"
@@ -102,7 +102,7 @@ extern "C"
 #define ci_req_allow206(req) ((req)->allow206)
 
 /**
- \def ci_req_allow206_outside_preview(ci_request_t) 
+ \def ci_req_allow206_outside_preview(ci_request_t)
  \ingroup REQUEST
  \param req  is pointer to an object of type ci_request_t
  \return True (non zero int) if the ICAP request supports "Allow 206" outside
@@ -112,7 +112,7 @@ extern "C"
 
 
 /**
- \def ci_req_sent_data(ci_request_t) 
+ \def ci_req_sent_data(ci_request_t)
  \ingroup REQUEST
  \param req  is pointer to an object of type ci_request_t
  \return True (non zero int) if the c-icap server has send data to the client
@@ -120,10 +120,10 @@ extern "C"
 #define ci_req_sent_data(req)((req)->status)
 
 /**
- \def ci_req_hasalldata(ci_request_t) 
+ \def ci_req_hasalldata(ci_request_t)
  \ingroup REQUEST
  \param req is pointer to an object of type ci_request_t
- \return True (non zero int) if the ICAP client has sent all the data 
+ \return True (non zero int) if the ICAP client has sent all the data
  *       (headers and body data) to the ICAP server
  */
 #define ci_req_hasalldata(req)((req)->eof_received)
@@ -152,7 +152,7 @@ CI_DECLARE_FUNC(int) ci_base64_decode(const char *str,char *result,int len);
 CI_DECLARE_FUNC(int) ci_base64_encode(const unsigned char *data, size_t datalen, char *out, size_t outlen);
 
 enum {
-    CI_ENCODE_NONE=0, 
+    CI_ENCODE_NONE=0,
     CI_ENCODE_GZIP,
     CI_ENCODE_DEFLATE,
     CI_ENCODE_BZIP2,
@@ -178,7 +178,7 @@ enum CI_UNCOMPRESS_ERRORS {
     CI_UNCOMP_ERR_CORRUPT = -3,
     CI_UNCOMP_ERR_OUTPUT = -2,
     CI_UNCOMP_ERR_ERROR = -1,
-    CI_UNCOMP_ERR_NONE = 0, 
+    CI_UNCOMP_ERR_NONE = 0,
     CI_UNCOMP_OK = 1,
 };
 
@@ -334,7 +334,7 @@ CI_DECLARE_FUNC(const char *) ci_http_response_get_header(ci_request_t *req, con
  *
  * This function can used to get the value of a header from the HTTP request
  * headers. It can be used on both request and response modification ICAP
- * requests. 
+ * requests.
  \param req is a pointer to the current ICAP request object.
  \param head_name is a string contains the header name
  \return A string with the header value on success NULL otherwise
@@ -345,14 +345,14 @@ CI_DECLARE_FUNC(const char *) ci_http_request_get_header(ci_request_t *req, cons
  \ingroup HTTP
  \brief Completelly erase and initialize the  HTTP response headers.
  *
- * This function is usefull when the full rewrite of the HTTP response is 
+ * This function is usefull when the full rewrite of the HTTP response is
  * required. After this function called, the HTTP response should be filled
  * with new HTTP headers, before send back to the ICAP client.
  * An example of usage of this function is in antivirus service when a
  * virus detected in HTTP response, so the service blocks the response and
- * sends a new HTTP object (a new html page, with HTTP headers) informing 
+ * sends a new HTTP object (a new html page, with HTTP headers) informing
  * the user about the virus.
- * It can be used with response modification ICAP requests. 
+ * It can be used with response modification ICAP requests.
  \param req is a pointer to the current ICAP request object.
  \return non zero on success zero otherwise
  */
@@ -366,7 +366,7 @@ CI_DECLARE_FUNC(int) ci_http_response_reset_headers(ci_request_t *req);
  * an other.After this function called, the HTTP request should filled with
  * new HTTP headers, before send back to the ICAP client.
  * An example use is to implement an HTTP redirector.
- * It can be used with request modification ICAP requests. 
+ * It can be used with request modification ICAP requests.
  \param req is a pointer to the current ICAP request object.
  \return non zero on success zero otherwise
  */
@@ -378,7 +378,7 @@ CI_DECLARE_FUNC(int) ci_http_request_reset_headers(ci_request_t *req);
  *
  * This function is usefull when the service wants to respond with a self
  * created message to a response or request modification ICAP request.
- * It can be used with both request and response modification ICAP requests. 
+ * It can be used with both request and response modification ICAP requests.
  \param req is a pointer to the current ICAP request object.
  \param has_reshdr if it is non zero the HTTP response contrains HTTP headers
  *      (a non HTTP 0.9 response)
@@ -404,8 +404,8 @@ CI_DECLARE_FUNC(int) ci_http_request_create(ci_request_t * req, int has_body);
  *      or HTTP request for a response modification or request modification ICAP
  *      requests respectively.
  *
- * If the header Content-Length is not included in HTTP response 
- * It can be used with both request and response modification ICAP requests. 
+ * If the header Content-Length is not included in HTTP response
+ * It can be used with both request and response modification ICAP requests.
  \param req is a pointer to the current ICAP request object.
  \return The content length on success or a negative number otherwise
  */
@@ -416,7 +416,7 @@ CI_DECLARE_FUNC(ci_off_t) ci_http_content_length(ci_request_t *req);
  \brief Returns the request line (e.g "GET /index.html HTTP 1.0") from http
  *      request headers
  *
- * It can be used with both request and response modification ICAP requests. 
+ * It can be used with both request and response modification ICAP requests.
  \param req is a pointer to the current ICAP request object.
  \return The request line in success or NULL otherwise
  */
@@ -445,9 +445,9 @@ CI_DECLARE_FUNC(const ci_ip_t *) ci_http_client_ip(ci_request_t * req);
 
 /**
  \ingroup REQUEST
- \brief Add an icap X-header to the icap response headers 
+ \brief Add an icap X-header to the icap response headers
  *
- * It can be used with both request and response modification ICAP requests. 
+ * It can be used with both request and response modification ICAP requests.
  \param req is a pointer to the current ICAP request object.
  \param header is the header to add in the form "Header: Value"
  \return pointer to the header in success or NULL otherwise
@@ -456,9 +456,9 @@ CI_DECLARE_FUNC(const char *) ci_icap_add_xheader(ci_request_t *req, const char 
 
 /**
  \ingroup REQUEST
- \brief Append the icap X-headers to the icap response headers 
+ \brief Append the icap X-headers to the icap response headers
  *
- * It can be used with both request and response modification ICAP requests. 
+ * It can be used with both request and response modification ICAP requests.
  \param req is a pointer to the current ICAP request object.
  \param headers is a pointer to the headers object to add
  \return pointer to the header in success or NULL otherwise

@@ -40,31 +40,31 @@ extern "C"
 #define DESCR_SIZE 50
 #define MAX_GROUPS 64 /*Maximum number of groups of a single data type*/
 
-struct ci_data_type{
-     char name[NAME_SIZE+1];
-     char descr[DESCR_SIZE+1];
-     int groups[MAX_GROUPS];
+struct ci_data_type {
+    char name[NAME_SIZE+1];
+    char descr[DESCR_SIZE+1];
+    int groups[MAX_GROUPS];
 };
 
-struct ci_data_group{
-     char name[NAME_SIZE+1];
-     char descr[DESCR_SIZE+1];
+struct ci_data_group {
+    char name[NAME_SIZE+1];
+    char descr[DESCR_SIZE+1];
 };
 
 
-typedef struct ci_magic{
-     int offset;
-     unsigned char magic[MAGIC_SIZE+1];
-     size_t len;
-     unsigned int type;
+typedef struct ci_magic {
+    int offset;
+    unsigned char magic[MAGIC_SIZE+1];
+    size_t len;
+    unsigned int type;
 } ci_magic_t;
 
 #define DECLARE_ARRAY(array,type) type *array;int array##_num;int array##_size;
 
-struct ci_magics_db{
-     DECLARE_ARRAY(types,struct ci_data_type)
-     DECLARE_ARRAY(groups,struct ci_data_group)
-     DECLARE_ARRAY(magics,struct ci_magic)
+struct ci_magics_db {
+    DECLARE_ARRAY(types,struct ci_data_type)
+    DECLARE_ARRAY(groups,struct ci_data_group)
+    DECLARE_ARRAY(magics,struct ci_magic)
 };
 
 #define ci_magic_types_num(db) (db!=NULL?db->types_num:0)
@@ -86,8 +86,8 @@ CI_DECLARE_FUNC(int) ci_belongs_to_group(struct ci_magics_db *db, int type, int 
 
 CI_DECLARE_FUNC(int) ci_filetype(struct ci_magics_db *db,const char *buf, int buflen);
 CI_DECLARE_FUNC(int) ci_extend_filetype(struct ci_magics_db *db,
-					ci_request_t *req,
-					const char *buf,int len,int *iscompressed);
+                                        ci_request_t *req,
+                                        const char *buf,int len,int *iscompressed);
 
 /*And the c-icap Library functions*/
 
@@ -95,8 +95,8 @@ CI_DECLARE_FUNC(int) ci_extend_filetype(struct ci_magics_db *db,
  * Read the magics db from a file and create a ci_magics_db object.
  * \ingroup DATATYPE
  *
- * The user normaly does not need to call this function inside c-icap server. 
- * It is not a thread safe function, should called only during icap library 
+ * The user normaly does not need to call this function inside c-icap server.
+ * It is not a thread safe function, should called only during icap library
  * initialization before threads started.
  \param filename is the name of the file contains the db
  \return a pointer to a ci_magics_db object
@@ -114,9 +114,9 @@ CI_DECLARE_FUNC(void) ci_magic_db_free();
  * data type recognition
  *
  \param req the c-icap request (ci_request_t) data
- \param isencoded set to CI_ENCODE_GZIP, CI_ENCODE_DEFLATE or 
+ \param isencoded set to CI_ENCODE_GZIP, CI_ENCODE_DEFLATE or
  * CI_ENCODE_UNKNOWN if the data are encoded with an unknown method
- \return the data type or -1 if the data type recognition fails for a reason 
+ \return the data type or -1 if the data type recognition fails for a reason
  * (eg no preview data, of library not initialized)
  */
 CI_DECLARE_FUNC(int) ci_magic_req_data_type(ci_request_t *req, int *isencoded);

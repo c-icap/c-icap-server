@@ -73,7 +73,7 @@ struct ci_fmt_entry {
  * This function uses the internal formating directives table. Also the user can define his own table.
  */
 CI_DECLARE_FUNC(int) ci_format_text(ci_request_t *req_data, const char *fmt, char *buffer, int len,
-		   struct ci_fmt_entry *user_table);
+                                    struct ci_fmt_entry *user_table);
 
 #ifdef __cplusplus
 }

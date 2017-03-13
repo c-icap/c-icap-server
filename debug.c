@@ -34,16 +34,16 @@ void (*__log_error) (void *req, const char *format, ...) = NULL;
 void (*__vlog_error) (void *req, const char *format, va_list ap) = NULL;
 void __ldebug_printf(int i, const char *format, ...)
 {
-     va_list ap;
-     if (i <= CI_DEBUG_LEVEL) {
-          va_start(ap, format);
-          if (__vlog_error) {
-               (*__vlog_error) (NULL, format, ap);
-          }
-          if (CI_DEBUG_STDOUT)
-               vprintf(format, ap);
-          va_end(ap);
-     }
+    va_list ap;
+    if (i <= CI_DEBUG_LEVEL) {
+        va_start(ap, format);
+        if (__vlog_error) {
+            (*__vlog_error) (NULL, format, ap);
+        }
+        if (CI_DEBUG_STDOUT)
+            vprintf(format, ap);
+        va_end(ap);
+    }
 }
 #endif
 
@@ -53,38 +53,38 @@ void debug_print_request(ci_request_t *req){
 
      ci_debug_printf(1,"Request Type :\n");
      if(req->type>=0){
-	  ci_debug_printf(1,"     Requested: %s\n     Server: %s\n     Service: %s\n",
-		 ci_method_string(req->type),
-		 req->req_server,
-		 req->service);
-	  if(req->args){
-	       ci_debug_printf(1,"     Args: %s\n",req->args);
-	  }
-	  else{
-	       ci_debug_printf(1,"\n");
-	  }
+      ci_debug_printf(1,"     Requested: %s\n     Server: %s\n     Service: %s\n",
+         ci_method_string(req->type),
+         req->req_server,
+         req->service);
+      if(req->args){
+           ci_debug_printf(1,"     Args: %s\n",req->args);
+      }
+      else{
+           ci_debug_printf(1,"\n");
+      }
      }
      else{
-	  ci_debug_printf(1,"     No Method\n");
+      ci_debug_printf(1,"     No Method\n");
      }
 
      ci_debug_printf(1,"\n\nHEADERS : \n");
      for(i=0;i<req->head->used;i++){
-	  ci_debug_printf(1,"        %s\n",req->head->headers[i]);
+      ci_debug_printf(1,"        %s\n",req->head->headers[i]);
      }
      ci_debug_printf(1,"\n\nEncapsulated Entities: \n");
      i=0;
      while(req->entities[i]!=NULL){
-	  ci_debug_printf(1,"\t %s header at %d\n",
-		       ci_encaps_entity_string(req->entities[i]->type),req->entities[i]->start);
-	  if(req->entities[i]->type<ICAP_REQ_BODY){
-	       ci_headers_list_t *h=(ci_headeris_list_t *)req->entities[i]->entity;
-	       ci_debug_printf(1,"\t\t HEADERS : \n");
-	       for(j=0;j<h->used;j++){
-		    ci_debug_printf(1,"\t\t\t%d. %s\n",j,h->headers[j]);
-	       }
-	  }
-	  i++;
+      ci_debug_printf(1,"\t %s header at %d\n",
+               ci_encaps_entity_string(req->entities[i]->type),req->entities[i]->start);
+      if(req->entities[i]->type<ICAP_REQ_BODY){
+           ci_headers_list_t *h=(ci_headeris_list_t *)req->entities[i]->entity;
+           ci_debug_printf(1,"\t\t HEADERS : \n");
+           for(j=0;j<h->used;j++){
+            ci_debug_printf(1,"\t\t\t%d. %s\n",j,h->headers[j]);
+           }
+      }
+      i++;
      }
 }
 */

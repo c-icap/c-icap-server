@@ -42,62 +42,64 @@ void logformat_release();
 
 int log_open()
 {
-     if (default_logger)
-          return default_logger->log_open();
-     return 0;
+    if (default_logger)
+        return default_logger->log_open();
+    return 0;
 }
 
 
 void log_close()
 {
-     if (default_logger) {
-          default_logger->log_close();
-     }
+    if (default_logger) {
+        default_logger->log_close();
+    }
 }
 
 void log_reset()
 {
-     logformat_release();
-     default_logger = NULL;
+    logformat_release();
+    default_logger = NULL;
 }
 
 void log_access(ci_request_t * req, int status)
-{                               /*req can not be NULL */
-     if (!req)
-          return;
+{
+    /*req can not be NULL */
+    if (!req)
+        return;
 
-     if (default_logger)
-	  default_logger->log_access(req);
+    if (default_logger)
+        default_logger->log_access(req);
 }
 
 extern process_pid_t MY_PROC_PID;
 void log_server(ci_request_t * req, const char *format, ...)
-{                               /*req can be NULL......... */
-     va_list ap;
-     char prefix[64];
-     va_start(ap, format);
-     if (default_logger) {
-         if (MY_PROC_PID)
-             snprintf(prefix, 64, "%u/%u", (unsigned int)MY_PROC_PID, (unsigned int)ci_thread_self());
-         else /*probably the main process*/
-             strcpy(prefix, "main proc");
-         
-          default_logger->log_server(prefix, format, ap);    /*First argument must be changed..... */
-     }
-     va_end(ap);
+{
+    /*req can be NULL......... */
+    va_list ap;
+    char prefix[64];
+    va_start(ap, format);
+    if (default_logger) {
+        if (MY_PROC_PID)
+            snprintf(prefix, 64, "%u/%u", (unsigned int)MY_PROC_PID, (unsigned int)ci_thread_self());
+        else /*probably the main process*/
+            strcpy(prefix, "main proc");
+
+        default_logger->log_server(prefix, format, ap);    /*First argument must be changed..... */
+    }
+    va_end(ap);
 }
 
 void vlog_server(ci_request_t * req, const char *format, va_list ap)
 {
-     if (default_logger)
-          default_logger->log_server("", format, ap);
+    if (default_logger)
+        default_logger->log_server("", format, ap);
 }
 
 /*************************************************************/
 /*  logformat            */
-/*   
-     Maybe logformat manipulation functions should moved to the c-icap library, 
-     because some platforms (eg. MS-WINDOWS) can not use functions and objects 
+/*
+     Maybe logformat manipulation functions should moved to the c-icap library,
+     because some platforms (eg. MS-WINDOWS) can not use functions and objects
      defined in main executable. At this time ony the sys_logger.c module uses these
      functions which make sense on unix platforms (where there is not a such problem).
      Moreover the sys_logger can be compiled inside c-icap main executable to avoid
@@ -114,60 +116,60 @@ struct logformat *LOGFORMATS = NULL;
 
 int logformat_add(const char *name, const char *format)
 {
-  struct logformat *lf, *tmp;
-  lf = malloc(sizeof(struct logformat));
-  if (!lf) {
-     ci_debug_printf(1, "Error allocating memory in add_logformat\n");
-     return 0;
-  }
-  lf->name = strdup(name);
-  lf->fmt = strdup(format);
+    struct logformat *lf, *tmp;
+    lf = malloc(sizeof(struct logformat));
+    if (!lf) {
+        ci_debug_printf(1, "Error allocating memory in add_logformat\n");
+        return 0;
+    }
+    lf->name = strdup(name);
+    lf->fmt = strdup(format);
 
-  if (!lf->name || !lf->fmt) {
-      ci_debug_printf(1, "Error strduping in add_logformat\n");
-      free(lf);
-      return 0;
-  }
+    if (!lf->name || !lf->fmt) {
+        ci_debug_printf(1, "Error strduping in add_logformat\n");
+        free(lf);
+        return 0;
+    }
 
-  lf->next = NULL;
-  if (LOGFORMATS==NULL) {
-     LOGFORMATS = lf;  
-     return 1;
-  }
-  tmp = LOGFORMATS;
-  while (tmp->next != NULL)  
-         tmp = tmp->next;
-  tmp->next = lf;
-  return 1; 
+    lf->next = NULL;
+    if (LOGFORMATS==NULL) {
+        LOGFORMATS = lf;
+        return 1;
+    }
+    tmp = LOGFORMATS;
+    while (tmp->next != NULL)
+        tmp = tmp->next;
+    tmp->next = lf;
+    return 1;
 }
 
-void logformat_release() 
+void logformat_release()
 {
-   struct logformat *cur, *tmp;
+    struct logformat *cur, *tmp;
 
-   if (!(tmp = LOGFORMATS))
-      return;
+    if (!(tmp = LOGFORMATS))
+        return;
 
-   do {
-         cur = tmp;
-         tmp = tmp->next;
-         free(cur->name);
-         free(cur->fmt); 
-         free(cur);
-   } while(tmp);
-   LOGFORMATS = NULL;
+    do {
+        cur = tmp;
+        tmp = tmp->next;
+        free(cur->name);
+        free(cur->fmt);
+        free(cur);
+    } while (tmp);
+    LOGFORMATS = NULL;
 }
 
 char *logformat_fmt(const char *name)
 {
     struct logformat *tmp;
     if (!(tmp = LOGFORMATS))
-      return NULL;
+        return NULL;
 
     while (tmp) {
-       if (strcmp(tmp->name, name) == 0)
-           return tmp->fmt;
-       tmp = tmp->next;
+        if (strcmp(tmp->name, name) == 0)
+            return tmp->fmt;
+        tmp = tmp->next;
     }
     return NULL;
 }
@@ -200,13 +202,13 @@ static ci_thread_rwlock_t systemlog_rwlock;
 
 
 logger_module_t file_logger = {
-     "file_logger",
-     NULL,
-     file_log_open,
-     file_log_close,
-     file_log_access,
-     file_log_server,
-     NULL                       /*NULL configuration table */
+    "file_logger",
+    NULL,
+    file_log_open,
+    file_log_close,
+    file_log_access,
+    file_log_server,
+    NULL                       /*NULL configuration table */
 };
 
 
@@ -225,84 +227,84 @@ FILE *logfile_open(const char *fname)
 int file_log_open()
 {
     int error=0, ret = 0;
-     struct logfile *lf;
+    struct logfile *lf;
 
-     assert(ret == 0);
-     register_command("relog", MONITOR_PROC_CMD | CHILDS_PROC_CMD, file_log_relog);
+    assert(ret == 0);
+    register_command("relog", MONITOR_PROC_CMD | CHILDS_PROC_CMD, file_log_relog);
 
-     for (lf = ACCESS_LOG_FILES; lf != NULL; lf = lf->next) {
-          if (!lf->file) {
-	       ci_debug_printf (1, "This is a bug! lf->file==NULL\n");
-	       continue;
-	  }
-	  if (lf->log_fmt == NULL)
-	      lf->log_fmt = (char *)DEFAULT_LOG_FORMAT;
+    for (lf = ACCESS_LOG_FILES; lf != NULL; lf = lf->next) {
+        if (!lf->file) {
+            ci_debug_printf (1, "This is a bug! lf->file==NULL\n");
+            continue;
+        }
+        if (lf->log_fmt == NULL)
+            lf->log_fmt = (char *)DEFAULT_LOG_FORMAT;
 
-	  lf->access_log = logfile_open(lf->file);
-	  if (!lf->access_log) {
-	      error = 1;
-	      ci_debug_printf (1, "WARNING! Can not open log file: %s\n", lf->file);
-          }
-          ret = ci_thread_rwlock_init(&(lf->rwlock)); // Initialize logfile::rwlock
-     }
+        lf->access_log = logfile_open(lf->file);
+        if (!lf->access_log) {
+            error = 1;
+            ci_debug_printf (1, "WARNING! Can not open log file: %s\n", lf->file);
+        }
+        ret = ci_thread_rwlock_init(&(lf->rwlock)); // Initialize logfile::rwlock
+    }
 
-     ret = ci_thread_rwlock_init(&systemlog_rwlock);
-     server_log = logfile_open(SERVER_LOG_FILE);
-     if (!server_log)
-          return 0;
+    ret = ci_thread_rwlock_init(&systemlog_rwlock);
+    server_log = logfile_open(SERVER_LOG_FILE);
+    if (!server_log)
+        return 0;
 
-     if (error)
-         return 0;
-     else
-         return 1;
+    if (error)
+        return 0;
+    else
+        return 1;
 }
 
 void file_log_close()
 {
-     struct logfile *lf, *tmp;
+    struct logfile *lf, *tmp;
 
-     lf = ACCESS_LOG_FILES;
-     while(lf != NULL) {
-          if (lf->access_log)
-	      fclose(lf->access_log);
-	  free(lf->file);
-	  if (lf->access_list)
-	      ci_access_entry_release(lf->access_list);
-          ci_thread_rwlock_destroy(&(lf->rwlock)); // Initialize logfile::rwlock
-	  tmp = lf;
-	  lf = lf->next;
-	  ACCESS_LOG_FILES = lf;
-	  free(tmp);
-     }
+    lf = ACCESS_LOG_FILES;
+    while (lf != NULL) {
+        if (lf->access_log)
+            fclose(lf->access_log);
+        free(lf->file);
+        if (lf->access_list)
+            ci_access_entry_release(lf->access_list);
+        ci_thread_rwlock_destroy(&(lf->rwlock)); // Initialize logfile::rwlock
+        tmp = lf;
+        lf = lf->next;
+        ACCESS_LOG_FILES = lf;
+        free(tmp);
+    }
 
-     if (server_log)
-          fclose(server_log);
-     server_log = NULL;
-     ci_thread_rwlock_destroy(&systemlog_rwlock); // destroy rwlock
+    if (server_log)
+        fclose(server_log);
+    server_log = NULL;
+    ci_thread_rwlock_destroy(&systemlog_rwlock); // destroy rwlock
 }
 
 void file_log_relog(const char *name, int type, const char **argv)
 {
-     struct logfile *lf;
+    struct logfile *lf;
 
-     /* This code should match the appropriate code from file_log_close */
-     for (lf = ACCESS_LOG_FILES; lf != NULL; lf = lf->next) {
-         ci_thread_rwlock_wrlock(&(lf->rwlock)); /*obtain a write lock. When this function returns all file_log_access will block until write unlock*/
-         if (lf->access_log)
-             fclose(lf->access_log);
-         lf->access_log = logfile_open(lf->file);
-         ci_thread_rwlock_unlock(&(lf->rwlock));
+    /* This code should match the appropriate code from file_log_close */
+    for (lf = ACCESS_LOG_FILES; lf != NULL; lf = lf->next) {
+        ci_thread_rwlock_wrlock(&(lf->rwlock)); /*obtain a write lock. When this function returns all file_log_access will block until write unlock*/
+        if (lf->access_log)
+            fclose(lf->access_log);
+        lf->access_log = logfile_open(lf->file);
+        ci_thread_rwlock_unlock(&(lf->rwlock));
 
-         if (!lf->access_log)
-             ci_debug_printf (1, "WARNING! Can not open log file: %s\n", lf->file);
-     }
+        if (!lf->access_log)
+            ci_debug_printf (1, "WARNING! Can not open log file: %s\n", lf->file);
+    }
 
-     ci_thread_rwlock_wrlock(&systemlog_rwlock);
-     if (server_log)
-         fclose(server_log);
-     server_log = logfile_open(SERVER_LOG_FILE);
-     ci_thread_rwlock_unlock(&systemlog_rwlock);
-     /*if !server_log ???*/
+    ci_thread_rwlock_wrlock(&systemlog_rwlock);
+    if (server_log)
+        fclose(server_log);
+    server_log = logfile_open(SERVER_LOG_FILE);
+    ci_thread_rwlock_unlock(&systemlog_rwlock);
+    /*if !server_log ???*/
 }
 
 void file_log_access(ci_request_t *req)
@@ -320,7 +322,7 @@ void file_log_access(ci_request_t *req)
 
         ci_thread_rwlock_rdlock(&lf->rwlock); /*obtain a read lock*/
         if (lf->access_log)
-            fprintf(lf->access_log,"%s\n", logline); 
+            fprintf(lf->access_log,"%s\n", logline);
         ci_thread_rwlock_unlock(&lf->rwlock); /*obtain a read lock*/
     }
 }
@@ -328,84 +330,82 @@ void file_log_access(ci_request_t *req)
 
 void file_log_server(const char *server, const char *format, va_list ap)
 {
-     char buf[STR_TIME_SIZE];
+    char buf[STR_TIME_SIZE];
 
-     if (!server_log)
-          return;
+    if (!server_log)
+        return;
 
-     ci_strtime(buf);
-     ci_thread_rwlock_rdlock(&systemlog_rwlock); /*obtain a read lock*/
-     fprintf(server_log, "%s, %s, ", buf, server);
-     vfprintf(server_log, format, ap);
-     ci_thread_rwlock_unlock(&systemlog_rwlock); /*release a read lock*/
+    ci_strtime(buf);
+    ci_thread_rwlock_rdlock(&systemlog_rwlock); /*obtain a read lock*/
+    fprintf(server_log, "%s, %s, ", buf, server);
+    vfprintf(server_log, format, ap);
+    ci_thread_rwlock_unlock(&systemlog_rwlock); /*release a read lock*/
 //     fprintf(server_log,"\n");
 }
 
 
-int file_log_addlogfile(const char *file, const char *format, const char **acls) 
+int file_log_addlogfile(const char *file, const char *format, const char **acls)
 {
-     char *access_log_file, *access_log_format;
-     const char *acl_name;
-     struct logfile *lf, *newlf;
-     int i;
+    char *access_log_file, *access_log_format;
+    const char *acl_name;
+    struct logfile *lf, *newlf;
+    int i;
 
-     access_log_file = strdup(file);
-     if (!access_log_file)
-       return 0;
+    access_log_file = strdup(file);
+    if (!access_log_file)
+        return 0;
 
-     if (format) {
-         /*the folowing return format txt or NULL. It is OK*/
-         access_log_format = logformat_fmt(format);
-     }
-     else
-         access_log_format = NULL;
+    if (format) {
+        /*the folowing return format txt or NULL. It is OK*/
+        access_log_format = logformat_fmt(format);
+    } else
+        access_log_format = NULL;
 
-     newlf = malloc(sizeof(struct logfile));
-     newlf->file = access_log_file;
-     newlf->log_fmt = (access_log_format != NULL? access_log_format : DEFAULT_LOG_FORMAT);
-     newlf->access_log = NULL;
-     newlf->access_list = NULL;
-     newlf->next = NULL;
-     
-     if (acls != NULL && acls[0] != NULL) {
-          if (ci_access_entry_new(&(newlf->access_list), CI_ACCESS_ALLOW) == NULL) {
-	       ci_debug_printf(1, "Error creating access list for access log file %s!\n",
-			       newlf->file);
-	       free(newlf->file);
-	       free(newlf);
-	       return 0;
-	  }
-	  for (i=0; acls[i] != NULL; i++) {
-	       acl_name = acls[i];
-	       if (!ci_access_entry_add_acl_by_name(newlf->access_list, acl_name)) {
-		    ci_debug_printf(1, "Error addind acl %s to access list for access log file %s!\n",
-				    acl_name, newlf->file);
-		    ci_access_entry_release(newlf->access_list);
-		    free(newlf->file);
-		    free(newlf);
-		    return 0;
-	       }
-	  }
-     }
+    newlf = malloc(sizeof(struct logfile));
+    newlf->file = access_log_file;
+    newlf->log_fmt = (access_log_format != NULL? access_log_format : DEFAULT_LOG_FORMAT);
+    newlf->access_log = NULL;
+    newlf->access_list = NULL;
+    newlf->next = NULL;
 
-     if (!ACCESS_LOG_FILES){
-         ACCESS_LOG_FILES = newlf;
-     } 
-     else {
-	 for (lf = ACCESS_LOG_FILES; lf->next != NULL; lf = lf->next) {
-              if (strcmp(lf->file, newlf->file)==0) {
-                  ci_debug_printf(1, "Access log file %s already defined!\n",
-                                  newlf->file);
-		  if (newlf->access_list)
-		      ci_access_entry_release(newlf->access_list);
-                  free(newlf->file);
-                  free(newlf);
-                  return 0;
-              }
-         }
+    if (acls != NULL && acls[0] != NULL) {
+        if (ci_access_entry_new(&(newlf->access_list), CI_ACCESS_ALLOW) == NULL) {
+            ci_debug_printf(1, "Error creating access list for access log file %s!\n",
+                            newlf->file);
+            free(newlf->file);
+            free(newlf);
+            return 0;
+        }
+        for (i=0; acls[i] != NULL; i++) {
+            acl_name = acls[i];
+            if (!ci_access_entry_add_acl_by_name(newlf->access_list, acl_name)) {
+                ci_debug_printf(1, "Error addind acl %s to access list for access log file %s!\n",
+                                acl_name, newlf->file);
+                ci_access_entry_release(newlf->access_list);
+                free(newlf->file);
+                free(newlf);
+                return 0;
+            }
+        }
+    }
 
-	 lf->next = newlf;
-     }
+    if (!ACCESS_LOG_FILES) {
+        ACCESS_LOG_FILES = newlf;
+    } else {
+        for (lf = ACCESS_LOG_FILES; lf->next != NULL; lf = lf->next) {
+            if (strcmp(lf->file, newlf->file)==0) {
+                ci_debug_printf(1, "Access log file %s already defined!\n",
+                                newlf->file);
+                if (newlf->access_list)
+                    ci_access_entry_release(newlf->access_list);
+                free(newlf->file);
+                free(newlf);
+                return 0;
+            }
+        }
 
-     return 1;
+        lf->next = newlf;
+    }
+
+    return 1;
 }

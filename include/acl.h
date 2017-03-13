@@ -37,7 +37,7 @@ extern "C"
  * and modules.
  */
 
-#define MAX_NAME_LEN 31  
+#define MAX_NAME_LEN 31
 
 /*ACL type structures and functions */
 struct ci_request;
@@ -45,12 +45,12 @@ struct ci_request;
  \ingroup ACL
  * This is the struct used to implement an acl type object.
  */
-typedef struct ci_acl_type{
+typedef struct ci_acl_type {
 
     /**
        \brief The acl type name
      */
-     char name[MAX_NAME_LEN+1];
+    char name[MAX_NAME_LEN+1];
 
     /**
      \brief Pointer to the functions which retrieves the test data for
@@ -59,12 +59,12 @@ typedef struct ci_acl_type{
      * This method extract the test data from request object for this acl
      * object. For example for the "src" acl type this function will extract
      * the icap client ip address
-     \param req Pointer to the related ci_request_t object 
+     \param req Pointer to the related ci_request_t object
      \param param Some acl types supports one parameter passed by the c-icap
      *            administrator
      \return A pointer to the test data
     */
-     void *(*get_test_data)(struct ci_request *req, char *param); 
+    void *(*get_test_data)(struct ci_request *req, char *param);
 
     /**
      \brief Pointer to the function which release the acl test data
@@ -75,19 +75,19 @@ typedef struct ci_acl_type{
      \param req Pointer to the related ci_request_t object
      \param data Pointer to allocated test data
      */
-     void (*free_test_data)(struct ci_request *req, void *data);
+    void (*free_test_data)(struct ci_request *req, void *data);
 
     /**
      \brief Pointer to the ci_types_ops_t struct which implements basic
      *      operations for the acl test data
      */
-     const ci_type_ops_t *type;
+    const ci_type_ops_t *type;
 } ci_acl_type_t;
 
-struct ci_acl_type_list{
-     ci_acl_type_t *acl_type_list;
-     int acl_type_list_size;
-     int acl_type_list_num;
+struct ci_acl_type_list {
+    ci_acl_type_t *acl_type_list;
+    int acl_type_list_size;
+    int acl_type_list_num;
 };
 
 int ci_acl_typelist_init(struct ci_acl_type_list *list);
@@ -100,9 +100,9 @@ const ci_acl_type_t *ci_acl_typelist_search(struct ci_acl_type_list *list, const
 /*ACL specs structures and functions */
 
 typedef struct ci_acl_data ci_acl_data_t;
-struct ci_acl_data{
-     void *data;
-     ci_acl_data_t *next;
+struct ci_acl_data {
+    void *data;
+    ci_acl_data_t *next;
 };
 
 /**
@@ -117,19 +117,19 @@ struct ci_acl_data{
  */
 typedef struct ci_acl_spec ci_acl_spec_t;
 struct ci_acl_spec {
-     char name[MAX_NAME_LEN + 1];
-     const ci_acl_type_t *type;
-     char *parameter;
-     ci_acl_data_t *data;
-     ci_acl_spec_t *next;
+    char name[MAX_NAME_LEN + 1];
+    const ci_acl_type_t *type;
+    char *parameter;
+    ci_acl_data_t *data;
+    ci_acl_spec_t *next;
 };
 
 /*Specs lists and access entries structures and functions */
 typedef struct ci_specs_list ci_specs_list_t;
-struct ci_specs_list{
-     const ci_acl_spec_t *spec;
-     int negate;
-     ci_specs_list_t *next;
+struct ci_specs_list {
+    const ci_acl_spec_t *spec;
+    int negate;
+    ci_specs_list_t *next;
 };
 
 /**
@@ -140,7 +140,7 @@ struct ci_specs_list{
  * This struct used to implement lists of access control lists.
  * Each access entry can hold an "allow" or "deny" access control list.
  * An access entries list represents the following c-icap config lines:
- * \code 
+ * \code
  *  icap_access allow LOCALNET LOCALHOST
  *  icap_access deny ALL
  * \endcode
@@ -150,9 +150,9 @@ struct ci_specs_list{
  */
 typedef struct ci_access_entry ci_access_entry_t;
 struct ci_access_entry {
-     int type;   /*CI_ACCESS_DENY or CI_ACCESS_ALLOW*/
-     ci_specs_list_t *spec_list;
-     ci_access_entry_t *next;
+    int type;   /*CI_ACCESS_DENY or CI_ACCESS_ALLOW*/
+    ci_specs_list_t *spec_list;
+    ci_access_entry_t *next;
 };
 
 /**

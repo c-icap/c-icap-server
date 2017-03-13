@@ -34,7 +34,7 @@ extern "C"
  * Arrays, stacks, queues and vectors related API.
  */
 
-typedef struct ci_array_item{
+typedef struct ci_array_item {
     char *name;
     void *value;
 } ci_array_item_t;
@@ -48,7 +48,7 @@ typedef struct ci_array_item{
 /**
    \typedef ci_array_t
    \ingroup SIMPLE_ARRAYS
-   * The ci_array_t objects can store a list of name/value pairs. Currently 
+   * The ci_array_t objects can store a list of name/value pairs. Currently
    * can grow up to a fixed size.
  */
 typedef struct ci_array {
@@ -81,7 +81,7 @@ typedef struct ci_array {
 #define ci_array_size(array) ((array)->count)
 
 /**
- * Allocate the required memory and initialize an ci_array_t object 
+ * Allocate the required memory and initialize an ci_array_t object
  \ingroup SIMPLE_ARRAYS
  \param max_mem_size the maximum memory to use
  \return the allocated object on success, or NULL on failure
@@ -99,7 +99,7 @@ CI_DECLARE_FUNC(ci_array_t *) ci_array_new(size_t max_mem_size);
 CI_DECLARE_FUNC(ci_array_t *) ci_array_new2(size_t items, size_t item_size);
 
 /**
- * Destroy an ci_array_t object 
+ * Destroy an ci_array_t object
  \ingroup SIMPLE_ARRAYS
  \param array a pointer to ci_array_t object to be destroyed
  *
@@ -190,7 +190,7 @@ typedef ci_array_t ci_str_array_t;
 /**
  \typedef ci_ptr_array_t
  \ingroup PTR_ARRAYS
- * The ci_ptr_array_t objects can store a list of name and pointer to object 
+ * The ci_ptr_array_t objects can store a list of name and pointer to object
  * pairs. It is similar to the ci_array_t object but does not store the value
  * but a pointer to the value.
  */
@@ -345,7 +345,7 @@ typedef struct ci_dyn_array {
 #define ci_dyn_array_size(array) ((array)->count)
 
 /**
- * Allocate the required memory and initialize an ci_dyn_array_t object 
+ * Allocate the required memory and initialize an ci_dyn_array_t object
  \ingroup DYNAMIC_ARRAYS
  \param mem_size the initial size to use for dyn_array
  \return the allocated object on success, or NULL on failure
@@ -363,7 +363,7 @@ CI_DECLARE_FUNC(ci_dyn_array_t *) ci_dyn_array_new(size_t mem_size);
 CI_DECLARE_FUNC(ci_dyn_array_t *) ci_dyn_array_new2(size_t items, size_t item_size);
 
 /**
- * Destroy an ci_dyn_array_t object 
+ * Destroy an ci_dyn_array_t object
  \ingroup DYNAMIC_ARRAYS
  \param array a pointer to ci_dyn_array_t object to be destroyed
  */
@@ -408,10 +408,10 @@ CI_DECLARE_FUNC(void) ci_dyn_array_iterate(const ci_dyn_array_t *array, void *da
 /**
  \typedef ci_ptr_dyn_array_t
  \ingroup PTR_DYNAMIC_ARRAYS
- * An alias to the ci_dyn_array_t object. It is used to store pointers 
+ * An alias to the ci_dyn_array_t object. It is used to store pointers
  * to an array.
  * The ci_ptr_dyn_array_new, ci_ptr_dyn_array_destroy, ci_ptr_dyn_array_search
- * and ci_ptr_dyn_array_iterate defines are  equivalent to the ci_dyn_array_* 
+ * and ci_ptr_dyn_array_iterate defines are  equivalent to the ci_dyn_array_*
  * functions with the required typecasting.
  */
 typedef ci_dyn_array_t ci_ptr_dyn_array_t;
@@ -459,7 +459,7 @@ typedef struct ci_vector {
 } ci_vector_t;
 
 /**
- * Allocate the required memory and initialize a ci_vector_t object 
+ * Allocate the required memory and initialize a ci_vector_t object
  \ingroup VECTORS
  \param max_size the maximum memory to use
  \return the allocated object on success, or NULL on failure
@@ -467,7 +467,7 @@ typedef struct ci_vector {
 CI_DECLARE_FUNC(ci_vector_t *) ci_vector_create(size_t max_size);
 
 /**
- * Destroy an ci_vector_t object 
+ * Destroy an ci_vector_t object
  \ingroup VECTORS
  \param vector a pointer to ci_vector_t object to be destroyed
  */
@@ -515,7 +515,7 @@ CI_DECLARE_FUNC(ci_vector_t *)ci_vector_cast_from_voidvoid(const void **p);
 /**
  \defgroup STR_VECTORS  Vectors of strings
  \ingroup VECTORS
- * 
+ *
  */
 
 /**
@@ -523,7 +523,7 @@ CI_DECLARE_FUNC(ci_vector_t *)ci_vector_cast_from_voidvoid(const void **p);
  \ingroup STR_VECTORS
  * The ci_str_vector is used to implement string vectors.
  * The  ci_str_vector_create, ci_str_vector_destroy,  ci_str_vector_add,
- * and ci_str_vector_pop defines are similar and equivalent to the ci_vector_* 
+ * and ci_str_vector_pop defines are similar and equivalent to the ci_vector_*
  * functions.
  */
 typedef ci_vector_t ci_str_vector_t;
@@ -588,7 +588,7 @@ CI_DECLARE_FUNC(void *) ci_ptr_vector_add(ci_vector_t *vector, void *pointer);
  *
  */
 
-typedef struct ci_list_item{
+typedef struct ci_list_item {
     void *item;
     struct ci_list_item *next;
 } ci_list_item_t;
@@ -616,7 +616,7 @@ typedef struct ci_list {
 } ci_list_t;
 
 /**
- * Allocate the required memory and initialize a ci_list_t object 
+ * Allocate the required memory and initialize a ci_list_t object
  \ingroup LISTS
  \param init_size the initial memory size to use
  \param obj_size the size of stored objects. If it is 0 then stores pointers
@@ -665,11 +665,11 @@ CI_DECLARE_FUNC(ci_list_t *) ci_list_create(size_t init_size, size_t obj_size);
 #define ci_list_tail(list) (list && list->last != NULL ? list->last->item : NULL)
 
 /**
- * Destroy an ci_list_t object 
+ * Destroy an ci_list_t object
  \ingroup LISTS
  \param list a pointer to ci_list_t object to be destroyed
  */
-    CI_DECLARE_FUNC(void) ci_list_destroy(ci_list_t *list);
+CI_DECLARE_FUNC(void) ci_list_destroy(ci_list_t *list);
 
 /**
  * Run the given function for each list item
@@ -762,7 +762,7 @@ CI_DECLARE_FUNC(void) ci_list_sort(ci_list_t *list);
 CI_DECLARE_FUNC(void) ci_list_sort2(ci_list_t *list, int (*cmp_func)(const void *obj1, const void *obj2, size_t obj_size));
 
 /*
-  The following three functions are undocumented. Probably will be removed or replaced 
+  The following three functions are undocumented. Probably will be removed or replaced
   by others.
  */
 CI_DECLARE_FUNC(void) ci_list_cmp_handler(ci_list_t *list, int (*cmp_func)(const void *obj, const void *user_data, size_t user_data_size));

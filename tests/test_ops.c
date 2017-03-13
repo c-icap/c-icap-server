@@ -34,7 +34,7 @@ int check_ip_ops()
         printf("Check result: %d\n\n", ret);
         ci_ip_ops.free(ip2, default_allocator);
     }
-    
+
     for (i = 8; i < 16 && ret; ++i) {
         snprintf(ip_buf, sizeof(ip_buf), "192.168.1.%d", i);
         ci_ip_t *ip2 = ci_ip_ops.dup(ip_buf, default_allocator);
@@ -51,17 +51,19 @@ int check_ip_ops()
 }
 
 void log_errors(void *unused, const char *format, ...)
-{                                                     
-     va_list ap;                                      
-     va_start(ap, format);                            
-     vfprintf(stderr, format, ap);                    
-     va_end(ap);                                      
+{
+    va_list ap;
+    va_start(ap, format);
+    vfprintf(stderr, format, ap);
+    va_end(ap);
 }
 
 
 static struct ci_options_entry options[] = {
-    {"-d", "debug_level", &CI_DEBUG_LEVEL, ci_cfg_set_int,
-     "The debug level"},
+    {
+        "-d", "debug_level", &CI_DEBUG_LEVEL, ci_cfg_set_int,
+        "The debug level"
+    },
     {NULL,NULL,NULL,NULL,NULL}
 };
 
@@ -75,7 +77,7 @@ int main(int argc,char *argv[])
         ci_args_usage(argv[0], options);
         exit(-1);
     }
-    
+
     ci_cfg_lib_init();
     mem_init();
 

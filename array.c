@@ -61,8 +61,8 @@ ci_array_t * ci_array_new2(size_t items, size_t item_size)
 {
     size_t array_size;
     array_size = ci_pack_allocator_required_size() +
-        _CI_ALIGN(sizeof(ci_array_t)) +
-        items * (_CI_ALIGN(item_size) + _CI_ALIGN(sizeof(ci_array_item_t)));
+                 _CI_ALIGN(sizeof(ci_array_t)) +
+                 items * (_CI_ALIGN(item_size) + _CI_ALIGN(sizeof(ci_array_item_t)));
     return ci_array_new(array_size);
 }
 
@@ -152,8 +152,8 @@ ci_ptr_array_t * ci_ptr_array_new2(size_t items)
 {
     size_t array_size;
     array_size = ci_pack_allocator_required_size() +
-        _CI_ALIGN(sizeof(ci_ptr_array_t)) +
-        items * (_CI_ALIGN(sizeof(void *)) + _CI_ALIGN(sizeof(ci_array_item_t)));
+                 _CI_ALIGN(sizeof(ci_ptr_array_t)) +
+                 items * (_CI_ALIGN(sizeof(void *)) + _CI_ALIGN(sizeof(ci_array_item_t)));
     return ci_ptr_array_new(array_size);
 }
 
@@ -234,7 +234,7 @@ ci_dyn_array_t * ci_dyn_array_new2(size_t items, size_t item_size)
       We can not be accurate here....
      */
     array_size = _CI_ALIGN(sizeof(ci_dyn_array_t)) +
-        items * (_CI_ALIGN(item_size) + _CI_ALIGN(sizeof(ci_array_item_t)) + _CI_ALIGN(16));
+                 items * (_CI_ALIGN(item_size) + _CI_ALIGN(sizeof(ci_array_item_t)) + _CI_ALIGN(16));
 
     packer = ci_create_serial_allocator(array_size);
     if (!packer) {
@@ -334,7 +334,7 @@ void ci_dyn_array_iterate(const ci_dyn_array_t *array, void *data, int (*fn)(voi
 
 const ci_array_item_t * ci_ptr_dyn_array_add(ci_ptr_dyn_array_t *array, const char *name, void *value)
 {
-   return ci_dyn_array_add(array, name, value, 0);
+    return ci_dyn_array_add(array, name, value, 0);
 }
 
 /**************/
@@ -366,7 +366,7 @@ ci_vector_t * ci_vector_create(size_t max_size)
         return NULL;
     }
     *indx = NULL;
-    
+
     vector->max_size = max_size;
     vector->mem = buffer;
     vector->items = indx;
@@ -434,7 +434,7 @@ void * ci_vector_pop(ci_vector_t *vector)
 
     /*Set last to the preview ellement*/
     vector->count--;
-    vector->last = &vector->items[vector->count]; 
+    vector->last = &vector->items[vector->count];
 
     /*Erase the content of last element*/
     if (vector->count == 0)
@@ -560,17 +560,17 @@ void ci_list_iterate(ci_list_t *list, void *data, int (*fn)(void *data, const vo
 
 static ci_list_item_t *list_alloc_item(ci_list_t *list, const void *data)
 {
-   ci_list_item_t *it;
+    ci_list_item_t *it;
     if (list->trash) {
         it = list->trash;
         list->trash = list->trash->next;
     } else {
-        it = list->alloc->alloc(list->alloc, sizeof(ci_list_item_t)); 
+        it = list->alloc->alloc(list->alloc, sizeof(ci_list_item_t));
         if (!it)
             return NULL;
 
         if (list->obj_size) {
-            it->item = list->alloc->alloc(list->alloc, list->obj_size); 
+            it->item = list->alloc->alloc(list->alloc, list->obj_size);
             if (!it->item)
                 return NULL;
         }
@@ -635,7 +635,7 @@ void *ci_list_pop(ci_list_t *list, void *data)
     if (list->obj_size) {
         memcpy(data, it->item, list->obj_size);
         if (list->copy_func)
-            list->copy_func(data, it->item);        
+            list->copy_func(data, it->item);
         if (list->free_func)
             list->free_func(it->item);
         return data;
@@ -697,7 +697,7 @@ int ci_list_remove(ci_list_t *list, const void *obj)
         cmp_func = default_cmp;
     else
         cmp_func = pointers_cmp;
-    
+
     prev = NULL;
     for (it = list->items; it != NULL; prev = it,it = it->next) {
         if (cmp_func(it->item, obj, list->obj_size) == 0) {
@@ -775,7 +775,7 @@ void ci_list_sort2(ci_list_t *list, int (*cmp_func)(const void *obj1, const void
         currentHead = it;
         it = it->next;
         currentSorted = &sortedHead;
-        while(!(*currentSorted == NULL || cmp_func(currentHead->item, (*currentSorted)->item, list->obj_size) < 0))
+        while (!(*currentSorted == NULL || cmp_func(currentHead->item, (*currentSorted)->item, list->obj_size) < 0))
             currentSorted = &(*currentSorted)->next;
         currentHead->next  = *currentSorted;
         *currentSorted = currentHead;
