@@ -131,8 +131,8 @@ MaxRequestsPerChild  0
 #	None
 Port 1344 
 
-# TAG: SSLPort
-# Format: SSLPort [address:]port [tls-method=method] [cert=path_to_pem_cert] [key=path_to_pem_key] [client_ca=path_to_pem_file] [ciphers=ciph1:ciph2...] [tls_options=[!]Opt1|[!]Opt2|...]
+# TAG: TlsPort
+# Format: TlsPort [address:]port [tls-method=method] [cert=path_to_pem_cert] [key=path_to_pem_key] [client_ca=path_to_pem_file] [ciphers=ciph1:ciph2...] [tls_options=[!]Opt1|[!]Opt2|...]
 # Description:
 #       The port number that the c-icap server uses to listen for TLS/SSL
 #	requests. Options:
@@ -182,16 +182,16 @@ Port 1344
 # Default:
 #       None
 
-# TAG: SslPassphrase
-# Format: SslPassphrase /path/to/script
+# TAG: TlsPassphrase
+# Format: TlsPassphrase /path/to/script
 # Description:
-#	Path to the script to run to get the passphrases of SSL certificates 
+#	Path to the script to run to get the passphrases of TLS certificates 
 #	keys. The c-icap will pass as arguments the IP address and port number
 #	to the script.
 # Default:
 #	No value
 # Example:
-#	SslPassphrase /use/local/c-icap/scripts/cert-passphrase.sh 
+#	TlsPassphrase /use/local/c-icap/scripts/cert-passphrase.sh 
 
 # TAG: User
 # Format: User username
