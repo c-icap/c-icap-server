@@ -627,24 +627,36 @@ AccessLog @prefix@/var/log/access.log
 #	Logger sys_logger
 
 # TAG: Module
-# Format: Module Type ModuleFile
+# Format: Module Type ModuleFile [forceUnload=off]
 # Description:
 #	Load an external module/plugin to c-icap.
-#	ModuleFile is the filename of the module. If no full path given then c-icap
-#	searche in path defined by the ModulesDir configuration parameter.
+#	ModuleFile is the filename of the module. If no full path given then
+#	the c-icap uses the path defined by the ModulesDir configuration
+#	parameter.
 #	Type is the type of the external module and can be one of the following:
-#	- "logger" for modules implement a logger
-#	- "common" for general purpose modules
+#		"logger" for modules implement a logger
+#		"common" for general purpose modules
+#	forceUnload=off
+#		Forces c-icap to not unload services/modules loaded as external
+#		dynamic libraries on shutdown or reconfigure.
+#		This option may required when the services/modules are using
+#		c++, or they are linked with c++ libraries.
 # Default:
 #	
 # Example:
 #	Module logger sys_logger.so
 
 # TAG: Service
-# Format: Service aName ServiceFile
+# Format: Service aName ServiceFile [forceUnload=off]
 # Description:
 #	It loads the service ServiceFile. The argument aName used 
 #	as alias name for the service
+#	forceUnload=off
+#		Forces c-icap to not unload services/modules loaded as external
+#		dynamic libraries on shutdown or reconfigure.
+#		This option may required when the services/modules are using
+#		c++, or they are linked with c++ libraries.
+
 # Default:
 #	
 # Example:
