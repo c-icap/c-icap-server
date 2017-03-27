@@ -349,10 +349,15 @@ static const char *do_header_search(ci_headers_list_t * h, const char *header, c
             continue;
         if (strncasecmp(check_head, header, header_size) == 0) {
             lval = check_head + header_size + 1;
-            if (value)
+            if (value) {
+                while (lval <= h_end && (*lval == ' ' || *lval == '\t'))
+                    ++(lval);
                 *value = lval;
+            }
             if (end) {
                 *end = (i < h->used -1) ? (h->headers[i + 1] - 1) : (h->buf + h->bufused - 1);
+                if (*end < lval) /*parse error in headers ?*/
+                    return NULL;
                 while ((*end > lval) && (**end == '\0' || **end == '\r' || **end == '\n')) --(*end);
             }
             return check_head;
