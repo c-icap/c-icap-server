@@ -595,6 +595,10 @@ ci_simple_file_t *ci_simple_file_new(ci_off_t maxsize)
     body->bytes_in = 0;
     body->bytes_out = 0;
     body->attributes = NULL;
+#if defined(USE_POSIX_MAPPED_FILES)
+    body->mmap_addr = NULL;
+    body->mmap_size = 0;
+#endif
 
     return body;
 }
