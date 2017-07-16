@@ -129,9 +129,9 @@ int icap_port_tls_option(const char *opt, ci_port_t *conf, const char *config_di
     } else if (strncmp(opt, "client_ca=", 10) == 0) {
         conf->tls_client_ca_certs = path_dup(opt + 10, config_dir);
     } else if (strncmp(opt, "cafile=", 7) == 0) {
-        conf->tls_cafile = path_dup(opt + 10, config_dir);
+        conf->tls_cafile = path_dup(opt + 7, config_dir);
     } else if (strncmp(opt, "capath=", 7) == 0) {
-        conf->tls_capath = path_dup(opt + 10, config_dir);
+        conf->tls_capath = path_dup(opt + 7, config_dir);
     } else if (strncmp(opt, "ciphers=", 8) == 0) {
         conf->tls_ciphers = strdup(opt + 8);
     } else if (strncmp(opt, "tls-options=", 12) == 0) {
