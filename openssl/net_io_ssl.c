@@ -167,7 +167,7 @@ static int set_linger(int sock, int secs_to_linger)
 static int openssl_verify_cert_cb (int ok, X509_STORE_CTX *ctx)
 {
     if (ok == 0) {
-        ci_debug_printf(1, "Peer cert verification failed: %s\n", X509_verify_cert_error_string(ctx->error));
+        ci_debug_printf(1, "Peer cert verification failed: %s\n", X509_verify_cert_error_string(X509_STORE_CTX_get_error(ctx)));
         return 0;
     }
     return 1;
@@ -227,11 +227,6 @@ static const SSL_METHOD* get_tls_method(const char* method_str, int b_for_server
 #ifndef OPENSSL_NO_SSL3_METHOD
     else if ( 0 == strcmp(method_str, "SSLv3")) {
         return (b_for_server) ? SSLv3_server_method() : SSLv3_client_method();
-    }
-#endif
-#ifndef OPENSSL_NO_SSL2
-    else if ( 0 == strcmp(method_str, "SSLv2")) {
-        return (b_for_server) ? SSLv2_server_method() : SSLv2_client_method();
     }
 #endif
 

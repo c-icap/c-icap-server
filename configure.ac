@@ -275,21 +275,43 @@ case "$withval" in
 [ openssl=yes]
 )
 
+OPENSSL_ADD_LDADD=""
+OPENSSL_ADD_FLAG=""
 if test a"$openssl" != "ano"; then
+   OLDCFLAGS=$CFLAGS
+   OLDLDFLAGS=$LDFLAGS
+   OLDLIBS=$LIBS
    if test a"$openssl" != "ayes"; then
-        OLDCFLAGS=$CFLAGS
-        OLDLDFLAGS=$LDFLAGS
         CFLAGS="$CFLAGS -I$openssl/include"
         LDFLAGS="$LDFLAGS -L$openssl/lib"
-        AC_CHECK_LIB(ssl,SSL_library_init,[OPENSSL_ADD_LDADD="-L$openssl/lib -lssl -lcrypto";OPENSSL_ADD_FLAG="-I$openssl/include";AC_DEFINE(HAVE_OPENSSL,1,[Define HAVE_OPENSSL if openssl is installed])],[openssl=no],-lcrypto)
-        CFLAGS=$OLDCFLAGS
-        LDFLAGS=$OLDLDFLAGS
-        AC_SUBST(OPENSSL_ADD_LDADD)
-        AC_SUBST(OPENSSL_ADD_FLAG)
+        OPENSSL_ADD_LDADD="-L$openssl/lib -lssl -lcrypto"
+        OPENSSL_ADD_FLAG="-I$openssl/include"
+        echo -n "checking for OpenSSL library under $openssl... "
    else
-	AC_CHECK_LIB(ssl,SSL_library_init,[OPENSSL_ADD_LDADD=" -lssl -lcrypto"; AC_DEFINE(HAVE_OPENSSL,1,[Define HAVE_OPENSSL if openssl is installed])],[openssl=no])
-	AC_SUBST(OPENSSL_ADD_LDADD)
+        OPENSSL_ADD_LDADD="-lssl -lcrypto"
+        echo -n "checking for OpenSSL library... "
    fi
+   LIBS="$OPENSSL_ADD_LDADD $OLDLIBS"
+
+   AC_LINK_IFELSE(
+         [AC_LANG_SOURCE(
+                 [
+                   #include <openssl/ssl.h>
+                   int main(int argc, char *argv[])
+                   {
+                      int ret = SSL_library_init();
+                      return ret;
+                   }
+                 ])
+               ],
+         [echo "yes";][AC_DEFINE(HAVE_OPENSSL,1,[Define HAVE_OPENSSL if openssl is installed])],
+         [openssl=no; echo "no"]
+   )
+
+
+   CFLAGS=$OLDCFLAGS
+   LDFLAGS=$OLDLDFLAGS
+   LIBS=$OLDLIBS
 fi
 
 USE_OPENSSL="1"
@@ -298,6 +320,8 @@ if test a"$openssl" = "ano"; then
     USE_OPENSSL="0"
 fi
 AC_SUBST(USE_OPENSSL)
+AC_SUBST(OPENSSL_ADD_LDADD)
+AC_SUBST(OPENSSL_ADD_FLAG)
 
 AC_CHECK_LIB(dl,dlopen,DL_ADD_FLAG=" -ldl")
 AC_SUBST(DL_ADD_FLAG)
