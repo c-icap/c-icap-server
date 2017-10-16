@@ -595,10 +595,8 @@ ci_simple_file_t *ci_simple_file_new(ci_off_t maxsize)
     body->bytes_in = 0;
     body->bytes_out = 0;
     body->attributes = NULL;
-#if defined(USE_POSIX_MAPPED_FILES)
     body->mmap_addr = NULL;
     body->mmap_size = 0;
-#endif
 
     return body;
 }
@@ -637,10 +635,9 @@ ci_simple_file_t *ci_simple_file_named_new(char *dir, char *filename,ci_off_t ma
     body->bytes_in = 0;
     body->bytes_out = 0;
     body->attributes = NULL;
-#if defined(USE_POSIX_MAPPED_FILES)
+
     body->mmap_addr = NULL;
     body->mmap_size = 0;
-#endif
 
     return body;
 }
@@ -818,10 +815,10 @@ int ci_simple_file_truncate(ci_simple_file_t *body, ci_off_t new_size)
     return 1;
 }
 
-#if defined(USE_POSIX_MAPPED_FILES)
 
 const char * ci_simple_file_to_const_string(ci_simple_file_t *body)
 {
+#if defined(USE_POSIX_MAPPED_FILES)
     ci_off_t map_size;
     char *addr = NULL;
     if (!(body->flags & CI_FILE_HAS_EOF)) {
@@ -841,6 +838,10 @@ const char * ci_simple_file_to_const_string(ci_simple_file_t *body)
         body->mmap_size = map_size;
     }
     return body->mmap_addr;
+#else
+    ci_debug_printf( 1, "ci_simple_file_to_const_string: Requires posix mapped files to work, which is not supported.");
+    return NULL;
+#endif
 }
 
 #define CI_MEMBUF_SF_FLAGS (CI_MEMBUF_CONST | CI_MEMBUF_RO | CI_MEMBUF_NULL_TERMINATED)
@@ -853,8 +854,6 @@ ci_membuf_t *ci_simple_file_to_membuf(ci_simple_file_t *body, unsigned int flags
         return NULL;
     return ci_membuf_from_content(body->mmap_addr, body->mmap_size, body->endpos, CI_MEMBUF_CONST | CI_MEMBUF_RO | CI_MEMBUF_NULL_TERMINATED | CI_MEMBUF_HAS_EOF);
 }
-
-#endif
 
 /*******************************************************************/
 /*ring memory buffer implementation                                */

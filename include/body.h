@@ -122,10 +122,8 @@ typedef struct ci_simple_file {
     int fd;
     char filename[CI_FILENAME_LEN+1];
     ci_array_t *attributes;
-#if defined(USE_POSIX_MAPPED_FILES)
     char *mmap_addr;
     ci_off_t mmap_size;
-#endif
 } ci_simple_file_t;
 
 
@@ -139,13 +137,12 @@ CI_DECLARE_FUNC(int) ci_simple_file_write(ci_simple_file_t *body,
 CI_DECLARE_FUNC(int) ci_simple_file_read(ci_simple_file_t *body,char *buf,int len);
 CI_DECLARE_FUNC(int) ci_simple_file_truncate(ci_simple_file_t *body, ci_off_t new_size);
 
-#if defined(USE_POSIX_MAPPED_FILES)
 /*Currently it is just creates a MAP_PRIVATE memory.
   Only CI_MEMBUF_CONST flag is supported.
+  Works only if USE_POSIX_MAPPED_FILES is defined
 */
 CI_DECLARE_FUNC(ci_membuf_t *) ci_simple_file_to_membuf(ci_simple_file_t *body, unsigned int flags);
 CI_DECLARE_FUNC(const char *) ci_simple_file_to_const_string(ci_simple_file_t *body);
-#endif
 
 #define ci_simple_file_lock_all(body)            (body->flags|=CI_FILE_USELOCK,body->unlocked=0)
 #define ci_simple_file_unlock(body, len)     (body->unlocked = ((body->readpos) > len ? (body->readpos) : len))
