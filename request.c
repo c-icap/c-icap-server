@@ -1650,7 +1650,7 @@ int process_request(ci_request_t * req)
     res = do_request(req);
 
     if (req->pstrblock_read_len) {
-        ci_debug_printf(5, "There are unparsed data od size %d: \"%s\"\n. Move to connection buffer\n", req->pstrblock_read_len, req->pstrblock_read);
+        ci_debug_printf(5, "There are unparsed data od size %d: \"%.*s\"\n. Move to connection buffer\n", req->pstrblock_read_len, (req->pstrblock_read_len < 64 ? req->pstrblock_read_len : 64), req->pstrblock_read);
     }
 
     if (res<0 && req->request_header->bufused == 0) /*Did not read anything*/

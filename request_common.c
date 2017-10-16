@@ -1223,10 +1223,11 @@ static int client_parse_incoming_data(ci_request_t * req, void *data_dest,
         do {
             if ((ret = parse_chunk_data(req, &buf)) == CI_ERROR) {
                 ci_debug_printf(1,
-                                "Error parsing chunks, current chunk len: %d, read: %d, readlen: %d, str: %s\n",
+                                "Error parsing chunks, current chunk len: %d, read: %d, readlen: %d, str: %.*s\n",
                                 req->current_chunk_len,
                                 req->chunk_bytes_read,
                                 req->pstrblock_read_len,
+                                (req->pstrblock_read_len < 64 ? req->pstrblock_read_len : 64),
                                 req->pstrblock_read);
                 return CI_ERROR;
             }
