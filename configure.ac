@@ -755,6 +755,8 @@ AC_CHECK_FUNCS(strncasestr,
 AC_DEFINE(HAVE_STRNCASESTR,1,[Define HAVE_STRNCASESTR if strncasestr exists])
 )
 
+AC_CHECK_FUNCS(setgroups)
+
 AC_FUNC_STRERROR_R
 
 USE_POLL="0"

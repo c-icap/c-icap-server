@@ -112,10 +112,17 @@ int set_running_permissions(char *user, char *group)
                             gid);
             return 0;
         }
+#if HAVE_SETGROUPS
+        if (setgroups(1, &gid) != 0) {
+            ci_debug_printf(1, "setggroups to %d failed!!!!\n", gid);
+            perror("setgroups failure");
+            return 0;
+        }
+#endif
 
         if (setgid(gid) != 0) {
             ci_debug_printf(1, "setgid to %d failed!!!!\n", gid);
-            perror("Wtat is this; ");
+            perror("setgid failure");
             return 0;
         }
     }
