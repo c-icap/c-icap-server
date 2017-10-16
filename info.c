@@ -402,8 +402,9 @@ int build_statistics(struct info_req_data *info_data)
                 ci_membuf_write(info_data->body,buf, sz, 0);
             }
         }
-        ci_membuf_write(info_data->body,tmpl->statsEnd, strlen(tmpl->statsEnd), 1);
+        ci_membuf_write(info_data->body,tmpl->statsEnd, strlen(tmpl->statsEnd), 0);
     }
+    ci_membuf_write(info_data->body, NULL, 0, 1);
 
     return 1;
 }
