@@ -32,7 +32,7 @@ extern "C"
 {
 #endif
 
-enum KILL_MODE {NO_KILL=0,GRACEFULLY,IMMEDIATELY};
+enum KILL_MODE {NO_KILL = 0,GRACEFULLY,IMMEDIATELY};
 
 #ifdef _WIN32
 #define process_pid_t HANDLE

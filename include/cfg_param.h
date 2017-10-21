@@ -80,7 +80,7 @@ struct ci_server_conf {
  * file.
  \code
  int AParam;
- struct ci_conf_entry conf_table[]= {
+ struct ci_conf_entry conf_table[] = {
     {"Aparameter", &AParam, ci_cfg_set_int, "This is a simple configuration parameter"},
     {NULL,NULL,NULL,NULL}
  }

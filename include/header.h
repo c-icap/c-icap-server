@@ -58,7 +58,7 @@ const char *ci_encaps_entity_string(int e);
 
 #else
 
-#define ci_encaps_entity_string(e) (e<=ICAP_OPT_BODY&&e>=ICAP_REQ_HDR?ci_encaps_entities[e]:"UNKNOWN")
+#define ci_encaps_entity_string(e) (e <= ICAP_OPT_BODY && e >= ICAP_REQ_HDR?ci_encaps_entities[e]:"UNKNOWN")
 
 #endif
 
@@ -93,7 +93,7 @@ typedef struct ci_encaps_entity {
 #define MAX_HEADER_SIZE  1023
 
 #define ci_headers_not_empty(h) ((h)->used)
-#define ci_headers_is_empty(h) ((h)->used==0)
+#define ci_headers_is_empty(h) ((h)->used == 0)
 
 /**
  * Allocate memory for a ci_headers_list_t object and initialize it.
@@ -174,7 +174,7 @@ CI_DECLARE_FUNC(int) ci_headers_remove(ci_headers_list_t *heads, const char *hea
  *example usage:
  \code
  char *head;
- head=ci_headers_search(heads,"Content-Length")
+ head = ci_headers_search(heads,"Content-Length")
  \endcode
  * In this example on success the head pointer will point to a
  * \em "Content-Lenght: 1025" string

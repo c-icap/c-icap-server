@@ -71,7 +71,7 @@ static void makeTemplatePathFileName(char *path, int path_len, const char *servi
 {
     snprintf(path, path_len, "%s/%s/%s/%s", TEMPLATE_DIR, service_name, lang,
              page_name);
-    path[path_len-1]='\0';
+    path[path_len-1] = '\0';
 }
 
 int ci_txt_template_init(void)
@@ -170,7 +170,7 @@ static void template_release(txtTemplate_t *template)
     template->locked--;
     if (template->locked < 0) template->locked = 0;
 
-    if (must_free && template->locked ==0)
+    if (must_free && template->locked == 0)
         templateFree(template);
     else
         template->must_free = must_free;
@@ -357,7 +357,7 @@ static txtTemplate_t *templateLoadText(const ci_request_t * req, const char *ser
 
         while ( *s != '\0') {
             while (*s != '\0' && isspace(*s)) s++; /* eat spaces*/
-            for (i=0; *s != '\0' && *s != ',' && *s!= ';' && !isspace(*s) && i < sizeof(preferred) - 1; i++,s++)
+            for (i = 0; *s != '\0' && *s != ',' && *s != ';' && !isspace(*s) && i < sizeof(preferred) - 1; i++,s++)
                         preferred[i] = *s; /*Copy the language part*/
             preferred[i] = '\0';
             ci_debug_printf(6, "Try load the error message on language:%s\n", preferred);

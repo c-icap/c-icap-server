@@ -69,12 +69,12 @@ void debug_print_request(ci_request_t *req){
      }
 
      ci_debug_printf(1,"\n\nHEADERS : \n");
-     for(i=0;i<req->head->used;i++){
+     for(i = 0; i < req->head->used; i++){
       ci_debug_printf(1,"        %s\n",req->head->headers[i]);
      }
      ci_debug_printf(1,"\n\nEncapsulated Entities: \n");
-     i=0;
-     while(req->entities[i]!=NULL){
+     i = 0;
+     while(req->entities[i] != NULL){
       ci_debug_printf(1,"\t %s header at %d\n",
                ci_encaps_entity_string(req->entities[i]->type),req->entities[i]->start);
       if(req->entities[i]->type<ICAP_REQ_BODY){

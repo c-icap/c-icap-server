@@ -4,9 +4,9 @@ dnl Process this file with autoconf to produce a configure script.
 dnl AC_INIT(c_icap,m4_normalize(m4_include([VERSION.m4])))
 AC_INIT(c_icap,0.5.2)
 CICAPLIB_VERSION=5:2:0
-AC_SUBST(CICAPLIB_VERSION)                                        
+AC_SUBST(CICAPLIB_VERSION)
 dnl CICAPLIB_VERSION is the libtool current[:revision[:age]] version info
-dnl libtool directions about version info                                
+dnl libtool directions about version info
 dnl - library source code has changed since the last update c:r:a => c:r+1:a
 dnl - interfaces have been added, removed, or changed c:r:a => c+1:0:a
 dnl - interfaces have been added c:r:a => c:r:a+1
@@ -54,12 +54,12 @@ case "$host_os" in
       ;;
       freebsd5*)
 ## If I understand how all those threading models works correctly
-## in FreeBSD I will make an option in configure script 
+## in FreeBSD I will make an option in configure script
 ## --with-freebsd-threads={c_r,pthreads,linuxthreads,thr}
-## If I am correct I must compile c-icap with the way 
-## external libraries are compiled. (The clamav uses -lc_r and I had problems 
+## If I am correct I must compile c-icap with the way
+## external libraries are compiled. (The clamav uses -lc_r and I had problems
 ## using a different threading model)
- 
+
 ##    FreeBSD linuxthreads flags
 #      	CFLAGS="-D_THREAD_SAFE -I/usr/local/include/pthread/linuxthreads $CFLAGS"
 #	THREADS_LDADD="-llthread -lgcc_r"
@@ -71,7 +71,7 @@ case "$host_os" in
 	THREADS_LDFLAGS=""
 ## FreeBSD has pthreads rwlocks from version 3 (I think)
 #	AC_DEFINE(HAVE_PTHREADS_RWLOCK,1,[Define HAVE_PTHREADS_RWLOCK if pthreads library supports rwlocks])
-##   1:1 threads 
+##   1:1 threads
 #      	CFLAGS="-D_THREAD_SAFE  $CFLAGS"
 #	THREADS_LDADD="-XCClinker -lthr"
 #	THREADS_LDFLAGS=""
@@ -221,13 +221,13 @@ AC_SUBST(doxygen_bin)
 
 # Checks for libraries
 
-AC_ARG_WITH(perl, 
+AC_ARG_WITH(perl,
 [  --with-perl		Path to perl binary],
 [
 case "$withval" in
   yes)
        perlbin="perl"
-  ;;			     
+  ;;			
   no )
        perlbin="";
        perlcore="";
@@ -243,7 +243,7 @@ case "$withval" in
 ]
 )
 
-if test a"$perlbin" != a; then 
+if test a"$perlbin" != a; then
 	perlcore=`$perlbin -MConfig -e 'print $Config{archlib}'`/CORE;
         perllib=`$perlbin -MConfig -e 'print $Config{libs}'`;
         perlccflags=`$perlbin -MConfig -e 'print $Config{ccflags}'`;
@@ -468,7 +468,7 @@ if test a"$libdb" != "ano"; then
                     }
                 ])
                ],
-               [BDB_ADD_LDADD="-L$libdbpath/lib -ldb"; BDB_ADD_FLAG="-I$libdbpath/include";libdb="yes"; echo "yes"], 
+               [BDB_ADD_LDADD="-L$libdbpath/lib -ldb"; BDB_ADD_FLAG="-I$libdbpath/include";libdb="yes"; echo "yes"],
                [libdb="no"; echo "no"]
       )
 #restore CFLAGS/LDFLAGS
@@ -495,7 +495,7 @@ if test a"$libdb" != "ano"; then
         if test -d $libdbpath/include/db$DBVER; then
            echo -n "checking for Berleley DB under $libdbpath/include/db$DBVER and $libdbpath/lib/db$DBVER... "
            CFLAGS="-I$libdbpath/include/db$DBVER $OLDCFLAGS"
-           LDFLAGS="-L$libdbpath/lib/db$DBVER $OLDLDFLAGS" 
+           LDFLAGS="-L$libdbpath/lib/db$DBVER $OLDLDFLAGS"
            AC_LINK_IFELSE(
                   [AC_LANG_SOURCE(
                     [
@@ -508,7 +508,7 @@ if test a"$libdb" != "ano"; then
                         }
                      ])
                   ],
-                  [echo yes;BDB_ADD_LDADD="-L$libdbpath/lib/db$DBVER -ldb"; BDB_ADD_FLAG="-I$libdbpath/include/db$DBVER";libdb="yes";], 
+                  [echo yes;BDB_ADD_LDADD="-L$libdbpath/lib/db$DBVER -ldb"; BDB_ADD_FLAG="-I$libdbpath/include/db$DBVER";libdb="yes";],
                   [libdb="no"; echo "no";]
            )
         fi
@@ -551,7 +551,7 @@ if test a"$libldap" != "ano"; then
         OLDCFLAGS=$CFLAGS
         OLDLDFLAGS=$LDFLAGS
         CFLAGS="$CFLAGS -I$libldap/include"
-        LDFLAGS="$LDFLAGS -L$libldap/lib" 
+        LDFLAGS="$LDFLAGS -L$libldap/lib"
         AC_CHECK_LIB(ldap,  ldap_search_ext_s,
                      [LDAP_ADD_LDADD="-L$libldap/lib -lldap"; LDAP_ADD_FLAG="-I$libldap/include"; AC_DEFINE(HAVE_LDAP, 1, [Define HAVE_LDAP if LDAP libraries are installed])],
                      [libldap="no"]
@@ -653,13 +653,13 @@ if test a"$pcre" != "ano"; then
         CFLAGS="$CFLAGS -I$pcre/include"
         LDFLAGS="$LDFLAGS -L$pcre/lib"
         AC_CHECK_HEADERS(pcre.h,
-                AC_CHECK_LIB(pcre, pcre_exec,[PCRE_ADD_LDADD="-L$pcre/lib -lpcre";PCRE_ADD_FLAG="-I$pcre/include";AC_DEFINE(HAVE_PCRE,1,[Define HAVE_PCRE if pcre installed])],[pcre=no]), 
+                AC_CHECK_LIB(pcre, pcre_exec,[PCRE_ADD_LDADD="-L$pcre/lib -lpcre";PCRE_ADD_FLAG="-I$pcre/include";AC_DEFINE(HAVE_PCRE,1,[Define HAVE_PCRE if pcre installed])],[pcre=no]),
                 [pcre=no]
         )
         CFLAGS=$OLDCFLAGS
         LDFLAGS=$OLDLDFLAGS
         AC_SUBST(PCRE_ADD_LDADD)
-        AC_SUBST(PCRE_ADD_FLAG) 
+        AC_SUBST(PCRE_ADD_FLAG)
    else
          AC_CHECK_HEADERS(pcre.h,
                 AC_CHECK_LIB(pcre, pcre_exec,[PCRE_ADD_LDADD=" -lpcre";AC_DEFINE(HAVE_PCRE,1,[Define HAVE_PCRE if pcre installed])],[pcre=no]),
@@ -735,7 +735,7 @@ LIBS="$LIBS $TEST_LIBS"
 
 #AC_FUNC_VPRINTF
 
-AC_CHECK_FUNCS(nanosleep, 
+AC_CHECK_FUNCS(nanosleep,
 AC_DEFINE(HAVE_NANOSLEEP,1,[Define HAVE_NANOSLEEP if nanosleep exists])
 )
 
@@ -796,10 +796,10 @@ AC_TRY_COMPILE(
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/sem.h>
-], 
+],
 [union semun a_semun;],
 AC_DEFINE(HAVE_UNION_SEMUN,1,[Define HAVE_UNION_SEMUN if union semun defined in ipc])
-AC_MSG_RESULT(yes), 
+AC_MSG_RESULT(yes),
 AC_MSG_RESULT(no),
 )
 
@@ -898,7 +898,7 @@ AC_TRY_COMPILE(
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-], 
+],
 [int fd = shm_open("foo", O_CREAT|O_RDWR, S_IRUSR | S_IWUSR);
   if (fd < 0)
       return 0;
@@ -908,7 +908,7 @@ AC_TRY_COMPILE(
 AC_DEFINE(HAVE_POSIX_SHARED_MEM, 1, [Define HAVE_POSIX_SHARED_MEM if shm_open/shm_unlink functions implemented])
 [AC_MSG_RESULT(yes)
 POSIX_SHARED_MEM="1"
-], 
+],
 [AC_MSG_RESULT(no)
 POSIX_SHARED_MEM="0"
 ],
@@ -930,11 +930,11 @@ AC_SUBST(POSIX_SHARED_MEM)
 PTHREADS_RWLOCK="0"
 AC_MSG_CHECKING([if have pthread_rwlock])
 AC_TRY_COMPILE(
-[#include <pthread.h>], 
+[#include <pthread.h>],
 [pthread_rwlock_t lock;],
 AC_DEFINE(HAVE_PTHREADS_RWLOCK,1,[Define HAVE_PTHREADS_RWLOCK if pthreads library supports rwlocks])
 PTHREADS_RWLOCK="1"
-AC_MSG_RESULT(yes), 
+AC_MSG_RESULT(yes),
 AC_MSG_RESULT(no),
 )
 AC_SUBST(PTHREADS_RWLOCK)
@@ -965,8 +965,8 @@ AM_CONDITIONAL(USELDAP, [test a"$libldap" != ano])
 AM_CONDITIONAL(USEMEMCACHED, [test a"$libmemcached" != ano])
 
 AC_OUTPUT([
-include/c-icap-conf.h Makefile utils/Makefile services/Makefile 
-services/echo/Makefile services/ex-206/Makefile modules/Makefile tests/Makefile 
+include/c-icap-conf.h Makefile utils/Makefile services/Makefile
+services/echo/Makefile services/ex-206/Makefile modules/Makefile tests/Makefile
 docs/Makefile docs/man/Makefile
 ])
 

@@ -151,7 +151,7 @@ int mc_module_post_init(struct ci_server_conf *server_conf)
 #endif
                                       );
 #else
-    MC= calloc(1, sizeof(memcached_st));
+    MC = calloc(1, sizeof(memcached_st));
 #endif
 
     MC = memcached_create(MC);
@@ -310,7 +310,7 @@ const void *mc_cache_search(struct ci_cache *cache, const void *key, void **val,
                         memcached_strerror(mlocal, rc));
     } else {
         ci_debug_printf(5, "The %s object retrieved from cache has size %d\n",  mckey, (int)value_len);
-        found  = 1;
+        found = 1;
     }
 
     if ((rc = memcached_pool_push(MC_POOL, mlocal)) != MEMCACHED_SUCCESS) {
@@ -457,7 +457,7 @@ void *mc_mem_malloc(memcached_st *ptr, const size_t size)
 #endif
 {
 
-    void *p= ci_buffer_alloc(size);
+    void *p = ci_buffer_alloc(size);
     ci_debug_printf(5, "mc_mem_malloc: %p of size %u\n", p, (unsigned int)size);
     return p;
 }

@@ -49,7 +49,7 @@ int stringequal(const void *key1,const void *key2)
 {
     if (!key2)
         return 0;
-    return strcmp((const char *)key1,(const char *)key2)==0;
+    return strcmp((const char *)key1,(const char *)key2) == 0;
 }
 
 size_t stringlen(const void *key)
@@ -89,7 +89,7 @@ int string_ext_equal(const void *key1,const void *key2)
     if (strcmp((const char *)key1, "*") == 0)
         return 1;
 
-    return strcmp((const char *)key1,(const char *)key2)==0;
+    return strcmp((const char *)key1,(const char *)key2) == 0;
 }
 
 
@@ -270,7 +270,7 @@ void *regex_dup(const char *str, ci_mem_allocator_t *allocator)
 
 int regex_cmp(const void *key1, const void *key2)
 {
-    struct ci_acl_regex *reg=(struct ci_acl_regex *)key1;
+    struct ci_acl_regex *reg = (struct ci_acl_regex *)key1;
     if (!key2)
         return -1;
     return (ci_regex_apply(reg->preg, (const char *)key2, strlen(key2), 0, NULL, NULL) == 0 ? 1 : 0);
@@ -278,7 +278,7 @@ int regex_cmp(const void *key1, const void *key2)
 
 int regex_equal(const void *key1, const void *key2)
 {
-    struct ci_acl_regex *reg=(struct ci_acl_regex *)key1;
+    struct ci_acl_regex *reg = (struct ci_acl_regex *)key1;
     if (!key2)
         return 0;
     return ci_regex_apply(reg->preg, (const char *)key2, strlen(key2), 0, NULL, NULL) != 0;
@@ -291,7 +291,7 @@ size_t regex_len(const void *key)
 
 void regex_free(void *key, ci_mem_allocator_t *allocator)
 {
-    struct ci_acl_regex *reg=(struct ci_acl_regex *)key;
+    struct ci_acl_regex *reg = (struct ci_acl_regex *)key;
     ci_regex_free(reg->preg);
     allocator->free(allocator, reg->str);
     allocator->free(allocator, reg);
@@ -389,51 +389,51 @@ void ci_list_ipv4_to_ipv6();
 #define ci_ipv4_inaddr_are_equal(addr1,addr2) ((addr1).ipv4_addr.s_addr == (addr2).ipv4_addr.s_addr)
 #define ci_ipv4_inaddr_zero(addr) ((addr).ipv4_addr.s_addr=0)
 
-#define ci_ipv6_inaddr_is_zero(addr) ( ci_in6_addr_u32(addr)[0]==0 && \
-                       ci_in6_addr_u32(addr)[1]==0 &&  \
-                       ci_in6_addr_u32(addr)[2]==0 &&  \
-                       ci_in6_addr_u32(addr)[3]==0)
+#define ci_ipv6_inaddr_is_zero(addr) ( ci_in6_addr_u32(addr)[0] == 0 && \
+                       ci_in6_addr_u32(addr)[1] == 0 &&  \
+                       ci_in6_addr_u32(addr)[2] == 0 &&  \
+                       ci_in6_addr_u32(addr)[3] == 0)
 
-#define ci_ipv6_inaddr_are_equal(addr1,addr2) ( ci_in6_addr_u32(addr1)[0]==ci_in6_addr_u32(addr2)[0] && \
-                        ci_in6_addr_u32(addr1)[1]==ci_in6_addr_u32(addr2)[1] && \
-                        ci_in6_addr_u32(addr1)[2]==ci_in6_addr_u32(addr2)[2] && \
-                        ci_in6_addr_u32(addr1)[3]==ci_in6_addr_u32(addr2)[3])
-
-
-#define ci_ipv6_inaddr_is_v4mapped(addr) (ci_in6_addr_u32(addr)[0]==0 &&\
-                      ci_in6_addr_u32(addr)[1]==0 && \
-                      ci_in6_addr_u32(addr)[2]== htonl(0xFFFF))
+#define ci_ipv6_inaddr_are_equal(addr1,addr2) ( ci_in6_addr_u32(addr1)[0] == ci_in6_addr_u32(addr2)[0] && \
+                        ci_in6_addr_u32(addr1)[1] == ci_in6_addr_u32(addr2)[1] && \
+                        ci_in6_addr_u32(addr1)[2] == ci_in6_addr_u32(addr2)[2] && \
+                        ci_in6_addr_u32(addr1)[3] == ci_in6_addr_u32(addr2)[3])
 
 
-#define ci_ipv4_inaddr_check_net(addr1,addr2,mask) (((addr1).ipv4_addr.s_addr & (mask).ipv4_addr.s_addr)==((addr2).ipv4_addr.s_addr & (mask).ipv4_addr.s_addr))
-#define ci_ipv6_inaddr_check_net(addr1,addr2,mask) ((ci_in6_addr_u32(addr1)[0] & ci_in6_addr_u32(mask)[0])==(ci_in6_addr_u32(addr2)[0] & ci_in6_addr_u32(mask)[0]) &&\
-                            (ci_in6_addr_u32(addr1)[1] & ci_in6_addr_u32(mask)[1])==(ci_in6_addr_u32(addr2)[1] & ci_in6_addr_u32(mask)[1]) && \
-                            (ci_in6_addr_u32(addr1)[2] & ci_in6_addr_u32(mask)[2])==(ci_in6_addr_u32(addr2)[2] & ci_in6_addr_u32(mask)[2]) && \
-                            (ci_in6_addr_u32(addr1)[3] & ci_in6_addr_u32(mask)[3])==(ci_in6_addr_u32(addr2)[3] & ci_in6_addr_u32(mask)[3]))
-#define ci_ipv4_in_ipv6_check_net(addr1, addr2, mask) (ci_in6_addr_u32(addr2)[0]==0 && \
-                               ci_in6_addr_u32(addr2)[1]==0 && \
-                               ci_in6_addr_u32(addr2)[2]== htonl(0xFFFF) && \
-                               ((addr1).ipv4_addr.s_addr & (mask).ipv4_addr.s_addr)==(ci_in6_addr_u32(addr2)[3] & (mask).ipv4_addr.s_addr))
-#define ci_ipv6_in_ipv4_check_net(addr1, addr2, mask) (ci_in6_addr_u32(addr1)[0]==0 && \
-                               ci_in6_addr_u32(addr1)[1]==0 && \
-                               ci_in6_addr_u32(addr1)[2]== htonl(0xFFFF) && \
+#define ci_ipv6_inaddr_is_v4mapped(addr) (ci_in6_addr_u32(addr)[0] == 0 &&\
+                      ci_in6_addr_u32(addr)[1] == 0 && \
+                      ci_in6_addr_u32(addr)[2] == htonl(0xFFFF))
+
+
+#define ci_ipv4_inaddr_check_net(addr1,addr2,mask) (((addr1).ipv4_addr.s_addr & (mask).ipv4_addr.s_addr) == ((addr2).ipv4_addr.s_addr & (mask).ipv4_addr.s_addr))
+#define ci_ipv6_inaddr_check_net(addr1,addr2,mask) ((ci_in6_addr_u32(addr1)[0] & ci_in6_addr_u32(mask)[0]) == (ci_in6_addr_u32(addr2)[0] & ci_in6_addr_u32(mask)[0]) &&\
+                            (ci_in6_addr_u32(addr1)[1] & ci_in6_addr_u32(mask)[1]) == (ci_in6_addr_u32(addr2)[1] & ci_in6_addr_u32(mask)[1]) && \
+                            (ci_in6_addr_u32(addr1)[2] & ci_in6_addr_u32(mask)[2]) == (ci_in6_addr_u32(addr2)[2] & ci_in6_addr_u32(mask)[2]) && \
+                            (ci_in6_addr_u32(addr1)[3] & ci_in6_addr_u32(mask)[3]) == (ci_in6_addr_u32(addr2)[3] & ci_in6_addr_u32(mask)[3]))
+#define ci_ipv4_in_ipv6_check_net(addr1, addr2, mask) (ci_in6_addr_u32(addr2)[0] == 0 && \
+                               ci_in6_addr_u32(addr2)[1] == 0 && \
+                               ci_in6_addr_u32(addr2)[2] == htonl(0xFFFF) && \
+                               ((addr1).ipv4_addr.s_addr & (mask).ipv4_addr.s_addr) == (ci_in6_addr_u32(addr2)[3] & (mask).ipv4_addr.s_addr))
+#define ci_ipv6_in_ipv4_check_net(addr1, addr2, mask) (ci_in6_addr_u32(addr1)[0] == 0 && \
+                               ci_in6_addr_u32(addr1)[1] == 0 && \
+                               ci_in6_addr_u32(addr1)[2] == htonl(0xFFFF) && \
                                (ci_in6_addr_u32(addr1)[3] & (mask).ipv4_addr.s_addr) == ((addr2).ipv4_addr.s_addr & (mask).ipv4_addr.s_addr))
 
 
 /*We can do this because ipv4_addr in practice exists in s6_addr[0]*/
-#define ci_inaddr_ipv4_to_ipv6(addr)( ci_in6_addr_u32(addr)[3]=(addr).ipv4_addr.s_addr,\
-                      ci_in6_addr_u32(addr)[0]=0,   \
-                      ci_in6_addr_u32(addr)[1]=0,   \
-                      ci_in6_addr_u32(addr)[2]= htonl(0xFFFF))
-#define ci_netmask_ipv4_to_ipv6(addr)(ci_in6_addr_u32(addr)[3]=(addr).ipv4_addr.s_addr, \
-                      ci_in6_addr_u32(addr)[0]= htonl(0xFFFFFFFF), \
-                      ci_in6_addr_u32(addr)[1]= htonl(0xFFFFFFFF), \
-                      ci_in6_addr_u32(addr)[2]= htonl(0xFFFFFFFF))
+#define ci_inaddr_ipv4_to_ipv6(addr)( ci_in6_addr_u32(addr)[3] = (addr).ipv4_addr.s_addr,\
+                      ci_in6_addr_u32(addr)[0] = 0,   \
+                      ci_in6_addr_u32(addr)[1] = 0,   \
+                      ci_in6_addr_u32(addr)[2] = htonl(0xFFFF))
+#define ci_netmask_ipv4_to_ipv6(addr)(ci_in6_addr_u32(addr)[3] = (addr).ipv4_addr.s_addr, \
+                      ci_in6_addr_u32(addr)[0] = htonl(0xFFFFFFFF), \
+                      ci_in6_addr_u32(addr)[1] = htonl(0xFFFFFFFF), \
+                      ci_in6_addr_u32(addr)[2] = htonl(0xFFFFFFFF))
 #else                           /*if no HAVE_IPV6 */
 
 #define ci_ipv4_inaddr_is_zero(addr) ((addr).s_addr==0)
 #define ci_ipv4_inaddr_are_equal(addr1,addr2) ((addr1).s_addr == (addr2).s_addr)
-#define ci_ipv4_inaddr_check_net(addr1,addr2,mask) (((addr1).s_addr & (mask).s_addr)==((addr2).s_addr & (mask).s_addr))
+#define ci_ipv4_inaddr_check_net(addr1,addr2,mask) (((addr1).s_addr & (mask).s_addr) == ((addr2).s_addr & (mask).s_addr))
 
 #define ci_ipv4_inaddr_hostnetmask(addr)((addr).s_addr=htonl(0xFFFFFFFF))
 #define ci_ipv4_inaddr_zero(addr) ((addr).s_addr=0)

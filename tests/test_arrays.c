@@ -129,7 +129,7 @@ int main(int argc,char *argv[])
         ci_debug_printf(1, "Test casting for vectors:");
         const char **p = ci_str_vector_cast_to_charchar(vect_str);
         const char **s;
-        for (s = p; *s!=NULL; s++) {
+        for (s = p; *s != NULL; s++) {
             ci_debug_printf(2, "from charchar value: %s\n", *s);
         }
         ci_str_vector_t *v = ci_str_vector_cast_from_charchar(p);

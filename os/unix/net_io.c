@@ -237,7 +237,7 @@ int ci_connection_set_nonblock(ci_connection_t *conn)
 
 /*
 int ci_wait_for_data(ci_socket fd,int secs,int what_wait){
-     fd_set fds,*rfds,*wfds;
+     fd_set fds, *rfds,*wfds;
      struct timeval tv;
      int ret;
 
@@ -249,18 +249,18 @@ int ci_wait_for_data(ci_socket fd,int secs,int what_wait){
      FD_ZERO(&fds);
      FD_SET(fd,&fds);
 
-     if(what_wait==wait_for_read){
+     if(what_wait == wait_for_read){
       rfds=&fds;
       wfds=NULL;
      }
      else{
-      wfds=&fds;
-      rfds=NULL;
+      wfds = &fds;
+      rfds = NULL;
      }
-     if((ret=select(fd+1,rfds,wfds,NULL,(secs>=0?&tv:NULL)))>0)
+     if((ret = select(fd+1, rfds, wfds, NULL,(secs >=0 ? &tv:NULL))) > 0)
       return 1;
 
-     if(ret<0){
+     if(ret < 0){
       ci_debug_printf(1,"Fatal error while waiting for new data....\n");
      }
      return 0;
@@ -487,23 +487,23 @@ int ci_hard_close(int fd)
 
 /*
 int readline(int fd,char *buf){
-     int i=0,readed=0;
+     int i = 0, readed = 0;
      char c,oc=0;
-     while((readed=icap_read(fd,&c,1))>0 && c!='\n'  && i<BUFSIZE ){
+     while((readed = icap_read(fd, &c, 1)) > 0 && c != '\n'  && i < BUFSIZE ){
       if(c=='\r'){
-           icap_read(fd,&c,1);
-           if(c=='\n')
+           icap_read(fd, &c, 1);
+           if(c == '\n')
             break;
-           buf[i++]='\r';
-           buf[i++]=c;
+           buf[i++] = '\r';
+           buf[i++] = c;
       }
       else
-           buf[i++]=c;
+           buf[i++] = c;
      }
-     buf[i]='\0';
-     if(i==BUFSIZE){
+     buf[i] = '\0';
+     if(i == BUFSIZE){
       ci_debug_printf("Readline error. Skip until eol ......\n");
-      while(icap_read(fd,&c,1)>0 && c!='\n');
+      while(icap_read(fd, &c, 1) > 0 && c!='\n');
      }
      return i;
      }

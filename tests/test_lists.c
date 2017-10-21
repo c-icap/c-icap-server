@@ -55,7 +55,7 @@ int check_obj(void *data, const void *obj)
         ci_debug_printf(1, "Empty data stored in list?\n");
         return -1;
     }
-    for (i=0; i < 62; i++) {
+    for (i = 0; i < 62; i++) {
         if (o->c != o->buf[i]) {
             ci_debug_printf(1, "Not valid data stored in list?\n");
             return -1;
@@ -150,12 +150,12 @@ int main(int argc,char *argv[])
         ci_debug_printf(1, "Add back the removed objects\n");
         k = 0;
         fill_obj(&o, 's');
-        for (i=0; i < 1024; i++) {
+        for (i = 0; i < 1024; i++) {
             ci_list_push(list, &o);
             k++;
         }
         fill_obj(&o, 'k');
-        for (i=0; i < 1024; i++) {
+        for (i = 0; i < 1024; i++) {
             ci_list_push_back(list, &o);
             k++;
         }
@@ -167,11 +167,11 @@ int main(int argc,char *argv[])
         ci_debug_printf(1, "Counted %d valid items\n", k);
 
         ci_debug_printf(1, "Remove 1024 from the head and 1024 from the tail\n");
-        for (i=0; i < 1024; i++) {
+        for (i = 0; i < 1024; i++) {
             if (!ci_list_pop(list, &o))
                 ci_debug_printf(1, "Not enough objects in list!\n");
         }
-        for (i=0; i < 1024; i++) {
+        for (i = 0; i < 1024; i++) {
             if (!ci_list_pop_back(list, &o))
                 ci_debug_printf(1, "Not enough objects in list!\n");
             k++;
@@ -228,7 +228,7 @@ int main(int argc,char *argv[])
     }
 
     /* Check removing items in list*/
-    for (k=0, c = 'a'; c <= 'c'; c++) {
+    for (k = 0, c = 'a'; c <= 'c'; c++) {
         for (i = 0; i < 3; i++) {
             fill_obj(&o, c);
             ci_list_push_back(list, &o);

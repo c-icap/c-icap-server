@@ -12,8 +12,8 @@
 #include <db.h>
 
 
-DB_ENV *env_db=NULL;
-DB *db=NULL;
+DB_ENV *env_db = NULL;
+DB *db = NULL;
 const ci_type_ops_t *key_ops = &ci_str_ops;
 const ci_type_ops_t *val_ops = &ci_str_ops;
 
@@ -75,7 +75,7 @@ int open_db(char *path)
     int ret;
     strncpy(home, path,CI_MAX_PATH);
     home[CI_MAX_PATH-1] = '\0';
-    s=strrchr(home,'/');
+    s = strrchr(home,'/');
     if (s)
         *s = '\0';
     else /*no path in filename?*/
@@ -159,20 +159,20 @@ int dump_db()
     }
 
     do {
-        printf("%s :", (char *)db_key.data );
+        printf("%s :", (char *)db_key.data);
         if (db_data.data) {
             store = db_data.data;
             store_index = store;
-            for (i=0; store_index[i]!=0; i++) {
+            for (i = 0; store_index[i] != 0; i++) {
                 store_index[i]+=(long int)store;
             }
-            for (i=0; store_index[i]!=0; i++) {
+            for (i = 0; store_index[i] != 0; i++) {
                 printf("%s |", (char *)store_index[i]);
             }
         }
         printf("\n");
         ret = dbc->c_get(dbc, &db_key, &db_data, DB_NEXT);
-    } while (ret==0);
+    } while (ret == 0);
 
     dbc->c_close(dbc);
     return 1;
@@ -193,17 +193,17 @@ int record_extract(char *line,
     *keysize = 0;
     *valsize = 0;
 
-    if (!(s=index(line,':'))) {
+    if (!(s = index(line,':'))) {
         row_cols = 1;
     } else {
         row_cols = 2;
-        while ((s=index(s,','))) row_cols++,s++;
+        while ((s = index(s,','))) row_cols++,s++;
     }
 
     /*eat spaces .....*/
-    s=line;
-    while (*s==' ' || *s == '\t') s++;
-    v=s;
+    s = line;
+    while (*s == ' ' || *s == '\t') s++;
+    v = s;
 
     if (*s == '#') /*it is a comment*/
         return 1;
@@ -211,19 +211,19 @@ int record_extract(char *line,
     if (*s == '\0') /*it is a blank line*/
         return 1;
 
-    if ( row_cols==1 )
-        e=s+strlen(s);
+    if (row_cols == 1)
+        e = s + strlen(s);
     else
-        e=index(s,':');
+        e = index(s,':');
 
-    s=e+1; /*Now points to the end (*s='\0') or after the ':' */
+    s = e+1; /*Now points to the end (*s = '\0') or after the ':' */
 
     e--;
-    while (*e==' ' || *e=='\t' || *e=='\n') e--;
-    *(e+1)='\0';
+    while (*e == ' ' || *e == '\t' || *e == '\n') e--;
+    *(e+1) = '\0';
 
     (*key) = key_ops->dup(v, allocator);
-    (*keysize)=key_ops->size(*key);
+    (*keysize) = key_ops->size(*key);
 
     if (row_cols > 1) {
 
@@ -246,20 +246,20 @@ int record_extract(char *line,
         store_value_size = 65535 - row_cols*sizeof(void *);
         (*valsize) = row_cols*sizeof(void *);
 
-        for (i=0; *s!='\0' && i< row_cols-1; i++) { /*we have vals*/
+        for (i = 0; *s != '\0' && i< row_cols-1; i++) { /*we have vals*/
 
-            while (*s==' ' || *s =='\t') s++; /*find the start of the string*/
+            while (*s == ' ' || *s =='\t') s++; /*find the start of the string*/
             v = s;
-            e=s;
-            while (*e!=',' && *e!='\0') e++;
-            if (*e=='\0')
+            e = s;
+            while (*e != ',' && *e != '\0') e++;
+            if (*e == '\0')
                 s = e;
             else
                 s = e + 1;
 
             e--;
-            while (*e == ' ' || *e == '\t' || *e=='\n') e--;
-            *(e+1)='\0';
+            while (*e == ' ' || *e == '\t' || *e == '\n') e--;
+            *(e+1) = '\0';
             avalue = val_ops->dup(v, allocator);
             avalue_size = val_ops->size(avalue);
 
@@ -408,7 +408,7 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    if ( DUMP_MODE ) {
+    if (DUMP_MODE) {
         dump_db();
     } else {
         if ((f = fopen(txtfile, "r+")) == NULL) {

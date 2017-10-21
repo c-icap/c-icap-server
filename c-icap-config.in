@@ -21,7 +21,7 @@ LIBS=@MODULES_LIBADD@
 LDFLAGS=""
 
 
-usage() 
+usage()
 {
    cat <<EOTXT
 Usage: c-icap-config [OPTIONS]

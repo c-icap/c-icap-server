@@ -174,11 +174,11 @@ int group_source_add(const char *table_name, int type)
     }
 
 
-    if (GROUPS_SOURCE==NULL)
+    if (GROUPS_SOURCE == NULL)
         GROUPS_SOURCE = gsrc;
     else {
         gsrc_indx = GROUPS_SOURCE;
-        while (gsrc_indx->next!=NULL)
+        while (gsrc_indx->next != NULL)
             gsrc_indx = gsrc_indx->next;
 
         gsrc_indx->next = gsrc;
@@ -219,7 +219,7 @@ int check_user_group(const char *user, const char *group)
     void *ret;
     int i;
     gsrc = GROUPS_SOURCE;
-    while (gsrc!=NULL) {
+    while (gsrc != NULL) {
         if (!gsrc->db) {
             ci_debug_printf(1,"The lookup-table in group source %s is not open!", gsrc->name);
             return 0;
@@ -227,7 +227,7 @@ int check_user_group(const char *user, const char *group)
         if (gsrc->type == INDEX_BY_USER) {
             ret = gsrc->db->search(gsrc->db, (char *)user, (void ***)&groups);
             if (ret) {
-                for (i=0; groups[i]!=NULL; i++) {
+                for (i = 0; groups[i] != NULL; i++) {
                     if (strcmp(group, groups[i]) == 0) {
                         gsrc->db->release_result(gsrc->db, (void **)groups);
                         return 1;
@@ -239,7 +239,7 @@ int check_user_group(const char *user, const char *group)
         } else {
             ret = gsrc->db->search(gsrc->db, (char *)group, (void ***)&users);
             if (ret) {
-                for (i=0; users[i]!=NULL; i++) {
+                for (i = 0; users[i] != NULL; i++) {
                     if (strcmp(user, users[i]) == 0) {
                         gsrc->db->release_result(gsrc->db, (void **)users);
                         return 1;
@@ -312,7 +312,7 @@ void free_user(ci_request_t *req, void *data)
 }
 
 
-ci_acl_type_t acl_group= {
+ci_acl_type_t acl_group = {
     "group",
     get_auth,
     free_user,
@@ -327,7 +327,7 @@ ci_acl_type_t acl_group= {
 void *get_auth(ci_request_t *req, char *param);
 void free_auth(ci_request_t *req,void *data);
 
-ci_acl_type_t acl_auth= {
+ci_acl_type_t acl_auth = {
     "auth",
     get_auth,
     free_auth,
@@ -526,7 +526,7 @@ int basic_simple_db_athenticate(struct http_basic_auth_data *data, const char *u
     if (!user_ret)
         return CI_ACCESS_DENY;
 
-    if (!pass || pass[0]=='\0') {
+    if (!pass || pass[0] == '\0') {
         if (data->http_pass[0] != '\0')
             ret = CI_ACCESS_DENY;
         else

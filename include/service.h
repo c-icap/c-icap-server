@@ -46,9 +46,9 @@ extern "C"
 
 #define MAX_SERVICE_NAME  63
 #define MAX_SERVICE_ARGS 255
-#define SRV_ISTAG_SIZE    39 /* contains the ISTag: field, the istag part 
+#define SRV_ISTAG_SIZE    39 /* contains the ISTag: field, the istag part
                  of server and the istag part of service (32+7) */
-#define SRV_ISTAG_POS     13 /* strlen("ISTAG: ")+6, 6 is the size of server 
+#define SRV_ISTAG_POS     13 /* strlen("ISTAG: ")+6, 6 is the size of server
                  part of istag */
 #define SERVICE_ISTAG_SIZE 26
 #define XINCLUDES_SIZE    511 /* it is enough I think ....*/

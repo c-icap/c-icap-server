@@ -47,10 +47,10 @@ CI_DECLARE_FUNC(int) mem_init()
         ret = 0;
 
     MEM_ALLOCATOR_POOL = ci_object_pool_register("ci_mem_allocator_t", sizeof(ci_mem_allocator_t));
-    assert(MEM_ALLOCATOR_POOL >=0);
+    assert(MEM_ALLOCATOR_POOL >= 0);
 
     PACK_ALLOCATOR_POOL = ci_object_pool_register("pack_allocator_t", sizeof_pack_allocator());
-    assert(PACK_ALLOCATOR_POOL >=0);
+    assert(PACK_ALLOCATOR_POOL >= 0);
 
     return ret;
 }
@@ -133,7 +133,7 @@ int ci_buffers_init()
     short_buffers[2] = short_buffers[3] = buf256_pool;
     short_buffers[4] = short_buffers[5] =
                            short_buffers[6] = short_buffers[7] = buf512_pool;
-    for (i=8; i<16; i++)
+    for (i = 8; i < 16; i++)
         short_buffers[i] = buf1024_pool;
 
     long_buffers[0] = buf2048_pool;
@@ -141,7 +141,7 @@ int ci_buffers_init()
     long_buffers[2] = long_buffers[3] = buf8192_pool;
     long_buffers[4] = long_buffers[5] =
                           long_buffers[6] = long_buffers[7] = buf16384_pool;
-    for (i=8; i<16; i++)
+    for (i = 8; i < 16; i++)
         long_buffers[i] = buf32768_pool;
 
     return 1;
@@ -166,7 +166,7 @@ int long_buffer_sizes[16] =  {
 void ci_buffers_destroy()
 {
     int i;
-    for (i=0; i<16; i++) {
+    for (i = 0; i < 16; i++) {
         if (short_buffers[i] != NULL)
             ci_mem_allocator_destroy(short_buffers[i]);
     }
@@ -182,7 +182,7 @@ void *ci_buffer_alloc(int block_size)
         block = short_buffers[type]->alloc(short_buffers[type], size);
     } else if (type < 512) {
         type = type >> 5;
-        if (long_buffers[type]!= NULL) {
+        if (long_buffers[type] != NULL) {
             block = long_buffers[type]->alloc(long_buffers[type], size);
         }
     }
@@ -217,7 +217,7 @@ size_t ci_buffer_blocksize(const void *data)
         buffer_block_size = short_buffer_sizes[type];
     } else if (type < 512) {
         type = type >> 5;
-        if (long_buffers[type]!= NULL) {
+        if (long_buffers[type] != NULL) {
             buffer_block_size = long_buffer_sizes[type];
         }
     }
@@ -283,7 +283,7 @@ void ci_buffer_free(void *data)
         ci_debug_printf(8, "Store buffer to short pool %d:%d\n", block_size, type);
     } else if (type < 512) {
         type = type >> 5;
-        if (long_buffers[type]!= NULL)
+        if (long_buffers[type] != NULL)
             long_buffers[type]->free(long_buffers[type], block);
         else
             free(block);
@@ -297,8 +297,8 @@ void ci_buffer_free(void *data)
 /*Object pools                                                     */
 #define OBJ_SIGNATURE 0x55AA
 ci_mem_allocator_t **object_pools = NULL;
-int object_pools_size=0;
-int object_pools_used=0;
+int object_pools_size = 0;
+int object_pools_used = 0;
 
 int ci_object_pools_init()
 {
@@ -308,7 +308,7 @@ int ci_object_pools_init()
 void ci_object_pools_destroy()
 {
     int i;
-    for (i=0; i< object_pools_used; i++) {
+    for (i = 0; i < object_pools_used; i++) {
         if (object_pools[i] != NULL)
             ci_mem_allocator_destroy(object_pools[i]);
     }
@@ -325,7 +325,7 @@ int ci_object_pool_register(const char *name, int size)
         object_pools_size = STEP;
         ID = 0;
     } else {
-        for (i=0; i<object_pools_used; i++)  {
+        for (i = 0; i < object_pools_used; i++)  {
             if (object_pools[i] == NULL) {
                 ID = i;
                 break;
@@ -802,19 +802,19 @@ static void *pool_allocator_alloc(ci_mem_allocator_t *allocator,size_t size)
     ci_thread_mutex_lock(&palloc->mutex);
 
     if (palloc->free) {
-        mem_item=palloc->free;
+        mem_item = palloc->free;
         palloc->free=palloc->free->next;
-        data=mem_item->data;
-        mem_item->data=NULL;
+        data = mem_item->data;
+        mem_item->data = NULL;
         palloc->hits_count++;
     } else {
         mem_item = malloc(sizeof(struct mem_block_item));
-        mem_item->data=NULL;
+        mem_item->data = NULL;
         data = malloc(palloc->items_size);
         palloc->alloc_count++;
     }
 
-    mem_item->next=palloc->allocated;
+    mem_item->next = palloc->allocated;
     palloc->allocated = mem_item;
 
     ci_thread_mutex_unlock(&palloc->mutex);
@@ -832,7 +832,7 @@ static void pool_allocator_free(ci_mem_allocator_t *allocator,void *p)
         /*Yes can happen! after a reset but users did not free all objects*/
         free(p);
     } else {
-        mem_item=palloc->allocated;
+        mem_item = palloc->allocated;
         palloc->allocated = palloc->allocated->next;
 
         mem_item->data = p;
@@ -850,7 +850,7 @@ static void pool_allocator_reset(ci_mem_allocator_t *allocator)
     ci_thread_mutex_lock(&palloc->mutex);
     if (palloc->allocated) {
         mem_item = palloc->allocated;
-        while (mem_item!=NULL) {
+        while (mem_item != NULL) {
             cur = mem_item;
             mem_item = mem_item->next;
             free(cur);
@@ -860,7 +860,7 @@ static void pool_allocator_reset(ci_mem_allocator_t *allocator)
     palloc->allocated = NULL;
     if (palloc->free) {
         mem_item = palloc->free;
-        while (mem_item!=NULL) {
+        while (mem_item != NULL) {
             cur = mem_item;
             mem_item = mem_item->next;
             free(cur->data);

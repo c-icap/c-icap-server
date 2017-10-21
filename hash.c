@@ -29,7 +29,7 @@ unsigned int ci_hash_compute(unsigned long hash_max_value, const void *key, int 
     int i;
 
     if (len) {
-        for (i=0; i<len; i++,s++)
+        for (i = 0; i<len; i++, s++)
             hash = ((hash << 5) + hash) + *s;
     } else
         while (*s) {
@@ -37,7 +37,7 @@ unsigned int ci_hash_compute(unsigned long hash_max_value, const void *key, int 
             s++;
         }
 
-    if (hash==0) hash++;
+    if (hash == 0) hash++;
     hash = hash & hash_max_value; /*Keep only the bits we need*/
     return hash;
 }
@@ -101,7 +101,7 @@ const void * ci_hash_search(struct ci_hash_table *htable,const void *key)
     while (e != NULL) {
         if (htable->ops->compare(e->key, key) == 0)
             return e->val;
-        e=e->hnext;
+        e = e->hnext;
     }
     return NULL;
 }
@@ -109,7 +109,7 @@ const void * ci_hash_search(struct ci_hash_table *htable,const void *key)
 void * ci_hash_add(struct ci_hash_table *htable, const void *key, const void *val)
 {
     struct ci_hash_entry *e;
-    unsigned int hash=ci_hash_compute(htable->hash_table_size, key, htable->ops->size(key));
+    unsigned int hash = ci_hash_compute(htable->hash_table_size, key, htable->ops->size(key));
     assert(hash <= htable->hash_table_size);
 
     e = htable->allocator->alloc(htable->allocator, sizeof(struct ci_hash_entry));
@@ -118,9 +118,9 @@ void * ci_hash_add(struct ci_hash_table *htable, const void *key, const void *va
         return NULL;
 
     e->hnext = NULL;
-    e->key=key;
-    e->val=val;
-    e->hash=hash;
+    e->key = key;
+    e->val = val;
+    e->hash = hash;
 
 //    if(htable->hash_table[hash])
 //  ci_debug_printf(9, "ci_hash_update:::Found %s\n", htable->hash_table[hash]->val);

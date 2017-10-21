@@ -978,7 +978,7 @@ static int get_send_body(ci_request_t * req, int parse_only)
         if (!req->data_locked && req->remain_send_block_bytes == 0) {
             if (update_send_status(req) == CI_ERROR)
                 return CI_ERROR;
-            // if(update_send_status==CI_EOF)/*earlier responce from icap server???...*/
+            // if(update_send_status == CI_EOF)/*earlier responce from icap server???...*/
         }
 
         /*Store lock status. If it is changed during module io, we need

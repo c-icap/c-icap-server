@@ -105,7 +105,7 @@ const ci_array_item_t * ci_array_add(ci_array_t *array, const char *name, const 
 const void * ci_array_search(ci_array_t *array, const char *name)
 {
     int i;
-    for (i=0; i < array->count; i++) {
+    for (i = 0; i < array->count; i++) {
         if (strcmp(array->items[i].name, name) == 0) {
             return array->items[i].value;
         }
@@ -116,7 +116,7 @@ const void * ci_array_search(ci_array_t *array, const char *name)
 void ci_array_iterate(const ci_array_t *array, void *data, int (*fn)(void *data, const char *name, const void *))
 {
     int i, ret = 0;
-    for (i=0; i < array->count && ret == 0; i++) {
+    for (i = 0; i < array->count && ret == 0; i++) {
         ret = (*fn)(data, array->items[i].name, array->items[i].value);
     }
 }
@@ -328,7 +328,7 @@ const void * ci_dyn_array_search(ci_dyn_array_t *array, const char *name)
 void ci_dyn_array_iterate(const ci_dyn_array_t *array, void *data, int (*fn)(void *data, const char *name, const void *value))
 {
     int i, ret = 0;
-    for (i=0; i < array->count && ret == 0; i++)
+    for (i = 0; i < array->count && ret == 0; i++)
         ret = (*fn)(data, array->items[i]->name, array->items[i]->value);
 }
 
@@ -451,7 +451,7 @@ void * ci_vector_pop(ci_vector_t *vector)
 void ci_vector_iterate(const ci_vector_t *vector, void *data, int (*fn)(void *data, const void *))
 {
     int i, ret = 0;
-    for (i=0; vector->items[i] != NULL && ret == 0; i++)
+    for (i = 0; vector->items[i] != NULL && ret == 0; i++)
         ret = (*fn)(data, vector->items[i]);
 }
 
@@ -465,7 +465,7 @@ void ci_str_vector_iterate(const ci_str_vector_t *vector, void *data, int (*fn)(
 const char * ci_str_vector_search(ci_str_vector_t *vector, const char *item)
 {
     int i;
-    for (i=0; vector->items[i] != NULL; i++) {
+    for (i = 0; vector->items[i] != NULL; i++) {
         if (strcmp(vector->items[i], item) == 0)
             return vector->items[i];
     }
@@ -777,7 +777,7 @@ void ci_list_sort2(ci_list_t *list, int (*cmp_func)(const void *obj1, const void
         currentSorted = &sortedHead;
         while (!(*currentSorted == NULL || cmp_func(currentHead->item, (*currentSorted)->item, list->obj_size) < 0))
             currentSorted = &(*currentSorted)->next;
-        currentHead->next  = *currentSorted;
+        currentHead->next = *currentSorted;
         *currentSorted = currentHead;
         if ((*currentSorted)->next == NULL)
             sortedTail = (*currentSorted);

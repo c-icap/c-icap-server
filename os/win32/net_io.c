@@ -153,7 +153,7 @@ int ci_wait_for_data(ci_socket fd,int secs,int what_wait){
      struct timeval tv;
      int ret;
 
-     if(secs>=0){
+     if(secs >= 0){
       tv.tv_sec=secs;
       tv.tv_usec=0;
      }
@@ -161,19 +161,19 @@ int ci_wait_for_data(ci_socket fd,int secs,int what_wait){
      FD_ZERO(&fds);
      FD_SET(fd,&fds);
 
-     if(what_wait==wait_for_read){
-      rfds=&fds;
-      wfds=NULL;
+     if(what_wait == wait_for_read){
+      rfds = &fds;
+      wfds = NULL;
      }
      else{
-      wfds=&fds;
-      rfds=NULL;
+      wfds = &fds;
+      rfds = NULL;
      }
-     if((ret=select(fd+1,rfds,wfds,NULL,(secs>=0?&tv:NULL)))>0)
+     if((ret = select(fd+1, rfds, wfds, NULL, (secs>=0?&tv:NULL))) > 0)
       return 1;
 
-     if(ret<0){
-      ci_debug_printf(1,"Fatal error while waiting for new data....\n");
+     if(ret < 0){
+      ci_debug_printf(1, "Fatal error while waiting for new data....\n");
      }
      return 0;
 }

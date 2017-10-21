@@ -43,7 +43,7 @@ static void _os_free(void *ptr)
 }
 
 void *(*__intl_malloc)(int) = _os_malloc;
-void (*__intl_free)(void *)  = _os_free;
+void (*__intl_free)(void *) = _os_free;
 
 
 /* struct buf functions*/
@@ -584,7 +584,7 @@ int parse_chunk_data(ci_request_t * req, char **wdata)
                     remains = req->pstrblock_read_len - (end - req->pstrblock_read);
                     if (remains >= 18 && strncmp(end, "use-original-body=", 18) == 0) {
                         req->i206_use_original_body = strtol(end + 18, &end, 10);
-                    } else if (remains >=4 && strncmp(end, "ieof", 4) != 0)
+                    } else if (remains >= 4 && strncmp(end, "ieof", 4) != 0)
                         return CI_ERROR;
                     // ignore any char after ';'
                     while (*end != '\r') ++end;
@@ -676,7 +676,7 @@ int net_data_read(ci_request_t * req)
         ci_debug_printf(5, "Error reading data (read return=%d, errno=%d) \n", bytes, errno);
         return CI_ERROR;
     }
-    req->pstrblock_read_len += bytes;  /* ... (size of data is readed plus old )... */
+    req->pstrblock_read_len += bytes;  /* ... (size of data is readed plus old)... */
     req->bytes_in += bytes;
     return CI_OK;
 }
@@ -770,14 +770,14 @@ static int client_create_request(ci_request_t * req, char *servername, char *ser
     ci_headers_add(req->request_header, buf);
 
     const char* useragent = NULL;
-    if ( CI_USER_AGENT ) {
-        if ( CI_USER_AGENT[0] )
+    if (CI_USER_AGENT) {
+        if (CI_USER_AGENT[0])
             useragent = CI_USER_AGENT;
     } else {
         useragent = CI_DEFAULT_USER_AGENT;
     }
 
-    if ( useragent ) {
+    if (useragent) {
         snprintf(buf, 255, "User-Agent: %s", useragent);
         ci_headers_add(req->request_header, buf);
     }
@@ -842,7 +842,7 @@ static ci_headers_list_t* get_headers_from_entities(ci_encaps_entity_t** entitie
 {
     ci_encaps_entity_t* e;
     while ((e = *entities++) != NULL) {
-        if ( e->type == type )
+        if (e->type == type)
             return (ci_headers_list_t*)(e->entity);
     }
     return NULL;
@@ -864,7 +864,7 @@ static int client_send_request_headers(ci_request_t * req, int has_eof)
         return CI_OK;
 
     ret = block_write_nonblock(req->connection, &req->pstrblock_responce, &req->remain_send_block_bytes, &req->bytes_out);
-    if ( ret != CI_OK )
+    if (ret != CI_OK)
         return ret;
 
     if (req->status == CLIENT_SEND_HEADERS_WRITE_ICAP_HEADERS) {
@@ -895,7 +895,7 @@ static int client_send_request_headers(ci_request_t * req, int has_eof)
             req->pstrblock_responce = req->wbuf;
             req->remain_send_block_bytes = bytes;
             return CI_NEEDS_MORE;
-        } else if ( req->preview == 0 ) {
+        } else if (req->preview == 0) {
             int bytes = sprintf(req->wbuf, "0\r\n\r\n");
             req->status = CLIENT_SEND_HEADERS_WRITE_EOF_INFO;
             req->pstrblock_responce = req->wbuf;
@@ -922,8 +922,8 @@ static int client_send_request_headers(ci_request_t * req, int has_eof)
         return CI_NEEDS_MORE;
     }
 
-    if ( req->status == CLIENT_SEND_HEADERS_WRITE_EOF_INFO ) {
-        if ( has_eof )
+    if (req->status == CLIENT_SEND_HEADERS_WRITE_EOF_INFO) {
+        if (has_eof)
             req->eof_sent = 1;
 
         req->status = CLIENT_PROCESS_DATA;
@@ -989,7 +989,7 @@ static int client_parse_encaps_header(ci_request_t * req, ci_headers_list_t * h,
     int remains, readed = 0;
     char *buf_end = NULL;
 
-//     readed=h->bufused;
+//     readed = h->bufused;
     remains = size - h->bufused;
     if (remains < 0)           /*is it possible ????? */
         return CI_ERROR;
@@ -1028,7 +1028,7 @@ int ci_client_get_server_options_nonblocking(ci_request_t * req)
 {
     int ret, i;
 
-    if ( req->status == CLIENT_INIT ) {
+    if (req->status == CLIENT_INIT) {
         if (CI_OK != client_create_request(req, req->req_server,
                                            req->service, ICAP_OPTIONS)) {
             return CI_ERROR;
@@ -1036,11 +1036,11 @@ int ci_client_get_server_options_nonblocking(ci_request_t * req)
         req->status = CLIENT_SEND_HEADERS;
     }
 
-    if ( req->status >= CLIENT_SEND_HEADERS && req->status < CLIENT_SEND_HEADERS_FINISHED) {
+    if (req->status >= CLIENT_SEND_HEADERS && req->status < CLIENT_SEND_HEADERS_FINISHED) {
         ret = client_send_request_headers(req, 0);
-        if ( ret == CI_NEEDS_MORE )
+        if (ret == CI_NEEDS_MORE)
             return NEEDS_TO_WRITE_TO_ICAP;
-        else if ( ret == CI_ERROR )
+        else if (ret == CI_ERROR)
             return CI_ERROR;
 
         req->status = CLIENT_SEND_HEADERS_FINISHED;
@@ -1055,15 +1055,15 @@ int ci_client_get_server_options_nonblocking(ci_request_t * req)
         return NEEDS_TO_READ_FROM_ICAP;
     }
 
-    if ( req->status >= CLIENT_PROCESS_DATA ) {
+    if (req->status >= CLIENT_PROCESS_DATA) {
         if (net_data_read(req) == CI_ERROR)
             return CI_ERROR;
 
         ret = client_parse_icap_header(req, req->response_header);
 
-        if ( ret == CI_NEEDS_MORE )
+        if (ret == CI_NEEDS_MORE)
             return NEEDS_TO_READ_FROM_ICAP;
-        else if ( ret == CI_ERROR )
+        else if (ret == CI_ERROR)
             return CI_ERROR;
         ci_headers_unpack(req->response_header);
         get_request_options(req, req->response_header);
@@ -1081,10 +1081,10 @@ int ci_client_get_server_options(ci_request_t * req, int timeout)
             return CI_ERROR;
 
         wait = 0;
-        if ( status & NEEDS_TO_READ_FROM_ICAP )
+        if (status & NEEDS_TO_READ_FROM_ICAP)
             wait |= ci_wait_for_read;
 
-        if ( status & NEEDS_TO_WRITE_TO_ICAP )
+        if (status & NEEDS_TO_WRITE_TO_ICAP)
             wait |= ci_wait_for_write;
 
         if (wait) {
@@ -1151,7 +1151,7 @@ static int client_parse_incoming_data(ci_request_t * req, void *data_dest,
         ret = client_parse_icap_header(req, req->response_header);
         if (ret != CI_OK)
             return ret;
-        if ( 3 != sscanf(req->response_header->buf, "ICAP/%d.%d %3d", &v1, &v2, &status) )
+        if (3 != sscanf(req->response_header->buf, "ICAP/%d.%d %3d", &v1, &v2, &status))
             return CI_ERROR;
         req->return_code = status;
         ci_debug_printf(3, "Response was with status:%d \n", status);
@@ -1272,7 +1272,7 @@ static int ci_client_send_and_get_data(ci_request_t * req,
 
     if (io_action_in & ci_wait_for_write) {
         if (req->remain_send_block_bytes == 0) {
-            if ( !req->eof_sent && data_source ) {
+            if (!req->eof_sent && data_source) {
                 switch (client_prepere_body_chunk(req, data_source, source_read)) {
                 case CI_ERROR:
                     return CI_ERROR;
@@ -1287,7 +1287,7 @@ static int ci_client_send_and_get_data(ci_request_t * req,
                 }
             }
         }
-        if ( req->remain_send_block_bytes > 0 ) {
+        if (req->remain_send_block_bytes > 0) {
             bytes = ci_connection_write_nonblock(req->connection,
                                                  req->pstrblock_responce,
                                                  req->remain_send_block_bytes);
@@ -1362,10 +1362,10 @@ static int ci_client_handle_previewed_response(ci_request_t * req, int *preview_
         return CI_ERROR;
 
     ret = client_parse_icap_header(req, req->response_header);
-    if ( ret != CI_OK )
+    if (ret != CI_OK)
         return ret;
 
-    if ( 3 != sscanf(req->response_header->buf, "ICAP/%d.%d %3d", &v1, &v2, preview_status) )
+    if (3 != sscanf(req->response_header->buf, "ICAP/%d.%d %3d", &v1, &v2, preview_status))
         return CI_ERROR;
 
     ci_debug_printf(3, "Preview response was with status: %d \n",
@@ -1417,7 +1417,7 @@ static int prepare_headers(ci_request_t * req,
             ret = (*source_read) (data_source, buf, remains);
             if (ret == CI_EOF || ret == 0)
                 pre_eof = 1;
-            else if ( ret < 0 )
+            else if (ret < 0)
                 return ret;
             else
                 remains -= ret;
@@ -1462,21 +1462,21 @@ int ci_client_icapfilter_nonblocking(ci_request_t * req, int io_action,
 {
     int ret, preview_status, i;
 
-    if ( req->status == CLIENT_INIT ) {
+    if (req->status == CLIENT_INIT) {
         ret = prepare_headers(req, req_headers, resp_headers,
                               data_source, source_read);
-        if ( ret == CI_NEEDS_MORE )
+        if (ret == CI_NEEDS_MORE)
             return NEEDS_TO_READ_USER_DATA;
-        if ( ret != CI_OK )
+        if (ret != CI_OK)
             return ret;
         req->status = CLIENT_SEND_HEADERS;
     }
 
-    if ( req->status >= CLIENT_SEND_HEADERS && req->status < CLIENT_SEND_HEADERS_FINISHED) {
+    if (req->status >= CLIENT_SEND_HEADERS && req->status < CLIENT_SEND_HEADERS_FINISHED) {
         ret = client_send_request_headers(req, req->eof_sent);
-        if ( ret == CI_NEEDS_MORE )
+        if (ret == CI_NEEDS_MORE)
             return NEEDS_TO_WRITE_TO_ICAP;
-        else if ( ret == CI_ERROR )
+        else if (ret == CI_ERROR)
             return CI_ERROR;
 
         req->status = CLIENT_SEND_HEADERS_FINISHED;
@@ -1494,12 +1494,12 @@ int ci_client_icapfilter_nonblocking(ci_request_t * req, int io_action,
             req->status = CLIENT_PROCESS_DATA;
     }
 
-    if ( req->preview >= 0 && req->status == CLIENT_READ_PREVIEW_RESPONSE ) {
+    if (req->preview >= 0 && req->status == CLIENT_READ_PREVIEW_RESPONSE) {
         preview_status = 100;
         ret = ci_client_handle_previewed_response(req, &preview_status);
-        if ( ret == CI_NEEDS_MORE )
+        if (ret == CI_NEEDS_MORE)
             return NEEDS_TO_READ_FROM_ICAP;
-        else if ( ret == CI_ERROR )
+        else if (ret == CI_ERROR)
             return CI_ERROR;
 
         req->return_code = preview_status;
@@ -1510,7 +1510,7 @@ int ci_client_icapfilter_nonblocking(ci_request_t * req, int io_action,
             return NEEDS_TO_WRITE_TO_ICAP;
     }
 
-    if ( req->status >= CLIENT_PROCESS_DATA ) {
+    if (req->status >= CLIENT_PROCESS_DATA) {
         ret = ci_client_send_and_get_data(req, data_source, source_read,
                                           data_dest, dest_write, io_action);
         return ret;
@@ -1530,7 +1530,7 @@ int ci_client_icapfilter(ci_request_t * req, int timeout,
     for (;;) {
         int ret = ci_client_icapfilter_nonblocking(req, io_action, req_headers, resp_headers,
                   data_source, source_read, data_dest, dest_write);
-        if (ret < 0 )
+        if (ret < 0)
             return CI_ERROR;
 
         if (ret == 0)
@@ -1546,7 +1546,7 @@ int ci_client_icapfilter(ci_request_t * req, int timeout,
         if (wait != 0) {
             do {
                 io_action = ci_connection_wait(req->connection, timeout, wait);
-                if (io_action <= 0 )
+                if (io_action <= 0)
                     return CI_ERROR;
             } while (io_action & ci_wait_should_retry);
         } /*Else probably NEEDS_TO_READ_USER_DATA|NEEDS_TO_WRITE_USER_DATA*/

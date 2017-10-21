@@ -50,7 +50,7 @@ extern "C"
  * body data to the ICAP client.
  \param req is pointer to an object of type ci_request_t
  */
-#define ci_req_lock_data(req) ((req)->data_locked=1)
+#define ci_req_lock_data(req) ((req)->data_locked = 1)
 
 /**
  \def ci_req_unlock_data(ci_request_t)
@@ -59,7 +59,7 @@ extern "C"
  * sending body data to the ICAP client.
  \param req is pointer to an object of type ci_request_t
  */
-#define ci_req_unlock_data(req) ((req)->data_locked=0)
+#define ci_req_unlock_data(req) ((req)->data_locked = 0)
 
 /**
  \def ci_req_hasbody(ci_request_t)
@@ -152,7 +152,7 @@ CI_DECLARE_FUNC(int) ci_base64_decode(const char *str,char *result,int len);
 CI_DECLARE_FUNC(int) ci_base64_encode(const unsigned char *data, size_t datalen, char *out, size_t outlen);
 
 enum {
-    CI_ENCODE_NONE=0,
+    CI_ENCODE_NONE = 0,
     CI_ENCODE_GZIP,
     CI_ENCODE_DEFLATE,
     CI_ENCODE_BZIP2,

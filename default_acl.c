@@ -101,8 +101,8 @@ int cfg_default_acl_add(const char *directive, const char **argv, void *setdata)
 
 int cfg_default_acl_access(const char *directive, const char **argv, void *setdata)
 {
-    int type, argc, error=0;
-    int only_connection =0;
+    int type, argc, error = 0;
+    int only_connection = 0;
     const char *acl_spec_name;
     ci_access_entry_t **tolist,*access_entry;
     const ci_acl_spec_t *acl_spec;
@@ -113,10 +113,10 @@ int cfg_default_acl_access(const char *directive, const char **argv, void *setda
         return 0;
     }
 
-    if (strcmp("client_access", directive)==0) {
+    if (strcmp("client_access", directive) == 0) {
         tolist = &acl_connection_access_list;
         only_connection = 1;
-    } else if (strcmp("icap_access", directive)==0) {
+    } else if (strcmp("icap_access", directive) == 0) {
         tolist = &acl_access_list;
     } else
         return 0;

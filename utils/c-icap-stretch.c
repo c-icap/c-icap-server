@@ -55,7 +55,7 @@ int DoReqmod = 0;
 int DoTransparent = 0;
 #define MAX_URLS 32768
 char *URLS[MAX_URLS];
-int URLS_COUNT=0;
+int URLS_COUNT = 0;
 
 time_t START_TIME = 0;
 int FILES_NUMBER = 0;
@@ -166,7 +166,7 @@ int load_urls(char *filename)
         return 0;
     }
 
-    while (fgets(line,URL_SIZE,f)!= NULL && URLS_COUNT != MAX_URLS) {
+    while (fgets(line,URL_SIZE,f) != NULL && URLS_COUNT != MAX_URLS) {
         line[strlen(line)-1] = '\0';
         str_trim(line);
         if (line[0] != '#' && line[0] != '\0') {
@@ -269,7 +269,7 @@ int do_req(ci_request_t *req, char *url, int *keepalive, int transparent)
     headers = ci_headers_create();
 
     if (transparent) {
-        if ((s = strchr(url, '/'))!= NULL) {
+        if ((s = strchr(url, '/')) != NULL) {
             strncpy(host, url, 512 > (s-url) ? (s-url): 512);
             host[512 > (s-url) ? (s-url): 511] = '\0';
             strncpy(path, s, 512);
@@ -315,7 +315,7 @@ int do_req(ci_request_t *req, char *url, int *keepalive, int transparent)
                                (int (*)(void *, char *, int)) filewrite);
 
 
-    if (ret <=0 && req->bytes_out == 0 ) {
+    if (ret <=0 && req->bytes_out == 0) {
         ci_debug_printf(2, "Is the ICAP connection  closed?\n");
         *keepalive = 0;
         return 0;
@@ -327,7 +327,7 @@ int do_req(ci_request_t *req, char *url, int *keepalive, int transparent)
         return -1;
     }
 
-    *keepalive=req->keepalive;
+    *keepalive = req->keepalive;
 
     ci_headers_destroy(headers);
 
@@ -345,7 +345,7 @@ int threadjobreqmod()
     ci_connection_t *conn;
     char *xh;
     int indx, keepalive, ret;
-    int arand=0, p;
+    int arand = 0, p;
     while (!_THE_END) {
 
         if (!(conn = ci_connect_to(servername, PORT, 0, CONN_TIMEOUT))) {
@@ -452,7 +452,7 @@ int do_file(ci_request_t *req, char *input_file, int *keepalive)
                                (int (*)(void *, char *, int)) filewrite);
     close(fd_in);
 
-    if (ret <=0 && req->bytes_out == 0 ) {
+    if (ret <=0 && req->bytes_out == 0) {
         ci_debug_printf(2, "Is the ICAP connection  closed?\n");
         *keepalive = 0;
         return 0;
@@ -464,7 +464,7 @@ int do_file(ci_request_t *req, char *input_file, int *keepalive)
         return -1;
     }
 
-    *keepalive=req->keepalive;
+    *keepalive = req->keepalive;
 
     ci_headers_destroy(headers);
     // printf("Done(%d bytes).\n",totalbytes);
@@ -634,7 +634,7 @@ int add_xclient_headers(const char *directive, const char **argv, void *setdata)
     /*I am expecting something like this:
       192.168.1.1-15
      */
-    s= ip;
+    s = ip;
     ip1 = strtol(s, &e, 10);
     if (*e != '.')
         return 0;
@@ -643,18 +643,18 @@ int add_xclient_headers(const char *directive, const char **argv, void *setdata)
     ip2 = strtol(s, &e, 10);
     if (*e != '.')
         return 0;
-    s= e+1;
+    s = e+1;
     ip3 =  strtol(s, &e, 10);
     if (*e != '.')
         return 0;
-    s= e+1;
+    s = e+1;
     ip4_start =  strtol(s, &e, 10);
     if (*e == '-') {
-        s= e+1;
+        s = e+1;
         ip4_end =  strtol(s, &e, 10);
     } else
         ip4_end = ip4_start;
-    for (i=ip4_start; i<= ip4_end; i++) {
+    for (i = ip4_start; i <= ip4_end; i++) {
         sprintf(buf, "X-Client-IP: %d.%d.%d.%d", ip1, ip2,ip3,i);
         xclient_headers[xclient_headers_num++] = strdup(buf);
     }

@@ -46,12 +46,12 @@ int stat_entry_add(struct stat_entry_list *list,const char *label, int type, int
         return -1;
 
     indx = stat_entry_by_name(list, label);
-    if (indx >=0 )
+    if (indx >= 0 )
         return indx;
 
     if (list->size == list->entries_num) {
 
-        if (list->size==0) {
+        if (list->size == 0) {
             list->entries = malloc(STEP*sizeof(struct stat_entry));
             if (!list->entries)
                 return -1;
@@ -76,7 +76,7 @@ void stat_entry_release_list(struct stat_entry_list *list)
     int i;
     if (!list->entries)
         return;
-    for (i=0; i<list->entries_num; i++)
+    for (i = 0; i < list->entries_num; i++)
         free(list->entries[i].label);
     free(list->entries);
     list->entries = NULL;
@@ -90,7 +90,7 @@ int stat_entry_by_name(struct stat_entry_list *list, const char *label)
     if (!list->entries)
         return -1;
 
-    for (i=0; i<list->entries_num; i++)
+    for (i = 0; i < list->entries_num; i++)
         if (strcmp(label, list->entries[i].label) == 0) return i;
 
     return -1;
@@ -99,7 +99,7 @@ int stat_entry_by_name(struct stat_entry_list *list, const char *label)
 int stat_group_add(char *group)
 {
     char **group_list;
-    int gid =0;
+    int gid = 0;
 
     for (gid = 0; gid < STAT_GROUPS.entries_num; gid++) {
         if (strcmp(STAT_GROUPS.groups[gid], group) == 0)
@@ -166,7 +166,7 @@ void ci_stat_uint64_inc(int ID, int count)
 {
     if (!STATS || !STATS->mem_block)
         return;
-    if (ID<0 || ID>=STATS->mem_block->counters64_size)
+    if (ID < 0 || ID >= STATS->mem_block->counters64_size)
         return;
     ci_thread_mutex_lock(&STATS->mtx);
     STATS->mem_block->counters64[ID] += count;
@@ -178,7 +178,7 @@ void ci_stat_kbs_inc(int ID, int count)
     if (!STATS->mem_block)
         return;
 
-    if (ID<0 || ID>=STATS->mem_block->counterskbs_size)
+    if (ID < 0 || ID >= STATS->mem_block->counterskbs_size)
         return;
 
     ci_thread_mutex_lock(&STATS->mtx);
@@ -220,9 +220,9 @@ void ci_stat_area_reset(struct stat_area *area)
     int i;
 
     ci_thread_mutex_lock(&(area->mtx));
-    for (i=0; i<area->mem_block->counters64_size; i++)
+    for (i = 0; i < area->mem_block->counters64_size; i++)
         area->mem_block->counters64[i] = 0;
-    for (i=0; i<area->mem_block->counterskbs_size; i++) {
+    for (i = 0; i < area->mem_block->counterskbs_size; i++) {
         area->mem_block->counterskbs[i].kb = 0;
         area->mem_block->counterskbs[i].bytes = 0;
     }
@@ -243,7 +243,7 @@ void ci_stat_area_uint64_inc(struct stat_area *area,int ID, int count)
 {
     if (!area->mem_block)
         return;
-    if (ID<0 || ID>=area->mem_block->counters64_size)
+    if (ID < 0 || ID >= area->mem_block->counters64_size)
         return;
     ci_thread_mutex_lock(&area->mtx);
     area->mem_block->counters64[ID] += count;
@@ -256,7 +256,7 @@ void ci_stat_area_kbs_inc(struct stat_area *area,int ID, int count)
     if (!area->mem_block)
         return;
 
-    if (ID<0 || ID>=area->mem_block->counterskbs_size)
+    if (ID < 0 || ID >= area->mem_block->counterskbs_size)
         return;
 
     ci_thread_mutex_lock(&area->mtx);
@@ -289,9 +289,9 @@ void stat_memblock_reconstruct(struct stat_memblock *mem_block)
 void ci_stat_memblock_reset(struct stat_memblock *block)
 {
     int i;
-    for (i=0; i<block->counters64_size; i++)
+    for (i = 0; i < block->counters64_size; i++)
         block->counters64[i] = 0;
-    for (i=0; i<block->counterskbs_size; i++) {
+    for (i = 0; i < block->counterskbs_size; i++) {
         block->counterskbs[i].kb = 0;
         block->counterskbs[i].bytes = 0;
     }
@@ -303,10 +303,10 @@ void ci_stat_memblock_merge(struct stat_memblock *dest_block, struct stat_memblo
     if (!dest_block || !mem_block)
         return;
 
-    for (i=0; i<dest_block->counters64_size && i<mem_block->counters64_size; i++)
+    for (i = 0; i < dest_block->counters64_size && i < mem_block->counters64_size; i++)
         dest_block->counters64[i] += mem_block->counters64[i];
 
-    for (i=0; i<dest_block->counterskbs_size && i<mem_block->counterskbs_size; i++) {
+    for (i = 0; i < dest_block->counterskbs_size && i < mem_block->counterskbs_size; i++) {
         dest_block->counterskbs[i].kb += mem_block->counterskbs[i].kb;
         dest_block->counterskbs[i].bytes += mem_block->counterskbs[i].bytes;
         dest_block->counterskbs[i].kb += (dest_block->counterskbs[i].bytes >> 10);

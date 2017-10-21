@@ -63,7 +63,7 @@ typedef struct ci_cache {
     // If dup_from_cache is NULL return a ci_buffer object
     const void * (*search)(struct ci_cache *cache, const void *key, void **val, void *data, void *(*dup_from_cache)(const void *stored_val, size_t stored_val_size, void *data));
 
-    // buf is of size val_size and buf_size==val_size
+    // buf is of size val_size and buf_size == val_size
     int (*update)(struct ci_cache *cache, const void *key, const void *val, size_t val_size, void *(*copy_to_cache)(void *buf, const void *val, size_t buf_size));
     void (*destroy)(struct ci_cache *cache);
 

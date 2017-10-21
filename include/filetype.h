@@ -67,12 +67,12 @@ struct ci_magics_db {
     DECLARE_ARRAY(magics,struct ci_magic)
 };
 
-#define ci_magic_types_num(db) (db!=NULL?db->types_num:0)
-#define ci_magic_groups_num(db)(db!=NULL?db->groups_num:0)
-#define ci_data_type_name(db,i)(db!=NULL?db->types[i].name:NULL)
-#define ci_data_type_groups(db,i)(db!=NULL && i< db->types_num && i >=0?db->types[i].groups:NULL)
-#define ci_data_type_descr(db,i)(db!=NULL && i< db->types_num && i >=0?db->types[i].descr:NULL)
-#define ci_data_group_name(db,i)(db!=NULL && i< db->groups_num && i >=0?db->groups[i].name:NULL)
+#define ci_magic_types_num(db) (db != NULL?db->types_num:0)
+#define ci_magic_groups_num(db)(db != NULL?db->groups_num:0)
+#define ci_data_type_name(db,i)(db != NULL?db->types[i].name:NULL)
+#define ci_data_type_groups(db,i)(db != NULL && i < db->types_num && i >= 0?db->types[i].groups:NULL)
+#define ci_data_type_descr(db,i)(db != NULL && i < db->types_num && i >= 0?db->types[i].descr:NULL)
+#define ci_data_group_name(db,i)(db != NULL && i < db->groups_num && i >= 0?db->groups[i].name:NULL)
 
 enum {CI_ASCII_DATA,CI_ISO8859_DATA,CI_XASCII_DATA,CI_UTF_DATA,CI_HTML_DATA,CI_BIN_DATA};
 enum {CI_TEXT_DATA,CI_OCTET_DATA};

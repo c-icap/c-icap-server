@@ -66,7 +66,7 @@
 /*
  The 64 bit data models as described by wikipedia are:
    Data model       short  int      long   long long      pointers/size_t
-   LLP64             16    32       32       64                64 
+   LLP64             16    32       32       64                64
    LP64              16    32       64       64                64
    ILP64             16    64       64       64                64
    SILP64            64    64       64       64                64
@@ -74,7 +74,7 @@
  On most 32bit and 64bit unix machines, 'short' is always 16bit, 'int' is 32bit
  long is 32bit or 64bit respectively and long long is always 64bit.
  We are going to define:
-      off_t as long on 32bit machines and long long on 64bit (sizeof(void*)==8) 
+      off_t as long on 32bit machines and long long on 64bit (sizeof(void*)==8)
       size_t as long on 32bit machines and long long on 64bit
 
   The c-icap should not use int32_t/uint32_t/int16_t/uint16_t types
@@ -90,7 +90,7 @@ typedef long long off_t;
 #elif CI_SIZEOF_VOID_P == 4
 typedef long off_t;
 #define CI_SIZEOF_OFF_T 4
-#else 
+#else
 #error "Unhandled size of void *"
 #endif
 #else /*if @DEFINE_OFF_T@*/
@@ -103,7 +103,7 @@ typedef long off_t;
 typedef unsigned long long size_t;
 #elif SIZEOF_VOID_P == 4
 typedef unsigned int size_t;
-#else 
+#else
 #error "Unhandled size of void *"
 #endif
 #endif

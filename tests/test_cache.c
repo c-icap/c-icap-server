@@ -18,7 +18,7 @@ int load_module(const char *directive,const char **argv,void *setdata)
     CI_DLIB_HANDLE lib;
     common_module_t *module;
 
-    if (argv== NULL || argv[0]== NULL)
+    if (argv == NULL || argv[0] == NULL)
         return 0;
 
     lib = ci_module_load(argv[0],"./");
@@ -151,13 +151,13 @@ int main(int argc,char *argv[])
     ci_str_vector_destroy(vect_str);
 
     if (ci_cache_search(cache, "vect1", (void **)&vect_str,  NULL, &ci_cache_read_vector_val)) {
-        for (i=0; vect_str && vect_str->items[i] != NULL; i++)
+        for (i = 0; vect_str && vect_str->items[i] != NULL; i++)
             printf("Vector item %d:%s \n", i, (char *)vect_str->items[i]);
         ci_str_vector_destroy(vect_str);
     }
 
     if (ci_cache_search(cache, "vect2", (void **)&vect_str, NULL, &ci_cache_read_vector_val)) {
-        for (i=0; vect_str && vect_str->items[i] != NULL; i++)
+        for (i = 0; vect_str && vect_str->items[i] != NULL; i++)
             printf("Vector item %d:%s \n", i, (char *)vect_str->items[i]);
         ci_str_vector_destroy(vect_str);
     }

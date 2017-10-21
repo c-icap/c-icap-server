@@ -50,13 +50,13 @@ extern "C"
 
 //enum REQUEST_STATUS { WAIT,SERVED };
 
-enum GETDATA_STATUS {GET_NOTHING=0,GET_HEADERS,GET_PREVIEW,GET_BODY,GET_EOF};
-enum SENDDATA_STATUS {SEND_NOTHING=0, SEND_RESPHEAD, SEND_HEAD1, SEND_HEAD2, SEND_HEAD3, SEND_BODY, SEND_EOF };
+enum GETDATA_STATUS {GET_NOTHING = 0,GET_HEADERS,GET_PREVIEW,GET_BODY,GET_EOF};
+enum SENDDATA_STATUS {SEND_NOTHING = 0, SEND_RESPHEAD, SEND_HEAD1, SEND_HEAD2, SEND_HEAD3, SEND_BODY, SEND_EOF };
 
-/*enum BODY_RESPONCE_STATUS{ CHUNK_DEF=1,CHUNK_BODY,CHUNK_END};*/
+/*enum BODY_RESPONCE_STATUS{ CHUNK_DEF = 1,CHUNK_BODY,CHUNK_END};*/
 
 enum CLIENT_STATUS {
-    CLIENT_INIT=0,
+    CLIENT_INIT = 0,
     CLIENT_SEND_HEADERS,
     CLIENT_SEND_HEADERS_WRITE_NOTHING = CLIENT_SEND_HEADERS,
     CLIENT_SEND_HEADERS_WRITE_ICAP_HEADERS,
@@ -179,8 +179,8 @@ typedef struct ci_request {
     ci_ip_t xclient_ip;
 } ci_request_t;
 
-#define lock_data(req) (req->data_locked=1)
-#define unlock_data(req) (req->data_locked=0)
+#define lock_data(req) (req->data_locked = 1)
+#define unlock_data(req) (req->data_locked = 0)
 
 /*This functions needed in server (mpmt_server.c ) */
 ci_request_t *newrequest(ci_connection_t *connection);

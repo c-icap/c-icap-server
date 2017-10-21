@@ -37,7 +37,7 @@ void *ldap_table_search(struct ci_lookup_table *table, void *key, void ***vals);
 void  ldap_table_release_result(struct ci_lookup_table *table_data,void **val);
 const void *ldap_table_get_row(struct ci_lookup_table *table, const void *key, const char *columns[], void ***vals);
 
-struct ci_lookup_table_type ldap_table_type= {
+struct ci_lookup_table_type ldap_table_type = {
     ldap_table_open,
     ldap_table_close,
     ldap_table_search,
@@ -46,7 +46,7 @@ struct ci_lookup_table_type ldap_table_type= {
     "ldap"
 };
 
-struct ci_lookup_table_type ldaps_table_type= {
+struct ci_lookup_table_type ldaps_table_type = {
     ldap_table_open,
     ldap_table_close,
     ldap_table_search,
@@ -55,7 +55,7 @@ struct ci_lookup_table_type ldaps_table_type= {
     "ldaps"
 };
 
-struct ci_lookup_table_type ldapi_table_type= {
+struct ci_lookup_table_type ldapi_table_type = {
     ldap_table_open,
     ldap_table_close,
     ldap_table_search,
@@ -130,7 +130,7 @@ static int init_ldap_pools()
 static void release_ldap_pools()
 {
     struct ldap_connections_pool *pool;
-    while ((pool=ldap_pools) != NULL) {
+    while ((pool = ldap_pools) != NULL) {
         ldap_pools = ldap_pools->next;
         ldap_pool_destroy(pool);
     }
@@ -258,7 +258,7 @@ static LDAP *ldap_connection_open(struct ldap_connections_pool *pool)
     struct berval ldap_passwd, *servercred;
     int ret;
     char *ldap_user;
-    if (ci_thread_mutex_lock(&pool->mutex)!=0)
+    if (ci_thread_mutex_lock(&pool->mutex) != 0)
         return NULL;
     do {
         if (pool->inactive) {
@@ -288,7 +288,7 @@ static LDAP *ldap_connection_open(struct ldap_connections_pool *pool)
 #endif
 
 
-    conn=malloc(sizeof(struct ldap_connection));
+    conn = malloc(sizeof(struct ldap_connection));
     if (!conn)
     {
 #ifdef LDAP_MAX_CONNECTIONS
@@ -370,7 +370,7 @@ static LDAP *ldap_connection_open(struct ldap_connections_pool *pool)
 static int ldap_connection_release(struct ldap_connections_pool *pool, LDAP *ldap, int close_connection)
 {
     struct ldap_connection *cur,*prev;
-    if (ci_thread_mutex_lock(&pool->mutex)!=0)
+    if (ci_thread_mutex_lock(&pool->mutex) != 0)
         return 0;
 
     for (prev = NULL, cur = pool->used; cur != NULL;
@@ -438,11 +438,11 @@ static int parse_ldap_str(struct ldap_table_data *fields)
         return 0;
 
     /*Extract username/password if exists*/
-    if ((e=strrchr(s, '@')) != NULL) {
+    if ((e = strrchr(s, '@')) != NULL) {
         fields->user = s;
         *e = '\0';
         s = e + 1;
-        if ((e=strchr(fields->user, ':')) != NULL) {
+        if ((e = strchr(fields->user, ':')) != NULL) {
             *e = '\0';
             fields->password = e + 1;
             ci_str_trim(fields->password);
@@ -502,7 +502,7 @@ static int parse_ldap_str(struct ldap_table_data *fields)
     *s = '\0';
 
     fields->attrs[i] = NULL;
-    for (i=0; fields->attrs[i] != NULL; i++)
+    for (i = 0; fields->attrs[i] != NULL; i++)
         ci_str_trim(fields->attrs[i]);
 
     s++;
@@ -676,7 +676,7 @@ void *ldap_table_search(struct ci_lookup_table *table, void *key, void ***vals)
     BerElement *aber;
     LDAP *ld;
     struct berval **attrs;
-    void *return_value=NULL;
+    void *return_value = NULL;
     char *attrname;
     int ret = 0, failures, i;
     ci_str_vector_t  *vect = NULL;

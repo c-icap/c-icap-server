@@ -26,7 +26,7 @@ void  bdb_table_close(struct ci_lookup_table *table);
 void *bdb_table_search(struct ci_lookup_table *table, void *key, void ***vals);
 void  bdb_table_release_result(struct ci_lookup_table *table_data,void **val);
 
-struct ci_lookup_table_type bdb_table_type= {
+struct ci_lookup_table_type bdb_table_type = {
     bdb_table_open,
     bdb_table_close,
     bdb_table_search,
@@ -81,7 +81,7 @@ int bdb_table_do_real_open(struct ci_lookup_table *table)
     if (s)
         *s = '\0';
     else /*no path in filename?*/
-        home[0]='\0';
+        home[0] = '\0';
 
     if (table->args) {
         if ((args = ci_parse_key_value_list(table->args, ','))) {
@@ -206,7 +206,7 @@ void *bdb_table_search(struct ci_lookup_table *table, void *key, void ***vals)
     void **store_index;
     void *endstore;
     DBT db_key, db_data;
-    int ret, i, parse_error=0;
+    int ret, i, parse_error = 0;
     struct bdb_data *dbdata = (struct bdb_data *)table->data;
 
     if (!dbdata) {
@@ -238,9 +238,9 @@ void *bdb_table_search(struct ci_lookup_table *table, void *key, void ***vals)
     if (db_data.size) {
         store = db_data.data;
         store_index = store;
-        endstore=store+db_data.size;
-        for (i=0; store_index[i]!= NULL && i < BDB_MAX_COLS && !parse_error; i++) {
-            store_index[i]=store+(unsigned long int)store_index[i];
+        endstore = store+db_data.size;
+        for (i = 0; store_index[i] != NULL && i < BDB_MAX_COLS && !parse_error; i++) {
+            store_index[i] = store+(unsigned long int)store_index[i];
             if (store_index[i] > endstore)
                 parse_error = 1;
         }

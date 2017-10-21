@@ -51,7 +51,7 @@ libicapapi_la_LIBADD = @ZLIB_ADD_LDADD@ @BZLIB_ADD_LDADD@ @PCRE_ADD_LDADD@ @DL_A
 libicapapi_la_LDFLAGS= -shared -version-info @CICAPLIB_VERSION@ @THREADS_LDFLAGS@
 
 
-#c_icap the main server 
+#c_icap the main server
 c_icap_DEPENDENCIES=libicapapi.la
 c_icap_CFLAGS= $(INVISIBILITY_CFLAG) -Iinclude/  \
                         -DCONFDIR=\"$(CONFIGDIR)\" -DMODSDIR=\"$(MODULESDIR)\" \
@@ -93,7 +93,7 @@ do_subst=sed -e 's%[@]SYSCONFDIR[@]%$(CONFIGDIR)%g' \
 
 CLEANFILES = c-icap-config c-icap-libicapapi-config
 
-# The c-icap.conf, c-icap-config, and c-icap-libicapapi-config must rebuild 
+# The c-icap.conf, c-icap-config, and c-icap-libicapapi-config must rebuild
 # on every new configure run. The include/c-icap-conf.h is rebuild when
 # configure runs so it is a good test.
 c-icap.conf: c-icap.conf.in include/c-icap-conf.h
@@ -116,7 +116,7 @@ install-data-local: c-icap.conf
 	$(INSTALL) c-icap.magic $(DESTDIR)$(CONFIGDIR)/c-icap.magic.default
 	if test ! -f $(DESTDIR)$(CONFIGDIR)/c-icap.conf; then  $(INSTALL) c-icap.conf $(DESTDIR)$(CONFIGDIR)/c-icap.conf; fi
 	if test ! -f $(DESTDIR)$(CONFIGDIR)/c-icap.magic; then $(INSTALL) c-icap.magic $(DESTDIR)$(CONFIGDIR)/c-icap.magic; fi
-	$(mkinstalldirs)  $(DESTDIR)$(LOGDIR); 
+	$(mkinstalldirs)  $(DESTDIR)$(LOGDIR);
 	$(mkinstalldirs)  $(DESTDIR)$(SOCKDIR);
 	chgrp nogroup $(DESTDIR)$(LOGDIR) || echo -e "*********\nWARNING! Can not set group for the log dir $(DESTDIR)$(LOGDIR)\n*********\n"
 	chmod 775 $(DESTDIR)$(LOGDIR)

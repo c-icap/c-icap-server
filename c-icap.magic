@@ -1,7 +1,7 @@
-# In this file defined the types of files and the groups of file types. 
-# The predefined data types, which are not included in this file, 
-# are ASCII, ISO-8859, EXT-ASCII, UTF (not implemented yet), HTML 
-# which are belongs to TEXT predefined group and BINARY which 
+# In this file defined the types of files and the groups of file types.
+# The predefined data types, which are not included in this file,
+# are ASCII, ISO-8859, EXT-ASCII, UTF (not implemented yet), HTML
+# which are belongs to TEXT predefined group and BINARY which
 # belongs to DATA predefined group.
 #
 # The line format of magic file is:
