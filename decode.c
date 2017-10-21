@@ -64,25 +64,25 @@ int ci_base64_decode(const char *encoded, char *decoded, int len)
     str = (unsigned char *)encoded;
     result = (unsigned char *)decoded;
 
-    for (i=len; i>3; i-=3) {
+    for (i = len; i > 3; i -= 3) {
 
         /*if one of the last 4 bytes going to be proccessed is not valid just
           stops processing. This "if" cover the '\0' string termination character
-          of str (because base64_table[0]=255)
+          of str (because base64_table[0] = 255)
          */
         if (base64_table[*str]>63 || base64_table[*(str+1)] > 63 ||
                 base64_table[*(str+2)] > 63 ||base64_table[*(str+3)] > 63)
             break;
 
         /*6 bits from the first + 2 last bits from second*/
-        *(result++)=(base64_table[*str] << 2) | (base64_table[*(str+1)] >>4);
+        *(result++) = (base64_table[*str] << 2) | (base64_table[*(str+1)] >>4);
         /*last 4 bits from second + first 4 bits from third*/
-        *(result++)=(base64_table[*(str+1)] << 4) | (base64_table[*(str+2)] >>2);
+        *(result++) = (base64_table[*(str+1)] << 4) | (base64_table[*(str+2)] >>2);
         /*last 2 bits from third + 6 bits from forth */
-        *(result++)=(base64_table[*(str+2)] << 6) | (base64_table[*(str+3)]);
+        *(result++) = (base64_table[*(str+2)] << 6) | (base64_table[*(str+3)]);
         str += 4;
     }
-    *result='\0';
+    *result = '\0';
     return len-i;
 }
 
@@ -91,9 +91,9 @@ char *ci_base64_decode_dup(const char *encoded)
 {
     int len;
     char *result;
-    len=strlen(encoded);
-    len=((len+3)/4)*3+1;
-    if (!(result=malloc(len*sizeof(char))))
+    len = strlen(encoded);
+    len = ((len+3)/4)*3+1;
+    if (!(result = malloc(len*sizeof(char))))
         return NULL;
 
     ci_base64_decode(encoded,result,len);
@@ -117,7 +117,7 @@ int ci_base64_encode(const unsigned char *data, size_t len, char *out, size_t ou
                              "abcdefghijklmnopqrstuvwxyz"\
                              "0123456789"\
                              "+/";
-    for (i = 0, k=0; i < (len - 3) && k < (outlen - 4); i+=3) {
+    for (i = 0, k = 0; i < (len - 3) && k < (outlen - 4); i += 3) {
         dobase64(out, data[i], data[i + 1], data[i + 2]);
     }
     /*if the outlen is enough big*/

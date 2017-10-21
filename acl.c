@@ -102,49 +102,49 @@ void free_http_req_method(ci_request_t *req, void *param);
 void *get_data_type(ci_request_t *req, char *param);
 void free_data_type(ci_request_t *req,void *param);
 
-ci_acl_type_t acl_user= {
+ci_acl_type_t acl_user = {
     "user",
     get_user,
     NULL,
     &ci_str_ops
 };
 
-ci_acl_type_t acl_service= {
+ci_acl_type_t acl_service = {
     "service",
     get_service,
     NULL,
     &ci_str_ops
 };
 
-ci_acl_type_t acl_req_type= {
+ci_acl_type_t acl_req_type = {
     "type",
     get_reqtype,
     NULL,
     &ci_str_ops
 };
 
-ci_acl_type_t acl_tcp_port= {
+ci_acl_type_t acl_tcp_port = {
     "port",
     get_port,
     NULL,
     &ci_int32_ops
 };
 
-ci_acl_type_t acl_tcp_src= {
+ci_acl_type_t acl_tcp_src = {
     "src",
     get_client_ip,
     NULL,
     &ci_ip_sockaddr_ops
 };
 
-ci_acl_type_t acl_tcp_srvip= {
+ci_acl_type_t acl_tcp_srvip = {
     "srvip",
     get_srv_ip,
     NULL,
     &ci_ip_sockaddr_ops
 };
 
-ci_acl_type_t acl_tcp_xclientip= {
+ci_acl_type_t acl_tcp_xclientip = {
     "http_client_ip",
     get_http_client_ip,
     NULL,
@@ -202,14 +202,14 @@ ci_acl_type_t acl_http_resp_line = {
 };
 #endif
 
-ci_acl_type_t acl_http_req_method= {
+ci_acl_type_t acl_http_req_method = {
     "http_req_method",
     get_http_req_method,
     free_http_req_method,
     &ci_str_ops
 };
 
-ci_acl_type_t acl_data_type= {
+ci_acl_type_t acl_data_type = {
     "data_type",
     get_data_type,
     free_data_type,
@@ -258,7 +258,7 @@ static const ci_type_ops_t acl_cmp_uint64_ops = {
 
 void free_cmp_uint64_data(ci_request_t *req,void *param);
 void *get_content_length(ci_request_t *req, char *param);
-static ci_acl_type_t acl_content_length= {
+static ci_acl_type_t acl_content_length = {
     "content_length",
     get_content_length,
     free_cmp_uint64_data,
@@ -298,7 +298,7 @@ static const ci_type_ops_t acl_time_ops = {
 /*The acl type*/
 void free_time_data(ci_request_t *req,void *param);
 void *get_time_data(ci_request_t *req, char *param);
-static ci_acl_type_t acl_time= {
+static ci_acl_type_t acl_time = {
     "time",
     get_time_data,
     free_time_data,
@@ -492,7 +492,7 @@ ci_access_entry_t *ci_access_entry_new(ci_access_entry_t **list, int type)
         *list = access_entry;
     } else {
         cur = *list;
-        while (cur->next!=NULL)
+        while (cur->next != NULL)
             cur = cur->next;
         cur->next = access_entry;
     }
@@ -593,10 +593,10 @@ ci_acl_spec_t *  ci_acl_spec_new(const char *name, const char *type, const char 
     spec->data = NULL;
     spec->next = NULL;
 
-    if (spec_list!=NULL) {
-        if (*spec_list!=NULL) {
+    if (spec_list != NULL) {
+        if (*spec_list != NULL) {
             cur = *spec_list;
-            while (cur->next!=NULL)
+            while (cur->next != NULL)
                 cur = cur->next;
             cur->next = spec;
         } else
@@ -626,7 +626,7 @@ ci_acl_data_t *ci_acl_spec_new_data(ci_acl_spec_t *spec, const char *val)
     }
     new_data->data = data;
     new_data->next = NULL;
-    if ((list=spec->data) != NULL) {
+    if ((list = spec->data) != NULL) {
         while (list->next != NULL)
             list = list->next;
         list->next = new_data;
@@ -642,7 +642,7 @@ ci_acl_spec_t *ci_acl_spec_search(ci_acl_spec_t *list, const char *name)
     if (!list || !name)
         return NULL;
     spec = list;
-    while (spec!= NULL) {
+    while (spec != NULL) {
         ci_debug_printf(9,"Checking name:%s with specname %s\n", name, spec->name);
         if (strcmp(spec->name, name) == 0 ) {
             return spec;
@@ -671,8 +671,8 @@ void ci_acl_spec_list_release(ci_acl_spec_t *spec)
 {
     ci_acl_spec_t *cur;
     while (spec) {
-        cur=spec;
-        spec=spec->next;
+        cur = spec;
+        spec = spec->next;
         ci_acl_spec_release(cur);
     }
 }
@@ -726,8 +726,8 @@ int ci_acl_typelist_add(struct ci_acl_type_list *list, const ci_acl_type_t *type
 const ci_acl_type_t *ci_acl_typelist_search(struct ci_acl_type_list *list,const char *name)
 {
     int i;
-    for (i=0; i<list->acl_type_list_num; i++) {
-        if (strcmp(list->acl_type_list[i].name,name)==0)
+    for (i = 0; i < list->acl_type_list_num; i++) {
+        if (strcmp(list->acl_type_list[i].name,name) == 0)
             return (const ci_acl_type_t *)&list->acl_type_list[i];
     }
     return NULL;
@@ -754,16 +754,16 @@ int ci_acl_typelist_reset(struct ci_acl_type_list *list)
 int spec_data_check(const ci_acl_spec_t *spec, const void *req_raw_data)
 {
 //    int (*comp)(void *req_spec, void *acl_spec);
-    struct ci_acl_data *spec_data=spec->data;
+    struct ci_acl_data *spec_data = spec->data;
     const ci_type_ops_t *ops = spec->type->type;
 
     ci_debug_printf(9,"Check request with ci_acl_spec_t:%s\n", spec->name);
-    while (spec_data!=NULL) {
+    while (spec_data != NULL) {
         if (ops->equal(spec_data->data, (void *)req_raw_data)) {
             ci_debug_printf(9,"The ci_acl_spec_t:%s matches\n", spec->name);
             return 1;
         }
-        spec_data=spec_data->next;
+        spec_data = spec_data->next;
     }
     return 0;
 }
@@ -776,7 +776,7 @@ int request_match_specslist(ci_request_t *req, const struct ci_specs_list *spec_
     void *test_data;
 
     ret = 1;
-    while (spec_list!=NULL) {
+    while (spec_list != NULL) {
         spec = spec_list->spec;
         negate = spec_list->negate;
         type = spec->type;
@@ -787,9 +787,9 @@ int request_match_specslist(ci_request_t *req, const struct ci_specs_list *spec_
         }
 
         check_result = spec_data_check(spec, test_data);
-        if (check_result==0 && negate==0)
+        if (check_result == 0 && negate == 0)
             ret = 0;
-        else if (check_result!=0 && negate!=0)
+        else if (check_result != 0 && negate != 0)
             ret = 0;
 
         if (type->free_test_data)
@@ -798,7 +798,7 @@ int request_match_specslist(ci_request_t *req, const struct ci_specs_list *spec_
         if (ret == 0)
             return 0;
 
-        spec_list=spec_list->next;
+        spec_list = spec_list->next;
     }
     return 1;
 }
@@ -816,7 +816,7 @@ int ci_access_entry_match_request(ci_access_entry_t *access_entry, ci_request_t 
         if (spec_list && spec_list->spec && request_match_specslist(req, spec_list))
             return access_entry->type;
 
-        access_entry=access_entry->next;
+        access_entry = access_entry->next;
     }
     return CI_ACCESS_UNKNOWN;
 }
@@ -897,11 +897,11 @@ int ci_acl_add_data(const char *name, const char *type, const char *data)
     }
 
     s = acl_type;
-    if ((s=strchr(s,'{')) != NULL) {
-        *s='\0';
-        param=s+1;
-        if ((s=strchr(param,'}')) != NULL)
-            *s= '\0';
+    if ((s = strchr(s,'{')) != NULL) {
+        *s = '\0';
+        param = s+1;
+        if ((s = strchr(param,'}')) != NULL)
+            *s = '\0';
     }
 
     if ((spec = ci_acl_spec_search(specs_list, name)) != NULL) {

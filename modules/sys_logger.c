@@ -230,7 +230,7 @@ int cfg_syslog_access(const char *directive, const char **argv, void *setdata)
 
     ci_debug_printf(1,"Creating new access entry for syslog module with specs:\n");
     error = 0;
-    for (argc=0; argv[argc] != NULL; argc++) {
+    for (argc = 0; argv[argc] != NULL; argc++) {
         acl_spec_name = argv[argc];
         /*TODO: check return type.....*/
         if (!ci_access_entry_add_acl_by_name(syslog_access_list, acl_spec_name)) {

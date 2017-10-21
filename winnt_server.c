@@ -111,7 +111,7 @@ server_decl_t *newthread(struct connections_queue *con_queue)
     server_decl_t *serv;
     serv = (server_decl_t *) malloc(sizeof(server_decl_t));
     serv->srv_id = 0;
-//    serv->srv_pthread=pthread_self();
+//    serv->srv_pthread = pthread_self();
     serv->con_queue = con_queue;
     serv->served_requests = 0;
     serv->served_requests_no_reallocation = 0;
@@ -132,8 +132,8 @@ int thread_main(server_decl_t * srv)
 //***********************
 //     thread_signals();
 //*************************
-    //    srv->srv_id=getpid(); //Setting my pid ...
-    //    srv->srv_pthread=pthread_self();
+    //    srv->srv_id = getpid(); //Setting my pid ...
+    //    srv->srv_pthread = pthread_self();
     for (;;) {
         if (child_data->to_be_killed) {
             ci_debug_printf(1, "Thread exiting.....\n");
@@ -287,7 +287,7 @@ int worker_main(ci_socket sockfd)
             if ((jobs_in_queue = put_to_queue(con_queue, &conn)) == 0) {
                 ci_debug_printf(1,
                                 "ERROR!!!!!!NO AVAILABLE SERVERS!!!!!!!!!\n");
-//                  child_data->to_be_killed=GRACEFULLY;
+//                  child_data->to_be_killed = GRACEFULLY;
                 ci_debug_printf(1,
                                 "Jobs in Queue: %d, Free servers: %d, Used Servers: %d, Requests: %d\n",
                                 jobs_in_queue, child_data->freeservers,
@@ -327,7 +327,7 @@ void child_main(ci_socket sockfd)
     HANDLE hStdin;
     DWORD dwRead;
     //   child_signals();
-    //    pid=getpid();
+    //    pid = getpid();
 
     hStdin = GetStdHandle(STD_INPUT_HANDLE);
     if ((hStdin == INVALID_HANDLE_VALUE))
@@ -690,7 +690,7 @@ int wait_achild_to_die()
 int check_for_died_child(DWORD msecs)
 {
     DWORD i, count, ret;
-//     HANDLE died_child,*child_handles=malloc(sizeof(HANDLE)*childs_queue.size);
+//     HANDLE died_child,*child_handles = malloc(sizeof(HANDLE)*childs_queue.size);
     HANDLE died_child, child_handles[MAXIMUM_WAIT_OBJECTS];
     child_shared_data_t *ach;
     for (i = 0, count = 0; i < (DWORD) childs_queue.size; i++) {
@@ -707,7 +707,7 @@ int check_for_died_child(DWORD msecs)
     }
     ci_debug_printf(1, "Objects :%d (max:%d)\n", count, MAXIMUM_WAIT_OBJECTS);
     ret = WaitForMultipleObjects(count, child_handles, FALSE, msecs);
-//     ret=WaitForSingleObject(child_handles[0],msecs);
+//     ret = WaitForSingleObject(child_handles[0],msecs);
     if (ret == WAIT_TIMEOUT) {
         ci_debug_printf(1, "Operation timeout, no died child....\n");
         return 0;
@@ -792,8 +792,8 @@ int start_server()
         }
     }
     /*
-         for(i=0;i<CI_CONF.START_SERVERS;i++){
-          pid=wait(&status);
+         for(i = 0; i<CI_CONF.START_SERVERS; i++){
+          pid = wait(&status);
           ci_debug_printf(1,"The child %d died with status %d\n",pid,status);
          }
     */

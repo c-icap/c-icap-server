@@ -637,13 +637,13 @@ int thread_main(server_decl_t * srv)
             log_access(srv->current_req, request_status);
 //             break; //No keep-alive ......
 
-            if (child_data->to_be_killed  == IMMEDIATELY)
+            if (child_data->to_be_killed == IMMEDIATELY)
                 break;      //Just exiting the keep-alive loop
 
             /*if we are going to term gracefully we will try to keep our promice for
               keepalived request....
              */
-            if (child_data->to_be_killed  == GRACEFULLY &&
+            if (child_data->to_be_killed == GRACEFULLY &&
                     srv->current_req->keepalive == 0)
                 break;
 

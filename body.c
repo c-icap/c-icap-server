@@ -171,13 +171,13 @@ int ci_membuf_write(struct ci_membuf *b, const char *data, int len, int iseof)
     int terminate = b->flags & CI_MEMBUF_NULL_TERMINATED;
 
     if ((b->flags & CI_MEMBUF_RO) || (b->flags & CI_MEMBUF_CONST)) {
-        ci_debug_printf( 1, "ci_membuf_write: can not write: buffer is read-only!\n");
+        ci_debug_printf(1, "ci_membuf_write: can not write: buffer is read-only!\n");
         return 0;
     }
 
     if ((b->flags & CI_MEMBUF_HAS_EOF)) {
         if (len > 0) {
-            ci_debug_printf( 1, "Cannot write to membuf: the eof flag is set!\n");
+            ci_debug_printf(1, "Cannot write to membuf: the eof flag is set!\n");
         }
         return 0;
     }
@@ -196,7 +196,7 @@ int ci_membuf_write(struct ci_membuf *b, const char *data, int len, int iseof)
         newsize = b->bufsize + INCSTEP;
         newbuf = ci_buffer_realloc(b->buf, newsize);
         if (newbuf == NULL) {
-            ci_debug_printf( 1, "ci_membuf_write: Failed to grow membuf for new data!\n");
+            ci_debug_printf(1, "ci_membuf_write: Failed to grow membuf for new data!\n");
             if (remains >= 0) {
                 if (remains)
                     memcpy(b->buf + b->endpos, data, remains);
@@ -206,7 +206,7 @@ int ci_membuf_write(struct ci_membuf *b, const char *data, int len, int iseof)
                 } else
                     b->endpos = b->bufsize;
             } else {
-                ci_debug_printf( 1, "ci_membuf_write: Failed to NULL terminate membuf!\n");
+                ci_debug_printf(1, "ci_membuf_write: Failed to NULL terminate membuf!\n");
             }
             return remains;
         }
@@ -288,7 +288,7 @@ int do_write(int fd, const void *buf, size_t count)
     errno = 0;
     do {
         bytes = write(fd, buf, count);
-    } while ( bytes < 0 && errno == EINTR);
+    } while (bytes < 0 && errno == EINTR);
 
     return bytes;
 }
@@ -299,7 +299,7 @@ int do_read(int fd, void *buf, size_t count)
     errno = 0;
     do {
         bytes = read(fd, buf, count);
-    } while ( bytes < 0 && errno == EINTR);
+    } while (bytes < 0 && errno == EINTR);
 
     return bytes;
 }
@@ -316,7 +316,7 @@ int do_open(const char *pathname, int flags)
     errno = 0;
     do {
         fd = open(pathname, flags, F_PERM);
-    } while ( fd < 0 && errno == EINTR);
+    } while (fd < 0 && errno == EINTR);
 
     return fd;
 }
@@ -500,11 +500,11 @@ int ci_cached_file_write(ci_cached_file_t * body, const char *buf, int len, int 
             return -1;
         }
         ret = do_write(body->fd, body->buf, body->endpos);
-        if ( ret>=0 && do_write(body->fd, buf, len) >=0 ) {
+        if (ret >= 0 && do_write(body->fd, buf, len) >= 0) {
             body->endpos += len;
             return len;
         } else {
-            ci_debug_printf( 1, "Cannot write to cachefile: %s\n", strerror( errno ) );
+            ci_debug_printf(1, "Cannot write to cachefile: %s\n", strerror(errno));
             return CI_ERROR;
         }
     }                          /*  if remains<len */
@@ -693,7 +693,7 @@ int ci_simple_file_write(ci_simple_file_t * body, const char *buf, int len, int 
 
     if (body->flags & CI_FILE_HAS_EOF) {
         if (len > 0) {
-            ci_debug_printf( 1, "Cannot write to file: '%s', the eof flag is set!\n", body->filename);
+            ci_debug_printf(1, "Cannot write to file: '%s', the eof flag is set!\n", body->filename);
         }
         return 0;
     }
@@ -708,7 +708,7 @@ int ci_simple_file_write(ci_simple_file_t * body, const char *buf, int len, int 
         wsize = min(body->readpos-body->endpos-1, len);
     } else if (body->max_store_size && body->endpos >= body->max_store_size) {
         /*If we are going to entre ring mode. If we are using locking we can not enter ring mode.*/
-        if (body->readpos!=0 && (body->flags & CI_FILE_USELOCK)==0) {
+        if (body->readpos != 0 && (body->flags & CI_FILE_USELOCK) == 0) {
             body->endpos = 0;
             if (!(body->flags & CI_FILE_RING_MODE)) {
                 body->flags |= CI_FILE_RING_MODE;
@@ -729,7 +729,7 @@ int ci_simple_file_write(ci_simple_file_t * body, const char *buf, int len, int 
 
     lseek(body->fd, body->endpos, SEEK_SET);
     if ((ret = do_write(body->fd, buf, wsize)) < 0) {
-        ci_debug_printf( 1, "Cannot write to file: %s\n", strerror( errno ) );
+        ci_debug_printf(1, "Cannot write to file: %s\n", strerror(errno));
     } else {
         body->endpos += ret;
         body->bytes_in += ret;
@@ -822,7 +822,7 @@ const char * ci_simple_file_to_const_string(ci_simple_file_t *body)
     ci_off_t map_size;
     char *addr = NULL;
     if (!(body->flags & CI_FILE_HAS_EOF)) {
-        ci_debug_printf( 1, "mmap to file: '%s' failed, the eof flag is not set!\n", body->filename);
+        ci_debug_printf(1, "mmap to file: '%s' failed, the eof flag is not set!\n", body->filename);
         return NULL;
     }
 
@@ -847,7 +847,7 @@ const char * ci_simple_file_to_const_string(ci_simple_file_t *body)
 #define CI_MEMBUF_SF_FLAGS (CI_MEMBUF_CONST | CI_MEMBUF_RO | CI_MEMBUF_NULL_TERMINATED)
 ci_membuf_t *ci_simple_file_to_membuf(ci_simple_file_t *body, unsigned int flags)
 {
-    assert((CI_MEMBUF_SF_FLAGS & flags) ==flags);
+    assert((CI_MEMBUF_SF_FLAGS & flags) == flags);
     assert(flags & CI_MEMBUF_CONST);
     void *addr = (void *)ci_simple_file_to_const_string(body);
     if (!addr)
@@ -870,7 +870,7 @@ struct ci_ring_buf *ci_ring_buf_new(int size)
         return NULL;
     }
 
-    buf->end_buf=buf->buf+size-1;
+    buf->end_buf = buf->buf+size-1;
     buf->read_pos = buf->buf;
     buf->write_pos = buf->buf;
     buf->full = 0;
@@ -885,7 +885,7 @@ void ci_ring_buf_destroy(struct ci_ring_buf *buf)
 
 int ci_ring_buf_is_empty(struct ci_ring_buf *buf)
 {
-    return (buf->read_pos==buf->write_pos) && (buf->full==0);
+    return (buf->read_pos == buf->write_pos) && (buf->full == 0);
 }
 
 int ci_ring_buf_write_block(struct ci_ring_buf *buf, char **wb, int *len)
@@ -914,7 +914,7 @@ int ci_ring_buf_read_block(struct ci_ring_buf *buf, char **rb, int *len)
     } else if (buf->read_pos >= buf->write_pos) {
         *rb = buf->read_pos;
         *len = buf->end_buf - buf->read_pos +1;
-        return (buf->read_pos!=buf->buf? 1:0);
+        return (buf->read_pos != buf->buf? 1:0);
     } else { /*buf->read_pos < buf->write_pos*/
         *rb = buf->read_pos;
         *len = buf->write_pos - buf->read_pos;
@@ -961,7 +961,7 @@ int ci_ring_buf_write(struct ci_ring_buf *buf, const char *data,int size)
             data += wb_len;
             written += wb_len;
         }
-    } while ((ret!=0) && (size>0));
+    } while ((ret != 0) && (size > 0));
     return written;
 }
 
@@ -981,6 +981,6 @@ int ci_ring_buf_read(struct ci_ring_buf *buf, char *data,int size)
             data += rb_len;
             data_read += rb_len;
         }
-    } while ((ret!=0) && (size>0 ));
+    } while ((ret != 0) && (size > 0));
     return data_read;
 }

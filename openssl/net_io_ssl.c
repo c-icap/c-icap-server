@@ -186,7 +186,7 @@ static int openssl_cert_passphrase_cb(char *buf, int size, int rwflag, void *u)
     snprintf(script, sizeof(script), "%s %s %d", TLS_PASSPHRASE_SCRIPT, port->address ? port->address : "*", port->port);
     script[sizeof(script) - 1] = '\0';
 
-    FILE *f=popen(script, "r");
+    FILE *f = popen(script, "r");
     int bytes = fread(buf, 1, size, f);
     fclose(f);
 

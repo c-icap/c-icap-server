@@ -218,14 +218,14 @@ struct ci_fmt_entry *check_tables(const char *var, struct ci_fmt_entry *u_table,
     int i;
     unsigned int params_len;
     params_len = parse_directive(var, width, left_align, parameter);
-    for (i=0; GlobalTable[i].directive; i++) {
+    for (i = 0; GlobalTable[i].directive; i++) {
         if (check_directive(var+params_len,GlobalTable[i].directive, directive_len)) {
             *directive_len += params_len;
             return &GlobalTable[i];
         }
     }
     if (u_table) {
-        for (i=0; u_table[i].directive; i++) {
+        for (i = 0; u_table[i].directive; i++) {
             if (check_directive(var+params_len, u_table[i].directive, directive_len)) {
                 *directive_len += params_len;
                 return &u_table[i];
@@ -245,7 +245,7 @@ int ci_format_text(
     char *b, *lb;
     struct ci_fmt_entry *fmte;
     int directive_len, val_len, remains, left_align, i;
-    unsigned int width, space=0;
+    unsigned int width, space = 0;
     char parameter[MAX_VARIABLE_SIZE];
 
     lb = NULL;
@@ -264,21 +264,21 @@ int ci_format_text(
             if (fmte != NULL) {
                 if (width) {
                     if (left_align) {
-                        val_len=fmte->format(req_data, b, space, parameter);
-                        if (val_len <=0)  val_len = fmt_none(req_data, b, space, parameter);
+                        val_len = fmte->format(req_data, b, space, parameter);
+                        if (val_len <= 0) val_len = fmt_none(req_data, b, space, parameter);
 
                         if (val_len > space) val_len = space;
                         b += val_len;
-                        for (i=0; i < width-val_len; i++) b[i]=' ';
+                        for (i = 0; i < width-val_len; i++) b[i]=' ';
                         b += width-val_len;
                     } else if ((lb = malloc((space+1)*sizeof(char))) != NULL) {
-                        val_len=fmte->format(req_data, lb, space, parameter);
-                        if (val_len <=0)  val_len = fmt_none(req_data, lb, space, parameter);
+                        val_len = fmte->format(req_data, lb, space, parameter);
+                        if (val_len <= 0) val_len = fmt_none(req_data, lb, space, parameter);
 
                         if (val_len > space) val_len = space;
-                        for (i=0; i < width-val_len; i++) b[i]=' ';
+                        for (i = 0; i < width-val_len; i++) b[i] = ' ';
                         b += width-val_len;
-                        for (i=0; i < val_len; i++) b[i]=lb[i];
+                        for (i = 0; i < val_len; i++) b[i] = lb[i];
                         b += val_len;
                         free(lb);
                         lb = NULL;
@@ -287,8 +287,8 @@ int ci_format_text(
 
                     remains -= width;
                 } else {
-                    val_len=fmte->format(req_data, b, space, parameter);
-                    if (val_len <=0)  val_len = fmt_none(req_data, b, space, parameter);
+                    val_len = fmte->format(req_data, b, space, parameter);
+                    if (val_len <= 0) val_len = fmt_none(req_data, b, space, parameter);
 
                     if (val_len > space) val_len = space;
                     b += val_len;
@@ -333,7 +333,7 @@ int fmt_icapmethod(ci_request_t *req, char *buf,int len, const char *param)
 {
     int i;
     const char *s = ci_method_string(req->type);
-    for (i=0; i<len && *s; i++,s++)
+    for (i = 0; i < len && *s; i++,s++)
         buf[i] = *s;
     return i;
 }
@@ -342,7 +342,7 @@ int fmt_service(ci_request_t *req, char *buf,int len, const char *param)
 {
     int i;
     char *s = req->service;
-    for (i=0; i<len && *s; i++,s++)
+    for (i = 0; i < len && *s; i++,s++)
         buf[i] = *s;
     return i;
 }
@@ -351,7 +351,7 @@ int fmt_username(ci_request_t *req, char *buf,int len, const char *param)
 {
     int i;
     char *s = req->user;
-    for (i=0; i<len && *s; i++,s++)
+    for (i = 0; i < len && *s; i++,s++)
         buf[i] = *s;
     return i;
 }
@@ -360,14 +360,14 @@ int fmt_request(ci_request_t *req, char *buf,int len, const char *param)
 {
     int i;
     char *s = req->service;
-    for (i=0; i<len && *s; i++,s++)
+    for (i = 0;  i< len && *s; i++,s++)
         buf[i] = *s;
 
-    if (req->args[0]!='\0' && i<len) {
+    if (req->args[0] != '\0' && i < len) {
         buf[i] = '?';
         s = req->args;
         i++;
-        for (; i<len && *s; i++,s++)
+        for (; i < len && *s; i++,s++)
             buf[i] = *s;
     }
     return i;
@@ -382,7 +382,7 @@ int fmt_localtime(ci_request_t *req, char *buf,int len, const char *param)
     if (!len)
         return 0;
 
-    if (param && param[0]!='\0') {
+    if (param && param[0] != '\0') {
         tfmt = param;
     }
     t = time(&t);
@@ -399,7 +399,7 @@ int fmt_gmttime(ci_request_t *req, char *buf,int len, const char *param)
     if (!len)
         return 0;
 
-    if (param && param[0]!='\0') {
+    if (param && param[0] != '\0') {
         tfmt = param;
     }
     t = time(&t);
@@ -428,7 +428,7 @@ int fmt_httpclientip(ci_request_t *req, char *buf,int len, const char *param)
         return 0;
 
     if ((s = ci_headers_value(req->request_header, "X-Client-IP")) != NULL) {
-        for (i=0; i<len && *s!= '\0' && *s != '\r' && *s!='\n'; i++,s++)
+        for (i = 0; i < len && *s != '\0' && *s != '\r' && *s != '\n'; i++,s++)
             buf[i] = *s;
         return i;
     } else {
@@ -446,7 +446,7 @@ int fmt_httpserverip(ci_request_t *req, char *buf,int len, const char *param)
         return 0;
 
     if ((s = ci_headers_value(req->request_header, "X-Server-IP")) != NULL) {
-        for (i=0; i<len && *s!= '\0' && *s != '\r' && *s!='\n'; i++,s++)
+        for (i = 0; i < len && *s != '\0' && *s != '\r' && *s != '\n'; i++,s++)
             buf[i] = *s;
         return i;
     } else {
@@ -477,7 +477,7 @@ int fmt_http_req_head_o(ci_request_t *req, char *buf,int len, const char *param)
     }
 
     if (s)  {
-        for (i=0; i<len && *s!= '\0' && *s != '\r' && *s!='\n'; i++,s++)
+        for (i = 0; i < len && *s != '\0' && *s != '\r' && *s != '\n'; i++,s++)
             buf[i] = *s;
         return i;
     } else {
@@ -504,7 +504,7 @@ int fmt_http_res_head_o(ci_request_t *req, char *buf,int len, const char *param)
     }
 
     if (s) {
-        for (i=0; i<len && *s!= '\0' && *s != '\r' && *s!='\n'; i++,s++)
+        for (i = 0; i < len && *s != '\0' && *s != '\r' && *s != '\n'; i++,s++)
             buf[i] = *s;
         return i;
     } else {
@@ -529,7 +529,7 @@ int fmt_icap_req_head(ci_request_t *req, char *buf,int len, const char *param)
     }
 
     if (s) {
-        for (i=0; i<len && *s!= '\0' && *s != '\r' && *s!='\n'; i++,s++)
+        for (i = 0; i < len && *s != '\0' && *s != '\r' && *s != '\n'; i++,s++)
             buf[i] = *s;
         return i;
     } else {
@@ -556,7 +556,7 @@ int fmt_icap_res_head(ci_request_t *req, char *buf,int len, const char *param)
     }
 
     if (s) {
-        for (i=0; i<len && *s!= '\0' && *s != '\r' && *s!='\n'; i++,s++)
+        for (i = 0; i < len && *s != '\0' && *s != '\r' && *s != '\n'; i++,s++)
             buf[i] = *s;
         return i;
     } else {
@@ -613,7 +613,7 @@ int fmt_req_preview_hex(ci_request_t *req, char *buf,int len, const char *param)
     } else
         num = 5;
     n = 0;
-    for (i=0; i<num && i < req->preview_data.used && len > 0; i++) {
+    for (i = 0; i < num && i < req->preview_data.used && len > 0; i++) {
         if (req->preview_data.buf[i] >= ' ' && req->preview_data.buf[i] <= '~') {
             buf[n++] = req->preview_data.buf[i];
             len --;
@@ -632,7 +632,7 @@ int fmt_req_preview_len(ci_request_t *req, char *buf, int len, const char *param
     if (!len)
         return 0;
 
-    if (req->preview >=0 )
+    if (req->preview >= 0)
         return snprintf(buf, len, "%d", req->preview_data.used);
 
     *buf = '-';
@@ -648,7 +648,7 @@ int fmt_logstr(ci_request_t *req, char *buf,int len, const char *param)
         return 0;
 
     s = req->log_str;
-    for (i=0; i<len && *s; i++,s++)
+    for (i = 0; i < len && *s; i++,s++)
         buf[i] = *s;
     return i;
 }
@@ -662,7 +662,7 @@ int fmt_req_attribute(ci_request_t *req, char *buf,int len, const char *param)
     if (! (s =ci_str_array_search(req->attributes, param)))
         return 0;
 
-    for (i=0; i<len && *s; i++, s++)
+    for (i = 0; i < len && *s; i++, s++)
         buf[i] = *s;
     return i;
 }

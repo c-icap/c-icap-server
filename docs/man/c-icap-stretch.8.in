@@ -2,7 +2,7 @@
 .SH NAME
 c-icap-stretch - A simple utility for stretching ICAP servers
 .SH SYNOPSIS
-.B c-icap-stretch 
+.B c-icap-stretch
 [
 .B \-V
 ]

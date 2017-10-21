@@ -10,9 +10,9 @@ if($ENV{'REQUEST_METHOD'} eq "GET") {
        ($key,$val)=split(/=/,$arg);
        $val =~ s/%(..)/pack("c",hex($1))/ge;
        if($key eq "file" || $key eq "usename" || $key eq "content" ||$key eq "remove"  ){
-	   $args{$key}=$val; 
+	   $args{$key}=$val;
        }
-       
+
    }
 
 
@@ -35,7 +35,7 @@ if(open (F,"<$filename")){
     else{
 	print "Content-Type: application/octet-stream\n";
     }
-    
+
     print "Content-Length: ".$stat[7]."\n";
     if($args{"usename"}){
 	print "Content-Disposition: attachment; filename=".$args{"usename"}."\n\n";

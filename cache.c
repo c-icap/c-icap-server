@@ -161,7 +161,7 @@ int ci_local_cache_init(struct ci_cache *cache, const char *name)
         return 0;
     }
     cache_data->last_queue_entry = cache_data->first_queue_entry;
-    cache_data->last_queue_entry->hnext=NULL;
+    cache_data->last_queue_entry->hnext = NULL;
     cache_data->last_queue_entry->qnext = NULL;
     cache_data->last_queue_entry->key = NULL;
     cache_data->last_queue_entry->val = NULL;
@@ -175,15 +175,15 @@ int ci_local_cache_init(struct ci_cache *cache, const char *name)
         return 0;
     }
 
-    for (i=0; i < cache_items-1; i++) {
-        cache_data->last_queue_entry->qnext=(struct ci_cache_entry *)allocator->alloc(allocator, sizeof(struct ci_cache_entry));
+    for (i = 0; i < cache_items-1; i++) {
+        cache_data->last_queue_entry->qnext = (struct ci_cache_entry *)allocator->alloc(allocator, sizeof(struct ci_cache_entry));
         if (!cache_data->last_queue_entry->qnext) {
             /*we are leaking here the cache->first_queue_entry elements. TODO...*/
             ci_mem_allocator_destroy(allocator);
             return 0;
         }
-        cache_data->last_queue_entry=cache_data->last_queue_entry->qnext;
-        cache_data->last_queue_entry->hnext=NULL;
+        cache_data->last_queue_entry = cache_data->last_queue_entry->qnext;
+        cache_data->last_queue_entry->hnext = NULL;
         cache_data->last_queue_entry->qnext = NULL;
         cache_data->last_queue_entry->key = NULL;
         cache_data->last_queue_entry->val = NULL;
@@ -199,7 +199,7 @@ int ci_local_cache_init(struct ci_cache *cache, const char *name)
         }
     }
     ci_debug_printf(7,"Hash size: %d\n",new_hash_size);
-    cache_data->hash_table=(struct ci_cache_entry **)allocator->alloc(allocator, (new_hash_size+1)*sizeof(struct ci_cache_entry *));
+    cache_data->hash_table = (struct ci_cache_entry **)allocator->alloc(allocator, (new_hash_size+1)*sizeof(struct ci_cache_entry *));
     if (!cache_data->hash_table) {
         /*we are leaking here the cache->first_queue_entry elements. TODO...*/
         ci_mem_allocator_destroy(allocator);
@@ -243,12 +243,12 @@ const void *ci_local_cache_search(struct ci_cache *cache, const void *key, void 
     time_t current_time;
     cache_data = (struct ci_local_cache_data *)cache->cache_data;
 
-    unsigned int hash=ci_hash_compute(cache_data->hash_table_size, key, cache->key_ops->size(key));
+    unsigned int hash = ci_hash_compute(cache_data->hash_table_size, key, cache->key_ops->size(key));
 
     assert(hash <= cache_data->hash_table_size);
 
     common_mutex_lock(&cache_data->mtx);
-    e=cache_data->hash_table[hash];
+    e = cache_data->hash_table[hash];
     *val = NULL;
     while (e != NULL) {
         ci_debug_printf(10," \t\t->>>>Val %s\n",(char *)e->val);
@@ -292,7 +292,7 @@ int ci_local_cache_update(struct ci_cache *cache, const void *key, const void *v
 
     common_mutex_lock(&cache_data->mtx);
     /*Get the oldest entry*/
-    e=cache_data->first_queue_entry;
+    e = cache_data->first_queue_entry;
 
     /*if the oldest entry does not expired do not store tke key/value pair*/
     if ((current_time - e->time)< cache->ttl) {
@@ -377,7 +377,7 @@ int ci_local_cache_update(struct ci_cache *cache, const void *key, const void *v
     if (cache_data->hash_table[hash])
         ci_debug_printf(10,"\t\t:::Found %s\n", (char *)cache_data->hash_table[hash]->val);
     /*Make it the first entry in the current hash entry*/
-    e->hnext=cache_data->hash_table[hash];
+    e->hnext = cache_data->hash_table[hash];
     cache_data->hash_table[hash] = e;
 
     common_mutex_unlock(&cache_data->mtx);
@@ -506,7 +506,7 @@ void *ci_cache_read_vector_val(const void *val, size_t val_size, void *o)
     /*The items stores from bottom to top.
       Compute the size of first item, which stored at the end of *val*/
     item_size = val_size - sizeof(size_t) - (size_t)data_indx[0];
-    for (i=0; data_indx[i] != NULL; i++) {
+    for (i = 0; data_indx[i] != NULL; i++) {
         ci_vector_add(v, (const void *)((const void *)data_indx+(size_t)data_indx[i]), item_size);
         /*compute the item size of the next item*/
         item_size = data_indx[i] - data_indx[i+1];

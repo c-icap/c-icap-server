@@ -19,22 +19,22 @@ all: c_icap.Dll c-icap.exe sub_modules
 c_icap.Dll:
 	@if EXIST c_icap_dll.mak $(MAKE) -f c_icap_dll.mak DLL_ENTRY=$(DLL_ENTRY)
 
-c-icap.exe: $(c_icap_OBJS) 
-	$(link) $(ldebug) $(conlflags) $(conlibsdll) user32.lib c_icap.lib $** /OUT:c-icap.exe 
+c-icap.exe: $(c_icap_OBJS)
+	$(link) $(ldebug) $(conlflags) $(conlibsdll) user32.lib c_icap.lib $** /OUT:c-icap.exe
 
 # The following not needed any more.
-#$(LIBOS):    
+#$(LIBOS):
 #	@cd $(@D)
-#	@echo *** %CD% *** 
-#	@if NOT "%CD%"== "" $(MAKE) -f makefile.w32  $(makeopts) /$(MAKEFLAGS) 
+#	@echo *** %CD% ***
+#	@if NOT "%CD%"== "" $(MAKE) -f makefile.w32  $(makeopts) /$(MAKEFLAGS)
 #	@cd ..\..
 
-sub_modules: 
+sub_modules:
 	@for %%d in ($(MODULES)) do (cd %%d && $(MAKE) -f makefile.w32 DLL_ENTRY=$(MOD_DLL_ENTRY) $(makeopts) /$(MAKEFLAGS)  & cd ..\..\ )
 
 #	@cd $(@D)
-#	@echo *** %CD% *** 
-#	@if NOT "%CD%"== "" $(MAKE) -f makefile.w32 DLL_ENTRY=$(MOD_DLL_ENTRY) $(makeopts) /$(MAKEFLAGS) 
+#	@echo *** %CD% ***
+#	@if NOT "%CD%"== "" $(MAKE) -f makefile.w32 DLL_ENTRY=$(MOD_DLL_ENTRY) $(makeopts) /$(MAKEFLAGS)
 #	@cd ..\..
 
 clean:

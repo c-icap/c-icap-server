@@ -113,13 +113,13 @@ const struct ci_error_code ci_error_codes[] = {
 /*
 #ifdef __CYGWIN__
 int ci_error_code(int ec){
-     return (ec>=EC_100&&ec<EC_MAX?ci_error_codes[ec].code:1000);
+     return (ec >= EC_100 && ec < EC_MAX ? ci_error_codes[ec].code:1000);
 }
 
-const char *unknownerrorcode="UNKNOWN ERROR CODE";
+const char *unknownerrorcode = "UNKNOWN ERROR CODE";
 
 const char *ci_error_code_string(int ec){
-     return (ec>=EC_100&&ec<EC_MAX?ci_error_codes[ec].str:unknownerrorcode);
+     return (ec >= EC_100 && ec < EC_MAX?ci_error_codes[ec].str:unknownerrorcode);
 }
 #endif
 */
@@ -495,7 +495,7 @@ int ci_headers_iterate(ci_headers_list_t * h, void *data, void (*fn)(void *, con
     int i, j;
     for (i = 0; i < h->used; i++) {
         s = h->headers[i];
-        for (j = 0;  j < sizeof(header)-1 && *s != ':' && *s != ' ' &&  *s != '\0' && *s != '\r' && *s!='\n'; s++, j++)
+        for (j = 0;  j < sizeof(header)-1 && *s != ':' && *s != ' ' &&  *s != '\0' && *s != '\r' && *s != '\n'; s++, j++)
             header[j] = *s;
         header[j] = '\0';
         j = 0;
@@ -522,7 +522,7 @@ void ci_headers_pack(ci_headers_list_t * h)
         len = strlen(h->headers[i]);
         if (h->headers[i][len + 1] == '\n') {
             h->headers[i][len] = '\r';
-            /*         h->headers[i][len+1]='\n';*/
+            /*         h->headers[i][len+1] = '\n';*/
         } else {              /*   handle the case that headers seperated with a '\n' only */
             h->headers[i][len] = '\n';
         }
@@ -530,7 +530,7 @@ void ci_headers_pack(ci_headers_list_t * h)
 
     if (h->buf[h->bufused + 1] == '\n') {
         h->buf[h->bufused] = '\r';
-        /*    h->buf[h->bufused+1]='\n';*/
+        /*    h->buf[h->bufused+1] = '\n';*/
         h->bufused += 2;
     } else {                   /*   handle the case that headers seperated with a '\n' only */
         h->buf[h->bufused] = '\n';

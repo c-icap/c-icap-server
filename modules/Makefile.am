@@ -22,7 +22,7 @@ endif
 AM_CPPFLAGS=-I$(top_srcdir)/ -I$(top_srcdir)/include/
 
 sys_logger_la_LIBADD = @MODULES_LIBADD@
-sys_logger_la_CFLAGS=  @MODULES_CFLAGS@ 
+sys_logger_la_CFLAGS=  @MODULES_CFLAGS@
 sys_logger_la_LDFLAGS= -module -avoid-version
 sys_logger_la_SOURCES = sys_logger.c
 
@@ -48,11 +48,11 @@ ldap_module_la_LDFLAGS= -module -avoid-version
 ldap_module_la_SOURCES = ldap_module.c
 
 memcached_cache_la_LIBADD= -lmemcached -lmemcachedutil
-memcached_cache_la_CFLAGS= @MEMCACHED_CFLAGS@ 
+memcached_cache_la_CFLAGS= @MEMCACHED_CFLAGS@
 memcached_cache_la_LDFLAGS= -module -avoid-version @MEMCACHED_LDFLAGS@
 memcached_cache_la_SOURCES= memcached.c
 
 shared_cache_la_LIBADD= @MODULES_LIBADD@
-shared_cache_la_CFLAGS= 
+shared_cache_la_CFLAGS=
 shared_cache_la_LDFLAGS= -module -avoid-version
 shared_cache_la_SOURCES= shared_cache.c

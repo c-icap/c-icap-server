@@ -74,12 +74,12 @@ typedef union ci_inaddr {
 
 #define ci_inaddr_zero(addr) (memset(&(addr),0,sizeof(ci_in_addr_t)))
 #define ci_inaddr_copy(dest,src) (memcpy(&(dest),&(src),sizeof(ci_in_addr_t)))
-#define ci_ipv4_inaddr_hostnetmask(addr)((addr).ipv4_addr.s_addr=htonl(0xFFFFFFFF))
+#define ci_ipv4_inaddr_hostnetmask(addr)((addr).ipv4_addr.s_addr = htonl(0xFFFFFFFF))
 #define ci_in6_addr_u32(addr) ((uint32_t *)&((addr).ipv6_addr))
-#define ci_ipv6_inaddr_hostnetmask(addr)(ci_in6_addr_u32(addr)[0]=htonl(0xFFFFFFFF),\
-                     ci_in6_addr_u32(addr)[1]=htonl(0xFFFFFFFF), \
-                     ci_in6_addr_u32(addr)[2]=htonl(0xFFFFFFFF), \
-                     ci_in6_addr_u32(addr)[3]=htonl(0xFFFFFFFF))
+#define ci_ipv6_inaddr_hostnetmask(addr)(ci_in6_addr_u32(addr)[0] = htonl(0xFFFFFFFF),\
+                     ci_in6_addr_u32(addr)[1] = htonl(0xFFFFFFFF), \
+                     ci_in6_addr_u32(addr)[2] = htonl(0xFFFFFFFF), \
+                     ci_in6_addr_u32(addr)[3] = htonl(0xFFFFFFFF))
 
 #define CI_IPLEN      46
 #define CI_SOCKADDR_SIZE sizeof(struct sockaddr_storage)
@@ -87,9 +87,9 @@ typedef union ci_inaddr {
 #else /*IPV4 only*/
 
 typedef struct in_addr ci_in_addr_t;
-#define ci_inaddr_zero(addr) ((addr).s_addr=0)
-#define ci_inaddr_copy(dest,src) ((dest)=(src))
-#define ci_ipv4_inaddr_hostnetmask(addr)((addr).s_addr=htonl(0xFFFFFFFF))
+#define ci_inaddr_zero(addr) ((addr).s_addr = 0)
+#define ci_inaddr_copy(dest,src) ((dest) = (src))
+#define ci_ipv4_inaddr_hostnetmask(addr)((addr).s_addr = htonl(0xFFFFFFFF))
 
 
 #define CI_IPLEN      16

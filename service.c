@@ -220,26 +220,26 @@ struct ci_conf_entry *create_service_conf_table(struct ci_service_xdata *srv_xda
 {
     int i,k,size;
     struct ci_conf_entry *table;
-    for (i=0; services_global_conf_table[i].name!=NULL; i++);
+    for (i = 0; services_global_conf_table[i].name != NULL; i++);
     size = i;
     if (user_table) {
-        for (i=0; user_table[i].name!=NULL; i++);
+        for (i = 0; user_table[i].name != NULL; i++);
         size += i;
     }
 
-    table=malloc((size+1)*sizeof(struct ci_conf_entry));
+    table = malloc((size+1)*sizeof(struct ci_conf_entry));
     if (!table)
         return NULL;
 
-    for (i=0;  services_global_conf_table[i].name!=NULL; i++) {
+    for (i = 0;  services_global_conf_table[i].name != NULL; i++) {
         table[i].name = services_global_conf_table[i].name;
         table[i].data = srv_xdata;
         table[i].action = services_global_conf_table[i].action;
         table[i].msg = services_global_conf_table[i].msg;
     }
-    k=i;
+    k = i;
     if (user_table) {
-        for (i=0;  user_table[i].name!=NULL; i++,k++) {
+        for (i = 0; user_table[i].name != NULL; i++, k++) {
             table[k].name = user_table[i].name;
             table[k].data = user_table[i].data;
             table[k].action = user_table[i].action;

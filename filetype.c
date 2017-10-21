@@ -409,9 +409,9 @@ static const char text_chars[256] = {
 
 
 /*
-ASCII if res<=1
-ISO if res<=3
-EXTEND if res<=7
+ASCII if res <= 1
+ISO if res <= 3
+EXTEND if res <= 7
 */
 
 int check_ascii(unsigned char *buf, int buflen)
@@ -499,7 +499,7 @@ int check_unicode(unsigned char *buf, int buflen)
     if (ret < 0 && i == 0)
         ret = 0;              /*Not enough data to check */
 
-    if (ret)                   /*Even if the last char is unknown ret!=0 mean is utf */
+    if (ret)                   /*Even if the last char is unknown ret != 0 mean is utf */
         return CI_UTF_DATA;   /*... but what about if buflen is about 2 or 3 bytes long ? */
 
     /*check for utf16 .... */

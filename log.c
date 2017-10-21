@@ -185,7 +185,7 @@ void file_log_access(ci_request_t *req);
 void file_log_server(const char *server, const char *format, va_list ap);
 void file_log_relog(const char *name, int type, const char **argv);
 
-/*char *LOGS_DIR=LOGDIR;*/
+/*char *LOGS_DIR = LOGDIR;*/
 char *SERVER_LOG_FILE = LOGDIR "/cicap-server.log";
 /*char *ACCESS_LOG_FILE = LOGDIR "/cicap-access.log";*/
 
@@ -226,7 +226,7 @@ FILE *logfile_open(const char *fname)
 
 int file_log_open()
 {
-    int error=0, ret = 0;
+    int error = 0, ret = 0;
     struct logfile *lf;
 
     assert(ret == 0);
@@ -376,7 +376,7 @@ int file_log_addlogfile(const char *file, const char *format, const char **acls)
             free(newlf);
             return 0;
         }
-        for (i=0; acls[i] != NULL; i++) {
+        for (i = 0; acls[i] != NULL; i++) {
             acl_name = acls[i];
             if (!ci_access_entry_add_acl_by_name(newlf->access_list, acl_name)) {
                 ci_debug_printf(1, "Error addind acl %s to access list for access log file %s!\n",

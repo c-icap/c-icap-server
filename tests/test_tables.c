@@ -30,7 +30,7 @@ int load_module(const char *directive,const char **argv,void *setdata)
     CI_DLIB_HANDLE lib;
     common_module_t *module;
 
-    if (argv== NULL || argv[0]== NULL)
+    if (argv == NULL || argv[0] == NULL)
         return 0;
 
     lib = ci_module_load(argv[0],"./");
@@ -132,7 +132,7 @@ int main(int argc,char *argv[])
         if (e) {
             printf("Result :\n\t%s:",key);
             if (vals) {
-                for (v=vals[0],i=0; v!=NULL; v=vals[++i]) {
+                for (v = vals[0], i = 0; v != NULL; v = vals[++i]) {
                     printf("%s ",(char *)v);
                 }
             }

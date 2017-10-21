@@ -289,7 +289,7 @@ int ci_shared_cache_update(struct ci_cache *cache, const void *key, const void *
         } else if (slot->expires < current_time + cache->ttl) {
             can_updated = 1;
         } else if (pos == hash && slot->expires < (current_time + (cache->ttl / 2))) {
-            /*entries on pos==hash which are near to expire*/
+            /*entries on pos == hash which are near to expire*/
             can_updated = 1;
         } else if (pos != hash && slot->hash == pos) {
             /*entry is not expired, and it is not on a continues block we can use  */

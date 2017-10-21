@@ -39,14 +39,14 @@ struct ci_lookup_table_type *ci_lookup_table_type_register( struct ci_lookup_tab
         ci_debug_printf(1,"c-icap does not support more than 128 loookup table types");
         return NULL;
     }
-    lookup_tables_types[lookup_tables_types_num++]=lt_type;
+    lookup_tables_types[lookup_tables_types_num++] = lt_type;
     return lt_type;
 }
 
 void ci_lookup_table_type_unregister( struct ci_lookup_table_type *lt_type)
 {
     int i;
-    for (i=0; lookup_tables_types[i] != lt_type && i < lookup_tables_types_num; i++);
+    for (i = 0; lookup_tables_types[i] != lt_type && i < lookup_tables_types_num; i++);
 
     if (i<lookup_tables_types_num) {
         lookup_tables_types_num--;
@@ -58,7 +58,7 @@ void ci_lookup_table_type_unregister( struct ci_lookup_table_type *lt_type)
 const struct ci_lookup_table_type *ci_lookup_table_type_search(const char *type)
 {
     int i;
-    for (i=0; i<lookup_tables_types_num; i++) {
+    for (i = 0; i<lookup_tables_types_num; i++) {
         if (strcmp(type,lookup_tables_types[i]->type) == 0)
             return lookup_tables_types[i];
     }
@@ -114,11 +114,11 @@ struct ci_lookup_table *ci_lookup_table_create_ext(const char *table,
         return NULL;
     }
 
-    lt->path=strdup(path);
+    lt->path = strdup(path);
     if (args)
-        lt->args=strdup(args);
+        lt->args = strdup(args);
     else
-        lt->args=NULL;
+        lt->args = NULL;
 
     free(stable);
 
@@ -213,7 +213,7 @@ const void * lookup_table_get_row(struct ci_lookup_table *table, const void *key
         return NULL;
     }
 
-    for (i=0; i < 1024 && columns[i] != NULL; i++) {
+    for (i = 0; i < 1024 && columns[i] != NULL; i++) {
         if (NULL == ci_str_vector_search(table->col_names, columns[i])) {
             ci_debug_printf(1, "lookup_table :%s does not has column %s\n", table->type, columns[i]);
             return NULL;

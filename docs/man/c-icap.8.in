@@ -19,7 +19,7 @@ c-icap - ICAP filtering server
 .B \-d " debug-level"
 ]
 [
-.B \-D 
+.B \-D
 ]
 .SH DESCRIPTION
 .B c-icap
@@ -29,7 +29,7 @@ is an implementation of an ICAP server. It can be used with HTTP proxies that su
 Print version
 .IP "-VV"
 Print build informations
-.IP "-f config-file" 
+.IP "-f config-file"
 Specify the configuration file
 .IP "-N"
 Do not run as daemon
@@ -62,7 +62,7 @@ The c-icap will shutdown
 .RE
 .IP "reconfigure"
 .RS
-The service will reread the config file without the need to stop and restart 
+The service will reread the config file without the need to stop and restart
 the c-icap server. The services will be reinitialized
 .RE
 .IP "relog"
@@ -81,20 +81,20 @@ Services and modules can define their own commands.
       echo \-n "relog" > /var/run/c-icap.ctl
 .RE
 .SS Lookup tables
-Lookup tables are simple read-only databases. 
+Lookup tables are simple read-only databases.
 A lookup table can defined in c-icap.conf file using the form:
 .RE
 	type:path
 .RE
 where the \fBtype\fR is the type of lookup table and \fBpath\fR is the extra information required to use the table (e.g. file path). Currently the following lookup table types defined internally by c-icap:
-.IP file 
+.IP file
 Simple text file databases. The database records are stored in text files in the form:
 .RS
  key[: value1, value2 ...]
 .RE
 .RS
 .IP "example path definition:"
-.RS 
+.RS
 file:/path/to/the/file.txt
 .RE
 .RE
@@ -102,7 +102,7 @@ file:/path/to/the/file.txt
 Similar to file lookup tables but c-icap uses fast hashes for searching.
 .RS
 .IP "example path definition:"
-.RS 
+.RS
 hash:/path/to/the/file.txt
 .RE
 .RE
@@ -115,7 +115,7 @@ Similar to the file lookup tables but the keys are regular expressions in the fo
 	/^[n-z].*/i: group2
 .RE
 .IP "example path definition:"
-.RS 
+.RS
 regex:/path/to/the/file.txt
 .RE
 .RE

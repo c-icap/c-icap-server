@@ -91,9 +91,9 @@ int access_check_request(ci_request_t * req)
 
     res = check_request(req);
 
-    ci_debug_printf(9,"Access control: %s\n", (res==CI_ACCESS_ALLOW?
+    ci_debug_printf(9,"Access control: %s\n", (res == CI_ACCESS_ALLOW?
                     "ALLOW":
-                    (res==CI_ACCESS_DENY?"DENY":"UNKNOWN")));
+                    (res == CI_ACCESS_DENY?"DENY":"UNKNOWN")));
     return res;
 }
 

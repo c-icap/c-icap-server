@@ -11,21 +11,21 @@ c-icap-mkbdb - simple ICAP clientutility to create Berkeley DB lookup tables
 ]
 [
 .B \-d debug_level
-] 
+]
 [
 .B \-i file.txt
-] 
+]
 [
 .B \-o file.db
-] 
+]
 [
 .B \-t string|int|ip
-] 
+]
 [
 .B \-v string|int|ip
 ]
 [
-.B \-\-dump 
+.B \-\-dump
 ]
 .SH DESCRIPTION
 .B c-icap-mkbdb
@@ -39,17 +39,17 @@ Print build informations
 The debug level
 .IP "-i file.txt"
 The file contains the data (required). The line format of this file must be:
-.br 
+.br
 .I "key: value1, value2, ...."
 .IP "-o file.db"
 The database to be created
 .IP "-t string|int|ip"
-The type of the key. Select 
-.B "string" 
-for string keys, 
-.B "int" 
-for integer keys or 
-.B "ip" 
+The type of the key. Select
+.B "string"
+for string keys,
+.B "int"
+for integer keys or
+.B "ip"
 for using IP addresses as keys. The "string" is the default.
 .IP "-v string|int|ip"
 The type of the values. The "string" is the default.
@@ -61,10 +61,10 @@ Use B-Tree as access method for the database. By default uses Hash.
 .IP "--dump"
 Do not update the database just dump it to the screen.
 .SH EXAMPLES
-.TP 
+.TP
 c-icap-mkbdb \-o keys \-i keys.txt
 It builds the
-.B keys 
+.B keys
 Berkeley DB database, using string type for keys and values.
 .TP
 c-icap-mkbdb \-o keys \-\-dump

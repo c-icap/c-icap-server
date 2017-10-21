@@ -28,8 +28,8 @@
 int ci_resp_check_body(ci_request_t *req){
      int i;
      ci_encaps_entity_t **e=req->entities;
-     for(i=0;e[i]!=NULL;i++)
-      if(e[i]->type==ICAP_NULL_BODY)
+     for(i = 0; e[i] != NULL; i++)
+      if(e[i]->type == ICAP_NULL_BODY)
            return 0;
      return 1;
 }
@@ -277,7 +277,7 @@ int ci_http_request_url(ci_request_t * req, char *buf, int buf_size)
         /*Looks like a transparent proxy, we do not know the protocol lets try
           to preserve the major part of the url....
          */
-        for (i=0; (i < buf_size-1) && !header_end(host[i]) && !isspace(host[i]); i++) {
+        for (i = 0; (i < buf_size-1) && !header_end(host[i]) && !isspace(host[i]); i++) {
             buf[i] = host[i];
         }
         buf += i;
@@ -286,7 +286,7 @@ int ci_http_request_url(ci_request_t * req, char *buf, int buf_size)
     }
 
     /*copy the url...*/
-    for (i=0; (i < buf_size-1) && !header_end(str[i]) && !isspace(str[i]) && str[i] != '?'; i++) {
+    for (i = 0; (i < buf_size-1) && !header_end(str[i]) && !isspace(str[i]) && str[i] != '?'; i++) {
         buf[i] = str[i];
     }
     buf[i] = '\0';

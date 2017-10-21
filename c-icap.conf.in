@@ -1,7 +1,7 @@
 #
 # This file contains the default settings for c-icap
-# 
-# 
+#
+#
 
 
 # TAG: PidFile
@@ -41,12 +41,12 @@ MaxKeepAliveRequests 100
 # TAG: KeepAliveTimeout
 # Format: KeepAliveTimeout seconds
 # Description:
-#	The maximum time in seconds waiting for a new requests before a 
+#	The maximum time in seconds waiting for a new requests before a
 #	connection will be closed.
 #	If the value is set to -1, there is no timeout.
 # Default:
 #	KeepAliveTimeout 600
-KeepAliveTimeout 600  
+KeepAliveTimeout 600
 
 # TAG: StartServers
 # Format: StartServers number
@@ -77,7 +77,7 @@ MinSpareThreads     10
 # TAG: MaxSpareThreads
 # Format: MaxSpareThreads number
 # Description:
-#	If the number of the available threads is more than number then 
+#	If the number of the available threads is more than number then
 #	the c-icap server kills a child.
 # Default:
 #	MaxSpareThreads     20
@@ -129,7 +129,7 @@ MaxRequestsPerChild  0
 #	The port number that the c-icap server uses to listen to requests.
 # Default:
 #	None
-Port 1344 
+Port 1344
 
 # TAG: TlsPort
 # Format: TlsPort [address:]port [tls-method=method] [cert=path_to_pem_cert] [key=path_to_pem_key] [client_ca=path_to_pem_file] [ciphers=ciph1:ciph2...] [tls_options=[!]Opt1|[!]Opt2|...]
@@ -185,13 +185,13 @@ Port 1344
 # TAG: TlsPassphrase
 # Format: TlsPassphrase /path/to/script
 # Description:
-#	Path to the script to run to get the passphrases of TLS certificates 
+#	Path to the script to run to get the passphrases of TLS certificates
 #	keys. The c-icap will pass as arguments the IP address and port number
 #	to the script.
 # Default:
 #	No value
 # Example:
-#	TlsPassphrase /use/local/c-icap/scripts/cert-passphrase.sh 
+#	TlsPassphrase /use/local/c-icap/scripts/cert-passphrase.sh
 
 # TAG: User
 # Format: User username
@@ -334,7 +334,7 @@ TemplateDefaultLanguage en
 # TAG: LoadMagicFile
 # Format: LoadMagicFile path
 # Description:
-#	Load a c-icap magic file. A magic file contains various 
+#	Load a c-icap magic file. A magic file contains various
 #	data type definitions. Look inside default c-icap.magic file
 #	for more informations.
 #	It can be used more than once to use multiple magic files.
@@ -357,7 +357,7 @@ RemoteProxyUsers off
 # Format: RemoteProxyUserHeader Header
 # Description:
 #	Used to specify the icap header used by the proxy server to send
-#	the authenticated client username to c-icap server 
+#	the authenticated client username to c-icap server
 # Default:
 #	RemoteProxyUserHeader X-Authenticated-User
 RemoteProxyUserHeader X-Authenticated-User
@@ -400,7 +400,7 @@ RemoteProxyUserHeaderEncoded on
 # TAG: basic_simple_db.UsersDB
 # Format: basic_simple_db.UsersDB LookupTable
 # Description:
-#	Specify the lookup table where the usernames/passwords pairs 
+#	Specify the lookup table where the usernames/passwords pairs
 #	are stored. The paswords must be unencrypted
 #	For more information about c-icap lookup tables read c-icap server
 #	manual page
@@ -424,7 +424,7 @@ RemoteProxyUserHeaderEncoded on
 # TAG: GroupSourceByUser
 # Format: GroupSourceByUser LookupTable
 # Description:
-#	Defines a lookup table where the groups of users are stored indexed 
+#	Defines a lookup table where the groups of users are stored indexed
 #	by user. It can be used more than once.
 #	For more information about c-icap lookup tables read c-icap server
 #	manual page
@@ -539,11 +539,11 @@ RemoteProxyUserHeaderEncoded on
 # Example:
 #	client_access allow all
 
-# TAG: LogFormat 
+# TAG: LogFormat
 # Format: LogFormat Name Format
 # Description:
 #	Name is a name for this log format.
-#	Format is a string with embedded % format codes. % format codes 
+#	Format is a string with embedded % format codes. % format codes
 #	has the following form:
 #	    % [-] [width] [{argument}] formatcode
 #	    if - is specified then the output is left aligned
@@ -554,7 +554,7 @@ RemoteProxyUserHeaderEncoded on
 #	       %a:  Remote IP-Address
 #	       %la: Local IP Address
 #	       %lp: Local port
-#	       %>a: Http Client IP Address. Only supported if the proxy 
+#	       %>a: Http Client IP Address. Only supported if the proxy
 #	       	    client supports the "X-Client-IP" header
 #	       %<A: Http Server IP Address. Only supported if the proxy
 #	       	    client supports the "X-Server-IP" header
@@ -579,22 +579,22 @@ RemoteProxyUserHeaderEncoded on
 #	       %Ob: Http body bytes sent
 #	       %I: Bytes received
 #	       %O: Bytes sent
-#	       %bph: The first 5 bytes of the body preview data. Non 
+#	       %bph: The first 5 bytes of the body preview data. Non
 #	       	     printable characters printed in hex form.
 #	       	     Supports the number of bytes to output as argument.
 #	       %un: Username
 #	       %Sl: Service log string
-#              %Sa: Attribute value set by service. The attribute name must 
+#              %Sa: Attribute value set by service. The attribute name must
 #                   given as argument.
 # Default:
 #	None set
 # Example:
-#	LogFormat myFormat "%tl, %a %im %iu %is %I %O %Ib %Ob %{10}bph" 
+#	LogFormat myFormat "%tl, %a %im %iu %is %I %O %Ib %Ob %{10}bph"
 
 # TAG: ServerLog
 # Format: ServerLog LogFile
 # Description:
-#	the file used by the build-in logger file_logger to 
+#	the file used by the build-in logger file_logger to
 #	store debugging information, errors and other
 #	information about the c-icap server.
 # Default:
@@ -649,7 +649,7 @@ AccessLog @prefix@/var/log/access.log
 # TAG: Service
 # Format: Service aName ServiceFile [forceUnload=off]
 # Description:
-#	It loads the service ServiceFile. The argument aName used 
+#	It loads the service ServiceFile. The argument aName used
 #	as alias name for the service
 #	forceUnload=off
 #		Forces c-icap to not unload services/modules loaded as external
@@ -684,7 +684,7 @@ AccessLog @prefix@/var/log/access.log
 #		to the icap server
 #	TransferComplete: The list of file extensions that should be sent
 #		in their entirety, without preview, to the icap server
-#	OptionsTTL: The options ttl for the service. The "sec[s]", "min" or 
+#	OptionsTTL: The options ttl for the service. The "sec[s]", "min" or
 #		"hour[s]" can be used to secify that the time is in seconds
 #		minutes or hours respectively. If no time-units given
 #		seconds are assumed.
@@ -726,7 +726,7 @@ Service echo srv_echo.so
 # TAG: sys_logger.Facility
 # Format: sys_logger.Facility daemon|user|local1|local2|local3|local4|local5|local6|local7
 # Description:
-#	specifies the facility type of syslog. 
+#	specifies the facility type of syslog.
 # Default:
 #	sys_logger.Facility daemon
 
@@ -747,11 +747,11 @@ Service echo srv_echo.so
 # TAG: sys_logger.LogFormat
 # Format: sys_logger.LogFormat LOGFORMAT
 # Description:
-#	The log format to use. If no log format defined then 
+#	The log format to use. If no log format defined then
 #	the following will be used:
 #	    "%la %a %im %iu %is"
 # Default:
-#	None set 
+#	None set
 # Example:
 #	Logformat BasicFormat "%la %a %im %iu %is"
 #	sys_logger.LogFormat BasicFormat
@@ -770,7 +770,7 @@ Service echo srv_echo.so
 
 # Module: bdb_tables
 # Description:
-#	Add support for Berkeley DB based lookup tables. The format for 
+#	Add support for Berkeley DB based lookup tables. The format for
 #	bdb path of the lookup table is:
 #		bdb:/path/to/bdb[{param1=val, ...}]
 #	bdb table parameters can be one or more of the followings:
@@ -800,7 +800,7 @@ Service echo srv_echo.so
 #               The cache ttl to use
 #	
 #	For example the lookup table  for accessing the black.uribl.com
-#	dns black list is: 
+#	dns black list is:
 #	    dnsbl:black.uribl.com
 # Example:
 #	Module common dnsbl_tables.so

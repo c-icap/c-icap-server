@@ -27,7 +27,7 @@ void  dnsbl_table_close(struct ci_lookup_table *table);
 void *dnsbl_table_search(struct ci_lookup_table *table, void *key, void ***vals);
 void  dnsbl_table_release_result(struct ci_lookup_table *table_data,void **val);
 
-struct ci_lookup_table_type dnsbl_table_type= {
+struct ci_lookup_table_type dnsbl_table_type = {
     dnsbl_table_open,
     dnsbl_table_close,
     dnsbl_table_search,
@@ -73,7 +73,7 @@ void *dnsbl_table_open(struct ci_lookup_table *table)
         return NULL;
     }
 
-    if (table->key_ops != &ci_str_ops || table->val_ops!= &ci_str_ops) {
+    if (table->key_ops != &ci_str_ops || table->val_ops != &ci_str_ops) {
         ci_debug_printf(1, "dnsbl_table_open:  Only searching with strings and returning strings supported\n");
         return NULL;
     }
