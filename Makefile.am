@@ -31,7 +31,7 @@ UTIL_SOURCES=os/unix/proc_utils.c
 
 
 
-libicapapi_la_SOURCES=  header.c body.c decode.c simple_api.c request_common.c \
+libicapapi_la_SOURCES=  header.c body.c decode.c encode.c simple_api.c request_common.c \
                         filetype.c debug.c cfg_lib.c mem.c  service_lib.c \
                         cache.c lookup_table.c lookup_file_table.c hash.c \
 			txt_format.c stats.c types_ops.c acl.c txtTemplate.c \

@@ -426,13 +426,13 @@ if test a"$brotli" != "ano"; then
         OLDLDFLAGS=$LDFLAGS
         CFLAGS="$CFLAGS -I$brotli/include"
         LDFLAGS="$LDFLAGS -L$brotli/lib"
-	AC_CHECK_LIB(brotlidec,BrotliDecoderDecompressStream,[BROTLIDEC_ADD_LDADD="-L$brotli/lib -lbrotlidec";BROTLIDEC_ADD_FLAG="-I$brotli/include";AC_DEFINE(HAVE_BROTLI,1,[Define HAVE_BROTLI if brotli installed])],[brotli=no])
+	AC_CHECK_LIB(brotlidec,BrotliDecoderDecompressStream,[BROTLIDEC_ADD_LDADD="-L$brotli/lib -lbrotlidec -lbrotlienc";BROTLIDEC_ADD_FLAG="-I$brotli/include";AC_DEFINE(HAVE_BROTLI,1,[Define HAVE_BROTLI if brotli installed])],[brotli=no])
         CFLAGS=$OLDCFLAGS
         LDFLAGS=$OLDLDFLAGS
 	AC_SUBST(BROTLIDEC_ADD_LDADD)
 	AC_SUBST(BROTLIDEC_ADD_FLAG)
    else
-	AC_CHECK_LIB(brotlidec,BrotliDecoderDecompressStream,[BROTLIDEC_ADD_LDADD=" -lbrotlidec";AC_DEFINE(HAVE_BROTLI,1,[Define HAVE_BROTLI if brotli installed])],[brotli=no])
+	AC_CHECK_LIB(brotlidec,BrotliDecoderDecompressStream,[BROTLIDEC_ADD_LDADD=" -lbrotlidec -lbrotlienc";AC_DEFINE(HAVE_BROTLI,1,[Define HAVE_BROTLI if brotli installed])],[brotli=no])
 	AC_SUBST(BROTLIDEC_ADD_LDADD)
    fi
 fi
@@ -1007,4 +1007,3 @@ include/c-icap-conf.h Makefile utils/Makefile services/Makefile
 services/echo/Makefile services/ex-206/Makefile modules/Makefile tests/Makefile
 docs/Makefile docs/man/Makefile
 ])
-
