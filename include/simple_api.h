@@ -152,11 +152,12 @@ CI_DECLARE_FUNC(int) ci_base64_decode(const char *str,char *result,int len);
 CI_DECLARE_FUNC(int) ci_base64_encode(const unsigned char *data, size_t datalen, char *out, size_t outlen);
 
 enum {
+    CI_ENCODE_UNKNOWN = -1,
     CI_ENCODE_NONE = 0,
     CI_ENCODE_GZIP,
     CI_ENCODE_DEFLATE,
     CI_ENCODE_BZIP2,
-    CI_ENCODE_UNKNOWN
+    CI_ENCODE_BROTLI
 };
 
 /**
@@ -192,6 +193,27 @@ CI_DECLARE_FUNC(const char *) ci_inflate_error(int err);
 
 struct ci_membuf;
 struct ci_simple_file;
+
+/**
+ * Uncompress any compressed data that c-icap understands and writes the output to the outbuf
+ * object, regardless of algorithm
+ \ingroup UTILITY
+ *
+ \param encoding_format   is the enum for the encoding type
+ \param inbuf   is a buffer which holds the zipped data
+ \param inlen is the length of the buffer buf
+ \param outbuf where to put unzipped data
+ \param max_size if it is greater than zero, the output data limit
+ \return CI_UNCOMP_OK on success, CI_UNCOMP_ERR_NONE, if maxsize exceed, an
+ *       CI_UNCOMPRESS_ERRORS code otherwise
+ */
+CI_DECLARE_FUNC(int) ci_generic_decompress_to_membuf(int encoding_format, const char *inbuf, size_t inlen, struct ci_membuf *outbuf, ci_off_t max_size);
+
+/**
+ \ingroup UTILITY
+ \copydoc ci_generic_decompress_to_membuf(char *inbuf, size_t inlen, struct ci_membuf *outbuf, ci_off_t max_size)
+ */
+CI_DECLARE_FUNC(int) ci_generic_decompress_to_simple_file(int encoding_format, const char *inbuf, size_t inlen, struct ci_simple_file *outbuf, ci_off_t max_size);
 
 /**
  * Uncompress deflate/gzip compressed data and writes the output to the outbuf
@@ -231,6 +253,25 @@ CI_DECLARE_FUNC(int) ci_bzunzip_to_membuf(const char *inbuf, size_t inlen, struc
  \copydoc ci_bzunzip_to_membuf(char *inbuf, size_t inlen, struct ci_membuf *outbuf, ci_off_t max_size)
  */
 CI_DECLARE_FUNC(int) ci_bzunzip_to_simple_file(const char *inbuf, size_t inlen, struct ci_simple_file *outbuf, ci_off_t max_size);
+
+/**
+ * Uncompress brotli compressed data and writes the output to the outbuf object
+ \ingroup UTILITY
+ *
+ \param inbuf   is a buffer which holds the zipped data
+ \param inlen is the length of the buffer buf
+ \param outbuf where to put unzipped data
+ \param max_size if it is greater than zero, the output data limit
+ \return CI_UNCOMP_OK on success, CI_UNCOMP_ERR_NONE, if maxsize exceed, an
+ *       CI_UNCOMPRESS_ERRORS code otherwise
+ */
+CI_DECLARE_FUNC(int) ci_brinflate_to_membuf(const char *inbuf, size_t inlen, struct ci_membuf *outbuf, ci_off_t max_size);
+
+/**
+ \ingroup UTILITY
+ \copydoc ci_brinflate_to_membuf(char *inbuf, size_t inlen, struct ci_membuf *outbuf, ci_off_t max_size)
+ */
+CI_DECLARE_FUNC(int) ci_brinflate_to_simple_file(const char *inbuf, size_t inlen, struct ci_simple_file *outbuf, ci_off_t max_size);
 
 /**
  * Decodes a base64 encoded string, and also allocate memory for the result.

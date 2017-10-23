@@ -575,6 +575,10 @@ int extend_object_type(struct ci_magics_db *db, ci_headers_list_t *headers, cons
                 *iscompressed = CI_ENCODE_DEFLATE;
             } else if (strcasestr(content_encoding, "bzip2") != NULL) {
                 *iscompressed = CI_ENCODE_BZIP2;
+#ifdef HAVE_BROTLI
+            } else if (strcasestr(content_encoding, "br") != NULL) {
+                *iscompressed = CI_ENCODE_BROTLI;
+#endif
             } else
                 *iscompressed = CI_ENCODE_UNKNOWN;
 
@@ -587,7 +591,8 @@ int extend_object_type(struct ci_magics_db *db, ci_headers_list_t *headers, cons
 #if 0
                     || *iscompressed == CI_ENCODE_BZIP2
 #endif
-                    || *iscompressed == CI_ENCODE_DEFLATE) {
+                    || *iscompressed == CI_ENCODE_DEFLATE
+                    || *iscompressed == CI_ENCODE_BROTLI) {
                 unzipped_buf = ci_buffer_alloc(len); /*Will I implement memory pools? when????? */
                 unzipped_buf_len = len;
                 if (ci_uncompress_preview

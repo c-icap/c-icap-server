@@ -31,6 +31,12 @@
 #ifdef HAVE_BZLIB
 #include <bzlib.h>
 #endif
+#ifdef HAVE_BROTLI
+#include "brotli/decode.h"
+#include "brotli/encode.h"
+#include "brotli/types.h"
+#include "brotli/port.h"
+#endif
 
 
 unsigned char base64_table[] = {
@@ -239,6 +245,201 @@ static int write_once_to_outbuf(void *obj, const char *buf, size_t len)
     return 0;
 }
 
+
+/*return CI_INFLATE_ERRORS
+ */
+int ci_generic_decompress_to_membuf(int encoding_format, const char *inbuf, size_t inlen, ci_membuf_t *outbuf, ci_off_t max_size)
+{
+    switch (encoding_format) {
+	case CI_ENCODE_NONE:
+            return CI_UNCOMP_OK;
+            break;
+#ifdef HAVE_ZLIB
+        case CI_ENCODE_GZIP:
+        case CI_ENCODE_DEFLATE:
+            return ci_inflate_to_membuf(inbuf, inlen, outbuf, max_size);
+            break;
+#endif
+#ifdef HAVE_BZLIB
+        case CI_ENCODE_BZIP2:
+            return ci_bzunzip_to_membuf(inbuf, inlen, outbuf, max_size);
+            break;
+#endif
+#ifdef HAVE_BROTLI
+        case CI_ENCODE_BROTLI:
+            return ci_brinflate_to_membuf(inbuf, inlen, outbuf, max_size);
+            break;
+#endif
+        case CI_ENCODE_UNKNOWN:
+        default:
+            return CI_UNCOMP_ERR_ERROR;
+            break;
+    }
+}
+
+/*return CI_INFLATE_ERRORS
+ */
+int ci_generic_decompress_to_simple_file(int encoding_format, const char *inbuf, size_t inlen, struct ci_simple_file *outbuf, ci_off_t max_size)
+{
+    switch (encoding_format) {
+	case CI_ENCODE_NONE:
+            return CI_UNCOMP_OK;
+            break;
+#ifdef HAVE_ZLIB
+        case CI_ENCODE_GZIP:
+        case CI_ENCODE_DEFLATE:
+            return ci_inflate_to_simple_file(inbuf, inlen, outbuf, max_size);
+            break;
+#endif
+#ifdef HAVE_BZLIB
+        case CI_ENCODE_BZIP2:
+            return ci_bzunzip_to_simple_file(inbuf, inlen, outbuf, max_size);
+            break;
+#endif
+#ifdef HAVE_BROTLI
+        case CI_ENCODE_BROTLI:
+            return ci_brinflate_to_simple_file(inbuf, inlen, outbuf, max_size);
+            break;
+#endif
+        case CI_ENCODE_UNKNOWN:
+        default:
+            return CI_UNCOMP_ERR_ERROR;
+            break;
+    }
+}
+
+#ifdef HAVE_BROTLI
+#define DEFAULT_LGWIN	 22
+#define DEFAULT_QUALITY	 11
+#define kFileBufferSize 16384
+
+BROTLI_BOOL Br_Decompress(BrotliDecoderState* s, const char *buf, int inlen, void *outbuf, char *(*get_outbuf)(void *obj, unsigned int *len), int (*writefunc)(void *obj, const char *buf, size_t len), ci_off_t max_size)
+{
+    size_t available_in = 0;
+    const uint8_t* next_in = NULL;
+    size_t available_out = kFileBufferSize;
+    uint8_t* next_out;
+    unsigned have, written;
+    long long outsize;
+    size_t total_out = 0;
+    BrotliDecoderResult result = BROTLI_DECODER_RESULT_NEEDS_MORE_INPUT;
+    uint8_t out[kFileBufferSize];
+
+    ci_debug_printf(4, "data-compression: brotli decompress called size: %d\n",
+            inlen);
+
+    next_in = (uint8_t *)buf;
+    available_in = inlen;
+    outsize = 0;
+    for (;;) {
+        available_out = kFileBufferSize;
+        next_out = out;
+        result = BrotliDecoderDecompressStream(s,
+                               &available_in, &next_in,
+                               &available_out,
+                               &next_out, &total_out);
+        have = kFileBufferSize - available_out;
+        if (!have || (written =
+                  writefunc(outbuf, (char *)out, have)) != have) {
+            return BROTLI_FALSE;
+        }
+        outsize += written;
+        if (max_size > 0 && outsize > max_size) {
+            if ( (outsize/inlen) > 100) {
+                ci_debug_printf(1, "data-compression: brotli Compression ratio UncompSize/CompSize = %"
+                        PRINTF_OFF_T "/%" PRINTF_OFF_T " = %" PRINTF_OFF_T
+                        "! Is it a zip bomb? aborting!\n",
+                        (CAST_OFF_T)outsize,
+                        (CAST_OFF_T)inlen,
+                        (CAST_OFF_T)(outsize/inlen));
+                return BROTLI_FALSE;
+            }
+            else {
+                ci_debug_printf(4, "data-compression: brotli Object is bigger than max allowed file\n");
+                return BROTLI_FALSE;
+            }
+        }
+        switch (result) {
+        case BROTLI_DECODER_RESULT_NEEDS_MORE_INPUT:
+            ci_debug_printf(4, "data-compression: brotli needs more input\n");
+            break;
+        case BROTLI_DECODER_RESULT_NEEDS_MORE_OUTPUT:
+            /* Nothing to do - output is already written. */
+            break;
+        case BROTLI_DECODER_RESULT_SUCCESS:
+            if (available_in != 0) {
+                ci_debug_printf(4, "data-compression: brotli available_in != 0\n");
+                return BROTLI_FALSE;
+            }
+            ci_debug_printf(4, "data-compression: brotli total uncompressed size: %lld (%lld)\n",
+                    outsize, (long long)total_out);
+            return BROTLI_TRUE;
+        default:
+            ci_debug_printf(4, "data-compression: brotli corrupt input\n");
+            return BROTLI_FALSE;
+        }
+
+    }
+}
+
+int ci_mem_brinflate(const char *inbuf, int inlen, void *outbuf, char *(*get_outbuf)(void *obj, unsigned int *len), int (*writefunc)(void *obj, const char *buf, size_t len), ci_off_t max_size)
+{
+	BROTLI_BOOL ccode = BROTLI_TRUE;
+	BrotliDecoderState *s;
+
+	s = BrotliDecoderCreateInstance(NULL, NULL, NULL);
+	if (!s) {
+		ci_debug_printf(4, "data-compression:  brotli out of memory\n");
+		return -1;
+	}
+	ccode = Br_Decompress(s, inbuf, inlen, outbuf, get_outbuf, writefunc, max_size);
+	BrotliDecoderDestroyInstance(s);
+	if (!ccode)
+		return -1;
+	return 1;
+}
+
+int ci_brinflate_to_membuf(const char *inbuf, size_t inlen, ci_membuf_t *outbuf, ci_off_t max_size)
+{
+    int ret = ci_mem_brinflate(inbuf, inlen, outbuf, NULL, write_membuf_func, max_size);
+    ci_membuf_write(outbuf, "", 0, 1);
+    return ret;
+}
+
+int ci_brinflate_to_simple_file(const char *inbuf, size_t inlen, struct ci_simple_file *outbuf, ci_off_t max_size)
+{
+    int ret = ci_mem_brinflate(inbuf, inlen, outbuf, NULL, write_simple_file_func, max_size);
+    ci_simple_file_write(outbuf, "", 0, 1);
+    return ret;
+}
+
+static int brotli_inflate_step(const char *buf, int len, char *unzipped_buf, int *unzipped_buf_len)
+{
+    struct unzipBuf ub;
+    ub.buf = unzipped_buf;
+    ub.buf_size = *unzipped_buf_len;
+    int ret = ci_mem_brinflate(buf, len,  &ub, get_buf_outbuf, write_once_to_outbuf, len);
+    ci_debug_printf(5, "brotli_inflate_step: retcode %d, unzipped data: %d\n", ret, (int)ub.out_len);
+    if (ub.out_len > 0) {
+        *unzipped_buf_len = ub.out_len;
+        return CI_OK;
+    }
+    return CI_ERROR;
+}
+#else
+int ci_brinflate_to_membuf(const char *inbuf, size_t inlen, ci_membuf_t *outbuf, ci_off_t max_size)
+{
+    ci_debug_printf(1, "brotlidecode is not supported.\n");
+    return CI_UNCOMP_ERR_NONE;
+}
+
+int ci_brinflate_to_simple_file(const char *inbuf, size_t inlen, struct ci_simple_file *outbuf, ci_off_t max_size)
+{
+    ci_debug_printf(1, "brotlidecode is not supported.\n");
+    return CI_UNCOMP_ERR_NONE;
+}
+#endif
+
 #ifdef HAVE_ZLIB
 #define ZIP_HEAD_CRC     0x02   /* bit 1 set: header CRC present */
 #define ZIP_EXTRA_FIELD  0x04   /* bit 2 set: extra field present */
@@ -254,7 +455,6 @@ static void free_a_buffer(void *op, void *ptr)
 {
     ci_buffer_free(ptr);
 }
-
 
 /*return CI_INFLATE_ERRORS
  */
@@ -520,6 +720,11 @@ int ci_uncompress_preview(int compress_method, const char *buf, int len, char *u
 #ifdef HAVE_BZLIB
     if (compress_method == CI_ENCODE_BZIP2)
         return  bzlib_uncompress_step(buf, len, unzipped_buf, unzipped_buf_len);
+    else
+#endif
+#ifdef HAVE_BROTLI
+    if (compress_method == CI_ENCODE_BROTLI)
+        return  brotli_inflate_step(buf, len, unzipped_buf, unzipped_buf_len);
     else
 #endif
 #ifdef HAVE_ZLIB
