@@ -1,6 +1,6 @@
 /*
- *  Copyright (C) 2004-2017 Christos Tsantilas
  *  Copyright (C) 2017 Jeffrey Merkey
+ *  Copyright (C) 2017 Trever L. Adams
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
