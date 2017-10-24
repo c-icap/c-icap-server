@@ -32,8 +32,6 @@ Currently the following commands are implemented:
   "relog":       This command causes c_icap to close and reopen the log files.
                  This is very useful for log rotation if you have services that
                  take a long time to start, such as srv_classify can.
-  "srv_clamav:dbreload"
-	       : It reloads the clamav virus database
 
 Examples:
  - To reconfigure c-icap:
