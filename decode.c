@@ -202,12 +202,41 @@ static const char *uncompress_errors[] = {
     "uncompress: Compression Bomb"
 };
 
-const char *ci_inflate_error(int err)
+const char *ci_decompress_error(int err)
 {
     ci_debug_printf (7, "Inflate error %d\n", err);
     if (err < CI_UNCOMP_ERR_NONE && err >= CI_UNCOMP_ERR_BOMB)
         return uncompress_errors[-err];
     return "No Error";
+}
+
+const char *ci_inflate_error(int err)
+{
+    return ci_decompress_error(err);
+}
+
+int ci_encoding_method(const char *content_encoding)
+{
+    if (!content_encoding)
+        return CI_ENCODE_NONE;
+
+    if (strcasestr(content_encoding, "gzip") != NULL) {
+        return CI_ENCODE_GZIP;
+    }
+
+    if (strcasestr(content_encoding, "deflate") != NULL) {
+        return CI_ENCODE_DEFLATE;
+    }
+
+    if (strcasestr(content_encoding, "br") != NULL) {
+        return CI_ENCODE_BROTLI;
+    }
+
+    if (strcasestr(content_encoding, "bzip2") != NULL) {
+        return CI_ENCODE_BZIP2;
+    }
+
+    return CI_ENCODE_UNKNOWN;
 }
 
 static int write_membuf_func(void *obj, const char *buf, size_t len)
@@ -246,7 +275,7 @@ static int write_once_to_outbuf(void *obj, const char *buf, size_t len)
 
 /*return CI_INFLATE_ERRORS
  */
-int ci_generic_decompress_to_membuf(int encoding_format, const char *inbuf, size_t inlen, ci_membuf_t *outbuf, ci_off_t max_size)
+int ci_decompress_to_membuf(int encoding_format, const char *inbuf, size_t inlen, ci_membuf_t *outbuf, ci_off_t max_size)
 {
     switch (encoding_format) {
 	case CI_ENCODE_NONE:
@@ -277,7 +306,7 @@ int ci_generic_decompress_to_membuf(int encoding_format, const char *inbuf, size
 
 /*return CI_INFLATE_ERRORS
  */
-int ci_generic_decompress_to_simple_file(int encoding_format, const char *inbuf, size_t inlen, struct ci_simple_file *outbuf, ci_off_t max_size)
+int ci_decompress_to_simple_file(int encoding_format, const char *inbuf, size_t inlen, struct ci_simple_file *outbuf, ci_off_t max_size)
 {
     switch (encoding_format) {
 	case CI_ENCODE_NONE:

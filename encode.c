@@ -41,7 +41,7 @@
 
 /*return CI_DEFLATE_ERRORS
 */
-int ci_generic_compress_to_membuf(int encoding_format, const char *inbuf,
+int ci_compress_to_membuf(int encoding_format, const char *inbuf,
 				  size_t inlen, ci_membuf_t *outbuf,
 				  ci_off_t max_size)
 {
@@ -76,7 +76,7 @@ int ci_generic_compress_to_membuf(int encoding_format, const char *inbuf,
 
 /*return CI_DEFLATE_ERRORS
 */
-int ci_generic_compress_to_simple_file(int encoding_format, const char *inbuf,
+int ci_compress_to_simple_file(int encoding_format, const char *inbuf,
 				       size_t inlen,
 				       struct ci_simple_file *outbuf,
 				       ci_off_t max_size)

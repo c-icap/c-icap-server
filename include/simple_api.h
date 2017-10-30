@@ -161,6 +161,15 @@ enum {
 };
 
 /**
+ * Return the encoding method integer representation from string.
+ \ingroup UTILITY
+ *
+ \param content_encoding The content encoding name
+ \return the CI_ENCODE_* representation
+*/
+CI_DECLARE_FUNC(int) ci_encoding_method(const char *content_encoding);
+
+/**
  * Uncompress a zipped string.
  \ingroup UTILITY
  *
@@ -193,11 +202,16 @@ enum CI_COMPRESS_ERRORS {
 };
 
 /**
- * Return a string representation of an uncompress error code.
+ * Return a string representation of a decompress error code.
  \ingroup UTILITY
  *
  \param err a CI_UNCOMPRESS_ERRORS error code
 */
+CI_DECLARE_FUNC(const char *) ci_decompress_error(int err);
+
+/**
+   Deprecated
+ */
 CI_DECLARE_FUNC(const char *) ci_inflate_error(int err);
 
 struct ci_membuf;
@@ -218,13 +232,13 @@ struct ci_simple_file;
  \return CI_UNCOMP_OK on success, CI_UNCOMP_ERR_NONE, if maxsize exceed, an
  *       CI_UNCOMPRESS_ERRORS code otherwise
  */
-CI_DECLARE_FUNC(int) ci_generic_decompress_to_membuf(int encoding_format, const char *inbuf, size_t inlen, struct ci_membuf *outbuf, ci_off_t max_size);
+CI_DECLARE_FUNC(int) ci_decompress_to_membuf(int encoding_format, const char *inbuf, size_t inlen, struct ci_membuf *outbuf, ci_off_t max_size);
 
 /**
  \ingroup UTILITY
- \copydoc ci_generic_decompress_to_membuf(char *inbuf, size_t inlen, struct ci_membuf *outbuf, ci_off_t max_size)
+ \copydoc ci_decompress_to_membuf(char *inbuf, size_t inlen, struct ci_membuf *outbuf, ci_off_t max_size)
  */
-CI_DECLARE_FUNC(int) ci_generic_decompress_to_simple_file(int encoding_format, const char *inbuf, size_t inlen, struct ci_simple_file *outbuf, ci_off_t max_size);
+CI_DECLARE_FUNC(int) ci_decompress_to_simple_file(int encoding_format, const char *inbuf, size_t inlen, struct ci_simple_file *outbuf, ci_off_t max_size);
 
 /**
  * Uncompress deflate/gzip compressed data and writes the output to the outbuf
@@ -299,13 +313,13 @@ CI_DECLARE_FUNC(int) ci_brinflate_to_simple_file(const char *inbuf, size_t inlen
  \return CI_COMP_OK on success, CI_COMP_ERR_NONE, if maxsize exceed, an
  *       CI_COMPRESS_ERRORS code otherwise
  */
-CI_DECLARE_FUNC(int) ci_generic_compress_to_membuf(int encoding_format, const char *inbuf, size_t inlen, struct ci_membuf *outbuf, ci_off_t max_size);
+CI_DECLARE_FUNC(int) ci_compress_to_membuf(int encoding_format, const char *inbuf, size_t inlen, struct ci_membuf *outbuf, ci_off_t max_size);
 
 /**
  \ingroup UTILITY
- \copydoc ci_generic_compress_to_membuf(char *inbuf, size_t inlen, struct ci_membuf *outbuf, ci_off_t max_size)
+ \copydoc ci_compress_to_membuf(char *inbuf, size_t inlen, struct ci_membuf *outbuf, ci_off_t max_size)
  */
-CI_DECLARE_FUNC(int) ci_generic_compress_to_simple_file(int encoding_format, const char *inbuf, size_t inlen, struct ci_simple_file *outbuf, ci_off_t max_size);
+CI_DECLARE_FUNC(int) ci_compress_to_simple_file(int encoding_format, const char *inbuf, size_t inlen, struct ci_simple_file *outbuf, ci_off_t max_size);
 
 /**
  * Compress deflate uncompressed data and writes the output to the outbuf
@@ -563,6 +577,15 @@ CI_DECLARE_FUNC(int) ci_http_request_create(ci_request_t * req, int has_body);
  \return The content length on success or a negative number otherwise
  */
 CI_DECLARE_FUNC(ci_off_t) ci_http_content_length(ci_request_t *req);
+
+/**
+ * Return the encoding method integer representation from string.
+ \ingroup UTILITY
+ *
+ \param req is a pointer to the current ICAP request object.
+ \return the content encoding, CI_ENCODE_NONE for no encoding or CI_ENCODE_UNKNOWN for non RESPMOD ICAP requests
+*/
+CI_DECLARE_FUNC(int) ci_http_response_content_encoding(ci_request_t *req);
 
 /**
  \ingroup HTTP

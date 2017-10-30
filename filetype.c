@@ -568,19 +568,7 @@ int extend_object_type(struct ci_magics_db *db, ci_headers_list_t *headers, cons
         content_encoding = ci_headers_value(headers, "Content-Encoding");
         if (content_encoding) {
             ci_debug_printf(8, "Content-Encoding :%s\n", content_encoding);
-            /*the following must be faster in the feature...... */
-            if (strcasestr(content_encoding, "gzip") != NULL) {
-                *iscompressed = CI_ENCODE_GZIP;
-            } else if (strcasestr(content_encoding, "deflate") != NULL) {
-                *iscompressed = CI_ENCODE_DEFLATE;
-            } else if (strcasestr(content_encoding, "bzip2") != NULL) {
-                *iscompressed = CI_ENCODE_BZIP2;
-#ifdef HAVE_BROTLI
-            } else if (strcasestr(content_encoding, "br") != NULL) {
-                *iscompressed = CI_ENCODE_BROTLI;
-#endif
-            } else
-                *iscompressed = CI_ENCODE_UNKNOWN;
+            *iscompressed = ci_encoding_method(content_encoding);
 
             /*
               Bzip2 comressed data are not usefull on preview data, because ci_uncompress_preview
