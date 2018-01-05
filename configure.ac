@@ -402,6 +402,44 @@ if test a"$bzlib" = "ano"; then
     AC_MSG_WARN("bzlib required for the c-icap's internal filetype recognizer!")
 fi
 
+AC_ARG_WITH(brotli,
+[  --with-brotli	Path to brotli library],
+[
+case "$withval" in
+     yes)
+	brotli=yes;
+     ;;
+     no)
+	brotli=no;
+     ;;
+     *)
+	brotli=$withval;
+     ;;
+     esac
+],
+[ brotli=yes]
+)
+
+if test a"$brotli" != "ano"; then
+   if test a"$brotli" != "ayes"; then
+        OLDCFLAGS=$CFLAGS
+        OLDLDFLAGS=$LDFLAGS
+        CFLAGS="$CFLAGS -I$brotli/include"
+        LDFLAGS="$LDFLAGS -L$brotli/lib -lbrotlicommon"
+	AC_CHECK_LIB(brotlidec,BrotliDecoderDecompressStream,[BROTLIDEC_ADD_LDADD="-L$brotli/lib -lbrotlicommon -lbrotlidec -lbrotlienc";BROTLIDEC_ADD_FLAG="-I$brotli/include";AC_DEFINE(HAVE_BROTLI,1,[Define HAVE_BROTLI if brotli installed])],[brotli=no])
+        CFLAGS=$OLDCFLAGS
+        LDFLAGS=$OLDLDFLAGS
+	AC_SUBST(BROTLIDEC_ADD_LDADD)
+	AC_SUBST(BROTLIDEC_ADD_FLAG)
+   else
+	AC_CHECK_LIB(brotlidec,BrotliDecoderDecompressStream,[BROTLIDEC_ADD_LDADD=" -lbrotlicommon -lbrotlidec -lbrotlienc";AC_DEFINE(HAVE_BROTLI,1,[Define HAVE_BROTLI if brotli installed])],[brotli=no])
+	AC_SUBST(BROTLIDEC_ADD_LDADD)
+   fi
+fi
+if test a"$brotli" = "ano"; then
+    AC_MSG_WARN("brotli required for the c-icap's internal filetype recognizer!")
+fi
+
 libdb="yes"
 libdbpath=""
 AC_ARG_WITH(bdb,
@@ -969,4 +1007,3 @@ include/c-icap-conf.h Makefile utils/Makefile services/Makefile
 services/echo/Makefile services/ex-206/Makefile modules/Makefile tests/Makefile
 docs/Makefile docs/man/Makefile
 ])
-

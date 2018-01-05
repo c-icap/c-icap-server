@@ -331,3 +331,15 @@ const ci_ip_t * ci_http_client_ip(ci_request_t * req)
 
     return &req->xclient_ip;
 }
+
+CI_DECLARE_FUNC(int) ci_http_response_content_encoding(ci_request_t *req)
+{
+    ci_headers_list_t *headers = ci_http_response_headers(req);
+    if (headers) {
+        const char *content_encoding = ci_headers_value(headers, "Content-Encoding");
+        if (content_encoding)
+            return ci_encoding_method(content_encoding);
+        return CI_ENCODE_NONE;
+    }
+    return CI_ENCODE_UNKNOWN;
+}

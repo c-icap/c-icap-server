@@ -31,7 +31,7 @@ UTIL_SOURCES=os/unix/proc_utils.c
 
 
 
-libicapapi_la_SOURCES=  header.c body.c decode.c simple_api.c request_common.c \
+libicapapi_la_SOURCES=  header.c body.c decode.c encode.c simple_api.c request_common.c \
                         filetype.c debug.c cfg_lib.c mem.c  service_lib.c \
                         cache.c lookup_table.c lookup_file_table.c hash.c \
 			txt_format.c stats.c types_ops.c acl.c txtTemplate.c \
@@ -45,9 +45,9 @@ c_icap_SOURCES = aserver.c request.c cfg_param.c \
 
 
 # libicapapi ......
-libicapapi_la_CFLAGS= $(INVISIBILITY_CFLAG) -Iinclude/ @ZLIB_ADD_FLAG@ @OPENSSL_ADD_FLAG@ @BZLIB_ADD_FLAG@ @PCRE_ADD_FLAG@ -DCI_BUILD_LIB
+libicapapi_la_CFLAGS= $(INVISIBILITY_CFLAG) -Iinclude/ @ZLIB_ADD_FLAG@ @OPENSSL_ADD_FLAG@ @BZLIB_ADD_FLAG@ @BROTLIDEC_ADD_FLAG@ @PCRE_ADD_FLAG@ -DCI_BUILD_LIB
 
-libicapapi_la_LIBADD = @ZLIB_ADD_LDADD@ @BZLIB_ADD_LDADD@ @PCRE_ADD_LDADD@ @DL_ADD_FLAG@ @THREADS_LDADD@ @OPENSSL_ADD_LDADD@
+libicapapi_la_LIBADD = @ZLIB_ADD_LDADD@ @BZLIB_ADD_LDADD@ @BROTLIDEC_ADD_LDADD@ @PCRE_ADD_LDADD@ @DL_ADD_FLAG@ @THREADS_LDADD@ @OPENSSL_ADD_LDADD@
 libicapapi_la_LDFLAGS= -shared -version-info @CICAPLIB_VERSION@ @THREADS_LDFLAGS@
 
 
