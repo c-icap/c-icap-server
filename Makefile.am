@@ -117,9 +117,9 @@ doc:
 install-data-local: c-icap.conf
 	$(mkinstalldirs) $(DESTDIR)$(CONFIGDIR);
 	$(INSTALL) c-icap.conf $(DESTDIR)$(CONFIGDIR)/c-icap.conf.default
-	$(INSTALL) c-icap.magic $(DESTDIR)$(CONFIGDIR)/c-icap.magic.default
+	$(INSTALL) $(srcdir)/c-icap.magic $(DESTDIR)$(CONFIGDIR)/c-icap.magic.default
 	if test ! -f $(DESTDIR)$(CONFIGDIR)/c-icap.conf; then  $(INSTALL) c-icap.conf $(DESTDIR)$(CONFIGDIR)/c-icap.conf; fi
-	if test ! -f $(DESTDIR)$(CONFIGDIR)/c-icap.magic; then $(INSTALL) c-icap.magic $(DESTDIR)$(CONFIGDIR)/c-icap.magic; fi
+	if test ! -f $(DESTDIR)$(CONFIGDIR)/c-icap.magic; then $(INSTALL) $(srcdir)/c-icap.magic $(DESTDIR)$(CONFIGDIR)/c-icap.magic; fi
 	$(mkinstalldirs)  $(DESTDIR)$(LOGDIR);
 	$(mkinstalldirs)  $(DESTDIR)$(SOCKDIR);
 	chgrp nogroup $(DESTDIR)$(LOGDIR) || echo -e "*********\nWARNING! Can not set group for the log dir $(DESTDIR)$(LOGDIR)\n*********\n"
