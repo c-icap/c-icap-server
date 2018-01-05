@@ -169,6 +169,7 @@ CI_DECLARE_FUNC(int) ci_connection_write_pending_tls(ci_connection_t *conn);
 */
 struct ci_port;
 CI_DECLARE_FUNC(int) icap_init_server_tls(struct ci_port *port);
+CI_DECLARE_FUNC(void) icap_close_server_tls(struct ci_port *port);
 CI_DECLARE_FUNC(int) icap_port_tls_option(const char *opt, struct ci_port *conf, const char *config_dir);
 CI_DECLARE_FUNC(int) icap_accept_tls_connection(struct ci_port *port, ci_connection_t *client_conn);
 CI_DECLARE_FUNC(int) ci_port_reconfigure_tls(struct ci_port *port);

@@ -1,3 +1,5 @@
+srcdir = @srcdir@
+top_builddir=@top_builddir@
 
 CONFIGDIR=@sysconfdir@
 PKGLIBDIR=@pkglibdir@
@@ -29,7 +31,10 @@ UTIL_LIB_SOURCES += regex.c
 endif
 UTIL_SOURCES=os/unix/proc_utils.c
 
-
+RPATH_FLAG=
+if USE_RPATH
+RPATH_FLAG+=-rpath @libdir@
+endif
 
 libicapapi_la_SOURCES=  header.c body.c decode.c encode.c simple_api.c request_common.c \
                         filetype.c debug.c cfg_lib.c mem.c  service_lib.c \
@@ -45,23 +50,22 @@ c_icap_SOURCES = aserver.c request.c cfg_param.c \
 
 
 # libicapapi ......
-libicapapi_la_CFLAGS= $(INVISIBILITY_CFLAG) -Iinclude/ @ZLIB_ADD_FLAG@ @OPENSSL_ADD_FLAG@ @BZLIB_ADD_FLAG@ @BROTLIDEC_ADD_FLAG@ @PCRE_ADD_FLAG@ -DCI_BUILD_LIB
+libicapapi_la_CFLAGS= $(INVISIBILITY_CFLAG) -I$(srcdir)/include/ -Iinclude/ @ZLIB_ADD_FLAG@ @OPENSSL_ADD_FLAG@ @BZLIB_ADD_FLAG@ @BROTLI_ADD_FLAG@ @PCRE_ADD_FLAG@ -DCI_BUILD_LIB
 
-libicapapi_la_LIBADD = @ZLIB_ADD_LDADD@ @BZLIB_ADD_LDADD@ @BROTLIDEC_ADD_LDADD@ @PCRE_ADD_LDADD@ @DL_ADD_FLAG@ @THREADS_LDADD@ @OPENSSL_ADD_LDADD@
+libicapapi_la_LIBADD = @ZLIB_ADD_LDADD@ @BZLIB_ADD_LDADD@ @BROTLI_ADD_LDADD@ @PCRE_ADD_LDADD@ @DL_ADD_FLAG@ @THREADS_LDADD@ @OPENSSL_ADD_LDADD@
 libicapapi_la_LDFLAGS= -shared -version-info @CICAPLIB_VERSION@ @THREADS_LDFLAGS@
 
+export EXT_PROGRAMS_MKLIB = @ZLIB_LNDIR_LDADD@ @BZLIB_LNDIR_LDADD@ @BROTLI_LNDIR_LDADD@ @PCRE_LNDIR_LDADD@ @OPENSSL_LNDIR_LDADD@
 
 #c_icap the main server
 c_icap_DEPENDENCIES=libicapapi.la
-c_icap_CFLAGS= $(INVISIBILITY_CFLAG) -Iinclude/  \
+c_icap_CFLAGS= $(INVISIBILITY_CFLAG) -I$(top_srcdir)/include/ -I$(top_builddir)/include/ \
                         -DCONFDIR=\"$(CONFIGDIR)\" -DMODSDIR=\"$(MODULESDIR)\" \
                         -DSERVDIR=\"$(SERVICESDIR)\" -DLOGDIR=\"$(LOGDIR)\"  \
                         -DDATADIR=\"$(DATADIR)\" @OPENSSL_ADD_FLAG@
 
-c_icap_LDADD = libicapapi.la @DL_ADD_FLAG@ @THREADS_LDADD@ @OPENSSL_ADD_LDADD@
-c_icap_LDFLAGS = -rdynamic -rpath @libdir@ @THREADS_LDFLAGS@
-
-EXT_PROGRAMS_MKLIB = -licapapi
+c_icap_LDADD = libicapapi.la @DL_ADD_FLAG@ @THREADS_LDADD@ $(EXT_PROGRAMS_MKLIB)
+c_icap_LDFLAGS = -rdynamic $(RPATH_FLAG) @THREADS_LDFLAGS@
 
 
 INCS = access.h body.h cfg_param.h c-icap-conf.h c-icap.h ci_threads.h \
@@ -97,18 +101,18 @@ CLEANFILES = c-icap-config c-icap-libicapapi-config
 # on every new configure run. The include/c-icap-conf.h is rebuild when
 # configure runs so it is a good test.
 c-icap.conf: c-icap.conf.in include/c-icap-conf.h
-	$(do_subst) < c-icap.conf.in > $@
+	$(do_subst) < $(srcdir)/c-icap.conf.in > $@
 
 c-icap-config: c-icap-config.in include/c-icap-conf.h
-	$(do_subst) < c-icap-config.in > $@
+	$(do_subst) < $(srcdir)/c-icap-config.in > $@
 	chmod 755 $@
 
 c-icap-libicapapi-config:  c-icap-libicapapi-config.in include/c-icap-conf.h
-	$(do_subst) < c-icap-libicapapi-config.in > $@
+	$(do_subst) < $(srcdir)/c-icap-libicapapi-config.in > $@
 	chmod 755 $@
 
 doc:
-	$(DOXYGEN) c-icap.dox
+	$(DOXYGEN) $(srcdir)/c-icap.dox
 
 install-data-local: c-icap.conf
 	$(mkinstalldirs) $(DESTDIR)$(CONFIGDIR);
