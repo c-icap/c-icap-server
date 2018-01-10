@@ -22,7 +22,6 @@
 #include "simple_api.h"
 #include "debug.h"
 
-#include <assert.h>
 #ifdef HAVE_ZLIB
 #include <zlib.h>
 #endif
@@ -524,7 +523,10 @@ do_mem_inflate_retry:
             strm.next_out = out = OUT;
         }
         ret = inflate(&strm, Z_NO_FLUSH);
-        assert(ret != Z_STREAM_ERROR);  /* state not clobbered */
+        if (ret == Z_STREAM_ERROR) {
+            //probably means memory overrun/overwrite etc
+            ci_debug_printf(1, "Zlib/Z_STREAM_ERROR, corrupted input data to inflate?\n");
+        }
         switch (ret) {
         case Z_NEED_DICT:
         case Z_DATA_ERROR:
@@ -538,6 +540,7 @@ do_mem_inflate_retry:
                 }
                 /*else let fail ...*/
             }
+        case Z_STREAM_ERROR:
         case Z_MEM_ERROR:
             inflateEnd(&strm);
             return CI_UNCOMP_ERR_CORRUPT;
@@ -562,10 +565,15 @@ do_mem_inflate_retry:
         }
     } while (strm.avail_out == 0);
 
-    /* done when inflate() says it's done */
-    assert(ret == Z_STREAM_END);
     /* clean up and return */
     inflateEnd(&strm);
+    /*
+      ret == Z_STREAM_END means that the decompression was succesfull
+      else the output data are corrupted or not produced at all. 
+      Example case is when the input data are not enough to produce 
+      a single byte of decompressed data, so the inflate() return Z_OK
+      (eg during preview request with few preview data)
+     */
     return ret == Z_STREAM_END ? CI_UNCOMP_OK : CI_UNCOMP_ERR_CORRUPT;
 }
 
