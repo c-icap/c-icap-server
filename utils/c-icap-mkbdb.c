@@ -9,8 +9,7 @@
 #include "lookup_table.h"
 #include "cfg_param.h"
 #include "debug.h"
-#include <db.h>
-
+#include BDB_HEADER_PATH(db.h)
 
 DB_ENV *env_db = NULL;
 DB *db = NULL;

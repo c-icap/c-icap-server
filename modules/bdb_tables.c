@@ -5,7 +5,7 @@
 #include "commands.h"
 #include "debug.h"
 #include "util.h"
-#include <db.h>
+#include BDB_HEADER_PATH(db.h)
 
 
 int init_bdb_tables(struct ci_server_conf *server_conf);

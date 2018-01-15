@@ -219,6 +219,83 @@ else
 fi
 AC_SUBST(doxygen_bin)
 
+# Check if we need to enable rpath when linking with libraries
+AC_ARG_ENABLE(rpath,
+[  --enable-rpath       hardcode runtime library paths],
+[
+     case "$enableval" in
+     yes)
+	enable_rpath="yes";
+     ;;
+     no)
+	enable_rpath="no";
+     ;;
+     *)
+	enable_rpath="yes";
+        # Build list with libraries to use rpath
+        ENABLE_RPATH_LIBS=`echo $enableval| tr ';:,' ' '`
+        echo "Enable rpath for libs:"$ENABLE_RPATH_LIBS
+        # search into $ENABLE_RPATH_LIBS using:
+        # if test "${ENABLE_RPATH_LIBS#*zlib}" != "$ENABLE_RPATH_LIBS"; then echo found; fi
+     ;;
+     esac
+],
+   [enable_rpath="no"]
+)
+
+#Routines used for checking libraries
+AC_DEFUN([ICFG_STATE_SAVE],[
+#save state
+ICFG_OLD_CFLAGS=$CFLAGS
+ICFG_OLD_LDFLAGS=$LDFLAGS
+ICFG_OLD_LIBS=$LIBS
+])
+
+#Routines used for checking libraries
+AC_DEFUN([ICFG_STATE_ROLLBACK],[
+#save state
+CFLAGS=$ICFG_OLD_CFLAGS
+LDFLAGS=$ICFG_OLD_LDFLAGS
+LIBS=$ICFG_OLD_LIBS
+])
+
+AC_DEFUN([ICFG_BUILD_FLAGS_2], [
+# The *_LNDIR_LDADD used by external programs to link with cicapapi libibrary.
+# They must link with libraries options if the cicapapi is not linked with
+# -rpath option and not standard directories are used.
+# TODO: support multiple directories
+if test -n $2; then
+    $1_ADD_FLAG=-I$2
+else
+    $1_ADD_FLAG=""
+fi
+
+$1_LNDIR_LDADD=""
+if test -n $3; then
+    if test "a$enable_rpath" = "ayes"; then
+        $1_ADD_LDADD="-Wl,-rpath -Wl,$3 -L$3 "$4
+    else
+        $1_ADD_LDADD="-L$3 "$4
+        $1_LNDIR_LDADD="-L$3 "$4
+    fi
+else
+    $1_ADD_LDADD=$4
+fi
+  AC_SUBST($1_LNDIR_LDADD)
+  AC_SUBST($1_ADD_LDADD)
+  AC_SUBST($1_ADD_FLAG)
+]
+)
+
+AC_DEFUN([ICFG_BUILD_FLAGS], [
+  if test "a$2" != "a"; then
+       ICFG_BUILD_FLAGS_2($1, $2/include, $2/lib, $3)
+  else
+       ICFG_BUILD_FLAGS_2($1, "", "", $3)
+  fi
+]
+)
+
 # Checks for libraries
 
 AC_ARG_WITH(perl,
@@ -268,31 +345,22 @@ case "$withval" in
 	openssl=no;
      ;;
      *)
-	openssl=$withval;
+	openssl=yes;
+        opensslpath=$withval;
      ;;
      esac
 ],
 [ openssl=yes]
 )
 
-OPENSSL_ADD_LDADD=""
-OPENSSL_ADD_FLAG=""
-if test a"$openssl" != "ano"; then
-   OLDCFLAGS=$CFLAGS
-   OLDLDFLAGS=$LDFLAGS
-   OLDLIBS=$LIBS
-   if test a"$openssl" != "ayes"; then
-        CFLAGS="$CFLAGS -I$openssl/include"
-        LDFLAGS="$LDFLAGS -L$openssl/lib"
-        OPENSSL_ADD_LDADD="-L$openssl/lib -lssl -lcrypto"
-        OPENSSL_ADD_FLAG="-I$openssl/include"
-        echo -n "checking for OpenSSL library under $openssl... "
-   else
-        OPENSSL_ADD_LDADD="-lssl -lcrypto"
-        echo -n "checking for OpenSSL library... "
+if test "a$openssl" != "ano"; then
+   ICFG_STATE_SAVE(OPENSSL)
+   if test "a$opensslpath" != "a"; then
+        CFLAGS="$CFLAGS -I$opensslpath/include"
+        LDFLAGS="$LDFLAGS -L$opensslpath/lib"
    fi
-   LIBS="$OPENSSL_ADD_LDADD $OLDLIBS"
-
+   LIBS="-lssl -lcrypto $LIBS"
+   (test -n "$opensslpath" && echo -n "checking for OpenSSL library under $opensslpath... ") || echo -n "checking for OpenSSL library... ";
    AC_LINK_IFELSE(
          [AC_LANG_SOURCE(
                  [
@@ -304,24 +372,21 @@ if test a"$openssl" != "ano"; then
                    }
                  ])
                ],
-         [echo "yes";][AC_DEFINE(HAVE_OPENSSL,1,[Define HAVE_OPENSSL if openssl is installed])],
+         [openssl=yes; echo "yes";],
          [openssl=no; echo "no"]
    )
-
-
-   CFLAGS=$OLDCFLAGS
-   LDFLAGS=$OLDLDFLAGS
-   LIBS=$OLDLIBS
+   if test "a$openssl" = "ayes"; then
+      AC_DEFINE(HAVE_OPENSSL,1,[Define HAVE_OPENSSL if openssl is installed])
+      ICFG_BUILD_FLAGS(OPENSSL, $opensslpath, "-lssl -lcrypto")
+   fi
+   ICFG_STATE_ROLLBACK
 fi
 
 USE_OPENSSL="1"
 if test a"$openssl" = "ano"; then
-#    AC_MSG_WARN("openssl is required for ssl encryption")
     USE_OPENSSL="0"
 fi
 AC_SUBST(USE_OPENSSL)
-AC_SUBST(OPENSSL_ADD_LDADD)
-AC_SUBST(OPENSSL_ADD_FLAG)
 
 AC_CHECK_LIB(dl,dlopen,DL_ADD_FLAG=" -ldl")
 AC_SUBST(DL_ADD_FLAG)
@@ -337,31 +402,28 @@ case "$withval" in
 	zlib=no;
      ;;
      *)
-	zlib=$withval;
+        zlib=yes;
+	zlibpath=$withval;
      ;;
      esac
 ],
 [ zlib=yes]
 )
 
-if test a"$zlib" != "ano"; then
-   if test a"$zlib" != "ayes"; then
-        OLDCFLAGS=$CFLAGS
-        OLDLDFLAGS=$LDFLAGS
+if test "a$zlib" != "ano"; then
+   ICFG_STATE_SAVE(ZLIB)
+   if test "a$zlibpath" != "a"; then
         CFLAGS="$CFLAGS -I$zlib/include"
         LDFLAGS="$LDFLAGS -L$zlib/lib"
-	AC_CHECK_LIB(z,inflate,[ZLIB_ADD_LDADD="-L$zlib/lib -lz";ZLIB_ADD_FLAG="-I$zlib/include";AC_DEFINE(HAVE_ZLIB,1,[Define HAVE_ZLIB if zlib installed])],[zlib=no])
-        CFLAGS=$OLDCFLAGS
-        LDFLAGS=$OLDLDFLAGS
-	AC_SUBST(ZLIB_ADD_LDADD)
-	AC_SUBST(ZLIB_ADD_FLAG)	
-   else
-	AC_CHECK_LIB(z,inflate,[ZLIB_ADD_LDADD=" -lz";AC_DEFINE(HAVE_ZLIB,1,[Define HAVE_ZLIB if zlib installed])],[zlib=no])
-	AC_SUBST(ZLIB_ADD_LDADD)
    fi
+   AC_CHECK_LIB(z,inflate,[zlib=yes],[zlib=no])
+   ICFG_STATE_ROLLBACK
 fi
-if test a"$zlib" = "ano"; then
+if test "a$zlib" = "ano"; then
     AC_MSG_WARN("zlib required for the c-icap's internal filetype recognizer!")
+else
+    AC_DEFINE(HAVE_ZLIB,1,[Define HAVE_ZLIB if zlib installed])
+    ICFG_BUILD_FLAGS(ZLIB, $zlibpath, "-lz")
 fi
 
 AC_ARG_WITH(bzlib,
@@ -375,31 +437,28 @@ case "$withval" in
 	bzlib=no;
      ;;
      *)
-	bzlib=$withval;
+        bzlib=yes;
+	bzlibpath=$withval;
      ;;
      esac
 ],
 [ bzlib=yes]
 )
 
-if test a"$bzlib" != "ano"; then
-   if test a"$bzlib" != "ayes"; then
-        OLDCFLAGS=$CFLAGS
-        OLDLDFLAGS=$LDFLAGS
-        CFLAGS="$CFLAGS -I$bzlib/include"
-        LDFLAGS="$LDFLAGS -L$bzlib/lib"
-	AC_CHECK_LIB(bz2,BZ2_bzDecompressInit,[BZLIB_ADD_LDADD="-L$bzlib/lib -lbz2";BZLIB_ADD_FLAG="-I$bzlib/include";AC_DEFINE(HAVE_BZLIB,1,[Define HAVE_BZLIB if bzlib installed])],[bzlib=no])
-        CFLAGS=$OLDCFLAGS
-        LDFLAGS=$OLDLDFLAGS
-	AC_SUBST(BZLIB_ADD_LDADD)
-	AC_SUBST(BZLIB_ADD_FLAG)	
-   else
-	AC_CHECK_LIB(bz2,BZ2_bzDecompressInit,[BZLIB_ADD_LDADD=" -lbz2";AC_DEFINE(HAVE_BZLIB,1,[Define HAVE_BZLIB if bzlib installed])],[bzlib=no])
-	AC_SUBST(BZLIB_ADD_LDADD)
+if test "a$bzlib" != "ano"; then
+   ICFG_STATE_SAVE(BZLIB)
+   if test "a$bzlibpath" != "a"; then
+        CFLAGS="$CFLAGS -I$bzlibpath/include"
+        LDFLAGS="$LDFLAGS -L$bzlibpath/lib"
    fi
+   AC_CHECK_LIB(bz2,BZ2_bzDecompressInit,[bzlib=yes],[bzlib=no])
+   ICFG_STATE_ROLLBACK
 fi
-if test a"$bzlib" = "ano"; then
+if test "a$bzlib" = "ano"; then
     AC_MSG_WARN("bzlib required for the c-icap's internal filetype recognizer!")
+else
+    AC_DEFINE(HAVE_BZLIB,1,[Define HAVE_BZLIB if bzlib installed])
+    ICFG_BUILD_FLAGS(BZLIB, $bzlibpath, "-lbz2")
 fi
 
 AC_ARG_WITH(brotli,
@@ -413,31 +472,34 @@ case "$withval" in
 	brotli=no;
      ;;
      *)
-	brotli=$withval;
+        brotli=yes;
+	brotlipath=$withval;
      ;;
      esac
 ],
 [ brotli=yes]
 )
 
-if test a"$brotli" != "ano"; then
-   if test a"$brotli" != "ayes"; then
-        OLDCFLAGS=$CFLAGS
-        OLDLDFLAGS=$LDFLAGS
-        CFLAGS="$CFLAGS -I$brotli/include"
-        LDFLAGS="$LDFLAGS -L$brotli/lib -lbrotlicommon"
-	AC_CHECK_LIB(brotlidec,BrotliDecoderDecompressStream,[BROTLIDEC_ADD_LDADD="-L$brotli/lib -lbrotlicommon -lbrotlidec -lbrotlienc";BROTLIDEC_ADD_FLAG="-I$brotli/include";AC_DEFINE(HAVE_BROTLI,1,[Define HAVE_BROTLI if brotli installed])],[brotli=no])
-        CFLAGS=$OLDCFLAGS
-        LDFLAGS=$OLDLDFLAGS
-	AC_SUBST(BROTLIDEC_ADD_LDADD)
-	AC_SUBST(BROTLIDEC_ADD_FLAG)
-   else
-	AC_CHECK_LIB(brotlidec,BrotliDecoderDecompressStream,[BROTLIDEC_ADD_LDADD=" -lbrotlicommon -lbrotlidec -lbrotlienc";AC_DEFINE(HAVE_BROTLI,1,[Define HAVE_BROTLI if brotli installed])],[brotli=no])
-	AC_SUBST(BROTLIDEC_ADD_LDADD)
+if test "a$brotli" != "ano"; then
+   ICFG_STATE_SAVE(BROTLI)
+   if test "a$brotlipath" != "a"; then
+        CFLAGS="$CFLAGS -I$brotlipath/include"
+        LDFLAGS="$LDFLAGS -L$brotlipath/lib -lbrotlicommon"
    fi
+   AC_CHECK_LIB(brotlidec,BrotliDecoderDecompressStream,[brotli=yes],[brotli=no])
+   ICFG_STATE_ROLLBACK
 fi
-if test a"$brotli" = "ano"; then
+if test "a$brotli" = "ano"; then
     AC_MSG_WARN("brotli required for the c-icap's internal filetype recognizer!")
+else
+    AC_DEFINE(HAVE_BROTLI,1,[Define HAVE_BROTLI if brotli installed])
+    ICFG_BUILD_FLAGS(BROTLI, "$brotlipath", "-lbrotlicommon -lbrotlidec -lbrotlienc")
+    # fix BROTLI_LNDIR_LDADD the linker does not find brotlicommon even if
+    # it is linked to libicapapi using rpath
+    if test "a$brotlipath" != "a" -a "a$BROTLI_LNDIR_LDADD" = "a"; then
+        BROTLI_LNDIR_LDADD="-L$brotlipath/lib -lbrotlicommon"
+        AC_SUBST(BROTLI_LNDIR_LDADD)
+    fi
 fi
 
 libdb="yes"
@@ -459,112 +521,57 @@ AC_ARG_WITH(bdb,
 ],
 )
 
-if test a"$libdb" != "ano"; then
-   if test a"$libdbpath" = "a"; then
-#  Save old LDFLAGS and LIBS
-      OLDLDFLAGS=$LDFLAGS
-      LDFLAGS="$LDFLAGS"
-      OLDLIBS=$LIBS
-      LIBS="-ldb $OLDLIBS"
-      echo -n "checking for Berkeley DB under standard directories... "
-      AC_LINK_IFELSE([AC_LANG_SOURCE(
-                      [
-                         #include <db.h>
-                         int main(){
-                              int major,minor,patch;
-                              if (!db_version(&major,&minor,&patch))
-                                   return -1;
-                              return 0;
-                         }
-                      ])
-                     ],	
-	    	     [BDB_ADD_LDADD=" -ldb"; libdb="yes"; echo "yes"],
-                     [libdb="no"; echo "no"]
-       )
-      AC_SUBST(BDB_ADD_LDADD)
-#restore LDFLAGS
-      LDFLAGS=$OLDLDFLAGS
-      LIBS=$OLDLIBS
-   else
-#  Save old CFLAGS/LDFLAGS/LIBS
-      OLDCFLAGS=$CFLAGS
-      OLDLDFLAGS=$LDFLAGS
-      OLDLIBS=$LIBS
-      CFLAGS="-I$libdbpath/include $CFLAGS"
-      LDFLAGS="-L$libdbpath/lib $LDFLAGS"
-      LIBS="-ldb $OLDLIBS"
-      echo -n "checking for Berkeley DB under $libdbpath... "
-      AC_LINK_IFELSE(
+if test "a$libdb" != "ano"; then
+   if test "a$libdbpath" != "a"; then
+     CFLAGS="-I$libdbpath/include $CFLAGS"
+     LDFLAGS="-L$libdbpath/lib $LDFLAGS"
+   fi
+
+   # We are going to see if we can found a Berkeley DB located under a
+   # libdbpath/include/db4x directory and use lbdbpath/lib/libdb-4.x library.
+
+   ICFG_STATE_SAVE(BDB)
+   OLD_LIBS=$LIBS
+   for DBVER in "" 6 6.3 6.2 6.1 6.0 5 5.4 5.3 5.2 5.1 5.0 4 4.9 4.8 4.7 4.6 4.5 4.4 4.3 4.2; do
+        if test -z $DBVER; then
+           usedblib="-ldb"
+           incdbdir=""
+        else
+           usedblib="-ldb-$DBVER"
+           incdbdir=db`echo $DBVER|sed 's/\.//'`"/"
+        fi
+        if test -z "$libdbpath"; then
+           print_libdbpath="..."
+        else
+            print_libdbpath="under $libdbpath..."
+        fi
+        echo -n "checking for BerleleyDB v$DBVER $print_libdbpath"
+        LIBS="$usedblib $OLD_LIBS"
+        AC_LINK_IFELSE(
                [AC_LANG_SOURCE(
-                [
-                    #include <db.h>
-                    int main(){
+                 [
+                     #include <${incdbdir}db.h>
+                     int main(){
                         int major,minor,patch;
                         if (!db_version(&major,&minor,&patch))
                              return -1;
-                         return 0;
-                    }
-                ])
+                        return 0;
+                     }
+                  ])
                ],
-               [BDB_ADD_LDADD="-L$libdbpath/lib -ldb"; BDB_ADD_FLAG="-I$libdbpath/include";libdb="yes"; echo "yes"],
-               [libdb="no"; echo "no"]
-      )
-#restore CFLAGS/LDFLAGS
-     CFLAGS=$OLDCFLAGS
-     LDFLAGS=$OLDLDFLAGS
-     LIBS=$OLDLIBS
-   fi
+               [echo yes;libdb="yes";],
+               [echo "no";libdb="no";]
+        )
 
-   if test a"$libdb" = "ano"; then
-# Here we still was not able to find a working Berkeley DB library.
-# We are going to see if we can found a Berkeley DB located under a
-# libdbpath/include/db4x and lbdbpath/lib/db4x directories.
-
-     if test a"$libdbpath" = "a"; then
-# if libdbpath is not given try with libdbpat="/usr"
-        libdbpath="/usr"
-     fi
-#  Save old CFLAGS/LDFLAGS
-     OLDCFLAGS=$CFLAGS
-     OLDLDFLAGS=$LDFLAGS
-     OLDLIBS=$LIBS
-     LIBS="-ldb $OLDLIBS"
-     for DBVER in 54 53 52 51 50 49 48 47 46 45 44 43 42; do
-        if test -d $libdbpath/include/db$DBVER; then
-           echo -n "checking for Berleley DB under $libdbpath/include/db$DBVER and $libdbpath/lib/db$DBVER... "
-           CFLAGS="-I$libdbpath/include/db$DBVER $OLDCFLAGS"
-           LDFLAGS="-L$libdbpath/lib/db$DBVER $OLDLDFLAGS"
-           AC_LINK_IFELSE(
-                  [AC_LANG_SOURCE(
-                    [
-                        #include <db.h>
-                        int main(){
-                           int major,minor,patch;
-                           if (!db_version(&major,&minor,&patch))
-                                return -1;
-                           return 0;
-                        }
-                     ])
-                  ],
-                  [echo yes;BDB_ADD_LDADD="-L$libdbpath/lib/db$DBVER -ldb"; BDB_ADD_FLAG="-I$libdbpath/include/db$DBVER";libdb="yes";],
-                  [libdb="no"; echo "no";]
-           )
-        fi
         if test a"$libdb" = "ayes"; then
+           ICFG_BUILD_FLAGS(BDB, "$libdbpath", $usedblib)
+           AC_DEFINE(HAVE_BDB, 1, [Define HAVE_BDB if berkeley DB is installed])
+           AC_DEFINE_UNQUOTED(BDB_HEADER_PATH(incfile), [<${incdbdir}incfile>], [Set DB_HEADER_PATH macro to compute berkeley DB header subpath])
            break;
         fi
-     done
-#restore CFLAGS/LDFLAGS
-     CFLAGS=$OLDCFLAGS
-     LDFLAGS=$OLDLDFLAGS
-     LIBS=$OLDLIBS
-   fi
-   AC_SUBST(BDB_ADD_LDADD)
-   AC_SUBST(BDB_ADD_FLAG)
-fi
+   done
 
-if test a"$libdb" = "ayes"; then
-    AC_DEFINE(HAVE_BDB, 1, [Define HAVE_BDB if berkeley DB is installed])
+   ICFG_STATE_ROLLBACK
 fi
 
 libldap="yes"
@@ -578,33 +585,28 @@ AC_ARG_WITH(ldap,
          libldap="no"
     ;;
     * )
-        libldap=$withval
+        libldap="yes"
+        libldappath=$withval
     ;;
   esac
 ],
 )
 
-if test a"$libldap" != "ano"; then
-   if test a"$libldap" != "ayes"; then
-        OLDCFLAGS=$CFLAGS
-        OLDLDFLAGS=$LDFLAGS
-        CFLAGS="$CFLAGS -I$libldap/include"
-        LDFLAGS="$LDFLAGS -L$libldap/lib"
-        AC_CHECK_LIB(ldap,  ldap_search_ext_s,
-                     [LDAP_ADD_LDADD="-L$libldap/lib -lldap"; LDAP_ADD_FLAG="-I$libldap/include"; AC_DEFINE(HAVE_LDAP, 1, [Define HAVE_LDAP if LDAP libraries are installed])],
-                     [libldap="no"]
-                     )
-        CFLAGS=$OLDCFLAGS
-        LDFLAGS=$OLDLDFLAGS
-        AC_SUBST(LDAP_ADD_LDADD)
-        AC_SUBST(LDAP_ADD_FLAG)
-   else
-        AC_CHECK_LIB(ldap,  ldap_search_ext_s,
-                     [LDAP_ADD_LDADD="-lldap"; AC_DEFINE(HAVE_LDAP, 1, [Define HAVE_LDAP if LDAP libraries are installed])],
-                     [libldap="no"]
-                     )
-        AC_SUBST(LDAP_ADD_LDADD)
+if test "a$libldap" != "ano"; then
+   ICFG_STATE_SAVE(LDAP)
+   if test "a$libldappath" != "a"; then
+        CFLAGS="$CFLAGS -I$libldappath/include"
+        LDFLAGS="$LDFLAGS -L$libldappath/lib"
    fi
+   AC_CHECK_LIB(ldap,  ldap_search_ext_s,
+                [libldap="yes"],
+                [libldap="no"]
+                )
+   if test "a$libldap" = "ayes"; then
+       AC_DEFINE(HAVE_LDAP, 1, [Define HAVE_LDAP if LDAP libraries are installed])
+       ICFG_BUILD_FLAGS(LDAP, "$libldappath", "-lldap")
+   fi
+   ICFG_STATE_ROLLBACK
 fi
 
 # Detect memcached library
@@ -628,23 +630,54 @@ AC_ARG_WITH(memcached,
 )
 
 if test a"$libmemcached" != "ano"; then
-    OLDCPPFLAGS=$CPPFLAGS
-    OLDCXXFLAGS=$CXXFLAGS
+    ICFG_STATE_SAVE(MEMCACHED)
     if test a"$libmemcachedpath" != "a"; then
-       CPPFLAGS="-l$libmemcachedpath/include $CPPFLAGS"
-       CXXFLAGS="-l$libmemcachedpath/include $CXXFLAGS"
-       MEMCACHED_LDFLAGS="-L$libmemcachedpath/lib"
-       MEMCACHED_CFLAGS="-I$libmemcachedpath/include"
+       CFLAGS="-l$libmemcachedpath/include $CFLAGS"
     fi
-
     AC_CHECK_HEADERS(libmemcached/memcached.h, [libmemcached="yes"],[libmemcached="no"])
-    CPPFLAGS=$OLDCPPFLAGS
-    CXXFLAGS=$OLDCXXFLAGS
+    if test "a$libmemcached" = "ayes"; then
+       ICFG_BUILD_FLAGS(MEMCACHED, "$libmemcachedpath", "-lmemcached -lmemcachedutil")
+    fi
+    ICFG_STATE_ROLLBACK
 fi
 
-AC_SUBST(MEMCACHED_LDFLAGS)
-AC_SUBST(MEMCACHED_CFLAGS)
+# Check for PCRE regex library
+AC_ARG_WITH(pcre,
+[       --with-pcre     Path to PCRE library],
+[
+case "$withval" in
+     yes)
+        pcre=yes;
+     ;;
+     no)
+        pcre=no;
+     ;;
+     *)
+        pcre=yes;
+        pcrepath=$withval;
+     ;;
+     esac
+],
+[ pcre=yes]
+)
 
+if test a"$pcre" != "ano"; then
+   ICFG_STATE_SAVE(PCRE)
+   if test "a$pcrepath" != "a"; then
+       CFLAGS="$CFLAGS -I$pcrepath/include"
+       LDFLAGS="$LDFLAGS -L$pcrepath/lib"
+   fi
+   AC_CHECK_HEADERS(pcre.h,
+                    AC_CHECK_LIB(pcre, pcre_exec,[pcre=yes],[pcre=no]),
+                    [pcre=no]
+   )
+
+   if test "a$pcre" = "ayes"; then
+       AC_DEFINE(HAVE_PCRE,1,[Define HAVE_PCRE if pcre installed])
+       ICFG_BUILD_FLAGS(PCRE, "$pcrepath", "-lpcre")
+   fi
+   ICFG_STATE_ROLLBACK
+fi
 
 # Check for header files
 AC_HEADER_STDC
@@ -665,48 +698,6 @@ INTTYPES_H="1"
 )
 AC_SUBST(INTTYPES_H)
 
-# Check for PCRE regex library
-AC_ARG_WITH(pcre,
-[       --with-pcre     Path to PCRE library],
-[
-case "$withval" in
-     yes)
-        pcre=yes;
-     ;;
-     no)
-        pcre=no;
-     ;;
-     *)
-        pcre=$withval;
-     ;;
-     esac
-],
-[ pcre=yes]
-)
-
-if test a"$pcre" != "ano"; then
-   if test a"$pcre" != "ayes"; then
-        OLDCFLAGS=$CFLAGS
-        OLDLDFLAGS=$LDFLAGS
-        CFLAGS="$CFLAGS -I$pcre/include"
-        LDFLAGS="$LDFLAGS -L$pcre/lib"
-        AC_CHECK_HEADERS(pcre.h,
-                AC_CHECK_LIB(pcre, pcre_exec,[PCRE_ADD_LDADD="-L$pcre/lib -lpcre";PCRE_ADD_FLAG="-I$pcre/include";AC_DEFINE(HAVE_PCRE,1,[Define HAVE_PCRE if pcre installed])],[pcre=no]),
-                [pcre=no]
-        )
-        CFLAGS=$OLDCFLAGS
-        LDFLAGS=$OLDLDFLAGS
-        AC_SUBST(PCRE_ADD_LDADD)
-        AC_SUBST(PCRE_ADD_FLAG)
-   else
-         AC_CHECK_HEADERS(pcre.h,
-                AC_CHECK_LIB(pcre, pcre_exec,[PCRE_ADD_LDADD=" -lpcre";AC_DEFINE(HAVE_PCRE,1,[Define HAVE_PCRE if pcre installed])],[pcre=no]),
-                [pcre=no]
-         )
-        AC_SUBST(PCRE_ADD_LDADD)
-   fi
-fi
-
 posix_regex=no
 AC_CHECK_HEADERS(regex.h,
   [posix_regex=yes;AC_DEFINE(HAVE_REGEX,1,[Define HAVE_REGEX if regex.h exists (posix regular expressions - maybe more tests needed)])],
@@ -714,10 +705,9 @@ AC_CHECK_HEADERS(regex.h,
   )
 
 USE_REGEX=0
-if test a"$pcre" = "ayes" -o a"$posix_regex" = "ayes"; then
-USE_REGEX=1
+if test "a$pcre" = "ayes" -o "a$posix_regex" = "ayes"; then
+   USE_REGEX=1
 fi
-
 AC_SUBST(USE_REGEX)
 
 # Checks for typedefs, structures, and compiler characteristics.
@@ -1001,6 +991,7 @@ AM_CONDITIONAL(USEPERL,[test a"$perlcore" != a])
 AM_CONDITIONAL(USEBDB,   [test a"$libdb" != ano])
 AM_CONDITIONAL(USELDAP, [test a"$libldap" != ano])
 AM_CONDITIONAL(USEMEMCACHED, [test a"$libmemcached" != ano])
+AM_CONDITIONAL(USE_RPATH, [test "a$enable_rpath" != "ano"])
 
 AC_OUTPUT([
 include/c-icap-conf.h Makefile utils/Makefile services/Makefile

@@ -434,6 +434,19 @@ int icap_init_server_tls(ci_port_t *port)
     return 1;
 }
 
+void icap_close_server_tls(ci_port_t *port)
+{
+    if (port->bio) {
+        BIO_free_all(port->bio);
+        port->bio = NULL;
+    }
+
+    if (port->tls_context) {
+        SSL_CTX_free(port->tls_context);
+        port->tls_context = NULL;
+    }
+}
+
 int ci_port_reconfigure_tls(ci_port_t *port)
 {
     assert(port->tls_enabled);

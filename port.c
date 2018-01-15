@@ -94,11 +94,9 @@ void ci_port_close(ci_port_t *port)
         return;
 
 #ifdef USE_OPENSSL
-    if (port->bio) {
-        BIO_free_all(port->bio);
-        port->bio = NULL;
-        port->tls_context = NULL;
-    } else
+    if (port->bio)
+        icap_close_server_tls(port);
+    else
 #endif
         close(port->fd);
     port->fd = -1;
