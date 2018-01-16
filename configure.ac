@@ -2,8 +2,8 @@ dnl Process this file with autoconf to produce a configure script.
 
 
 dnl AC_INIT(c_icap,m4_normalize(m4_include([VERSION.m4])))
-AC_INIT(c_icap,0.5.2)
-CICAPLIB_VERSION=5:2:0
+AC_INIT(c_icap,0.5.3)
+CICAPLIB_VERSION=5:3:0
 AC_SUBST(CICAPLIB_VERSION)
 dnl CICAPLIB_VERSION is the libtool current[:revision[:age]] version info
 dnl libtool directions about version info
