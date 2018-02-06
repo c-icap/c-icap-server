@@ -96,7 +96,7 @@ int stat_entry_by_name(struct stat_entry_list *list, const char *label)
     return -1;
 }
 
-int stat_group_add(char *group)
+int stat_group_add(const char *group)
 {
     char **group_list;
     int gid = 0;
@@ -124,7 +124,7 @@ int stat_group_add(char *group)
     return gid;
 }
 
-int ci_stat_entry_register(char *label, int type, char *group)
+int ci_stat_entry_register(const char *label, int type, const char *group)
 {
     int gid;
 

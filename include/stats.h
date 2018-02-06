@@ -75,7 +75,7 @@ enum ci_stat_type {STAT_INT64_T, STAT_KBS_T};
 CI_DECLARE_DATA extern struct stat_area *STATS;
 
 CI_DECLARE_FUNC(int) ci_stat_memblock_size(void);
-CI_DECLARE_FUNC(int) ci_stat_entry_register(char *label, int type, char *group);
+CI_DECLARE_FUNC(int) ci_stat_entry_register(const char *label, int type, const char *group);
 CI_DECLARE_FUNC(void) ci_stat_entry_release_lists();
 
 CI_DECLARE_FUNC(void) ci_stat_attach_mem(void *mem_block,
