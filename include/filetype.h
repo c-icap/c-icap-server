@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2004-2008 Christos Tsantilas
+ *  Copyright (C) 2004-2018 Christos Tsantilas
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -28,66 +28,34 @@ extern "C"
 {
 #endif
 
-/**
- \defgroup DATATYPE  Data type recogintion api
- \ingroup API
- * Macros, functions and structures used for data type recognition
- */
-
-
-#define MAGIC_SIZE 50
-#define NAME_SIZE 15
-#define DESCR_SIZE 50
-#define MAX_GROUPS 64 /*Maximum number of groups of a single data type*/
-
-struct ci_data_type {
-    char name[NAME_SIZE+1];
-    char descr[DESCR_SIZE+1];
-    int groups[MAX_GROUPS];
-};
-
-struct ci_data_group {
-    char name[NAME_SIZE+1];
-    char descr[DESCR_SIZE+1];
-};
-
-
-typedef struct ci_magic {
-    int offset;
-    unsigned char magic[MAGIC_SIZE+1];
-    size_t len;
-    unsigned int type;
-} ci_magic_t;
-
-#define DECLARE_ARRAY(array,type) type *array;int array##_num;int array##_size;
-
-struct ci_magics_db {
-    DECLARE_ARRAY(types,struct ci_data_type)
-    DECLARE_ARRAY(groups,struct ci_data_group)
-    DECLARE_ARRAY(magics,struct ci_magic)
-};
-
-#define ci_magic_types_num(db) (db != NULL?db->types_num:0)
-#define ci_magic_groups_num(db)(db != NULL?db->groups_num:0)
-#define ci_data_type_name(db,i)(db != NULL?db->types[i].name:NULL)
-#define ci_data_type_groups(db,i)(db != NULL && i < db->types_num && i >= 0?db->types[i].groups:NULL)
-#define ci_data_type_descr(db,i)(db != NULL && i < db->types_num && i >= 0?db->types[i].descr:NULL)
-#define ci_data_group_name(db,i)(db != NULL && i < db->groups_num && i >= 0?db->groups[i].name:NULL)
-
 enum {CI_ASCII_DATA,CI_ISO8859_DATA,CI_XASCII_DATA,CI_UTF_DATA,CI_HTML_DATA,CI_BIN_DATA};
 enum {CI_TEXT_DATA,CI_OCTET_DATA};
 
+#define CI_MAGIC_MAX_TYPE_GROUPS 64 /*Maximum number of groups of a single data type*/
+#define MAX_GROUPS CI_MAGIC_MAX_TYPE_GROUPS
+
+typedef struct ci_magics_db ci_magics_db_t;
 /*low level functions should not used by users*/
 CI_DECLARE_FUNC(struct ci_magics_db) *ci_magics_db_build(const char *filename);
 CI_DECLARE_FUNC(int) ci_magics_db_file_add(struct ci_magics_db *db,const char *filename);
-CI_DECLARE_FUNC(int) ci_get_data_type_id(struct ci_magics_db *db,const char *name);
-CI_DECLARE_FUNC(int) ci_get_data_group_id(struct ci_magics_db *db,const char *group);
-CI_DECLARE_FUNC(int) ci_belongs_to_group(struct ci_magics_db *db, int type, int group);
+CI_DECLARE_FUNC(void) ci_magics_db_release(struct ci_magics_db *db);
+CI_DECLARE_FUNC(int) ci_magics_db_types_num(const ci_magics_db_t *db);
+CI_DECLARE_FUNC(int) ci_magics_db_groups_num(const ci_magics_db_t *db);
+CI_DECLARE_FUNC(const char *) ci_magics_db_type_name(const ci_magics_db_t *db, int type);
+CI_DECLARE_FUNC(const int *) ci_magics_db_type_groups(const ci_magics_db_t *db,int type);
+CI_DECLARE_FUNC(const char *) ci_magics_db_type_descr(const ci_magics_db_t * db,int type);
+CI_DECLARE_FUNC(const char *) ci_magics_db_group_name(const ci_magics_db_t *db,int group);
+CI_DECLARE_FUNC(int) ci_magics_db_data_type(const struct ci_magics_db *db, const char *buf, int buflen);
 
-CI_DECLARE_FUNC(int) ci_filetype(struct ci_magics_db *db,const char *buf, int buflen);
-CI_DECLARE_FUNC(int) ci_extend_filetype(struct ci_magics_db *db,
-                                        ci_request_t *req,
-                                        const char *buf,int len,int *iscompressed);
+/*Deprecated must removed*/
+int ci_filetype(struct ci_magics_db *db, const char *buf, int buflen);
+/*Deprecated, must removed in future*/
+#define ci_magic_types_num(db) (ci_magics_db_types_num(db))
+#define ci_magic_groups_num(db) (ci_magics_db_groups_num(db))
+#define ci_data_type_name(db,i) (ci_magics_db_type_name(db, i))
+#define ci_data_type_groups(db,i) (ci_magics_db_type_groups(db, i))
+#define ci_data_type_descr(db,i) (ci_magics_db_type_descr(db, i))
+#define ci_data_group_name(db,i) (ci_magics_db_group_name(db, i))
 
 /*And the c-icap Library functions*/
 
@@ -176,7 +144,7 @@ CI_DECLARE_FUNC(int) ci_magic_groups_count();
  \param type the type id
  \return the name of the type or NULL if the type does not exists
  */
-CI_DECLARE_FUNC(char *) ci_magic_type_name(int type);
+CI_DECLARE_FUNC(const char *) ci_magic_type_name(int type);
 
 /**
  * Retrieve the short description  of a magic type.
@@ -185,7 +153,7 @@ CI_DECLARE_FUNC(char *) ci_magic_type_name(int type);
  \param type the type id
  \return the short description if the type or NULL if the type does not exists
  */
-CI_DECLARE_FUNC(char *) ci_magic_type_descr(int type);
+CI_DECLARE_FUNC(const char *) ci_magic_type_descr(int type);
 
 /**
  * Retrieve the name of a magic types group.
@@ -194,7 +162,16 @@ CI_DECLARE_FUNC(char *) ci_magic_type_descr(int type);
  \param group the group id
  \return the name of the group or NULL if the group does not exists
  */
-CI_DECLARE_FUNC(char *) ci_magic_group_name(int group);
+CI_DECLARE_FUNC(const char *) ci_magic_group_name(int group);
+
+/**
+ * Retrieve the groups of the given type.
+ * \ingroup DATATYPE
+ *
+ \param type the type id
+ \return An array with the group ids
+ */
+CI_DECLARE_FUNC(const int*) ci_magic_type_groups(int type);
 
 #ifdef __cplusplus
 }

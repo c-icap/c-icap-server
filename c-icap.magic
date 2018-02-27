@@ -8,6 +8,19 @@
 #
 # offset:Magic:Type:Short Description:Group1[:Group2[:Group3]...]
 #
+# To define types of file defined by more than one magic patterns use
+# the following form:
+#
+# offset1:Magic1:\
+# offset2:Magic2:\
+# ...
+# offsetN:MagicN:Type:Short Description:Group1[:Group2[:Group3]...]
+#
+# The 'Magic' pattern consist by:
+#   * ascii characters except the reserved ':', spaces, tabs, newlines, cr.
+#   * Bytes in hexadecimal form eg '\xFF'
+#   * Bytes in octal form eg '\777'
+#
 # CURRENT GROUPS are :TEXT DATA EXECUTABLE ARCHIVE GRAPHICS STREAM DOCUMENT
 
 0:MZ:MSEXE:DOS/W32 executable/library/driver:EXECUTABLE
@@ -41,6 +54,8 @@
 0:\000\000\001\000:ICO:MS Windows icon resource:GRAPHICS
 0:FWS:SWF:Shockwave Flash data:GRAPHICS
 0:CWS:SWF:Shockwave Flash data:GRAPHICS
+0:RIFF:\
+8:WEBP:WEBP:WEBP image data:GRAPHICS
 
 #STREAM
 0:\000\000\001\263:MPEG:MPEG video stream:STREAM
