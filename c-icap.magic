@@ -34,7 +34,7 @@
 0:PK00PK\003\004:ZIP:Zip archive:ARCHIVE
 0:\037\213:GZip:Gzip compressed file:ARCHIVE
 0:BZh:BZip:BZip compressed file:ARCHIVE
-0:SZDD:Compress.exe:MS Copmress.exe'd compressed data:ARCHIVE
+0:SZDD\x88\xF0\x27\x33:Compress.exe:MS Copmress.exe'd compressed data:ARCHIVE
 0:\037\235:Compress:UNIX compress:ARCHIVE
 0:MSCF:MSCAB:Microsoft cabinet file:ARCHIVE
 257:ustar:TAR:Tar archive file:ARCHIVE
@@ -42,6 +42,7 @@
 0:\170\237\076\042:TNEF:Transport Neutral Encapsulation Format:ARCHIVE
 20:\xDC\xA7\xC4\xFD:ZOO:Zoo archiver:ARCHIVE
 2:-lh:LHA:Lha archiver:ARCHIVE
+0:\x37\x7A\xBC\xAF\x27\x1C:7Z:7-Zip compressed file:ARCHIVE
 #Other type of Archives
 0:ITSF:MSCHM:MS Windows Html Help:ARCHIVE
 0:!<arch>\012debian:debian:Debian package:ARCHIVE
@@ -50,10 +51,11 @@
 0:GIF8:GIF:GIF image data:GRAPHICS
 0:BM:BMP:BMP image data:GRAPHICS
 0:\377\330:JPEG:JPEG image data:GRAPHICS
-0:\211PNG:PNG:PNG image data:GRAPHICS
+0:\x89PNG\x0D\x0A\x1A\x0A:PNG:PNG image data:GRAPHICS
 0:\000\000\001\000:ICO:MS Windows icon resource:GRAPHICS
 0:FWS:SWF:Shockwave Flash data:GRAPHICS
 0:CWS:SWF:Shockwave Flash data:GRAPHICS
+0:ZWS:SWF:Shockwave Flash data:GRAPHICS
 0:RIFF:\
 8:WEBP:WEBP:WEBP image data:GRAPHICS
 
@@ -66,9 +68,8 @@
 0:\377\373:MP3:MP3 audio stream:STREAM
 0:\377\372:MP3:MP3 audio stream:STREAM
 0:\060\046\262\165\216\146\317:ASF:WMA/WMV/ASF:STREAM
-0:.ra\0375:RAF:Real audio stream:STREAM
+0:.ra\375\000:RAF:Real audio stream:STREAM
 0:.RMF:RMF:Real Media File:STREAM
-0:OggS:OGG:Ogg stream data:STREAM
 8:AIFF:AIFF:AIFF audio data:STREAM
 8:AIFC:AIFF:AIFF-C audio data:STREAM
 8:8SVX:AIFF:IFF/8SVX audio data:STREAM
@@ -79,24 +80,29 @@
 4:wide:QTFF:Quick time  video format:STREAM
 4:skip:QTFF:Quick time  video format:STREAM
 4:free:QTFF:Quick time  video format:STREAM
-8:isom:MP4:MP4 Apple video format:STREAM
-8:mp41:MP4:MP4 Apple video format:STREAM
-8:mp42:MP4:MP4 Apple video format:STREAM
-8:mmp44:MP4:MP4 Apple video format:STREAM
-8:M4A:MP4:MP4 Apple video format:STREAM
-8:3gp:3GPP:3GPP Apple video format:STREAM
-8:avc1:3GPP:3GPP Apple video format:STREAM
+4:ftypqt:QTFF:Quick time  video format:STREAM
+4:ftypisom:MP4:MP4 Apple video format:STREAM
+4:ftypmp41:MP4:MP4 Apple video format:STREAM
+4:ftypmp42:MP4:MP4 Apple video format:STREAM
+4:ftypmmp44:MP4:MP4 Apple video format:STREAM
+4:ftypM4A:MP4:MP4 Apple video format:STREAM
+4:ftypM4V:MP4:MP4 Apple video format:STREAM
+4:ftypMSNV:MP4:MP4 Apple video format:STREAM
+4:ftyp3gp:3GPP:3GPP Apple video format:STREAM
+4:ftypavc1:3GPP:3GPP Apple video format:STREAM
 
-#Responce from stream server :-)
-0:ICY 200 OK:ShouthCast:Shouthcast audio stream:STREAM
+#Response from stream server :-)
+0:ICY 200 OK:ShoutCast:Shoutcast audio stream:STREAM
 
 #Documents
-0:\320\317\021\340\241\261:MSOFFICE:MS Office Document:DOCUMENT
-0:\376\067\0\043:MSOFFICE:MS Office Document:DOCUMENT
+0:\320\317\021\340\241\261\031\341:MSOFFICE:MS Office Document:DOCUMENT
+0:\376\067\000\043:MSOFFICE:MS Office Document:DOCUMENT
 0:\333\245-\000\000\000:MSOFFICE:MS Office Document:DOCUMENT
 0:\208\207\017\224\161\177\026\225\000:MSOFFICE::DOCUMENT
 4:Standard Jet DB:MSOFFICE:MS Access Database:DOCUMENT
-0:%PDF-:PDF:PDF document:DOCUMENT
+4:Standard ACE DB:MSOFFICE:MS Access Database:DOCUMENT
+0:%PDF:PDF:PDF document:DOCUMENT
 0:%!:PS:PostScript document:DOCUMENT
 0:\004%!:PS:PostScript document:DOCUMENT
+0:{\134rtf1:RTF:RTF document:DOCUMENT
 
