@@ -169,7 +169,7 @@ CI_DECLARE_FUNC(const char *) ci_magic_group_name(int group);
  * \ingroup DATATYPE
  *
  \param type the type id
- \return An array with the group ids
+ \return An array with the group ids, terminated with a '-1'
  */
 CI_DECLARE_FUNC(const int*) ci_magic_type_groups(int type);
 
