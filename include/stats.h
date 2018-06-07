@@ -81,13 +81,23 @@ CI_DECLARE_FUNC(void) ci_stat_kbs_inc(int ID, int count);
  */
 CI_DECLARE_FUNC(uint64_t *) ci_stat_uint64_ptr(int ID);
 
+/**
+ * Used to batch update statistics
+ \ingroup STAT
+ */
 typedef struct ci_stat_item{
     ci_stat_type_t type;
     int Id;
     int count;
 } ci_stat_item_t;
 
-CI_DECLARE_FUNC(void) ci_stat_update(ci_stat_item_t *stats, int count);
+/**
+ * Updates multiple statistic entries in one step
+ \param stats An array with statistic entries ids and their increment values
+ \param count The number of items of stats array
+ \ingroup STAT
+*/
+CI_DECLARE_FUNC(void) ci_stat_update(const ci_stat_item_t *stats, int count);
 
 /*Low level structures and functions*/
 typedef struct kbs {

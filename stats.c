@@ -196,7 +196,7 @@ void ci_stat_kbs_inc(int ID, int count)
     ci_thread_mutex_unlock(&STATS->mtx);
 }
 
-void ci_stat_update(ci_stat_item_t *stats, int count)
+void ci_stat_update(const ci_stat_item_t *stats, int count)
 {
     int i;
     if (!STATS || !STATS->mem_block)
