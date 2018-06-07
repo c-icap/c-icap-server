@@ -68,18 +68,18 @@ static int STAT_ALLOW204 = -1;
 
 void request_stats_init()
 {
-    STAT_REQUESTS = ci_stat_entry_register("REQUESTS", STAT_INT64_T, "General");
-    STAT_REQMODS = ci_stat_entry_register("REQMODS", STAT_INT64_T, "General");
-    STAT_RESPMODS = ci_stat_entry_register("RESPMODS", STAT_INT64_T, "General");
-    STAT_OPTIONS = ci_stat_entry_register("OPTIONS", STAT_INT64_T, "General");
-    STAT_FAILED_REQUESTS = ci_stat_entry_register("FAILED REQUESTS", STAT_INT64_T, "General");
-    STAT_ALLOW204 = ci_stat_entry_register("ALLOW 204", STAT_INT64_T, "General");
-    STAT_BYTES_IN = ci_stat_entry_register("BYTES IN", STAT_KBS_T, "General");
-    STAT_BYTES_OUT = ci_stat_entry_register("BYTES OUT", STAT_KBS_T, "General");
-    STAT_HTTP_BYTES_IN = ci_stat_entry_register("HTTP BYTES IN", STAT_KBS_T, "General");
-    STAT_HTTP_BYTES_OUT = ci_stat_entry_register("HTTP BYTES OUT", STAT_KBS_T, "General");
-    STAT_BODY_BYTES_IN = ci_stat_entry_register("BODY BYTES IN", STAT_KBS_T, "General");
-    STAT_BODY_BYTES_OUT = ci_stat_entry_register("BODY BYTES OUT", STAT_KBS_T, "General");
+    STAT_REQUESTS = ci_stat_entry_register("REQUESTS", CI_STAT_INT64_T, "General");
+    STAT_REQMODS = ci_stat_entry_register("REQMODS", CI_STAT_INT64_T, "General");
+    STAT_RESPMODS = ci_stat_entry_register("RESPMODS", CI_STAT_INT64_T, "General");
+    STAT_OPTIONS = ci_stat_entry_register("OPTIONS", CI_STAT_INT64_T, "General");
+    STAT_FAILED_REQUESTS = ci_stat_entry_register("FAILED REQUESTS", CI_STAT_INT64_T, "General");
+    STAT_ALLOW204 = ci_stat_entry_register("ALLOW 204", CI_STAT_INT64_T, "General");
+    STAT_BYTES_IN = ci_stat_entry_register("BYTES IN", CI_STAT_KBS_T, "General");
+    STAT_BYTES_OUT = ci_stat_entry_register("BYTES OUT", CI_STAT_KBS_T, "General");
+    STAT_HTTP_BYTES_IN = ci_stat_entry_register("HTTP BYTES IN", CI_STAT_KBS_T, "General");
+    STAT_HTTP_BYTES_OUT = ci_stat_entry_register("HTTP BYTES OUT", CI_STAT_KBS_T, "General");
+    STAT_BODY_BYTES_IN = ci_stat_entry_register("BODY BYTES IN", CI_STAT_KBS_T, "General");
+    STAT_BODY_BYTES_OUT = ci_stat_entry_register("BODY BYTES OUT", CI_STAT_KBS_T, "General");
 }
 
 static int wait_for_data(ci_connection_t *conn, int secs, int what_wait)

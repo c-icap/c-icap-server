@@ -28,6 +28,68 @@ extern "C"
 {
 #endif
 
+/*Fucntions for use with modules and services */
+
+/**
+ \defgroup STAT c-icap API for keeping statistics for services and modules
+ \ingroup API
+*/
+
+/**
+ * Statistic types
+ \ingroup STAT
+ */
+typedef enum ci_stat_type {
+    CI_STAT_INT64_T, CI_STAT_KBS_T,
+    STAT_INT64_T = CI_STAT_INT64_T, STAT_KBS_T = CI_STAT_KBS_T /*backward compatibility */
+} ci_stat_type_t;
+
+/**
+ * Registers a statistic entry counter. The counter can count kilobytes
+ * (CI_STAT_KBS_T type) or simple counter (CI_STAT_INT64_T type)
+ \ingroup STAT
+ \param label A name for this entry
+ \param type The type of the entry.  The counter can count kilobytes 
+ *           (CI_STAT_KBS_T type) or simple counter (CI_STAT_INT64_T type)
+ \param group The group under which this entry appeared in info page.
+ \return An ID which can be used to update counter
+*/
+CI_DECLARE_FUNC(int) ci_stat_entry_register(const char *label, ci_stat_type_t type, const char *group);
+
+/**
+ * Increases by 'count' the counter 'ID', which must be of type CI_STAT_INT64_T
+ \ingroup STAT
+ */
+CI_DECLARE_FUNC(void) ci_stat_uint64_inc(int ID, int count);
+
+/**
+ * Increases by 'count' bytes the counter 'ID', which must be of type
+ * CI_STAT_KBS_T.
+ \ingroup STAT
+ */
+CI_DECLARE_FUNC(void) ci_stat_kbs_inc(int ID, int count);
+
+/**
+ * Return the memory address where the CI_STAT_INT64_T counter is stored
+ * The user can use this address to update the counter directly. In this
+ * case the user is responsible to correctly lock the counter (eg using
+ * ci_thread_mutex) before using it.
+ * This function can work only after the statistics memory is initialised,
+ * after the running child is forked. It can not be used in init  and 
+ * post_init services and modules handlers.
+ \ingroup STAT
+ */
+CI_DECLARE_FUNC(uint64_t *) ci_stat_uint64_ptr(int ID);
+
+typedef struct ci_stat_item{
+    ci_stat_type_t type;
+    int Id;
+    int count;
+} ci_stat_item_t;
+
+CI_DECLARE_FUNC(void) ci_stat_update(ci_stat_item_t *stats, int count);
+
+/*Low level structures and functions*/
 typedef struct kbs {
     uint64_t kb;
     unsigned int bytes;
@@ -71,20 +133,16 @@ CI_DECLARE_DATA extern struct stat_entry_list STAT_INT64;
 CI_DECLARE_DATA extern struct stat_entry_list STAT_KBS;
 CI_DECLARE_DATA extern struct stat_groups_list STAT_GROUPS;
 
-enum ci_stat_type {STAT_INT64_T, STAT_KBS_T};
 CI_DECLARE_DATA extern struct stat_area *STATS;
 
 CI_DECLARE_FUNC(int) ci_stat_memblock_size(void);
-CI_DECLARE_FUNC(int) ci_stat_entry_register(const char *label, int type, const char *group);
+
 CI_DECLARE_FUNC(void) ci_stat_entry_release_lists();
 
 CI_DECLARE_FUNC(void) ci_stat_attach_mem(void *mem_block,
         int size,void (*release_mem)(void *));
 CI_DECLARE_FUNC(void) ci_stat_release();
-CI_DECLARE_FUNC(void) ci_stat_uint64_inc(int ID, int count);
-CI_DECLARE_FUNC(void) ci_stat_kbs_inc(int ID, int count);
 
-/*Low level functions */
 CI_DECLARE_FUNC(struct stat_area *) ci_stat_area_construct(void *mem_block, int size, void (*release_mem)(void *));
 CI_DECLARE_FUNC(void) ci_stat_area_destroy(struct stat_area  *area);
 CI_DECLARE_FUNC(void) ci_stat_area_reset(struct stat_area *area);
@@ -93,6 +151,7 @@ CI_DECLARE_FUNC(void) ci_stat_area_merge(struct stat_area *dest, struct stat_are
 /*Stats memblocks low level functions*/
 CI_DECLARE_FUNC(void) ci_stat_memblock_merge(struct stat_memblock *dest_block, struct stat_memblock *mem_block);
 CI_DECLARE_FUNC(void) ci_stat_memblock_reset(struct stat_memblock *block);
+
 /*DO NOT USE the folllowings are only for internal c-icap server use!*/
 CI_DECLARE_FUNC(void) stat_memblock_fix(struct stat_memblock *mem_block);
 CI_DECLARE_FUNC(void) stat_memblock_reconstruct(struct stat_memblock *mem_block);

@@ -124,7 +124,7 @@ int stat_group_add(const char *group)
     return gid;
 }
 
-int ci_stat_entry_register(const char *label, int type, const char *group)
+int ci_stat_entry_register(const char *label, ci_stat_type_t type, const char *group)
 {
     int gid;
 
@@ -132,9 +132,9 @@ int ci_stat_entry_register(const char *label, int type, const char *group)
     if (gid < 0)
         return -1;
 
-    if (type == STAT_INT64_T) {
+    if (type == CI_STAT_INT64_T) {
         return stat_entry_add(&STAT_INT64, label, type, gid);
-    } else if (type == STAT_KBS_T) {
+    } else if (type == CI_STAT_KBS_T) {
         return stat_entry_add(&STAT_KBS, label, type, gid);
     }
     return -1;
@@ -162,32 +162,72 @@ void ci_stat_release()
     STATS = NULL;
 }
 
+static inline void do_update_uint64(int ID, int count)
+{
+    if (ID >= 0 && ID < STATS->mem_block->counters64_size)
+        STATS->mem_block->counters64[ID] += count;
+}
+
 void ci_stat_uint64_inc(int ID, int count)
 {
     if (!STATS || !STATS->mem_block)
         return;
-    if (ID < 0 || ID >= STATS->mem_block->counters64_size)
-        return;
     ci_thread_mutex_lock(&STATS->mtx);
-    STATS->mem_block->counters64[ID] += count;
+    do_update_uint64(ID, count);
     ci_thread_mutex_unlock(&STATS->mtx);
+}
+
+static inline void do_update_kbs(int ID, int count)
+{
+    if (ID >= 0 && ID < STATS->mem_block->counterskbs_size) {
+        STATS->mem_block->counterskbs[ID].bytes += count;
+        STATS->mem_block->counterskbs[ID].kb += (STATS->mem_block->counterskbs[ID].bytes >> 10);
+        STATS->mem_block->counterskbs[ID].bytes &= 0x3FF;
+    }
 }
 
 void ci_stat_kbs_inc(int ID, int count)
 {
-    if (!STATS->mem_block)
-        return;
-
-    if (ID < 0 || ID >= STATS->mem_block->counterskbs_size)
+    if (!STATS || !STATS->mem_block)
         return;
 
     ci_thread_mutex_lock(&STATS->mtx);
-    STATS->mem_block->counterskbs[ID].bytes += count;
-    STATS->mem_block->counterskbs[ID].kb += (STATS->mem_block->counterskbs[ID].bytes >> 10);
-    STATS->mem_block->counterskbs[ID].bytes &= 0x3FF;
+    do_update_kbs(ID, count);
     ci_thread_mutex_unlock(&STATS->mtx);
 }
 
+void ci_stat_update(ci_stat_item_t *stats, int count)
+{
+    int i;
+    if (!STATS || !STATS->mem_block)
+        return;
+    ci_thread_mutex_lock(&STATS->mtx);
+    for (i = 0; i < count; ++i) {
+        switch(stats[i].type) {
+        case CI_STAT_INT64_T:
+            do_update_uint64(stats[i].Id, stats[i].count);
+            break;
+        case CI_STAT_KBS_T:
+            do_update_kbs(stats[i].Id, stats[i].count);
+            break;
+        default:
+            /*Wrong type id, ignore for now*/
+            break;
+        }
+    }
+    ci_thread_mutex_unlock(&STATS->mtx);
+}
+
+uint64_t *ci_stat_uint64_ptr(int ID)
+{
+    if (!STATS || !STATS->mem_block)
+        return NULL;
+
+    if (ID >= 0 && ID < STATS->mem_block->counters64_size)
+        return &(STATS->mem_block->counters64[ID]);
+
+    return NULL;
+}
 
 /***********************************************
    Low level functions
