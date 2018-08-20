@@ -127,6 +127,9 @@ MaxRequestsPerChild  0
 # Format: Port [address:]port
 # Description:
 #	The port number that the c-icap server uses to listen to requests.
+# Example:
+#	Port 192.168.1.1:1344
+#	Port [::1]:1346
 # Default:
 #	None
 Port 1344
