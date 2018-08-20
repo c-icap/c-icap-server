@@ -391,7 +391,7 @@ int print_variables()
 int cfg_set_port(const char *directive, const char **argv, void *setdata)
 {
     int i;
-    char *s;
+    char *s, *addr;
     ci_port_t *pcfg = NULL;
     ci_port_t tmpP;
     ci_vector_t **port_configs = (ci_vector_t **)setdata;
@@ -410,9 +410,18 @@ int cfg_set_port(const char *directive, const char **argv, void *setdata)
         return 0;
     }
 
-    if ((s = strchr(argv[0], ':'))) {
+    if ((s = strrchr(argv[0], ':'))) {
         *s = '\0'; /*maybe use strdup/strndup?*/
-        pcfg->address = strdup(argv[0]);
+        addr = argv[0];
+        if (*addr == '[') {
+             if (addr[strlen(addr) - 1] != ']') {
+                 ci_debug_printf(1, "Failed to parse listen address: %s\n", addr);
+                 return 0;
+             }
+             ++addr;
+             addr[strlen(addr) - 1] = '\0';
+        }
+        pcfg->address = strdup(addr);
         s++;
     } else
         s = (char *)argv[0];
