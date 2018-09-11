@@ -1203,14 +1203,14 @@ static void options_responce(ci_request_t * req)
     ttl = srv_xdata->options_ttl;
     ci_service_data_read_unlock(srv_xdata);
 
-    ci_debug_printf(5, "Options responce:\n"
-                    " Preview :%d\n"
-                    " Allow 204:%s\n"
-                    " Allow 206:%s\n"
-                    " TransferPreview:\"%s\"\n"
-                    " TransferIgnore:%s\n"
-                    " TransferComplete:%s\n"
-                    " Max-Connections:%d\n",
+    ci_debug_printf(5, "Options response: \n"
+                    " Preview: %d\n"
+                    " Allow 204: %s\n"
+                    " Allow 206: %s\n"
+                    " TransferPreview: \"%s\"\n"
+                    " TransferIgnore: %s\n"
+                    " TransferComplete: %s\n"
+                    " Max-Connections: %d\n",
                     preview,(allow204?"yes":"no"),
                     (allow206?"yes":"no"),
                     srv_xdata->TransferPreview,

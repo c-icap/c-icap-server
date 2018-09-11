@@ -680,7 +680,7 @@ static int extend_object_type(struct ci_magics_db *db, ci_headers_list_t *header
     if (headers) {
         content_encoding = ci_headers_value(headers, "Content-Encoding");
         if (content_encoding) {
-            ci_debug_printf(8, "Content-Encoding :%s\n", content_encoding);
+            ci_debug_printf(8, "Content-Encoding: %s\n", content_encoding);
             *iscompressed = ci_encoding_method(content_encoding);
 
             /*
@@ -713,7 +713,7 @@ static int extend_object_type(struct ci_magics_db *db, ci_headers_list_t *header
 
     file_type = ci_magics_db_data_type(db, checkbuf, len);
 
-    ci_debug_printf(7, "File type returned :%s,%s\n",
+    ci_debug_printf(7, "File type returned: %s,%s\n",
                     ci_data_type_name(db, file_type),
                     ci_data_type_descr(db, file_type));
     /*The following until we have an internal html recognizer ..... */
@@ -736,7 +736,7 @@ static int extend_object_type(struct ci_magics_db *db, ci_headers_list_t *header
 #endif
 
 
-    ci_debug_printf(7, "The file type now is :%s,%s\n",
+    ci_debug_printf(7, "The file type now is: %s,%s\n",
                     ci_data_type_name(db, file_type),
                     ci_data_type_descr(db, file_type));
 
@@ -746,7 +746,7 @@ static int extend_object_type(struct ci_magics_db *db, ci_headers_list_t *header
     return file_type;
 }
 
-static int ci_extend_filetype(struct ci_magics_db *db, ci_request_t * req, const char *buf,
+static int ci_extend_filetype(struct ci_magics_db *db, ci_request_t *req, const char *buf,
                        int len, int *iscompressed)
 {
     ci_headers_list_t *heads;

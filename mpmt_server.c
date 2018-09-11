@@ -299,7 +299,7 @@ static void wait_childs_to_exit(struct childs_queue *q)
     for (i = 0; i < q->size; i++) {
         if (q->childs[i].pid == 0)
             continue;
-        ci_debug_printf(5, "Wait for child with pid:%d\n", q->childs[i].pid);
+        ci_debug_printf(5, "Wait for child with pid: %d\n", q->childs[i].pid);
         if (q->childs[i].to_be_killed != IMMEDIATELY) {
             ci_debug_printf(5, "Child %d not signaled yet!\n", q->childs[i].pid);
             continue;
@@ -357,7 +357,7 @@ static void check_for_exited_childs()
             ci_debug_printf(1, "Child %d did not exit normally.", pid);
             exit_status = 1;
             if (WIFSIGNALED(status))
-                ci_debug_printf(1, "signaled with signal:%d\n",
+                ci_debug_printf(1, "signaled with signal: %d\n",
                                 WTERMSIG(status));
         }
         ret = remove_child(childs_queue, pid, exit_status);
@@ -701,7 +701,7 @@ void listener_thread(void *unused)
     pid = getpid();
     for (;;) {                 //Global for
         if (child_data->to_be_killed) {
-            ci_debug_printf(5, "Listener of pid:%d exiting!\n", pid);
+            ci_debug_printf(5, "Listener of pid: %d exiting!\n", pid);
             goto LISTENER_FAILS_UNLOCKED;
         }
         if (!ci_proc_mutex_lock(&accept_mutex)) {

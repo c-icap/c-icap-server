@@ -148,7 +148,7 @@ BROTLI_BOOL brotli_compress(BrotliEncoderState* s, const char *buf, int inlen,
 	size_t total_out = 0;
 	uint8_t out[kFileBufferSize];
 
-	ci_debug_printf(4, "data-compression:  brotli compress called size: %d\n",
+	ci_debug_printf(4, "data-compression: brotli compress called size: %d\n",
 			inlen);
 
 	next_in = (uint8_t *)buf;
@@ -166,7 +166,7 @@ BROTLI_BOOL brotli_compress(BrotliEncoderState* s, const char *buf, int inlen,
 						     &total_out);
 		if (!result) {
 			/* Should detect OOM? */
-			ci_debug_printf(4, "data-compression:  brotli failed to compress data\n");
+			ci_debug_printf(4, "data-compression: brotli failed to compress data\n");
 			return BROTLI_FALSE;
 		}
 		if (available_out != kFileBufferSize) {
@@ -174,13 +174,13 @@ BROTLI_BOOL brotli_compress(BrotliEncoderState* s, const char *buf, int inlen,
 			if (!have || (written =
 				      writefunc(outbuf, (char *)out, have)) !=
 			    have) {
-				ci_debug_printf(4, "data-compression:  brotli data corrupt\n");
+				ci_debug_printf(4, "data-compression: brotli data corrupt\n");
 				return BROTLI_FALSE;
 			}
 			outsize += written;
 		}
 		if (BrotliEncoderIsFinished(s)) {
-			ci_debug_printf(4, "data-compression:  brotli total compressed size %lld (%lld) ...\n",
+			ci_debug_printf(4, "data-compression: brotli total compressed size %lld (%lld) ...\n",
 					outsize, (long long) total_out);
 			return BROTLI_TRUE;
 		}
@@ -197,7 +197,7 @@ int ci_mem_brdeflate(const char *inbuf, int inlen, void *outbuf,
 
 	s = BrotliEncoderCreateInstance(NULL, NULL, NULL);
 	if (!s) {
-		ci_debug_printf(4, "data-compression:  brotli out of memory\n");
+		ci_debug_printf(4, "data-compression: brotli out of memory\n");
 		return -1;
 	}
 	BrotliEncoderSetParameter(s, BROTLI_PARAM_MODE, BROTLI_MODE_TEXT);
@@ -279,13 +279,13 @@ static int strm_init(z_stream * strm, int which, int inlen)
 
 	switch (which) {
 	case CI_ENCODE_DEFLATE:
-		ci_debug_printf(4, "data-compression:  deflate called size: %d\n",
+		ci_debug_printf(4, "data-compression: deflate called size: %d\n",
 				inlen);
 		ret = deflateInit(strm, Z_DEFAULT_COMPRESSION);
 		break;
 	case CI_ENCODE_GZIP:
 	default:
-		ci_debug_printf(4, "data-compression:  gzip called size: %d\n", inlen);
+		ci_debug_printf(4, "data-compression: gzip called size: %d\n", inlen);
 		ret = deflateInit2(strm, Z_DEFAULT_COMPRESSION, Z_DEFLATED,
 				   windowBits | GZIP_ENCODING, 8,
 				   Z_DEFAULT_STRATEGY);
@@ -324,11 +324,11 @@ int ci_mem_deflate(const char *inbuf, size_t inlen, void *out_obj,
 
 	switch(which) {
 	case CI_ENCODE_GZIP:
-		ci_debug_printf(4, "data-compression:  gzip total compressed size %d ...\n", outsize);
+		ci_debug_printf(4, "data-compression: gzip total compressed size %d ...\n", outsize);
 		break;
 	case CI_ENCODE_DEFLATE:
 	default:
-		ci_debug_printf(4, "data-compression:  deflate total compressed size %d ...\n", outsize);
+		ci_debug_printf(4, "data-compression: deflate total compressed size %d ...\n", outsize);
 		break;
 	}
 	return ret == Z_STREAM_END ? CI_COMP_OK : CI_COMP_ERR_CORRUPT;
@@ -423,7 +423,7 @@ int ci_mem_bzzip(const char *buf, int inlen,  void *out_obj,
 	bz_stream strm;
 	char out[CHUNK];
 
-	ci_debug_printf(4, "data-compression:  bzip called size: %d\n", inlen);
+	ci_debug_printf(4, "data-compression: bzip called size: %d\n", inlen);
 
 	strm.bzalloc = bzalloc_a_buffer;
 	strm.bzfree = bzfree_a_buffer;
@@ -436,7 +436,7 @@ int ci_mem_bzzip(const char *buf, int inlen,  void *out_obj,
 				 30); // work factor - 30 is default (0-250)
 	if (ret != BZ_OK) {
 		ci_debug_printf(1,
-				"data-compression:  error initializing bzlib (BZ2_bzCompressInit return:%d)\n",
+				"data-compression: error initializing bzlib (BZ2_bzCompressInit return:%d)\n",
 				ret);
 		return CI_ERROR;
 	}
@@ -468,7 +468,7 @@ int ci_mem_bzzip(const char *buf, int inlen,  void *out_obj,
 	} while (strm.avail_out == 0);
 
 	BZ2_bzCompressEnd(&strm);
-	ci_debug_printf(4, "data-compression:  bzip total compressed size %lld ...\n",
+	ci_debug_printf(4, "data-compression: bzip total compressed size %lld ...\n",
 			outsize);
 	return CI_COMP_OK;
 }

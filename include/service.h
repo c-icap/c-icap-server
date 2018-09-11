@@ -329,8 +329,8 @@ CI_DECLARE_FUNC(void) ci_service_data_read_unlock(ci_service_xdata_t *srv_xdata)
  * initialization.
  \param srv_xdata is a pointer to the c-icap internal service data.
  \param istag is a string contains the new ISTAG for the service. The istag
- *      size can not be more than a size of SERVICE_ISTAG_SIZE.  If the lenght
- *      of istag is greater than SERVICE_ISTAG_SIZE the extra bytes ignored.
+ *      size can not be more than a size of SERVICE_ISTAG_SIZE. If the length
+ *      of istag is greater than SERVICE_ISTAG_SIZE the extra bytes are ignored.
  */
 CI_DECLARE_FUNC(void) ci_service_set_istag(ci_service_xdata_t *srv_xdata, const char *istag);
 

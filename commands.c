@@ -165,7 +165,7 @@ static int exec_cmd_step(void *data, const void *cmd)
 {
     int cmd_type = *((int *)data);
     ci_command_t *command = (ci_command_t *)cmd;
-    ci_debug_printf(7, "Check command:%s, type: %d \n",
+    ci_debug_printf(7, "Check command: %s, type: %d \n",
                     command->name, command->type);
     if (command->type == cmd_type) {
         ci_debug_printf(5, "Execute command:%s \n", command->name);
