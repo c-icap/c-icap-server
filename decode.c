@@ -365,6 +365,7 @@ BROTLI_BOOL Br_Decompress(BrotliDecoderState* s, const char *buf, int inlen, voi
                                &available_out,
                                &next_out, &total_out);
         have = kFileBufferSize - available_out;
+        written = 0;
         if (have && (written =
                   writefunc(outbuf, (char *)out, have)) != have) {
             ci_debug_printf(2, "data-compression: brotli decoded data not written to output (%u/%u)\n", written, have);
