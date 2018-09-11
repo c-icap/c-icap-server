@@ -49,7 +49,7 @@ typedef enum ci_stat_type {
  * (CI_STAT_KBS_T type) or simple counter (CI_STAT_INT64_T type)
  \ingroup STAT
  \param label A name for this entry
- \param type The type of the entry.  The counter can count kilobytes 
+ \param type The type of the entry.  The counter can count kilobytes
  *           (CI_STAT_KBS_T type) or simple counter (CI_STAT_INT64_T type)
  \param group The group under which this entry appeared in info page.
  \return An ID which can be used to update counter
@@ -75,7 +75,7 @@ CI_DECLARE_FUNC(void) ci_stat_kbs_inc(int ID, int count);
  * case the user is responsible to correctly lock the counter (eg using
  * ci_thread_mutex) before using it.
  * This function can work only after the statistics memory is initialised,
- * after the running child is forked. It can not be used in init  and 
+ * after the running child is forked. It can not be used in init  and
  * post_init services and modules handlers.
  \ingroup STAT
  */
@@ -85,7 +85,7 @@ CI_DECLARE_FUNC(uint64_t *) ci_stat_uint64_ptr(int ID);
  * Used to batch update statistics
  \ingroup STAT
  */
-typedef struct ci_stat_item{
+typedef struct ci_stat_item {
     ci_stat_type_t type;
     int Id;
     int count;

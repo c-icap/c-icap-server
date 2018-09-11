@@ -203,7 +203,7 @@ void ci_stat_update(const ci_stat_item_t *stats, int count)
         return;
     ci_thread_mutex_lock(&STATS->mtx);
     for (i = 0; i < count; ++i) {
-        switch(stats[i].type) {
+        switch (stats[i].type) {
         case CI_STAT_INT64_T:
             do_update_uint64(stats[i].Id, stats[i].count);
             break;

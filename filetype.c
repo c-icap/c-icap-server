@@ -253,7 +253,7 @@ static int parse_record(char *line, struct ci_magic_record *record)
                 num[1] = *(s++);
                 num[2] = '\0';
                 c = strtol(num, NULL, 16);
-            } else if ((end - s) >= 3){
+            } else if ((end - s) >= 3) {
                 num[0] = *(s++);
                 num[1] = *(s++);
                 num[2] = *(s++);
@@ -475,7 +475,7 @@ static int check_magics(const struct ci_magics_db *db, const char *buf, int bufl
             test = buf + db->magics[i]->blocks[j].offset;
             required = db->magics[j]->blocks[j].offset + db->magics[i]->blocks[j].len;
             if (buflen >= required &&
-                memcmp(test, db->magics[i]->blocks[j].magic, db->magics[i]->blocks[j].len) == 0)
+                    memcmp(test, db->magics[i]->blocks[j].magic, db->magics[i]->blocks[j].len) == 0)
                 ++matched;
             else
                 break;
@@ -663,7 +663,7 @@ int ci_filetype(struct ci_magics_db *db, const char *buf, int buflen)
 }
 
 static int extend_object_type(struct ci_magics_db *db, ci_headers_list_t *headers, const char *buf,
-                       int len, int *iscompressed)
+                              int len, int *iscompressed)
 {
     int file_type;
     int unzipped_buf_len = 0;
@@ -747,7 +747,7 @@ static int extend_object_type(struct ci_magics_db *db, ci_headers_list_t *header
 }
 
 static int ci_extend_filetype(struct ci_magics_db *db, ci_request_t *req, const char *buf,
-                       int len, int *iscompressed)
+                              int len, int *iscompressed)
 {
     ci_headers_list_t *heads;
     if (ci_req_type(req) == ICAP_RESPMOD)
