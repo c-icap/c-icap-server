@@ -101,14 +101,15 @@
   Currently we are not using fseek and ftell in c-icap.
 
   The open's manual page says that the flag O_LARGEFILE must be used. Looks that
-  it does not actually needed for linux and solaris (version 10) (but must be checked again......)
+  it is not actually needed for linux and solaris (version 10) (but must be checked again......)
 
-  The off_t type in my linux system is a signed integer, but I am not
-  sure if it is true for all operating systems
+  The off_t type is a signed integer. It must be on all POSIX/POSIX-like
+  systems as fseek has to be able to seek forward and backward from SEEK_CUR
+  and SEEK_END.
 
 */
 typedef off_t ci_off_t;
-#if CI_SIZEOF_OFF_T > 4
+#if CI_SIZEOF_OFF_T > CI_SIZEOF_LONG
 #   define PRINTF_OFF_T "lld"
 #   define CAST_OFF_T long long int
 #   define ci_strto_off_t strtoll

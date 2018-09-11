@@ -95,6 +95,7 @@ typedef long off_t;
 #endif
 #else /*if @DEFINE_OFF_T@*/
 #define CI_SIZEOF_OFF_T @DEFINE_SIZE_OFF_T@
+#define CI_SIZEOF_LONG @DEFINE_SIZE_LONG@
 #endif
 
 /* typedef size_t if <sys/types.h> does not define. */
