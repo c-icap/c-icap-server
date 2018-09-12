@@ -121,7 +121,7 @@ int icap_port_tls_option(const char *opt, ci_port_t *conf, const char *config_di
       TODO: Check for valid options!
      */
     if (strncmp(opt, "tls-method=", 11) == 0) {
-        conf->tls_method = strdup(opt + 11);
+        ci_debug_printf(1, "WARNING: tls-method= option is deprecated/removed, use SSL_OP_NO_TLS* options to disable one or more TLS protocol versions\n");
     } else if (strncmp(opt, "cert=", 5) == 0) {
         conf->tls_server_cert = path_dup(opt + 5, config_dir);
     } else if (strncmp(opt, "key=", 4) == 0) {
@@ -202,43 +202,26 @@ static int openssl_cert_passphrase_cb(char *buf, int size, int rwflag, void *u)
 /*
  * Get the right TLS method for the given configuration string
  */
-static const SSL_METHOD* get_tls_method(const char* method_str, int b_for_server)
+static const SSL_METHOD* get_tls_method(int b_for_server)
 {
-    if ( method_str == NULL ) {
-        ci_debug_printf(1, "No TLS/SSL method string given. Using default.\n");
 #if (OPENSSL_VERSION_NUMBER >= 0x10100000L)
-        return (b_for_server) ? TLS_server_method() : TLS_client_method();
+    return (b_for_server) ? TLS_server_method() : TLS_client_method();
 #else
-        return (b_for_server) ? SSLv23_server_method() : SSLv23_client_method();
+    return (b_for_server) ? SSLv23_server_method() : SSLv23_client_method();
 #endif
-    }
-#if (OPENSSL_VERSION_NUMBER >= 0x10100000L)
-    if ( 0 == strcmp(method_str, "SSLv23")) {
-        return (b_for_server) ? SSLv23_server_method() : SSLv23_client_method();
-    }
-#endif
-    else if ( 0 == strcmp(method_str, "TLSv1_2")) {
-        return (b_for_server) ? TLSv1_2_server_method() : TLSv1_2_client_method();
-    } else if ( 0 == strcmp(method_str, "TLSv1_1")) {
-        return (b_for_server) ? TLSv1_1_server_method() : TLSv1_1_client_method();
-    } else if ( 0 == strcmp(method_str, "TLSv1")) {
-        return (b_for_server) ? TLSv1_server_method() : TLSv1_client_method();
-    }
-#ifndef OPENSSL_NO_SSL3_METHOD
-    else if ( 0 == strcmp(method_str, "SSLv3")) {
-        return (b_for_server) ? SSLv3_server_method() : SSLv3_client_method();
-    }
-#endif
-
-    ci_debug_printf(1, "TLS/SSL method string \"%s\" not available.\n", method_str);
-    return NULL;
 }
 
 
 /*
  * SSL callback function for locking
  */
-static void openssl_locking_function(int mode, int n, const char* file, int line)
+#ifdef __GNUC__
+#define __LOCAL_UNUSED __attribute__ ((__unused__))
+#else
+#define __LOCAL_UNUSED
+#endif
+
+__LOCAL_UNUSED static void openssl_locking_function(int mode, int n, const char* file, int line)
 {
     if ( mode & CRYPTO_LOCK ) {
         ci_thread_mutex_lock(&g_openssl_mutexes[n]);
@@ -249,7 +232,7 @@ static void openssl_locking_function(int mode, int n, const char* file, int line
 /*
  * SSL callback function to identify the current thread
  */
-static unsigned long openssl_id_function()
+__LOCAL_UNUSED static unsigned long openssl_id_function()
 {
     return (unsigned long)ci_thread_self;
 }
@@ -331,7 +314,7 @@ void ci_tls_cleanup()
 static SSL_CTX *create_server_context(ci_port_t *port)
 {
     SSL_CTX *ctx;
-    const SSL_METHOD* method = get_tls_method(port->tls_method, 1);
+    const SSL_METHOD* method = get_tls_method(1);
     if (method == NULL) {
         return 0;
     }
@@ -669,7 +652,7 @@ static int match_X509_names(X509 *cert, const char *servername)
 SSL_CTX *ci_tls_create_context(ci_tls_client_options_t *opts)
 {
     SSL_CTX *ctx;
-    const SSL_METHOD *method = get_tls_method(opts ? opts->method : NULL, 0);
+    const SSL_METHOD *method = get_tls_method(0);
 
     if (!method) {
         ci_debug_printf(1, "Enable to get a valid supported SSL method (%s does not exist?)\n", opts ? opts->method : "-");

@@ -43,7 +43,6 @@ typedef struct ci_port {
     char *tls_client_ca_certs;
     char *tls_cafile;
     char *tls_capath;
-    char *tls_method;
     char *tls_ciphers;
     long tls_options;
 #endif

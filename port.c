@@ -123,8 +123,6 @@ void ci_port_list_release(ci_vector_t *ports)
             free(p->tls_cafile);
         if (p->tls_capath)
             free(p->tls_capath);
-        if (p->tls_method)
-            free(p->tls_method);
         if (p->tls_ciphers)
             free(p->tls_ciphers);
 #endif

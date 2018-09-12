@@ -135,13 +135,10 @@ MaxRequestsPerChild  0
 Port 1344
 
 # TAG: TlsPort
-# Format: TlsPort [address:]port [tls-method=method] [cert=path_to_pem_cert] [key=path_to_pem_key] [client_ca=path_to_pem_file] [ciphers=ciph1:ciph2...] [tls_options=[!]Opt1|[!]Opt2|...]
+# Format: TlsPort [address:]port [cert=path_to_pem_cert] [key=path_to_pem_key] [client_ca=path_to_pem_file] [ciphers=ciph1:ciph2...] [tls_options=[!]Opt1|[!]Opt2|...]
 # Description:
 #       The port number that the c-icap server uses to listen for TLS/SSL
 #	requests. Options:
-#	tls-method
-#		Set the SSL method to use. Available methods are:
-#		  SSLv23 TLSv1_2 TLSv1_1 TLSv1 SSLv3 SSLv2
 #	cert
 #		Set the certificate to use by the icap server. The certificate
 #		should be in pem format.
