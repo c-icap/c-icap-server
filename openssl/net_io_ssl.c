@@ -121,6 +121,7 @@ int icap_port_tls_option(const char *opt, ci_port_t *conf, const char *config_di
       TODO: Check for valid options!
      */
     if (strncmp(opt, "tls-method=", 11) == 0) {
+        ci_debug_printf(1, "WARNING: 'tls-method=' option is deprecated, use SSL_OP_NO_TLS* options to disable one or more TLS protocol versions\n");
         conf->tls_method = strdup(opt + 11);
     } else if (strncmp(opt, "cert=", 5) == 0) {
         conf->tls_server_cert = path_dup(opt + 5, config_dir);
@@ -238,7 +239,13 @@ static const SSL_METHOD* get_tls_method(const char* method_str, int b_for_server
 /*
  * SSL callback function for locking
  */
-static void openssl_locking_function(int mode, int n, const char* file, int line)
+#ifdef __GNUC__
+#define __LOCAL_UNUSED __attribute__ ((__unused__))
+#else
+#define __LOCAL_UNUSED
+#endif
+
+__LOCAL_UNUSED static void openssl_locking_function(int mode, int n, const char* file, int line)
 {
     if ( mode & CRYPTO_LOCK ) {
         ci_thread_mutex_lock(&g_openssl_mutexes[n]);
@@ -249,7 +256,7 @@ static void openssl_locking_function(int mode, int n, const char* file, int line
 /*
  * SSL callback function to identify the current thread
  */
-static unsigned long openssl_id_function()
+__LOCAL_UNUSED static unsigned long openssl_id_function()
 {
     return (unsigned long)ci_thread_self;
 }

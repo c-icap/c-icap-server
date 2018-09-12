@@ -142,6 +142,7 @@ Port 1344
 #	tls-method
 #		Set the SSL method to use. Available methods are:
 #		  SSLv23 TLSv1_2 TLSv1_1 TLSv1 SSLv3 SSLv2
+#		Deprecated, please do not use.
 #	cert
 #		Set the certificate to use by the icap server. The certificate
 #		should be in pem format.
