@@ -568,32 +568,32 @@ int fmt_icap_res_head(ci_request_t *req, char *buf,int len, const char *param)
 
 int fmt_req_bytes_rcv(ci_request_t *req, char *buf,int len, const char *param)
 {
-    return snprintf(buf, len, "%" PRINTF_OFF_T , (CAST_OFF_T) req->bytes_in);
+    return snprintf(buf, len, "%" PRINTF_OFF_T, (CAST_OFF_T) req->bytes_in);
 }
 
 int fmt_req_bytes_sent(ci_request_t *req, char *buf,int len, const char *param)
 {
-    return snprintf(buf, len, "%" PRINTF_OFF_T , (CAST_OFF_T) req->bytes_out);
+    return snprintf(buf, len, "%" PRINTF_OFF_T, (CAST_OFF_T) req->bytes_out);
 }
 
 int fmt_req_http_bytes_rcv(ci_request_t *req, char *buf,int len, const char *param)
 {
-    return snprintf(buf, len, "%" PRINTF_OFF_T , (CAST_OFF_T) req->http_bytes_in);
+    return snprintf(buf, len, "%" PRINTF_OFF_T, (CAST_OFF_T) req->http_bytes_in);
 }
 
 int fmt_req_http_bytes_sent(ci_request_t *req, char *buf,int len, const char *param)
 {
-    return snprintf(buf, len, "%" PRINTF_OFF_T , (CAST_OFF_T) req->http_bytes_out);
+    return snprintf(buf, len, "%" PRINTF_OFF_T, (CAST_OFF_T) req->http_bytes_out);
 }
 
 int fmt_req_body_bytes_rcv(ci_request_t *req, char *buf,int len, const char *param)
 {
-    return snprintf(buf, len, "%" PRINTF_OFF_T , (CAST_OFF_T) req->body_bytes_in);
+    return snprintf(buf, len, "%" PRINTF_OFF_T, (CAST_OFF_T) req->body_bytes_in);
 }
 
 int fmt_req_body_bytes_sent(ci_request_t *req, char *buf,int len, const char *param)
 {
-    return snprintf(buf, len, "%" PRINTF_OFF_T , (CAST_OFF_T) req->body_bytes_out);
+    return snprintf(buf, len, "%" PRINTF_OFF_T, (CAST_OFF_T) req->body_bytes_out);
 }
 
 int fmt_req_preview_hex(ci_request_t *req, char *buf,int len, const char *param)

@@ -22,7 +22,7 @@ char *str_ip(ci_ip_t *ip)
 
 int check_ip_ops()
 {
-    int i , ret = 1;
+    int i, ret = 1;
     char ip_buf[128];
     ci_ip_t *ip1 = ci_ip_ops.dup("192.168.1.1/255.255.255.248", default_allocator);
     for (i = 1; i < 8 && ret; ++i) {

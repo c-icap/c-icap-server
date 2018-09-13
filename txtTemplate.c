@@ -233,8 +233,8 @@ static txtTemplate_t *templateFindFree(void)
     // We don't lock here as it should be locked elsewhere
     // First we try to find an unused template slot
     for (i = 0; i < TEMPLATE_CACHE_SIZE; i++)
-                if (templates[i].data == NULL)
-                    return &templates[i];
+        if (templates[i].data == NULL)
+            return &templates[i];
     // We didn't find one, so look for most unused
     for (i = 0; i < TEMPLATE_CACHE_SIZE; i++) {
         if (templates[i].last_used < oldest && templates[i].locked <= 0) {
@@ -358,7 +358,7 @@ static txtTemplate_t *templateLoadText(const ci_request_t * req, const char *ser
         while ( *s != '\0') {
             while (*s != '\0' && isspace(*s)) s++; /* eat spaces*/
             for (i = 0; *s != '\0' && *s != ',' && *s != ';' && !isspace(*s) && i < sizeof(preferred) - 1; i++,s++)
-                        preferred[i] = *s; /*Copy the language part*/
+                preferred[i] = *s; /*Copy the language part*/
             preferred[i] = '\0';
             ci_debug_printf(6, "Try load the error message on language:%s\n", preferred);
             template =

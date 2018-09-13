@@ -1198,7 +1198,7 @@ int start_server()
                     ci_debug_printf(1,
                                     "ATTENTION!!!! Not enough available servers (children %d, free servers %d, used servers %d)!!!!! "
                                     "Maybe you should increase the MaxServers and the "
-                                    "ThreadsPerChild values in c-icap.conf file!!!!!!!!!",childs , freeservers, used);
+                                    "ThreadsPerChild values in c-icap.conf file!!!!!!!!!", childs, freeservers, used);
                     user_informed = 1;
                 }
             }

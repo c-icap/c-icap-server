@@ -162,7 +162,7 @@ int ex206_check_preview_handler(char *preview_data, int preview_data_len,
     } else //Use all of the original body data
         ci_request_206_origin_body(req, 0);
 
-    sprintf(buf , "X-Ex206-Service: %s", (body_altered ? "Modified" : "Unmodified"));
+    sprintf(buf, "X-Ex206-Service: %s", (body_altered ? "Modified" : "Unmodified"));
     if (req->type == ICAP_REQMOD)
         ci_http_request_add_header(req, buf);
     else if (req->type == ICAP_RESPMOD)

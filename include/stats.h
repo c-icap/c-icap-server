@@ -75,7 +75,7 @@ CI_DECLARE_FUNC(void) ci_stat_kbs_inc(int ID, int count);
  * case the user is responsible to correctly lock the counter (eg using
  * ci_thread_mutex) before using it.
  * This function can work only after the statistics memory is initialised,
- * after the running child is forked. It can not be used in init  and
+ * after the running child is forked. It can not be used in init and
  * post_init services and modules handlers.
  \ingroup STAT
  */

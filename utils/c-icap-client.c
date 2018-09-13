@@ -155,7 +155,7 @@ void copy_data(int fd_in, int fd_out, ci_off_t copy_from)
     size_t len;
     int ret;
     lseek(fd_in, copy_from, SEEK_SET);
-    while ((len = read(fd_in, buf ,sizeof(buf))) > 0) {
+    while ((len = read(fd_in, buf, sizeof(buf))) > 0) {
         ret = write(fd_out, buf, len);
         assert(ret == len);
     }
@@ -297,7 +297,7 @@ int main(int argc, char **argv)
         ci_tls_client_options_t tlsOpts;
         ci_tls_init();
 
-        memset((void *)&tlsOpts, 0 , sizeof(ci_tls_client_options_t));
+        memset((void *)&tlsOpts, 0, sizeof(ci_tls_client_options_t));
         tlsOpts.method = tls_method;
         tlsOpts.verify = tls_verify;
         SSL_CTX *ctx = ci_tls_create_context(&tlsOpts);

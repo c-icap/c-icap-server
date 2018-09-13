@@ -138,7 +138,7 @@ int ci_regex_apply(const ci_regex_t regex, const char *str, int len, int recurs,
             offset = ovector[1];
             if (matches) {
                 parts.user_data = user_data;
-                memset(parts.matches, 0 , sizeof(ci_regex_matches_t));
+                memset(parts.matches, 0, sizeof(ci_regex_matches_t));
                 for (i = 0; i < 10 && ovector[2*i+1] > ovector[2*i]; ++i) {
                     ci_debug_printf(9, "\t sub-match pattern (pos:%d-%d): '%.*s'\n", ovector[2*i], ovector[2*i+1], ovector[2*i + 1] - ovector[2*i], str+ovector[2*i]);
                     parts.matches[i].s = ovector[2*i];

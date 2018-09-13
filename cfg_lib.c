@@ -141,7 +141,7 @@ int ci_cfg_set_int(const char *directive, const char **argv, void *setdata)
 
     *((int *) setdata) = val;
 
-    ci_debug_printf(2, "Setting parameter :%s=%d\n", directive, val);
+    ci_debug_printf(2, "Setting parameter: %s=%d\n", directive, val);
     return 1;
 }
 
@@ -160,7 +160,7 @@ int ci_cfg_set_str(const char *directive, const char **argv, void *setdata)
 
     strcpy(*((char **) setdata), argv[0]);
     /*     *((char **) setdata) = (char *) strdup(argv[0]); */
-    ci_debug_printf(2, "Setting parameter :%s=%s\n", directive, argv[0]);
+    ci_debug_printf(2, "Setting parameter: %s=%s\n", directive, argv[0]);
     return 1;
 }
 
@@ -181,7 +181,7 @@ int ci_cfg_onoff(const char *directive, const char **argv, void *setdata)
     else
         return 0;
 
-    ci_debug_printf(2, "Setting parameter :%s=%d\n", directive,
+    ci_debug_printf(2, "Setting parameter: %s=%d\n", directive,
                     *((int *) setdata));
     return 1;
 }
@@ -234,7 +234,7 @@ int ci_cfg_size_off(const char *directive, const char **argv, void *setdata)
 
     if (val > 0)
         *((ci_off_t *) setdata) = val;
-    ci_debug_printf(2, "Setting parameter :%s=%" PRINTF_OFF_T "\n", directive,
+    ci_debug_printf(2, "Setting parameter: %s=%" PRINTF_OFF_T "\n", directive,
                     (CAST_OFF_T) val);
     return 1;
 }
@@ -266,7 +266,7 @@ int ci_cfg_size_long(const char *directive, const char **argv, void *setdata)
 
     if (val > 0)
         *((long int *) setdata) = val;
-    ci_debug_printf(2, "Setting parameter :%s=%ld\n", directive, val);
+    ci_debug_printf(2, "Setting parameter: %s=%ld\n", directive, val);
     return 1;
 }
 
