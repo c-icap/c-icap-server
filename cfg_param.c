@@ -414,12 +414,12 @@ int cfg_set_port(const char *directive, const char **argv, void *setdata)
         *s = '\0'; /*maybe use strdup/strndup?*/
         addr = argv[0];
         if (*addr == '[') {
-             if (addr[strlen(addr) - 1] != ']') {
-                 ci_debug_printf(1, "Failed to parse listen address: %s\n", addr);
-                 return 0;
-             }
-             ++addr;
-             addr[strlen(addr) - 1] = '\0';
+            if (addr[strlen(addr) - 1] != ']') {
+                ci_debug_printf(1, "Failed to parse listen address: %s\n", addr);
+                return 0;
+            }
+            ++addr;
+            addr[strlen(addr) - 1] = '\0';
         }
         pcfg->address = strdup(addr);
         s++;
