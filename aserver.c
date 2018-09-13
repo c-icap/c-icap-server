@@ -153,7 +153,7 @@ int main(int argc, char **argv)
     init_services();
     config(argc, argv);
     compute_my_hostname();
-    ci_debug_printf(2, "My hostname is:%s\n", MY_HOSTNAME);
+    ci_debug_printf(2, "My hostname is: %s\n", MY_HOSTNAME);
 
     if (!log_open()) {
         ci_debug_printf(1, "Can not init loggers. Exiting.....\n");

@@ -172,7 +172,7 @@ ci_dyn_array_t *ci_parse_key_value_list(const char *str, char sep)
     args_array = ci_dyn_array_new(1024);
     k = s;
     while (k) {
-        if ((e = strchr(k , sep))) {
+        if ((e = strchr(k, sep))) {
             *e = '\0';
             e++;
         }

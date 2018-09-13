@@ -149,7 +149,7 @@ int ci_shared_cache_init(struct ci_cache *cache, const char *name)
     }
     data->stats = (struct shared_cache_stats *)data->mem_ptr;
     data->slots = data->mem_ptr + sizeof(struct shared_cache_stats);
-    memset(data->stats, 0 , sizeof(struct shared_cache_stats));
+    memset(data->stats, 0, sizeof(struct shared_cache_stats));
     data->stats->cache_users = 1;
 
     /*TODO: check for error*/

@@ -1525,7 +1525,7 @@ static int do_request(ci_request_t * req)
         if (res > EC_100 && req->request_header->bufused > 0)
             ec_responce(req, res);
         ci_debug_printf((req->request_header->bufused ? 5 : 11), "Error %d while parsing headers :(%d)\n",
-                        res ,req->request_header->bufused);
+                        res, req->request_header->bufused);
         return CI_ERROR;
     }
     assert(req->current_service_mod);

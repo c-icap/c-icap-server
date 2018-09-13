@@ -445,7 +445,7 @@ CI_DECLARE_FUNC(ci_headers_list_t *) ci_http_request_headers(ci_request_t *req);
  \param header is a string contains the header in the form "Header: value"
  \return Pointer to the header or NULL if fails.
  */
-CI_DECLARE_FUNC(const char *) ci_http_response_add_header(ci_request_t *req,const char *header);
+CI_DECLARE_FUNC(const char *) ci_http_response_add_header(ci_request_t *req, const char *header);
 
 /**
  \ingroup HTTP
@@ -457,7 +457,7 @@ CI_DECLARE_FUNC(const char *) ci_http_response_add_header(ci_request_t *req,cons
  \param header is a string contains the header in the form "Header: value"
  \return Pointer to the header or NULL if fails.
  */
-CI_DECLARE_FUNC(const char *) ci_http_request_add_header(ci_request_t *req,const char *header);
+CI_DECLARE_FUNC(const char *) ci_http_request_add_header(ci_request_t *req, const char *header);
 
 /**
  \ingroup HTTP
@@ -552,7 +552,7 @@ CI_DECLARE_FUNC(int) ci_http_request_reset_headers(ci_request_t *req);
  \param has_body if it is non zero the HTTP response contains HTTP body data
  \return non zero on success zero otherwise
  */
-CI_DECLARE_FUNC(int) ci_http_response_create(ci_request_t *req, int has_reshdr ,int has_body);
+CI_DECLARE_FUNC(int) ci_http_response_create(ci_request_t *req, int has_reshdr, int has_body);
 
 /**
  \ingroup HTTP
@@ -563,7 +563,7 @@ CI_DECLARE_FUNC(int) ci_http_response_create(ci_request_t *req, int has_reshdr ,
  \param has_body if it is non zero the HTTP request contains HTTP body data
  \return non zero on success zero otherwise
  */
-CI_DECLARE_FUNC(int) ci_http_request_create(ci_request_t * req, int has_body);
+CI_DECLARE_FUNC(int) ci_http_request_create(ci_request_t *req, int has_body);
 
 /**
  \ingroup HTTP
@@ -639,7 +639,7 @@ CI_DECLARE_FUNC(const char *) ci_icap_add_xheader(ci_request_t *req, const char 
  \param headers is a pointer to the headers object to add
  \return pointer to the header in success or NULL otherwise
  */
-CI_DECLARE_FUNC(int) ci_icap_append_xheaders(ci_request_t *req,ci_headers_list_t *headers);
+CI_DECLARE_FUNC(int) ci_icap_append_xheaders(ci_request_t *req, ci_headers_list_t *headers);
 
 
 #ifdef __CI_COMPAT
