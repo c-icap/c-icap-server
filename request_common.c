@@ -896,7 +896,7 @@ static int client_send_request_headers(ci_request_t * req, int has_eof)
             req->remain_send_block_bytes = bytes;
             return CI_NEEDS_MORE;
         } else if (req->preview == 0) {
-            int bytes = sprintf(req->wbuf, "0\r\n\r\n");
+            int bytes = sprintf(req->wbuf, "0%s\r\n\r\n", has_eof ? "; ieof" : "");
             req->status = CLIENT_SEND_HEADERS_WRITE_EOF_INFO;
             req->pstrblock_responce = req->wbuf;
             req->remain_send_block_bytes = bytes;
