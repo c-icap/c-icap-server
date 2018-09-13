@@ -421,7 +421,7 @@ int ci_mem_brinflate(const char *inbuf, int inlen, void *outbuf, char *(*get_out
 
 	s = BrotliDecoderCreateInstance(NULL, NULL, NULL);
 	if (!s) {
-		ci_debug_printf(4, "data-compression:  brotli out of memory\n");
+		ci_debug_printf(4, "data-compression: brotli out of memory\n");
 		return -1;
 	}
 	ccode = Br_Decompress(s, inbuf, inlen, outbuf, get_outbuf, writefunc, max_size);

@@ -818,7 +818,7 @@ static void *pool_allocator_alloc(ci_mem_allocator_t *allocator,size_t size)
     palloc->allocated = mem_item;
 
     ci_thread_mutex_unlock(&palloc->mutex);
-    ci_debug_printf(8, "pool hits:%d allocations: %d\n", palloc->hits_count, palloc->alloc_count);
+    ci_debug_printf(8, "pool hits: %d allocations: %d\n", palloc->hits_count, palloc->alloc_count);
     return data;
 }
 

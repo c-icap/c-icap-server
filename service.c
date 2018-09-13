@@ -79,7 +79,7 @@ int cfg_srv_transfer_preview(const char *directive, const char **argv, void *set
         ci_debug_printf(1, "Missing arguments in directive %s \n", directive);
         return 0;
     }
-    ci_debug_printf(2, "Setting parameter :%s=%s\n", directive, argv[0]);
+    ci_debug_printf(2, "Setting parameter: %s=%s\n", directive, argv[0]);
     ci_service_set_transfer_preview(srv_xdata,argv[0]);
     return 1;
 }
@@ -91,7 +91,7 @@ int cfg_srv_transfer_ignore(const char *directive, const char **argv, void *setd
         ci_debug_printf(1, "Missing arguments in directive %s \n", directive);
         return 0;
     }
-    ci_debug_printf(1, "Setting parameter :%s=%s\n", directive, argv[0]);
+    ci_debug_printf(1, "Setting parameter: %s=%s\n", directive, argv[0]);
     ci_service_set_transfer_ignore(srv_xdata,argv[0]);
     return 1;
 }
@@ -103,7 +103,7 @@ int cfg_srv_transfer_complete(const char *directive, const char **argv, void *se
         ci_debug_printf(1, "Missing arguments in directive %s \n", directive);
         return 0;
     }
-    ci_debug_printf(1, "Setting parameter :%s=%s\n", directive, argv[0]);
+    ci_debug_printf(1, "Setting parameter: %s=%s\n", directive, argv[0]);
     ci_service_set_transfer_complete(srv_xdata,argv[0]);
     return 1;
 }
@@ -119,7 +119,7 @@ int cfg_srv_preview_size(const char *directive, const char **argv, void *setdata
     }
     if (strcmp(argv[0], "-") == 0) {
         preview = -1;
-        ci_debug_printf(2, "Setting parameter :%s=\"disable\"\n", directive);
+        ci_debug_printf(2, "Setting parameter: %s=\"disable\"\n", directive);
     } else {
         errno = 0;
         preview = strtoll(argv[0], &end, 10);
@@ -127,7 +127,7 @@ int cfg_srv_preview_size(const char *directive, const char **argv, void *setdata
             ci_debug_printf(1, "Invalid argument in directive %s \n", directive);
             return 0;
         }
-        ci_debug_printf(2, "Setting parameter :%s=%d\n", directive, preview)
+        ci_debug_printf(2, "Setting parameter: %s=%d\n", directive, preview)
     }
     ci_service_set_preview(srv_xdata, preview);
     return 1;
@@ -148,7 +148,7 @@ int cfg_srv_max_connections(const char *directive, const char **argv, void *setd
         ci_debug_printf(1, "Invalid argument in directive %s \n", directive);
         return 0;
     }
-    ci_debug_printf(2, "Setting parameter :%s=%d\n", directive, max_connections);
+    ci_debug_printf(2, "Setting parameter: %s=%d\n", directive, max_connections);
     ci_service_set_max_connections(srv_xdata, max_connections);
     return 1;
 }
@@ -193,7 +193,7 @@ int cfg_srv_options_ttl(const char *directive, const char **argv, void *setdata)
         u = 1;
 
     ttl = ttl * u;
-    ci_debug_printf(2, "Setting parameter :%s=%d\n", directive, ttl);
+    ci_debug_printf(2, "Setting parameter: %s=%d\n", directive, ttl);
     ci_service_set_options_ttl(srv_xdata, ttl);
     return 1;
 }
@@ -205,7 +205,7 @@ int cfg_srv_allow206(const char *directive, const char **argv, void *setdata)
         ci_debug_printf(1, "Missing arguments in directive %s \n", directive);
         return 0;
     }
-    ci_debug_printf(1, "Setting parameter :%s=%s\n", directive, argv[0]);
+    ci_debug_printf(1, "Setting parameter: %s=%s\n", directive, argv[0]);
 
     if (strcasecmp(argv[0], "off")) {
         ci_thread_rwlock_wrlock(&srv_xdata->lock);

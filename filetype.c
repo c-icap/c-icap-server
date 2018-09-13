@@ -567,7 +567,7 @@ int extend_object_type(struct ci_magics_db *db, ci_headers_list_t *headers, cons
     if (headers) {
         content_encoding = ci_headers_value(headers, "Content-Encoding");
         if (content_encoding) {
-            ci_debug_printf(8, "Content-Encoding :%s\n", content_encoding);
+            ci_debug_printf(8, "Content-Encoding: %s\n", content_encoding);
             *iscompressed = ci_encoding_method(content_encoding);
 
             /*
@@ -606,7 +606,7 @@ int extend_object_type(struct ci_magics_db *db, ci_headers_list_t *headers, cons
 
     file_type = ci_filetype(db, checkbuf, len);
 
-    ci_debug_printf(7, "File type returned :%s,%s\n",
+    ci_debug_printf(7, "File type returned: %s,%s\n",
                     ci_data_type_name(db, file_type),
                     ci_data_type_descr(db, file_type));
     /*The following until we have an internal html recognizer ..... */
@@ -629,7 +629,7 @@ int extend_object_type(struct ci_magics_db *db, ci_headers_list_t *headers, cons
 #endif
 
 
-    ci_debug_printf(7, "The file type now is :%s,%s\n",
+    ci_debug_printf(7, "The file type now is: %s,%s\n",
                     ci_data_type_name(db, file_type),
                     ci_data_type_descr(db, file_type));
 #ifdef HAVE_ZLIB
@@ -639,7 +639,7 @@ int extend_object_type(struct ci_magics_db *db, ci_headers_list_t *headers, cons
     return file_type;
 }
 
-int ci_extend_filetype(struct ci_magics_db *db, ci_request_t * req, const char *buf,
+int ci_extend_filetype(struct ci_magics_db *db, ci_request_t *req, const char *buf,
                        int len, int *iscompressed)
 {
     ci_headers_list_t *heads;

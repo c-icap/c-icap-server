@@ -281,7 +281,7 @@ int register_conf_table(const char *name, struct ci_conf_entry *table, int type)
         conf_tables_num++;
     }
 
-    ci_debug_printf(10, "Registering conf table:%s\n", name);
+    ci_debug_printf(10, "Registering conf table: %s\n", name);
 
     extra_conf_tables[insert_pos].name = name;    /*It works. Points to the modules.name. (????) */
     extra_conf_tables[insert_pos].type = type;
@@ -508,7 +508,7 @@ int cfg_service_alias(const char *directive, const char **argv, void *setdata)
         service_args++;
     }
 
-    ci_debug_printf(2, "Alias:%s of service %s\n", argv[0], argv[1]);
+    ci_debug_printf(2, "Alias: %s of service %s\n", argv[0], argv[1]);
     add_service_alias(argv[0], argv[1], service_args);
     return 1;
 }
@@ -592,7 +592,7 @@ int cfg_set_logger(const char *directive, const char **argv, void *setdata)
     if (!(logger = find_logger(argv[0])))
         return 0;
     default_logger = logger;
-    ci_debug_printf(2, "Setting parameter :%s=%s\n", directive, argv[0]);
+    ci_debug_printf(2, "Setting parameter: %s=%s\n", directive, argv[0]);
     return 1;
 }
 
@@ -621,7 +621,7 @@ int cfg_set_tmp_dir(const char *directive, const char **argv, void *setdata)
 #endif
     /*Check if tmpdir exists. If no try to build it , report an error and uses the default... */
     CI_TMPDIR = CI_CONF.TMPDIR;   /*Sets the library's temporary dir to .... */
-    ci_debug_printf(2, "Setting parameter :%s=%s\n", directive, argv[0]);
+    ci_debug_printf(2, "Setting parameter: %s=%s\n", directive, argv[0]);
     return 1;
 }
 

@@ -72,7 +72,7 @@ int cfg_set_str_list(const char *directive, const char **argv, void *setdata)
     for (i = 0; i < 1023 && (*list)[i]; ++i);
     if ((*list)[i] == NULL)
         (*list)[i] = strdup(argv[0]);
-    ci_debug_printf(2, "Setting parameter :%s=%s\n", directive, argv[0]);
+    ci_debug_printf(2, "Setting parameter: %s=%s\n", directive, argv[0]);
     return 1;
 }
 
