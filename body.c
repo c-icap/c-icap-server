@@ -830,11 +830,15 @@ const char * ci_simple_file_to_const_string(ci_simple_file_t *body)
 
     /* We need one more byte for string termination*/
     map_size = body->endpos + 1;
+    if (ftruncate(body->fd, map_size) != 0)
+        return NULL; /*failed to resize*/
+
     if (body->mmap_addr == NULL) {
         addr = mmap(NULL, map_size,  PROT_READ | PROT_WRITE, MAP_PRIVATE, body->fd, 0);
         if (!addr)
-            return 0;
-        /*Terminate buffer */
+            return NULL;
+
+        /*Terminate buffer (already terminated by ftruncate?) */
         addr[map_size - 1] = '\0';
         body->mmap_addr = addr;
         body->mmap_size = map_size;
