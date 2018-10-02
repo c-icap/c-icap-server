@@ -45,9 +45,18 @@
 /*The following include SSL_OP_ defines in an array*/
 #include "openssl_options.c"
 
+struct ci_tls_server_accept_details {
+    SSL_CTX *tls_context;
+    BIO* bio;
+};
+
 SSL_CTX *global_client_context = NULL;
 
 ci_thread_mutex_t* g_openssl_mutexes = NULL;
+
+#define _CI_CTX(ctx) ((SSL_CTX *)ctx)
+#define _CI_CONN_BIO(conn) ((BIO *) (conn != NULL ? conn->tls_conn_pcontext : NULL))
+#define _CI_CONN_SET_BIO(conn, bio) (conn->tls_conn_pcontext = (ci_tls_conn_pcontext_t)bio)
 
 char *TLS_PASSPHRASE_SCRIPT = NULL;
 
@@ -389,6 +398,14 @@ int icap_init_server_tls(ci_port_t *port)
         return 0;
     }
 
+    struct ci_tls_server_accept_details *acpt = malloc(sizeof(struct ci_tls_server_accept_details));
+    if (!acpt) {
+        ci_debug_printf(1, "Error allocating memory for accepting tls connections\n");
+        return 0;
+    }
+    acpt->tls_context = NULL;
+    acpt->bio = NULL;
+        
     // Convert port
     char portString[32];
     sprintf(portString, "%s%s%d",
@@ -397,48 +414,62 @@ int icap_init_server_tls(ci_port_t *port)
             port->port);
 
     // Setup socket
-    port->bio = BIO_new_accept(portString);
-    BIO_set_bind_mode(port->bio, BIO_BIND_REUSEADDR);
-    BIO_set_nbio_accept(port->bio, 1);
+    acpt->bio = BIO_new_accept(portString);
+    BIO_set_bind_mode(acpt->bio, BIO_BIND_REUSEADDR);
+    BIO_set_nbio_accept(acpt->bio, 1);
 
-    if (!(port->tls_context = create_server_context(port)))
+
+    if (!(acpt->tls_context = create_server_context(port)))
         return 0;
 
-    if (!configure_openssl_bios(port->bio, port->tls_context))
+    if (!configure_openssl_bios(acpt->bio, acpt->tls_context))
         return 0;
+
+    port->tls_accept_details = acpt;
 
     port->protocol_family = AF_INET; /* What about SSL over IPv6, is it supported by BIOs? */
 
     // Start to listen
-    BIO_do_accept(port->bio);
+    BIO_do_accept(acpt->bio);
 
-    BIO_get_fd(port->bio, &port->fd);
+    BIO_get_fd(acpt->bio, &port->fd);
     set_linger(port->fd, port->secs_to_linger);
     return 1;
 }
 
 void icap_close_server_tls(ci_port_t *port)
 {
-    if (port->bio) {
-        BIO_free_all(port->bio);
-        port->bio = NULL;
+    struct ci_tls_server_accept_details *acpt = port->tls_accept_details;
+    if (!acpt)
+        return;
+
+    if (acpt->bio) {
+        BIO_free_all(acpt->bio);
+        acpt->bio = NULL;
     }
 
-    if (port->tls_context) {
-        SSL_CTX_free(port->tls_context);
-        port->tls_context = NULL;
+    if (acpt->tls_context) {
+        SSL_CTX_free(acpt->tls_context);
+        acpt->tls_context = NULL;
+    }
+
+    if (acpt) {
+        free(acpt);
+        port->tls_accept_details = NULL;
     }
 }
 
 int ci_port_reconfigure_tls(ci_port_t *port)
 {
+    struct ci_tls_server_accept_details *acpt = port->tls_accept_details;
     assert(port->tls_enabled);
-    assert(port->bio);
-    SSL_CTX *old_ctx = port->tls_context;
-    if (!(port->tls_context = create_server_context(port)))
+    assert(acpt);
+    assert(acpt->bio);
+    SSL_CTX *old_ctx = acpt->tls_context;
+    if (!(acpt->tls_context = create_server_context(port)))
         return 0;
 
-    if (!configure_openssl_bios(port->bio, port->tls_context))
+    if (!configure_openssl_bios(acpt->bio, acpt->tls_context))
         return 0;
 
     SSL_CTX_free(old_ctx);
@@ -447,26 +478,27 @@ int ci_port_reconfigure_tls(ci_port_t *port)
 
 int ci_connection_wait_tls(ci_connection_t *conn, int secs, int what_wait)
 {
-    if (conn->fd < 0 || !conn->bio)
+    BIO *conn_bio = _CI_CONN_BIO(conn);
+    if (conn->fd < 0 || !conn_bio)
         return -1;
 
     //TODO: remove the following block
     {
         int fd = -1;
-        BIO_get_fd(conn->bio, &fd);
+        BIO_get_fd(conn_bio, &fd);
         assert(fd == conn->fd);
     }
 
     int ret = 0;
-    if ((what_wait & ci_wait_for_read) && BIO_pending(conn->bio)) {
+    if ((what_wait & ci_wait_for_read) && BIO_pending(conn_bio)) {
         ret |= ci_wait_for_read;
         /* Maybe if (what_wait & ci_wait_for_write) is true run a nonblocking
            ci_wait_for_data to check if we are able to write data to */
         return ret;
     }
 
-    int bio_wait = (BIO_should_read(conn->bio) ? ci_wait_for_read : 0) |
-                   (BIO_should_write(conn->bio) ? ci_wait_for_write : 0);
+    int bio_wait = (BIO_should_read(conn_bio) ? ci_wait_for_read : 0) |
+                   (BIO_should_write(conn_bio) ? ci_wait_for_write : 0);
     if (bio_wait == 0)
         bio_wait = what_wait;
     return ci_wait_for_data(conn->fd, secs, bio_wait);
@@ -474,12 +506,14 @@ int ci_connection_wait_tls(ci_connection_t *conn, int secs, int what_wait)
 
 int ci_connection_read_tls(ci_connection_t *conn, void *buf, size_t count, int timeout)
 {
-    assert(conn && conn->bio);
-    int bytes = BIO_read(conn->bio, buf, count);
+    BIO *conn_bio = _CI_CONN_BIO(conn);
+    assert(conn_bio);
 
-    if (bytes <= 0 && BIO_should_retry(conn->bio)) {
+    int bytes = BIO_read(conn_bio, buf, count);
+
+    if (bytes <= 0 && BIO_should_retry(conn_bio)) {
         if (ci_connection_wait_tls(conn, timeout, ci_wait_for_read) == 0) {
-            bytes = BIO_read(conn->bio, buf, count);
+            bytes = BIO_read(conn_bio, buf, count);
         }
     }
     return bytes;
@@ -487,14 +521,15 @@ int ci_connection_read_tls(ci_connection_t *conn, void *buf, size_t count, int t
 
 int ci_connection_write_tls(ci_connection_t *conn, const void *buf, size_t count, int timeout)
 {
-    assert(conn && conn->bio);
+    BIO *conn_bio = _CI_CONN_BIO(conn);
+    assert(conn_bio);
 
     int bytes = 0;
     int remains = count;
     char *b = (char *) buf;
     while (remains) {
-        bytes = BIO_write(conn->bio, b, remains);
-        if (bytes <= 0 && BIO_should_retry(conn->bio)) {
+        bytes = BIO_write(conn_bio, b, remains);
+        if (bytes <= 0 && BIO_should_retry(conn_bio)) {
             if (ci_connection_wait_tls(conn, timeout, ci_wait_for_write) <= 0) {
                 /*timeout without action or error*/
                 return bytes;
@@ -515,30 +550,31 @@ int ci_connection_write_tls(ci_connection_t *conn, const void *buf, size_t count
 
 int ci_connection_read_nonblock_tls(ci_connection_t *conn, void *buf, size_t count)
 {
-    assert(conn && conn->bio);
-    int bytes = BIO_read(conn->bio, buf, count);
+    BIO *conn_bio = _CI_CONN_BIO(conn);
+    assert(conn_bio);
+    int bytes = BIO_read(conn_bio, buf, count);
     if (bytes <= 0)
-        return BIO_should_retry(conn->bio) ? 0 : -1;
+        return BIO_should_retry(conn_bio) ? 0 : -1;
     return bytes;
 }
 
 int ci_connection_write_nonblock_tls(ci_connection_t *conn, const void *buf, size_t count)
 {
-    assert(conn && conn->bio);
-    int bytes = BIO_write(conn->bio, buf, count);
+    BIO *conn_bio = _CI_CONN_BIO(conn);
+    assert(conn_bio);
+    int bytes = BIO_write(conn_bio, buf, count);
     if (bytes <= 0)
-        return BIO_should_retry(conn->bio) ? 0 : -1;
+        return BIO_should_retry(conn_bio) ? 0 : -1;
     return bytes;
 }
 
 int ci_connection_hard_close_tls(ci_connection_t *conn)
 {
-    assert(conn && conn->bio);
-    if (conn->bio) {
-        BIO_free_all(conn->bio);
-        conn->bio = NULL;
-        conn->fd = -1;
-    }
+    BIO *conn_bio = _CI_CONN_BIO(conn);
+    assert(conn_bio);
+    BIO_free_all(conn_bio);
+    conn->tls_conn_pcontext = NULL;
+    conn->fd = -1;
     return 1;
 }
 
@@ -550,34 +586,35 @@ int ci_connection_linger_close_tls(ci_connection_t *conn, int timeout)
 
 int icap_accept_tls_connection(ci_port_t *port, ci_connection_t *client_conn)
 {
-    int ret = BIO_do_accept(port->bio);
+    int ret = BIO_do_accept(port->tls_accept_details->bio);
     if (ret <= 0) {
         ERR_print_errors_cb(openssl_print_cb, NULL);
         ci_debug_printf(1, "Error accepting connection: %d.\n", ret);
         return -2;
     }
 
-    assert(client_conn && client_conn->bio == NULL);
-    client_conn->bio = BIO_pop(port->bio);
+    assert(client_conn && client_conn->tls_conn_pcontext == NULL);
+    BIO *client_conn_bio = BIO_pop(port->tls_accept_details->bio);
+    _CI_CONN_SET_BIO(client_conn, client_conn_bio);
 
     // Check if this is a ssl connection
     SSL *ssl = NULL;
-    BIO_get_ssl(client_conn->bio, &ssl);
+    BIO_get_ssl(client_conn_bio, &ssl);
     if (ssl) {
-        int handshakeResult = BIO_do_handshake(client_conn->bio);
+        int handshakeResult = BIO_do_handshake(client_conn_bio);
         int sslErrorCode = SSL_get_error(ssl, handshakeResult);
 
         if (sslErrorCode != SSL_ERROR_NONE) {
             /*Unknown protocol???*/
             ERR_print_errors_cb(openssl_print_cb, NULL);
-            BIO_free_all(client_conn->bio);
-            client_conn->bio = NULL;
+            BIO_free_all(client_conn_bio);
+            client_conn_bio = NULL;
             return -1;
         }
     }
 
-    BIO_set_nbio(client_conn->bio, 1);
-    BIO_get_fd(client_conn->bio, &client_conn->fd);
+    BIO_set_nbio(client_conn_bio, 1);
+    BIO_get_fd(client_conn_bio, &client_conn->fd);
     ci_debug_printf(8, "SSL connection FD: %d\n", client_conn->fd);
     /*We need to compute remote client address*/
     ci_connection_init(client_conn, ci_connection_server_side);
@@ -649,14 +686,14 @@ static int match_X509_names(X509 *cert, const char *servername)
 }
 #endif
 
-SSL_CTX *ci_tls_create_context(ci_tls_client_options_t *opts)
+ci_tls_pcontext_t ci_tls_create_context(ci_tls_client_options_t *opts)
 {
     SSL_CTX *ctx;
     const SSL_METHOD *method = get_tls_method(0);
 
     if (!method) {
         ci_debug_printf(1, "Enable to get a valid supported SSL method (%s does not exist?)\n", opts ? opts->method : "-");
-        return NULL;;
+        return (ci_tls_pcontext_t)NULL;
     }
 
     ctx = SSL_CTX_new(method);
@@ -682,16 +719,17 @@ SSL_CTX *ci_tls_create_context(ci_tls_client_options_t *opts)
             SSL_CTX_set_options(ctx, opts->options);
     }
 
-    return ctx;
+    return (ci_tls_pcontext_t)ctx;
 }
 
-int ci_tls_connect_nonblock(ci_connection_t *connection, const char *servername, int port, int proto, SSL_CTX *use_ctx)
+int ci_tls_connect_nonblock(ci_connection_t *connection, const char *servername, int port, int proto, ci_tls_pcontext_t use_ctx)
 {
     char buf[512];
     char hostname[CI_MAXHOSTNAMELEN + 1];
     SSL *ssl = NULL;
 
-    if (!connection->bio) {
+    BIO *connection_bio = _CI_CONN_BIO(connection);
+    if (!connection_bio) {
 
         if (!ci_host_to_sockaddr_t(servername, &(connection->srvaddr), proto)) {
             ci_debug_printf(1, "Error getting address info for host '%s'\n",
@@ -702,7 +740,7 @@ int ci_tls_connect_nonblock(ci_connection_t *connection, const char *servername,
 
         SSL_CTX *ctx = NULL;
         if (use_ctx)
-            ctx = use_ctx;
+            ctx = _CI_CTX(use_ctx);
         else {
             if ( global_client_context ) {
                 SSL_CTX_free(global_client_context);
@@ -744,26 +782,27 @@ int ci_tls_connect_nonblock(ci_connection_t *connection, const char *servername,
 
         snprintf(buf, sizeof(buf), "%d", port);
 
-        connection->bio = BIO_new(BIO_s_connect());
-        BIO_set_conn_port(connection->bio, buf);
-        BIO_set_conn_hostname(connection->bio, servername);
-        BIO_set_nbio(connection->bio, 1);
+        connection_bio = BIO_new(BIO_s_connect());
+        BIO_set_conn_port(connection_bio, buf);
+        BIO_set_conn_hostname(connection_bio, servername);
+        BIO_set_nbio(connection_bio, 1);
 
-        connection->bio = BIO_push(ssl_bio, connection->bio);
-    } else {
-        BIO_get_ssl(connection->bio, &ssl);
+        connection_bio = BIO_push(ssl_bio, connection_bio);
+        _CI_CONN_SET_BIO(connection, connection_bio);
+    } else { /*if (connection_bio != NULL)*/
+        BIO_get_ssl(connection_bio, &ssl);
         if (!ssl) {
             ci_debug_printf(1, "Error connecting to host  '%s': Missing SSL object\n", hostname);
             return -1;
         }
     }
 
-    int ret = BIO_do_connect(connection->bio);
+    int ret = BIO_do_connect(connection_bio);
     if (connection->fd < 0)
-        BIO_get_fd(connection->bio, &connection->fd);
+        BIO_get_fd(connection_bio, &connection->fd);
 
     if (ret <= 0) {
-        if (BIO_should_retry(connection->bio))
+        if (BIO_should_retry(connection_bio))
             return 0;
         ci_sockaddr_t_to_host(&(connection->srvaddr), hostname, CI_MAXHOSTNAMELEN);
         ci_debug_printf(1, "Error connecting to host  '%s': %s \n",
@@ -792,7 +831,7 @@ int ci_tls_connect_nonblock(ci_connection_t *connection, const char *servername,
     return 1;
 }
 
-ci_connection_t *ci_tls_connect(const char *servername, int port, int proto, SSL_CTX *use_ctx, int timeout)
+ci_connection_t *ci_tls_connect(const char *servername, int port, int proto, ci_tls_pcontext_t use_ctx, int timeout)
 {
     ci_connection_t *connection = ci_connection_create();
     if (!connection)
@@ -820,29 +859,71 @@ ci_connection_t *ci_tls_connect(const char *servername, int port, int proto, SSL
 
 int ci_connection_should_read_tls(ci_connection_t *connection)
 {
-    if (connection->fd < 0 || !connection->bio)
+    BIO *connection_bio = _CI_CONN_BIO(connection);
+    if (!connection_bio)
         return -1;
-    return (BIO_should_read(connection->bio) | BIO_should_io_special(connection->bio) ? 1 : 0);
+
+    return (BIO_should_read(connection_bio) | BIO_should_io_special(connection_bio) ? 1 : 0);
 }
 
 int ci_connection_should_write_tls(ci_connection_t *connection)
 {
-    if (connection->fd < 0 || !connection->bio)
+    BIO *connection_bio = _CI_CONN_BIO(connection);
+    if (!connection_bio)
         return -1;
-    return (BIO_should_write(connection->bio) | BIO_should_io_special(connection->bio) ? 1 : 0);
+
+    return (BIO_should_write(connection_bio) | BIO_should_io_special(connection_bio) ? 1 : 0);
 }
 
 int ci_connection_read_pending_tls(ci_connection_t *connection)
 {
-    if (connection->fd < 0 || !connection->bio)
+    BIO *connection_bio = _CI_CONN_BIO(connection);
+    if (!connection_bio)
         return 0;
-    return BIO_pending(connection->bio);
+
+    return BIO_pending(connection_bio);
 }
 
 int ci_connection_write_pending_tls(ci_connection_t *connection)
 {
-    if (connection->fd < 0 || !connection->bio)
+    BIO *connection_bio = _CI_CONN_BIO(connection);
+    if (!connection_bio)
         return 0;
-    return BIO_wpending(connection->bio);
+
+    return BIO_wpending(connection_bio);
 }
 
+BIO * ci_openssl_connection_BIO(ci_connection_t *conn)
+{
+    return _CI_CONN_BIO(conn);
+}
+
+SSL * ci_openssl_connection_SSL(ci_connection_t *conn)
+{
+    SSL *ssl = NULL;
+    BIO *conn_bio = _CI_CONN_BIO(conn);
+    if (conn_bio)
+        BIO_get_ssl(conn_bio, &ssl);
+    return ssl;
+}
+
+SSL_CTX * ci_openssl_connection_SSL_CTX(ci_connection_t *conn)
+{
+    SSL *ssl = NULL;
+    BIO *conn_bio = _CI_CONN_BIO(conn);
+    if (conn_bio)
+        BIO_get_ssl(conn_bio, &ssl);
+    return ssl ? SSL_get_SSL_CTX(ssl) : NULL;
+}
+
+SSL_CTX * ci_openssl_port_SSL_CTX(ci_port_t *port)
+{
+    if (port->tls_accept_details)
+        return port->tls_accept_details->tls_context;
+    return NULL;
+}
+
+SSL_CTX * ci_openssl_context_SSL_CTX(ci_tls_pcontext_t pcontext)
+{
+    return _CI_CTX(pcontext);
+}

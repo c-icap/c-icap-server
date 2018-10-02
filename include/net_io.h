@@ -33,9 +33,6 @@
 #else
 #include <WinSock2.h>
 #endif
-#ifdef USE_OPENSSL
-#include <openssl/bio.h>
-#endif
 
 #ifdef __cplusplus
 extern "C"
@@ -112,6 +109,11 @@ typedef struct ci_ip {
     int family;
 } ci_ip_t;
 
+#ifdef USE_OPENSSL
+typedef void * ci_tls_conn_pcontext_t;
+#define ci_connection_is_tls(conn) (conn->tls_conn_pcontext != NULL) 
+#endif
+
 /*Flags for ci_connection_t object*/
 #define CI_CONNECTION_CONNECTED 0x1
 
@@ -120,7 +122,7 @@ typedef struct ci_connection {
     ci_sockaddr_t claddr;
     ci_sockaddr_t srvaddr;
 #ifdef USE_OPENSSL
-    BIO* bio;
+    ci_tls_conn_pcontext_t tls_conn_pcontext;
 #endif
     int32_t flags;
 }  ci_connection_t ;

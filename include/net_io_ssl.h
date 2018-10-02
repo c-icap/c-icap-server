@@ -4,7 +4,6 @@
 #include "c-icap.h"
 #include "net_io.h"
 #ifdef USE_OPENSSL
-#include <openssl/ssl.h>
 
 #ifdef __cplusplus
 extern "C"
@@ -64,6 +63,11 @@ typedef struct ci_tls_client_options {
     unsigned long options;
 } ci_tls_client_options_t;
 
+struct ci_tls_server_accept_details;
+typedef struct ci_tls_server_accept_details ci_tls_server_accept_details_t;
+
+typedef void * ci_tls_pcontext_t;
+
 /*API functions for implementing TLS icap client*/
 
 /**
@@ -85,7 +89,7 @@ CI_DECLARE_FUNC(void) ci_tls_cleanup();
  *
  * A context can be used to open more than one connections to a TLS server.
  */
-CI_DECLARE_FUNC(SSL_CTX *) ci_tls_create_context(ci_tls_client_options_t *opts);
+CI_DECLARE_FUNC(ci_tls_pcontext_t) ci_tls_create_context(ci_tls_client_options_t *opts);
 
 /**
  \ingroup TLS
@@ -97,7 +101,7 @@ CI_DECLARE_FUNC(SSL_CTX *) ci_tls_create_context(ci_tls_client_options_t *opts);
  \return NULL on failures the ci_connection_t object which can be used
  *       with various ci_connection_*  api functions on success.
  */
-CI_DECLARE_FUNC(ci_connection_t*) ci_tls_connect(const char *servername, int port, int proto, SSL_CTX *ctx, int timeout);
+CI_DECLARE_FUNC(ci_connection_t*) ci_tls_connect(const char *servername, int port, int proto, ci_tls_pcontext_t ctx, int timeout);
 
 
 /**
@@ -133,7 +137,7 @@ CI_DECLARE_FUNC(ci_connection_t*) ci_tls_connect(const char *servername, int por
                return error;
  \endcode
  */
-CI_DECLARE_FUNC(int) ci_tls_connect_nonblock(ci_connection_t *connection, const char *servername, int port, int proto, SSL_CTX *ctx);
+CI_DECLARE_FUNC(int) ci_tls_connect_nonblock(ci_connection_t *connection, const char *servername, int port, int proto, ci_tls_pcontext_t ctx);
 
 /**
  \ingroup TLS

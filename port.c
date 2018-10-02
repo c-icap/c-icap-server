@@ -63,10 +63,8 @@ static void ci_port_move_configured(ci_port_t *dst, ci_port_t *src)
 
 #ifdef USE_OPENSSL
     dst->tls_enabled = src->tls_enabled;
-    dst->tls_context = src->tls_context;
-    dst->bio = src->bio;
-    src->tls_context = NULL;
-    src->bio = NULL;
+    dst->tls_accept_details = src->tls_accept_details;
+    src->tls_accept_details = NULL;
     if (src->tls_enabled)
         ci_port_reconfigure_tls(dst);
 #endif
@@ -94,7 +92,7 @@ void ci_port_close(ci_port_t *port)
         return;
 
 #ifdef USE_OPENSSL
-    if (port->bio)
+    if (port->tls_accept_details)
         icap_close_server_tls(port);
     else
 #endif

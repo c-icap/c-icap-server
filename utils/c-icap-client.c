@@ -33,7 +33,6 @@
 #include "debug.h"
 #if defined(USE_OPENSSL)
 #include "net_io_ssl.h"
-#include <openssl/ssl.h>
 #endif
 
 
@@ -300,7 +299,7 @@ int main(int argc, char **argv)
         memset((void *)&tlsOpts, 0, sizeof(ci_tls_client_options_t));
         tlsOpts.method = tls_method;
         tlsOpts.verify = tls_verify;
-        SSL_CTX *ctx = ci_tls_create_context(&tlsOpts);
+        ci_tls_pcontext_t ctx = ci_tls_create_context(&tlsOpts);
 
         if (!(conn = ci_tls_connect(icap_server, port, 0, ctx, CONN_TIMEOUT))) {
             ci_debug_printf(1, "Failed to establish SSL connection to the icap server.\n");

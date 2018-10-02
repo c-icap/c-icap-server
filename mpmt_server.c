@@ -774,7 +774,7 @@ void listener_thread(void *unused)
                 do {
                     ci_connection_reset(&conn);
 #ifdef USE_OPENSSL
-                    if (port->bio)
+                    if (port->tls_accept_details)
                         ret = icap_accept_tls_connection(port, &conn);
                     else
 #endif

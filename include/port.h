@@ -23,8 +23,10 @@
 
 #include "c-icap.h"
 #include "net_io.h"
+
+
 #ifdef USE_OPENSSL
-#include <openssl/ssl.h>
+struct ci_tls_server_accept_details;
 #endif
 
 /**
@@ -48,9 +50,9 @@ typedef struct ci_port {
 #endif
     int configured;
     ci_socket_t fd;
+
 #ifdef USE_OPENSSL
-    SSL_CTX *tls_context;
-    BIO* bio;
+    struct ci_tls_server_accept_details *tls_accept_details;
 #endif
 } ci_port_t;
 
