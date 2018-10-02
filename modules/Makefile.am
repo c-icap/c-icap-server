@@ -22,12 +22,12 @@ endif
 AM_CPPFLAGS=-I$(top_srcdir)/ -I$(top_srcdir)/include/ -I$(top_builddir)/include/
 
 sys_logger_la_LIBADD = @MODULES_LIBADD@
-sys_logger_la_CFLAGS=  @MODULES_CFLAGS@
+sys_logger_la_CFLAGS=  @MODULES_CFLAGS@ @OPENSSL_ADD_FLAG@
 sys_logger_la_LDFLAGS= -module -avoid-version
 sys_logger_la_SOURCES = sys_logger.c
 
 dnsbl_tables_la_LIBADD = @MODULES_LIBADD@
-dnsbl_tables_la_CFLAGS=  @MODULES_CFLAGS@
+dnsbl_tables_la_CFLAGS=  @MODULES_CFLAGS@ @OPENSSL_ADD_FLAG@
 dnsbl_tables_la_LDFLAGS= -module -avoid-version
 dnsbl_tables_la_SOURCES = dnsbl_tables.c
 
@@ -53,6 +53,6 @@ memcached_cache_la_LDFLAGS= -module -avoid-version
 memcached_cache_la_SOURCES= memcached.c
 
 shared_cache_la_LIBADD= @MODULES_LIBADD@
-shared_cache_la_CFLAGS=
+shared_cache_la_CFLAGS= @OPENSSL_ADD_FLAG@
 shared_cache_la_LDFLAGS= -module -avoid-version
 shared_cache_la_SOURCES= shared_cache.c
