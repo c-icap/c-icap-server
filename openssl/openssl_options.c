@@ -105,5 +105,5 @@ struct {
 #if defined(SSL_OP_CRYPTOPRO_TLSEXT_BUG)
     {"SSL_OP_CRYPTOPRO_TLSEXT_BUG", SSL_OP_CRYPTOPRO_TLSEXT_BUG},
 #endif
-     {NULL, 0x0}
+    {NULL, 0x0}
 };

@@ -22,7 +22,7 @@ print "struct {\n    const char *name;\n    unsigned long int value;\n} OPENSSL_
 for $def (@defines) {
     print "#if defined(".$def->{name}.")\n    {\"".$def->{name}."\", ".$def->{name}."},\n#endif\n";
 }
-print "     {NULL, 0x0}\n};\n";
+print "    {NULL, 0x0}\n};\n";
 exit(0);
 
 sub findDefine {
