@@ -405,7 +405,7 @@ int icap_init_server_tls(ci_port_t *port)
     }
     acpt->tls_context = NULL;
     acpt->bio = NULL;
-        
+
     // Convert port
     char portString[32];
     sprintf(portString, "%s%s%d",

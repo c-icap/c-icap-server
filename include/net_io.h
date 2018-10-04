@@ -111,7 +111,7 @@ typedef struct ci_ip {
 
 #ifdef USE_OPENSSL
 typedef void * ci_tls_conn_pcontext_t;
-#define ci_connection_is_tls(conn) (conn->tls_conn_pcontext != NULL) 
+#define ci_connection_is_tls(conn) (conn->tls_conn_pcontext != NULL)
 #endif
 
 /*Flags for ci_connection_t object*/
