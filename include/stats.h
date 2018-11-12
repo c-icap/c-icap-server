@@ -17,8 +17,8 @@
  *  MA  02110-1301  USA.
  */
 
-#ifndef __STATS_H
-#define __STATS_H
+#ifndef __C_ICAP_STATS_H
+#define __C_ICAP_STATS_H
 
 #include "c-icap.h"
 #include "ci_threads.h"

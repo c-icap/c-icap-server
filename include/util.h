@@ -17,8 +17,8 @@
  *  MA  02110-1301  USA.
  */
 
-#ifndef __UTIL_H
-#define __UTIL_H
+#ifndef __C_ICAP_UTIL_H
+#define __C_ICAP_UTIL_H
 
 #include "array.h"
 

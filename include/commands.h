@@ -17,8 +17,8 @@
  *  MA  02110-1301  USA.
  */
 
-#ifndef __COMMANDS_H
-#define __COMMANDS_H
+#ifndef __C_ICAP_COMMANDS_H
+#define __C_ICAP_COMMANDS_H
 
 #include "c-icap.h"
 
@@ -75,4 +75,4 @@ void commands_exec_scheduled();
 }
 #endif
 
-#endif /*__COMMANDS_H*/
+#endif /*__C_ICAP_COMMANDS_H*/

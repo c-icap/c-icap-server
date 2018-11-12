@@ -17,8 +17,8 @@
  *  MA  02110-1301  USA.
  */
 
-#ifndef __MEM_H
-#define __MEM_H
+#ifndef __C_ICAP_MEM_H
+#define __C_ICAP_MEM_H
 
 #include "c-icap.h"
 

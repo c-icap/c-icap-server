@@ -18,8 +18,8 @@
  */
 
 
-#ifndef __CFG_PARAM_H
-#define __CFG_PARAM_H
+#ifndef __C_ICAP_CFG_PARAM_H
+#define __C_ICAP_CFG_PARAM_H
 #include "c-icap.h"
 #include "array.h"
 

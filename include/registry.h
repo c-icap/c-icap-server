@@ -17,8 +17,8 @@
  *  MA  02110-1301  USA.
  */
 
-#ifndef __REGISTRY_H
-#define __REGISTRY_H
+#ifndef __C_ICAP_REGISTRY_H
+#define __C_ICAP_REGISTRY_H
 
 #include "c-icap.h"
 

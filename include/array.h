@@ -17,8 +17,8 @@
  *  MA  02110-1301  USA.
  */
 
-#ifndef __ARRAY_H
-#define __ARRAY_H
+#ifndef __C_ICAP_ARRAY_H
+#define __C_ICAP_ARRAY_H
 
 #include "c-icap.h"
 #include "mem.h"
@@ -773,4 +773,4 @@ CI_DECLARE_FUNC(void) ci_list_free_handler(ci_list_t *list, void (*free_func)(vo
 }
 #endif
 
-#endif /*__ARRAY_H*/
+#endif /*__C_ICAP_ARRAY_H*/

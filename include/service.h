@@ -18,8 +18,8 @@
  */
 
 
-#ifndef __SERVICE_H
-#define __SERVICE_H
+#ifndef __C_ICAP_SERVICE_H
+#define __C_ICAP_SERVICE_H
 
 #include "header.h"
 #include "cfg_param.h"

@@ -17,8 +17,8 @@
  *  MA  02110-1301  USA.
  */
 
-#ifndef __HASH_H
-#define __HASH_H
+#ifndef __C_ICAP_HASH_H
+#define __C_ICAP_HASH_H
 
 #include "c-icap.h"
 #include "lookup_table.h"

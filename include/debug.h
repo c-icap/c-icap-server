@@ -18,8 +18,8 @@
  */
 
 
-#ifndef __DEBUG_H
-#define __DEBUG_H
+#ifndef __C_ICAP_DEBUG_H
+#define __C_ICAP_DEBUG_H
 
 #include "c-icap.h"
 #include <stdio.h>
@@ -48,4 +48,4 @@ CI_DECLARE_DATA extern void (*__log_error)(void *req, const char *format,... );
 }
 #endif
 
-#endif /*__DEBUG_H*/
+#endif /*__C_ICAP_DEBUG_H*/

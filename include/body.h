@@ -18,8 +18,8 @@
  */
 
 
-#ifndef __BODY_H
-#define __BODY_H
+#ifndef __C_ICAP_BODY_H
+#define __C_ICAP_BODY_H
 
 #include "c-icap.h"
 #include <stdio.h>

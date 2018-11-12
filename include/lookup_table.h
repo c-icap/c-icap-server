@@ -17,8 +17,8 @@
  *  MA  02110-1301  USA.
  */
 
-#ifndef __LOOKUP_TABLE_H
-#define __LOOKUP_TABLE_H
+#ifndef __C_ICAP_LOOKUP_TABLE_H
+#define __C_ICAP_LOOKUP_TABLE_H
 
 #include "c-icap.h"
 #include "mem.h"

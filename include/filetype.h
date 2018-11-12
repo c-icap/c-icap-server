@@ -17,8 +17,8 @@
  *  MA  02110-1301  USA.
  */
 
-#ifndef __FILETYPE_H
-#define __FILETYPE_H
+#ifndef __C_ICAP_FILETYPE_H
+#define __C_ICAP_FILETYPE_H
 
 #include "c-icap.h"
 #include "request.h"

@@ -18,8 +18,8 @@
  */
 
 
-#ifndef __HEADERS_H
-#define __HEADERS_H
+#ifndef __C_ICAP_HEADERS_H
+#define __C_ICAP_HEADERS_H
 
 #include "c-icap.h"
 

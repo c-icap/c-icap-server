@@ -17,8 +17,8 @@
  *  MA  02110-1301  USA.
  */
 
-#ifndef __CI_REGEX_H
-#define __CI_REGEX_H
+#ifndef __C_ICAP_CI_REGEX_H
+#define __C_ICAP_CI_REGEX_H
 
 #include "c-icap.h"
 
@@ -49,4 +49,4 @@ CI_DECLARE_FUNC(int) ci_regex_apply(const ci_regex_t regex, const char *str, int
 }
 #endif
 
-#endif /*__CI_REGEX_H*/
+#endif /*__C_ICAP_CI_REGEX_H*/

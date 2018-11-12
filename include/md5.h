@@ -1,5 +1,5 @@
-#ifndef CI_MD5_H
-#define CI_MD5_H
+#ifndef __C_ICAP_CI_MD5_H
+#define __C_ICAP_CI_MD5_H
 
 #include "c-icap.h"
 
@@ -22,4 +22,4 @@ CI_DECLARE_FUNC(void) ci_MD5Final(unsigned char digest[16], struct ci_MD5Context
 }
 #endif
 
-#endif /* !CI_MD5_H */
+#endif /* __C_ICAP_CI_MD5_H */

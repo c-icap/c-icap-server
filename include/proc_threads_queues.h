@@ -18,8 +18,8 @@
  */
 
 
-#ifndef _PROC_THREADS_QUEUES_H
-#define _PROC_THREADS_QUEUES_H
+#ifndef __C_ICAP_PROC_THREADS_QUEUES_H
+#define __C_ICAP_PROC_THREADS_QUEUES_H
 
 #include "net_io.h"
 #include "ci_threads.h"

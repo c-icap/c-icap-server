@@ -18,8 +18,8 @@
  */
 
 
-#ifndef _SHARED_MEM_H
-#define _SHARED_MEM_H
+#ifndef __C_ICAP_SHARED_MEM_H
+#define __C_ICAP_SHARED_MEM_H
 
 #include "c-icap.h"
 

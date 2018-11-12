@@ -18,8 +18,8 @@
 
 // Additionally, you may use this file under LGPL 2 or (at your option) later
 
-#ifndef __TXTTEMPLATE_H
-#define __TXTTEMPLATE_H
+#ifndef __C_ICAP_TXTTEMPLATE_H
+#define __C_ICAP_TXTTEMPLATE_H
 
 #include <time.h>
 #include "request.h"
@@ -50,4 +50,4 @@ CI_DECLARE_DATA extern int TEMPLATE_MEMBUF_SIZE; // Max memory for txtTemplate t
 }
 #endif
 
-#endif /*__TXTTEMPLATE_H*/
+#endif /*__C_ICAP_TXTTEMPLATE_H*/

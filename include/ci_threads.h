@@ -18,8 +18,8 @@
  */
 
 
-#ifndef __CI_THREADS_H
-#define __CI_THREADS_H
+#ifndef __C_ICAP_CI_THREADS_H
+#define __C_ICAP_CI_THREADS_H
 
 #include "c-icap.h"
 
@@ -103,4 +103,4 @@ CI_DECLARE_FUNC(int) ci_thread_join(ci_thread_t thread_id);
 }
 #endif
 
-#endif /*__CI_THREADS_H */
+#endif /*__C_ICAP_CI_THREADS_H */

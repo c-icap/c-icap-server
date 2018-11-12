@@ -18,8 +18,8 @@
  */
 
 
-#ifndef __MODULE_H
-#define __MODULE_H
+#ifndef __C_ICAP_MODULE_H
+#define __C_ICAP_MODULE_H
 
 #include <stdarg.h>
 #include "c-icap.h"

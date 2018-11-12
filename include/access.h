@@ -18,8 +18,8 @@
  */
 
 
-#ifndef __ACCESS_H
-#define __ACCESS_H
+#ifndef __C_ICAP_ACCESS_H
+#define __C_ICAP_ACCESS_H
 
 #include "c-icap.h"
 #include "request.h"

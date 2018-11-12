@@ -18,8 +18,8 @@
  */
 
 
-#ifndef __PROC_MUTEX_H
-#define __PROC_MUTEX_H
+#ifndef __C_ICAP_PROC_MUTEX_H
+#define __C_ICAP_PROC_MUTEX_H
 
 #include "c-icap.h"
 #if defined (USE_SYSV_IPC_MUTEX)

@@ -18,8 +18,8 @@
  */
 
 
-#ifndef __SIMPLE_API_H
-#define __SIMPLE_API_H
+#ifndef __C_ICAP_SIMPLE_API_H
+#define __C_ICAP_SIMPLE_API_H
 
 #include "c-icap.h"
 #include "request.h"

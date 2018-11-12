@@ -18,8 +18,8 @@
  */
 
 
-#ifndef __LOG_H
-#define __LOG_H
+#ifndef __C_ICAP_LOG_H
+#define __C_ICAP_LOG_H
 
 #include "request.h"
 

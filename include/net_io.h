@@ -18,8 +18,8 @@
  */
 
 
-#ifndef __NET_IO_H
-#define __NET_IO_H
+#ifndef __C_ICAP_NET_IO_H
+#define __C_ICAP_NET_IO_H
 
 #include "c-icap.h"
 #ifndef _WIN32

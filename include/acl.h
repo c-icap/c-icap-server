@@ -17,8 +17,8 @@
  *  MA  02110-1301  USA.
  */
 
-#ifndef __ACL_H
-#define __ACL_H
+#ifndef __C_ICAP_ACL_H
+#define __C_ICAP_ACL_H
 
 #include "c-icap.h"
 #include "net_io.h"
@@ -238,4 +238,4 @@ CI_DECLARE_FUNC(int) ci_acl_type_add(const ci_acl_type_t *type);
 }
 #endif
 
-#endif/* __ACL_H*/
+#endif/* __C_ICAP_ACL_H*/

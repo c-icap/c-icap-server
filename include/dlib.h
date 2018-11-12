@@ -18,8 +18,8 @@
  */
 
 
-#ifndef __DLIB_H
-#define __DLIB_H
+#ifndef __C_ICAP_DLIB_H
+#define __C_ICAP_DLIB_H
 
 #include "c-icap.h"
 #ifdef _WIN32
@@ -48,4 +48,4 @@ CI_DECLARE_FUNC(int)            ci_dlib_entry(const char *name,const char *file,
 }
 #endif
 
-#endif /*__DLIB_H*/
+#endif /*__C_ICAP_DLIB_H*/

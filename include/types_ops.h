@@ -17,8 +17,8 @@
  *  MA  02110-1301  USA.
  */
 
-#ifndef __TYPES_OPS_H
-#define __TYPES_OPS_H
+#ifndef __C_ICAP_TYPES_OPS_H
+#define __C_ICAP_TYPES_OPS_H
 
 #include "c-icap.h"
 #include "mem.h"

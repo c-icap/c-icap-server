@@ -18,8 +18,8 @@
  */
 
 
-#ifndef __TXT_FORMAT_H
-#define   __TXT_FORMAT_H
+#ifndef __C_ICAP_TXT_FORMAT_H
+#define __C_ICAP_TXT_FORMAT_H
 
 #include "request.h"
 
