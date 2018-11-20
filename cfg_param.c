@@ -96,14 +96,6 @@ int CHECK_FOR_BUGGY_CLIENT = 0;
 int ALLOW204_AS_200OK_ZERO_ENCAPS = 0;
 int FAKE_ALLOW204 = 1;
 
-
-/* txtTemplate stuff */
-extern const char *TEMPLATE_DIR;
-extern const char *TEMPLATE_DEF_LANG;
-extern int TEMPLATE_RELOAD_TIME; // Default time is one hour, this variable is in seconds
-extern int TEMPLATE_CACHE_SIZE; // How many templates can be cached
-extern int TEMPLATE_MEMBUF_SIZE; // Max memory for txtTemplate to expand template into txt
-
 extern char *SERVER_LOG_FILE;
 extern char *ACCESS_LOG_FILE;
 extern char *ACCESS_LOG_FORMAT;
@@ -140,6 +132,12 @@ int cfg_group_source_by_user(const char *directive, const char **argv, void *set
 int cfg_shared_mem_scheme(const char *directive, const char **argv, void *setdata);
 int cfg_proc_lock_scheme(const char *directive, const char **argv, void *setdata);
 int cfg_set_port(const char *directive, const char **argv, void *setdata);
+
+int cfg_set_template_dir(const char *directive, const char **argv, void *setdata);
+int cfg_set_template_default_lang(const char *directive, const char **argv, void *setdata);
+int cfg_set_template_reload_time(const char *directive, const char **argv, void *setdata);
+int cfg_set_template_cache_size(const char *directive, const char **argv, void *setdata);
+int cfg_set_template_membuf_size(const char *directive, const char **argv, void *setdata);
 
 /*The following 2 functions defined in access.c file*/
 int cfg_acl_add(const char *directive, const char **argv, void *setdata);
@@ -201,11 +199,11 @@ static struct ci_conf_entry conf_variables[] = {
     {"RemoteProxyUserHeader", &REMOTE_PROXY_USER_HEADER, intl_cfg_set_str, NULL},
     {"RemoteProxyUserHeaderEncoded", &REMOTE_PROXY_USER_HEADER_ENCODED, intl_cfg_onoff, NULL},
     {"RemoteProxyUsers", &ALLOW_REMOTE_PROXY_USERS, intl_cfg_onoff, NULL},
-    {"TemplateDir", &TEMPLATE_DIR, intl_cfg_set_str, NULL},
-    {"TemplateDefaultLanguage", &TEMPLATE_DEF_LANG, intl_cfg_set_str, NULL},
-    {"TemplateReloadTime", &TEMPLATE_RELOAD_TIME, intl_cfg_set_int, NULL},
-    {"TemplateCacheSize", &TEMPLATE_CACHE_SIZE, intl_cfg_set_int, NULL},
-    {"TemplateMemBufSize", &TEMPLATE_MEMBUF_SIZE, intl_cfg_set_int, NULL},
+    {"TemplateDir", NULL, cfg_set_template_dir, NULL},
+    {"TemplateDefaultLanguage", NULL, cfg_set_template_default_lang, NULL},
+    {"TemplateReloadTime", NULL, cfg_set_template_reload_time, NULL},
+    {"TemplateCacheSize", NULL, cfg_set_template_cache_size, NULL},
+    {"TemplateMemBufSize", NULL, cfg_set_template_membuf_size, NULL},
     {"GroupSourceByGroup", NULL, cfg_group_source_by_group, NULL},
     {"GroupSourceByUser", NULL, cfg_group_source_by_user, NULL},
     {"InterProcessSharedMemScheme", NULL, cfg_shared_mem_scheme, NULL},
@@ -340,7 +338,7 @@ void print_conf_variables(struct ci_conf_entry *table)
             ci_debug_printf(9, "\n");
         } else if (table[i].action == intl_cfg_set_str) {
             if (*(char *) table[i].data) {
-                ci_debug_printf(9, "%s\n", *(char **) table[i].data)
+                ci_debug_printf(9, "%s\n", *(char **) table[i].data);
             } else {
                 ci_debug_printf(9, "\n");
             }
@@ -753,6 +751,31 @@ int cfg_proc_lock_scheme(const char *directive, const char **argv, void *setdata
     return ci_proc_mutex_set_scheme(argv[0]);
 }
 
+int cfg_set_template_dir(const char *directive, const char **argv, void *setdata)
+{
+    return intl_cfg_set_str(directive, argv, &TEMPLATE_DIR);
+}
+
+int cfg_set_template_default_lang(const char *directive, const char **argv, void *setdata)
+{
+    return intl_cfg_set_str(directive, argv, &TEMPLATE_DEF_LANG);
+}
+
+int cfg_set_template_reload_time(const char *directive, const char **argv, void *setdata)
+{
+    return intl_cfg_set_int(directive, argv, &TEMPLATE_RELOAD_TIME);
+}
+
+int cfg_set_template_cache_size(const char *directive, const char **argv, void *setdata)
+{
+    return intl_cfg_set_str(directive, argv, &TEMPLATE_CACHE_SIZE);
+}
+
+int cfg_set_template_membuf_size(const char *directive, const char **argv, void *setdata)
+{
+    return intl_cfg_set_str(directive, argv, &TEMPLATE_MEMBUF_SIZE);
+}
+
 /**************************************************************************/
 /* Parse file functions                                                   */
 
@@ -1012,7 +1035,6 @@ int init_server();
 void release_modules();
 void ci_dlib_closeall();
 int log_open();
-void ci_magic_db_free();
 void reset_http_auth();
 
 void system_shutdown()
