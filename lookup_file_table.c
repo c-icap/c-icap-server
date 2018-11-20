@@ -131,11 +131,11 @@ int read_row(FILE *f, int cols, struct text_table_entry **e,
         return 1;
     if (cols < 0) {
         /*the line should have the format  key:val1, val2, ... */
-        if (!(s = index(line,':'))) {
+        if (!(s = strchr(line, ':'))) {
             row_cols = 1;
         } else {
             row_cols = 2;
-            while ((s = index(s,','))) row_cols++,s++;
+            while ((s = strchr(s, ','))) row_cols++,s++;
         }
     } else
         row_cols = cols;
@@ -152,7 +152,7 @@ int read_row(FILE *f, int cols, struct text_table_entry **e,
 
     end = NULL;
     if (row_cols > 1)
-        end = index(s,':');
+        end = strchr(s, ':');
     if (end == NULL) /*no ":" char or the only column is the key (row_cols <=1)*/
         end = s + strlen(s);
 

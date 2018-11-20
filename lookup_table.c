@@ -81,7 +81,7 @@ struct ci_lookup_table *ci_lookup_table_create_ext(const char *table,
     }
 
     /*Normaly the table has the form tabletype:/path/{args}*/
-    s = index(stable,':');
+    s = strchr(stable, ':');
 
     if (!s) { /*Then it is a simple text file*/
         ttype = "file";
@@ -91,12 +91,12 @@ struct ci_lookup_table *ci_lookup_table_create_ext(const char *table,
         ttype = stable;
         path = s+1;
         *s = '\0';
-        s = index(path,'{');
+        s = strchr(path, '{');
         if (s) {
             *s = '\0'; /* path ends here */
             args = s+1; /*args start here */
 
-            if ((s = index(args,'}'))) *s = '\0'; /*else args is all the remains string */
+            if ((s = strchr(args, '}'))) *s = '\0'; /*else args is all the remains string */
         } else /*No args*/
             args = NULL;
     }

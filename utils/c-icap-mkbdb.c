@@ -192,11 +192,11 @@ int record_extract(char *line,
     *keysize = 0;
     *valsize = 0;
 
-    if (!(s = index(line,':'))) {
+    if (!(s = strchr(line, ':'))) {
         row_cols = 1;
     } else {
         row_cols = 2;
-        while ((s = index(s,','))) row_cols++,s++;
+        while ((s = strchr(s, ','))) row_cols++,s++;
     }
 
     /*eat spaces .....*/
@@ -213,7 +213,7 @@ int record_extract(char *line,
     if (row_cols == 1)
         e = s + strlen(s);
     else
-        e = index(s,':');
+        e = strchr(s, ':');
 
     s = e+1; /*Now points to the end (*s = '\0') or after the ':' */
 
