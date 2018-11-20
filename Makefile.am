@@ -60,9 +60,9 @@ export EXT_PROGRAMS_MKLIB = @ZLIB_LNDIR_LDADD@ @BZLIB_LNDIR_LDADD@ @BROTLI_LNDIR
 #c_icap the main server
 c_icap_DEPENDENCIES=libicapapi.la
 c_icap_CFLAGS= $(INVISIBILITY_CFLAG) -I$(top_srcdir)/include/ -I$(top_builddir)/include/ \
-                        -DCONFDIR=\"$(CONFIGDIR)\" -DMODSDIR=\"$(MODULESDIR)\" \
-                        -DSERVDIR=\"$(SERVICESDIR)\" -DLOGDIR=\"$(LOGDIR)\"  \
-                        -DDATADIR=\"$(DATADIR)\" @OPENSSL_ADD_FLAG@
+                        -DCI_CONFDIR=\"$(CONFIGDIR)\" -DCI_MODSDIR=\"$(MODULESDIR)\" \
+                        -DCI_SERVDIR=\"$(SERVICESDIR)\" -DCI_LOGDIR=\"$(LOGDIR)\"  \
+                        -DCI_DATADIR=\"$(DATADIR)\" @OPENSSL_ADD_FLAG@
 
 c_icap_LDADD = libicapapi.la @DL_ADD_FLAG@ @THREADS_LDADD@ $(EXT_PROGRAMS_MKLIB)
 c_icap_LDFLAGS = -rdynamic $(RPATH_FLAG) @THREADS_LDFLAGS@

@@ -140,7 +140,7 @@ int main(int argc, char **argv)
         exit(-1);
     }
     ci_txt_template_init();
-    ci_txt_template_set_dir(DATADIR"templates");
+    ci_txt_template_set_dir(CI_DATADIR"templates");
     commands_init();
 
     if (!(CI_CONF.MAGIC_DB = ci_magic_db_load(CI_CONF.magics_file))) {

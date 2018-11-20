@@ -56,15 +56,15 @@ struct ci_server_conf CI_CONF = {
     NULL,                      /* RUN_USER */
     NULL,                      /* RUN_GROUP */
 #ifdef _WIN32
-    CONFDIR "\\c-icap.conf",   /*cfg_file */
-    CONFDIR "\\c-icap.magic",  /*magics_file */
+    CI_CONFDIR "\\c-icap.conf",   /*cfg_file */
+    CI_CONFDIR "\\c-icap.magic",  /*magics_file */
 #else
-    CONFDIR "/c-icap.conf",    /*cfg_file */
-    CONFDIR "/c-icap.magic",   /*magics_file */
+    CI_CONFDIR "/c-icap.conf",    /*cfg_file */
+    CI_CONFDIR "/c-icap.magic",   /*magics_file */
 #endif
     NULL,                      /*MAGIC_DB */
-    SERVDIR,                   /*SERVICES_DIR */
-    MODSDIR,                   /*MODULES_DIR */
+    CI_SERVDIR,                   /*SERVICES_DIR */
+    CI_MODSDIR,                   /*MODULES_DIR */
     NULL,                      /*SERVER_ADMIN*/
     NULL,                      /*SERVER_NAME*/
     5,                         /*START_SERVERS*/
@@ -447,7 +447,7 @@ int cfg_set_port(const char *directive, const char **argv, void *setdata)
 
     for (i = 1; argv[i] != NULL; ++i) {
 #ifdef USE_OPENSSL
-        if (isTls && icap_port_tls_option(argv[i], pcfg, CONFDIR)) {
+        if (isTls && icap_port_tls_option(argv[i], pcfg, CI_CONFDIR)) {
         } else
 #endif
         {
@@ -705,7 +705,7 @@ int cfg_include_config_file(const char *directive, const char **argv, void *setd
     }
     cfg_file = argv[0];
     if (cfg_file[0] != '/') {  /*Win32 code? */
-        snprintf(path, CI_MAX_PATH, CONFDIR "/%s", cfg_file);
+        snprintf(path, CI_MAX_PATH, CI_CONFDIR "/%s", cfg_file);
         path[CI_MAX_PATH - 1] = '\0';
         cfg_file = path;
     }
