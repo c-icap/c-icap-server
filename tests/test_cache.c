@@ -52,9 +52,10 @@ void log_errors(void *unused, const char *format, ...)
 }
 
 char *CACHE_TYPE = NULL;
+int USE_DEBUG_LEVEL = -1;
 static struct ci_options_entry options[] = {
     {
-        "-d", "debug_level", &CI_DEBUG_LEVEL, ci_cfg_set_int,
+        "-d", "debug_level", &USE_DEBUG_LEVEL, ci_cfg_set_int,
         "The debug level"
     },
     {
@@ -88,6 +89,8 @@ int main(int argc,char *argv[])
     }
     if (!CACHE_TYPE)
         CACHE_TYPE = "local";
+    if (USE_DEBUG_LEVEL >= 0)
+        CI_DEBUG_LEVEL = USE_DEBUG_LEVEL;
 
     cache = ci_cache_build("test1", CACHE_TYPE,
                            65536, /*cache_size*/

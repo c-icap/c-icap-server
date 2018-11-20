@@ -8,6 +8,7 @@
 #include "types_ops.h"
 #include "mem.h"
 #include "net_io.h"
+#include "request.h"
 
 char *str_ip(ci_ip_t *ip)
 {
@@ -58,10 +59,10 @@ void log_errors(void *unused, const char *format, ...)
     va_end(ap);
 }
 
-
+int USE_DEBUG_LEVEL = -1;
 static struct ci_options_entry options[] = {
     {
-        "-d", "debug_level", &CI_DEBUG_LEVEL, ci_cfg_set_int,
+        "-d", "debug_level", &USE_DEBUG_LEVEL, ci_cfg_set_int,
         "The debug level"
     },
     {NULL,NULL,NULL,NULL,NULL}
@@ -73,10 +74,14 @@ int main(int argc,char *argv[])
     int ret = 0;
     ci_cfg_lib_init();
     __log_error = (void (*)(void *, const char *,...)) log_errors;     /*set c-icap library log  function */
+
     if (!ci_args_apply(argc, argv, options)) {
         ci_args_usage(argv[0], options);
         exit(-1);
     }
+
+    if (USE_DEBUG_LEVEL >= 0)
+        CI_DEBUG_LEVEL = USE_DEBUG_LEVEL;
 
     ci_cfg_lib_init();
     mem_init();

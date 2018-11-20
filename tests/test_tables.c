@@ -15,6 +15,7 @@ void init_internal_lookup_tables();
 
 char *path;
 char **keys = NULL;
+int USE_DEBUG_LEVEL = -1;
 
 void log_errors(void *unused, const char *format, ...)
 {
@@ -78,7 +79,7 @@ int cfg_set_str_list(const char *directive, const char **argv, void *setdata)
 
 static struct ci_options_entry options[] = {
     {
-        "-d", "debug_level", &CI_DEBUG_LEVEL, ci_cfg_set_int,
+        "-d", "debug_level", &USE_DEBUG_LEVEL, ci_cfg_set_int,
         "The debug level"
     },
     {
@@ -108,12 +109,16 @@ int main(int argc,char *argv[])
     ci_cfg_lib_init();
     mem_init();
     init_internal_lookup_tables();
+
     __log_error = (void (*)(void *, const char *,...)) log_errors;     /*set c-icap library log  function */
 
     if (!ci_args_apply(argc, argv, options) || !path || !keys) {
         ci_args_usage(argv[0], options);
         exit(-1);
     }
+
+    if (USE_DEBUG_LEVEL >= 0)
+        CI_DEBUG_LEVEL = USE_DEBUG_LEVEL;
 
     table = ci_lookup_table_create(path);
     if (!table) {

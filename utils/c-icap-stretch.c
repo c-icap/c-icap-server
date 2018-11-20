@@ -22,16 +22,12 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <string.h>
-#include <errno.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <netdb.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/socket.h>
-#include <sys/ioctl.h>
 #include <signal.h>
 #include <assert.h>
+#include <time.h>
+#include <fcntl.h>
 
 #include "request.h"
 #include "ci_threads.h"
@@ -50,6 +46,7 @@ char *service = "echo";
 int threadsnum = 10;
 int MAX_REQUESTS = 100;
 int VERSION_MODE = 0;
+int USE_DEBUG_LEVEL = -1;
 
 int DoReqmod = 0;
 int DoTransparent = 0;
@@ -97,7 +94,6 @@ void print_stats()
     rtime = rtime - START_TIME;
     printf("Running for %u seconds\n", (unsigned int) rtime);
 }
-
 
 static void sigint_handler(int sig)
 {
@@ -690,7 +686,7 @@ static struct ci_options_entry options[] = {
         "number of threads to start"
     },
     {
-        "-d", "level", &CI_DEBUG_LEVEL, ci_cfg_set_int,
+        "-d", "level", &USE_DEBUG_LEVEL, ci_cfg_set_int,
         "debug level info to stdout"
     },
 //     {"-nopreview", NULL, &send_preview, ci_cfg_disable, "Do not send preview data"},
@@ -730,6 +726,9 @@ int main(int argc, char **argv)
         ci_args_usage(argv[0], options);
         exit(-1);
     }
+
+    if (USE_DEBUG_LEVEL >= 0)
+        CI_DEBUG_LEVEL = USE_DEBUG_LEVEL;
 
 #if ! defined(_WIN32)
     __log_error = (void (*)(void *, const char *,...)) log_errors;     /*set c-icap library log  function */

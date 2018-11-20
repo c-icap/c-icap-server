@@ -26,6 +26,8 @@
 #include <stdarg.h>
 #include <ctype.h>
 #include <assert.h>
+#include <time.h>
+#include <fcntl.h>
 #include "request.h"
 #include "simple_api.h"
 #include "net_io.h"
@@ -207,6 +209,7 @@ int tls_verify = 1;
 const char *tls_method = NULL;
 #endif
 int VERSION_MODE = 0;
+int USE_DEBUG_LEVEL = -1;
 
 static struct ci_options_entry options[] = {
     {"-V", NULL, &VERSION_MODE, ci_cfg_version, "Print version and exits"},
@@ -234,7 +237,7 @@ static struct ci_options_entry options[] = {
     {"-req","url",&request_url,ci_cfg_set_str,"Send a request modification instead of response modification"},
     {"-resp","url",&resp_url,ci_cfg_set_str,"Send a responce modification request with request url the 'url'"},
     {
-        "-d", "level", &CI_DEBUG_LEVEL, ci_cfg_set_int,
+        "-d", "level", &USE_DEBUG_LEVEL, ci_cfg_set_int,
         "debug level info to stdout"
     },
     {
@@ -284,6 +287,9 @@ int main(int argc, char **argv)
     }
     if (VERSION_MODE)
         exit(0);
+
+    if (USE_DEBUG_LEVEL >= 0)
+        CI_DEBUG_LEVEL = USE_DEBUG_LEVEL;
 
 #if ! defined(_WIN32)
     __log_error = (void (*)(void *, const char *,...)) log_errors;     /*set c-icap library log  function */
