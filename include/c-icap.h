@@ -163,8 +163,8 @@ CI_DECLARE_DATA extern const struct ci_error_code ci_error_codes[];
 #define ICAP_EOL "\r\n"
 #define ICAP_EOF "0\r\n\r\n"
 #define ICAP_IEOF "0; ieof\r\n\r\n"
-#define ISTAG     "CI0001" /*Always length of 6 chars*/
-#define ISTAG_SIZE 32
+#define CI_ISTAG     "CI0001" /*Always length of 6 chars*/
+#define CI_ISTAG_SIZE 32
 
 /*The following block defines the base doxygen group (API group)*/
 /**

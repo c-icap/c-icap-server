@@ -279,7 +279,7 @@ void init_extra_data(ci_service_xdata_t * srv_xdata, const char *service)
     memset(srv_xdata, 0, sizeof(ci_service_xdata_t));
     ci_thread_rwlock_init(&srv_xdata->lock);
     strcpy(srv_xdata->ISTag, "ISTag: ");
-    strcat(srv_xdata->ISTag, ISTAG "-XXXXXXXXX");
+    strcat(srv_xdata->ISTag, CI_ISTAG "-XXXXXXXXX");
     memset(srv_xdata->xincludes, 0, XINCLUDES_SIZE + 1);
     memset(srv_xdata->TransferPreview, 0, MAX_HEADER_SIZE + 1);
     memset(srv_xdata->TransferIgnore, 0, MAX_HEADER_SIZE + 1);

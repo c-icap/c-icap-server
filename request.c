@@ -51,7 +51,6 @@ extern int FAKE_ALLOW204;
 extern int CHILD_HALT;
 
 #define FORBITTEN_STR "ICAP/1.0 403 Forbidden\r\n\r\n"
-/*#define ISTAG         "\"5BDEEEA9-12E4-2\""*/
 
 static int STAT_REQUESTS = -1;
 static int STAT_FAILED_REQUESTS = -1;
