@@ -127,7 +127,7 @@ int cfg_srv_preview_size(const char *directive, const char **argv, void *setdata
             ci_debug_printf(1, "Invalid argument in directive %s \n", directive);
             return 0;
         }
-        ci_debug_printf(2, "Setting parameter: %s=%d\n", directive, preview)
+        ci_debug_printf(2, "Setting parameter: %s=%d\n", directive, preview);
     }
     ci_service_set_preview(srv_xdata, preview);
     return 1;
