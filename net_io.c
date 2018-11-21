@@ -177,11 +177,36 @@ void ci_copy_connection(ci_connection_t * dest, ci_connection_t * src)
 
 void ci_connection_reset(ci_connection_t *conn)
 {
-    conn->fd = -1;
+    conn->fd = CI_SOCKET_INVALID;
 #if defined(USE_OPENSSL)
     conn->tls_conn_pcontext = NULL;
 #endif
     conn->flags = 0;
+}
+
+int ci_connection_init(ci_connection_t *conn, ci_connection_type_t type)
+{
+    socklen_t claddrlen;
+    struct sockaddr *addr;
+    assert(type == ci_connection_server_side || type == ci_connection_client_side);
+    if (type == ci_connection_server_side) {
+        claddrlen = sizeof(conn->srvaddr.sockaddr);
+        addr = (struct sockaddr *) &(conn->srvaddr.sockaddr);
+    } else {
+        claddrlen = sizeof(conn->claddr.sockaddr);
+        addr = (struct sockaddr *) &(conn->claddr.sockaddr);
+    }
+
+    if (getsockname(conn->fd, addr, &claddrlen)) {
+        /* caller should handle the error */
+        return 0;
+    }
+    ci_fill_sockaddr(&(conn->claddr));
+    ci_fill_sockaddr(&(conn->srvaddr));
+
+    ci_connection_set_nonblock(conn);
+
+    return 1;
 }
 
 int ci_host_to_sockaddr_t(const char *servername, ci_sockaddr_t * addr, int proto)
@@ -217,7 +242,7 @@ ci_connection_t *ci_connection_create()
 void ci_connection_destroy(ci_connection_t *connection)
 {
     if ( connection ) {
-        if (connection->fd >= 0)
+        if (ci_socket_valid(connection->fd))
             ci_connection_hard_close(connection);
         free(connection);
     }
@@ -225,45 +250,24 @@ void ci_connection_destroy(ci_connection_t *connection)
 
 int ci_connect_to_nonblock(ci_connection_t *connection, const char *servername, int port, int proto)
 {
-    unsigned int addrlen = 0;
     char errBuf[512];
+    int errcode;
 
     if (!connection)
         return -1;
 
-    if (connection->fd < 0) {
+    if (!ci_socket_valid(connection->fd)) {
         if (!ci_host_to_sockaddr_t(servername, &(connection->srvaddr), proto)) {
             ci_debug_printf(1, "Error getting address info for host '%s'\n", servername);
             return -1;
         }
         ci_sockaddr_set_port(&(connection->srvaddr), port);
 
-        connection->fd = socket(connection->srvaddr.ci_sin_family, SOCK_STREAM, 0);
-        if (connection->fd == -1) {
-            ci_debug_printf(1, "Error opening socket :%d:%s....\n",
-                            errno,
-                            ci_strerror(errno,  errBuf, sizeof(errBuf)));
-            return -1;
-        }
-
-#ifdef USE_IPV6
-        if (connection->srvaddr.ci_sin_family == AF_INET6)
-            addrlen = sizeof(struct sockaddr_in6);
-        else
-#endif
-            addrlen = sizeof(struct sockaddr_in);
-
-        // Sets the fd to non-block mode
-        ci_connection_set_nonblock(connection);
-
-        int ret;
-        ret = connect(connection->fd, (struct sockaddr *) &(connection->srvaddr.sockaddr), addrlen);
-        if (ret < 0 && errno != EINPROGRESS) {
+        connection->fd = ci_socket_connect(&(connection->srvaddr), &errcode);
+        if (!ci_socket_valid(connection->fd)) {
             ci_debug_printf(1, "Error connecting to host  '%s': %s \n",
                             servername,
-                            ci_strerror(errno,  errBuf, sizeof(errBuf)));
-            close(connection->fd);
-            connection->fd = -1;
+                            ci_strerror(errcode,  errBuf, sizeof(errBuf)));
             return -1;
         }
 
@@ -271,12 +275,7 @@ int ci_connect_to_nonblock(ci_connection_t *connection, const char *servername, 
     }
 
     if (!(connection->flags & CI_CONNECTION_CONNECTED)) {
-        int errcode = 0;
-        socklen_t len = sizeof(errcode);
-        if (getsockopt(connection->fd, SOL_SOCKET, SO_ERROR, &errcode, &len) != 0)
-            errcode = errno;
-
-        if (errcode) {
+        if ((errcode = ci_socket_connected_ok(connection->fd)) != 0) {
             ci_debug_printf(1, "Error while connecting to host '%s': %s\n",
                             servername,
                             ci_strerror(errcode,  errBuf, sizeof(errBuf)));
@@ -392,7 +391,7 @@ int ci_connection_hard_close(ci_connection_t *conn)
     if (ci_connection_is_tls(conn))
         return ci_connection_hard_close_tls(conn);
 #endif
-    close(conn->fd);
-    conn->fd = -1;
+    ci_hard_close(conn->fd);
+    conn->fd = CI_SOCKET_INVALID;
     return 1;
 }

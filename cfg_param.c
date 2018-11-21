@@ -408,6 +408,8 @@ int cfg_set_port(const char *directive, const char **argv, void *setdata)
         return 0;
     }
 
+    pcfg->accept_socket = CI_SOCKET_INVALID;
+
     connect_port = strdup(argv[0]);
     if ((s = strrchr(connect_port, ':'))) {
         *s = '\0';

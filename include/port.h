@@ -49,7 +49,10 @@ typedef struct ci_port {
     long tls_options;
 #endif
     int configured;
-    ci_socket_t fd;
+    union{
+        ci_socket_t fd;
+        ci_socket_t accept_socket;
+    };
 
 #ifdef USE_OPENSSL
     struct ci_tls_server_accept_details *tls_accept_details;

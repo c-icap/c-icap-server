@@ -41,10 +41,11 @@ extern "C"
 
 #ifndef _WIN32
 #define ci_socket int
-#define CI_SOCKET_ERROR -1
+#define CI_SOCKET_INVALID -1
+#define ci_socket_valid(fd) (fd > 0)
 #else
 #define ci_socket SOCKET
-#define CI_SOCKET_ERROR INVALID_SOCKET
+#define CI_SOCKET_INVALID INVALID_SOCKET
 #endif
 typedef ci_socket ci_socket_t;
 
@@ -180,6 +181,8 @@ CI_DECLARE_FUNC(int) ci_write_nonblock(ci_socket fd, const void *buf,size_t coun
 
 CI_DECLARE_FUNC(int) ci_linger_close(ci_socket fd,int secs_to_linger);
 CI_DECLARE_FUNC(int) ci_hard_close(ci_socket fd);
+CI_DECLARE_FUNC(ci_socket_t) ci_socket_connect(ci_sockaddr_t *srvaddr, int *errcode);
+CI_DECLARE_FUNC(int) ci_socket_connected_ok(ci_socket_t socket);
 
 CI_DECLARE_FUNC(ci_connection_t *) ci_connect_to(const char *servername, int port, int proto, int timeout);
 CI_DECLARE_FUNC(int) ci_connect_to_nonblock(ci_connection_t *connection, const char *servername, int port, int proto);

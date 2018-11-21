@@ -57,9 +57,9 @@ static int ci_port_compare_config(ci_port_t *src, ci_port_t *dst)
 static void ci_port_move_configured(ci_port_t *dst, ci_port_t *src)
 {
     dst->configured = src->configured;
-    dst->fd = src->fd;
+    dst->accept_socket = src->accept_socket;
     src->configured = 0;
-    src->fd = -1;
+    src->accept_socket = CI_SOCKET_INVALID;
 
 #ifdef USE_OPENSSL
     dst->tls_enabled = src->tls_enabled;
@@ -88,7 +88,7 @@ void ci_port_handle_reconfigure(ci_vector_t *new_ports, ci_vector_t *old_ports)
 
 void ci_port_close(ci_port_t *port)
 {
-    if (port->fd < 0)
+    if (!ci_socket_valid(port->accept_socket))
         return;
 
 #ifdef USE_OPENSSL
@@ -96,8 +96,8 @@ void ci_port_close(ci_port_t *port)
         icap_close_server_tls(port);
     else
 #endif
-        close(port->fd);
-    port->fd = -1;
+        close(port->accept_socket);
+    port->accept_socket = CI_SOCKET_INVALID;
     port->configured = 0;
 }
 

@@ -393,6 +393,8 @@ int icap_init_server_tls(ci_port_t *port)
 
     assert(port->tls_enabled);
 
+    port->accept_socket = CI_SOCKET_INVALID;
+
     if (!port->tls_server_cert) {
         ci_debug_printf(1, "To use ssl please provide a server certificate in PEM format.\n");
         return 0;
@@ -432,8 +434,8 @@ int icap_init_server_tls(ci_port_t *port)
     // Start to listen
     BIO_do_accept(acpt->bio);
 
-    BIO_get_fd(acpt->bio, &port->fd);
-    set_linger(port->fd, port->secs_to_linger);
+    BIO_get_fd(acpt->bio, &port->accept_socket);
+    set_linger(port->accept_socket, port->secs_to_linger);
     return 1;
 }
 
@@ -479,7 +481,7 @@ int ci_port_reconfigure_tls(ci_port_t *port)
 int ci_connection_wait_tls(ci_connection_t *conn, int secs, int what_wait)
 {
     BIO *conn_bio = _CI_CONN_BIO(conn);
-    if (conn->fd < 0 || !conn_bio)
+    if (!ci_socket_valid(conn->fd) || !conn_bio)
         return -1;
 
     //TODO: remove the following block
@@ -574,7 +576,7 @@ int ci_connection_hard_close_tls(ci_connection_t *conn)
     assert(conn_bio);
     BIO_free_all(conn_bio);
     conn->tls_conn_pcontext = NULL;
-    conn->fd = -1;
+    conn->fd = CI_SOCKET_INVALID;
     return 1;
 }
 
@@ -590,6 +592,7 @@ int icap_accept_tls_connection(ci_port_t *port, ci_connection_t *client_conn)
     if (ret <= 0) {
         ERR_print_errors_cb(openssl_print_cb, NULL);
         ci_debug_printf(1, "Error accepting connection: %d.\n", ret);
+        client_conn->fd = CI_SOCKET_INVALID;
         return -2;
     }
 
@@ -609,6 +612,7 @@ int icap_accept_tls_connection(ci_port_t *port, ci_connection_t *client_conn)
             ERR_print_errors_cb(openssl_print_cb, NULL);
             BIO_free_all(client_conn_bio);
             client_conn_bio = NULL;
+            client_conn->fd = CI_SOCKET_INVALID;
             return -1;
         }
     }
@@ -798,7 +802,7 @@ int ci_tls_connect_nonblock(ci_connection_t *connection, const char *servername,
     }
 
     int ret = BIO_do_connect(connection_bio);
-    if (connection->fd < 0)
+    if (!ci_socket_valid(connection->fd))
         BIO_get_fd(connection_bio, &connection->fd);
 
     if (ret <= 0) {

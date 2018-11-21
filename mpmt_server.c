@@ -734,7 +734,7 @@ void listener_thread(void *unused)
                 errno = 0;
 #if defined(USE_POLL)
                 for (i = 0; (port = (ci_port_t *)ci_vector_get(CI_CONF.PORTS, i)) != NULL; ++i) {
-                    pfds[i].fd = port->fd;
+                    pfds[i].fd = port->accept_socket;
                     pfds[i].events = POLLIN;
                 }
                 ret = poll(pfds, i, -1);
@@ -742,8 +742,8 @@ void listener_thread(void *unused)
                 int max_fd = 0;
                 FD_ZERO(&fds);
                 for (i = 0; (port = (ci_port_t *)ci_vector_get(CI_CONF.PORTS, i)) != NULL; ++i) {
-                    if (port->fd > max_fd) max_fd = port->fd;
-                    FD_SET(port->fd, &fds);
+                    if (port->accept_socket > max_fd) max_fd = port->accept_socket;
+                    FD_SET(port->accept_socket, &fds);
                 }
                 ret = select(max_fd + 1, &fds, NULL, NULL, NULL);
 #endif
@@ -767,7 +767,7 @@ void listener_thread(void *unused)
                 if (!pfds[i].revents & POLLIN)
                     continue;
 #else
-                if (!FD_ISSET(port->fd, &fds))
+                if (!FD_ISSET(port->accept_socket, &fds))
                     continue;
 #endif
                 int ret = 0;
@@ -791,11 +791,11 @@ void listener_thread(void *unused)
                 } while (ret == 0);
 
                 // Probably ECONNABORTED or similar error
-                if (conn.fd < 0)
+                if (!ci_socket_valid(conn.fd))
                     continue;
 
                 /*Do w need the following? Options has been set in icap_init_server*/
-                icap_socket_opts(port->fd, MAX_SECS_TO_LINGER);
+                icap_socket_opts(port->accept_socket, MAX_SECS_TO_LINGER);
 
                 if ((jobs_in_queue = put_to_queue(con_queue, &conn)) == 0) {
                     ci_debug_printf(1,
@@ -1074,7 +1074,7 @@ int init_server()
                 return 0;
         } else
 #endif
-            if (CI_SOCKET_ERROR == icap_init_server(p))
+            if (CI_SOCKET_INVALID == icap_init_server(p))
                 return 0;
         p->configured = 1;
     }
