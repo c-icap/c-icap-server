@@ -18,26 +18,20 @@
 
 // Additionally, you may use this file under LGPL 2 or (at your option) later
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <string.h>
-#include <errno.h>
-#include <sys/param.h>
-#include <assert.h>
-#include <stdlib.h>
-#include <ctype.h>
-
 #include "common.h"
-#include "body.h"
 #include "c-icap.h"
+#include "body.h"
 #include "service.h"
 #include "header.h"
 #include "request.h"
 #include "debug.h"
 #include "txtTemplate.h"
 #include "simple_api.h"
+
+#include <fcntl.h>
+#include <errno.h>
+#include <assert.h>
+#include <ctype.h>
 
 typedef struct {
     char *TEMPLATE_NAME;
