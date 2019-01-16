@@ -442,7 +442,6 @@ void  regex_table_close(struct ci_lookup_table *table)
     file_table_close(table);
 #else
     ci_debug_printf(1,"regex lookup tables are not supported on this system!\n");
-    return NULL;
 #endif
 }
 
