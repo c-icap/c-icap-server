@@ -102,7 +102,9 @@ struct mem_buffer_block {
     } data;
 };
 
+#if !defined(offsetof)
 #define offsetof(type,member) ((size_t) &((type*)0)->member)
+#endif
 #define PTR_OFFSET offsetof(struct mem_buffer_block,data.ptr[0])
 
 ci_mem_allocator_t *short_buffers[16];
