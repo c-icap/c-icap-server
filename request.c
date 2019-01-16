@@ -795,7 +795,7 @@ static int format_body_chunk(ci_request_t * req)
         req->remain_send_block_bytes += def_bytes + 2;
     } else if (req->remain_send_block_bytes == CI_EOF) {
         if (req->return_code == EC_206 && req->i206_use_original_body >= 0) {
-            def_bytes = sprintf(req->wbuf, "0; use-original-body=%ld\r\n\r\n",
+            def_bytes = sprintf(req->wbuf, "0; use-original-body=%" PRId64 "\r\n\r\n",
                                 req->i206_use_original_body );
             req->pstrblock_responce = req->wbuf;
             req->remain_send_block_bytes = def_bytes;
