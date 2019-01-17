@@ -213,6 +213,16 @@ Port 1344
 # Example:
 #	Group nogroup
 
+# TAG: Umask
+# Format: Umask mask
+# Description:
+#	 Minimum umask, in octal form, which should be enforced while the
+#        c-icap is running, in addition to the umask set at startup.
+# Default:
+#       Umask 000
+# Example:
+#       Group nogroup
+
 # TAG: ServerAdmin
 # Format: ServerAdmin admin_mail
 # Description:

@@ -155,6 +155,7 @@ int intl_cfg_disable(const char *directive,const char **argv,void *setdata);
 int intl_cfg_enable(const char *directive,const char **argv,void *setdata);
 int intl_cfg_size_off(const char *directive,const char **argv,void *setdata);
 int intl_cfg_size_long(const char *directive,const char **argv,void *setdata);
+int intl_cfg_set_octal(const char *directive, const char **argv, void *setdata);
 #endif
 
 
@@ -210,6 +211,13 @@ CI_DECLARE_FUNC(int) ci_cfg_size_off(const char *directive,const char **argv,voi
  \ingroup CONFIG
  */
 CI_DECLARE_FUNC(int) ci_cfg_size_long(const char *directive,const char **argv,void *setdata);
+
+/**
+ * Sets a configuration parameter of type int to a value expressed in octal
+ * form.
+ \ingroup CONFIG
+ */
+CI_DECLARE_FUNC(int) ci_cfg_set_octal(const char *directive, const char **argv, void *setdata);
 
 /**
  * Sets a configuration parameter of type int to 1 and prints c-icap version.

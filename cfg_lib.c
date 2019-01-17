@@ -270,6 +270,30 @@ int ci_cfg_size_long(const char *directive, const char **argv, void *setdata)
     return 1;
 }
 
+int ci_cfg_set_octal(const char *directive, const char **argv, void *setdata)
+{
+    int val = 0;
+    char *end;
+
+    if (!setdata)
+        return 0;
+
+    if (argv == NULL || argv[0] == NULL) {
+        ci_debug_printf(1, "Missing arguments in directive:%s\n", directive);
+        return 0;
+    }
+
+    errno = 0;
+    val = strtoll(argv[0], &end, 8);
+    if ((val == 0 && errno != 0))
+        return 0;
+
+    *((int *) setdata) = val;
+
+    ci_debug_printf(2, "Setting parameter: %s=0%.3o\n", directive, val);
+    return 1;
+}
+
 int ci_cfg_version(const char *directive, const char **argv, void *setdata)
 {
     if (setdata)

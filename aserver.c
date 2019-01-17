@@ -37,6 +37,7 @@ extern char *RUN_GROUP;
 extern int PORT;
 */
 
+extern int UMASK;
 extern int DAEMON_MODE;
 extern int MAX_SECS_TO_LINGER;
 char MY_HOSTNAME[CI_MAXHOSTNAMELEN + 1];
@@ -84,8 +85,7 @@ void run_as_daemon()
     }
     if (pid > 0)
         exit(0);
-    /* Change the file mode mask */
-    umask(0);
+
     /* Create a new SID for the child process */
     sid = setsid();
     if (sid < 0) {
@@ -154,6 +154,13 @@ int main(int argc, char **argv)
     config(argc, argv);
     compute_my_hostname();
     ci_debug_printf(2, "My hostname is: %s\n", MY_HOSTNAME);
+
+#if ! defined(_WIN32)
+    /* Change the file mode mask */
+    mode_t orig_umask = umask(UMASK);
+    umask(UMASK | orig_umask);
+    ci_debug_printf(2, "Origin umask: 0%.3o, set umask to: 0%.3o\n", orig_umask, UMASK | orig_umask);
+#endif
 
     if (!log_open()) {
         ci_debug_printf(1, "Can not init loggers. Exiting.....\n");
