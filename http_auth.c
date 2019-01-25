@@ -526,7 +526,7 @@ int basic_simple_db_athenticate(struct http_basic_auth_data *data, const char *u
     if (!user_ret)
         return CI_ACCESS_DENY;
 
-    if (!pass || pass[0] == '\0') {
+    if (!pass || !pass[0]) {
         if (data->http_pass[0] != '\0')
             ret = CI_ACCESS_DENY;
         else
