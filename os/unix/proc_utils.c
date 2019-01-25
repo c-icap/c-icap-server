@@ -86,8 +86,6 @@ int is_icap_running(char *pidfile)
     return 1;
 }
 
-
-
 int set_running_permissions(char *user, char *group)
 {
     unsigned int uid, gid;
@@ -98,7 +96,7 @@ int set_running_permissions(char *user, char *group)
     if (group) {               /*Configuration request to change ours group id */
         errno = 0;
         gid = strtol(group, &pend, 10);
-        if (pend != '\0' || gid < 0 || errno != 0) {  /*string "group" does not contains a clear number */
+        if (*pend != '\0' || gid < 0 || errno != 0) {  /*string "group" does not contains a clear number */
             if ((grp = getgrnam(group)) == NULL) {
                 ci_debug_printf(1,
                                 "There is no group %s in password file!\n",
@@ -131,7 +129,7 @@ int set_running_permissions(char *user, char *group)
     if (user) {                /*Gonfiguration request to change ours user id */
         errno = 0;
         uid = strtol(user, &pend, 10);
-        if (pend != '\0' || uid < 0 || errno != 0) {  /*string "user" does not contain a clear number */
+        if (*pend != '\0' || uid < 0 || errno != 0) {  /*string "user" does not contain a clear number */
             if ((pwd = getpwnam(user)) == NULL) {
                 ci_debug_printf(1,
                                 "There is no user %s in password file!\n",
