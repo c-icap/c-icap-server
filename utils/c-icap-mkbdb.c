@@ -23,7 +23,7 @@ char *dbfile = NULL;
 int DUMP_MODE = 0;
 int VERSION_MODE = 0;
 int USE_DBTREE = 0;
-long int PAGE_SIZE;
+long int DB_PAGE_SIZE;
 
 ci_mem_allocator_t *allocator = NULL;
 int cfg_set_type(const char *directive, const char **argv, void *setdata);
@@ -52,7 +52,7 @@ static struct ci_options_entry options[] = {
         "The type of values"
     },
     {
-        "-p", "page_size", &PAGE_SIZE, ci_cfg_size_long,
+        "-p", "page_size", &DB_PAGE_SIZE, ci_cfg_size_long,
         "The page size to use for the database"
     },
     {
@@ -107,8 +107,8 @@ int open_db(char *path)
         return 0;
     }
 
-    if (PAGE_SIZE > 512 && PAGE_SIZE <= 64*1024)
-        db->set_pagesize(db, (uint32_t)PAGE_SIZE);
+    if (DB_PAGE_SIZE > 512 && DB_PAGE_SIZE <= 64*1024)
+        db->set_pagesize(db, (uint32_t)DB_PAGE_SIZE);
 
     if ((ret = db->open(db, NULL, path, NULL,
                         (USE_DBTREE ? DB_BTREE : DB_HASH),

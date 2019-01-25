@@ -60,7 +60,20 @@ int cfg_syslog_access(const char *directive, const char **argv, void *setdata);
    functions declared in log.c. This file is not included in c-icap library
    but defined in primary c-icap binary.
 */
+#ifdef __CYGWIN__
+#include <w32api/windows.h>
+char *logformat_fmt(const char *name)
+{
+  typedef char* (*LF_FMT)(const char *);
+  LF_FMT fn;
+  fn = (LF_FMT)GetProcAddress(GetModuleHandle(NULL), "logformat_fmt");
+  if (fn)
+    return (*fn)(name);
+  return NULL;
+}
+#else
 extern char *logformat_fmt(const char *name);
+#endif
 
 /*Configuration Table .....*/
 static struct ci_conf_entry conf_variables[] = {

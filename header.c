@@ -110,21 +110,6 @@ const struct ci_error_code ci_error_codes[] = {
     {505, "Unsupported version"}       /*ICAP version not supported by server. */
 };
 
-/*
-#ifdef __CYGWIN__
-int ci_error_code(int ec){
-     return (ec >= EC_100 && ec < EC_MAX ? ci_error_codes[ec].code:1000);
-}
-
-const char *unknownerrorcode = "UNKNOWN ERROR CODE";
-
-const char *ci_error_code_string(int ec){
-     return (ec >= EC_100 && ec < EC_MAX?ci_error_codes[ec].str:unknownerrorcode);
-}
-#endif
-*/
-
-
 const char *ci_encaps_entities[] = {
     "req-hdr",
     "res-hdr",
@@ -133,25 +118,6 @@ const char *ci_encaps_entities[] = {
     "null-body",
     "opt-body"
 };
-
-#ifdef __CYGWIN__
-
-const char *unknownentity = "UNKNOWN";
-const char *unknownmethod = "UNKNOWN";
-
-const char *ci_method_string(int method)
-{
-    return (method <= ICAP_RESPMOD
-            && method >= ICAP_OPTIONS ? CI_Methods[method] : unknownmethod);
-}
-
-
-const char *ci_encaps_entity_string(int e)
-{
-    return (e <= ICAP_OPT_BODY
-            && e >= ICAP_REQ_HDR ? CI_EncapsEntities[e] : unknownentity);
-}
-#endif
 
 ci_headers_list_t *ci_headers_create()
 {

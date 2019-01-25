@@ -45,12 +45,14 @@ case "$host_os" in
 	CFLAGS="-D_REENTRANT $CFLAGS"
 	THREADS_LDADD="-lpthread"
 	THREADS_LDFLAGS=""
+	LIBS_LDFLAGS=""
      ;;
      solaris2.*)
      	  CFLAGS="-D_REENTRANT -D_POSIX_PTHREAD_SEMANTICS $CFLAGS"
           LIBS="-lsocket -lnsl -lrt $LIBS"
 	  THREADS_LDADD="-lpthread"
 	  THREADS_LDFLAGS=""
+	  LIBS_LDFLAGS=""
       ;;
       freebsd5*)
 ## If I understand how all those threading models works correctly
@@ -69,6 +71,7 @@ case "$host_os" in
       	CFLAGS="-pthread -D_THREAD_SAFE  $CFLAGS"
 	THREADS_LDADD="-XCClinker -lc_r"
 	THREADS_LDFLAGS=""
+	LIBS_LDFLAGS=""
 ## FreeBSD has pthreads rwlocks from version 3 (I think)
 #	AC_DEFINE(HAVE_PTHREADS_RWLOCK,1,[Define HAVE_PTHREADS_RWLOCK if pthreads library supports rwlocks])
 ##   1:1 threads
@@ -82,24 +85,28 @@ case "$host_os" in
         CFLAGS="-D_THREAD_SAFE  $CFLAGS"
         THREADS_LDADD="-XCClinker -lthr"
         THREADS_LDFLAGS=""
+	LIBS_LDFLAGS=""
       ;;
 
       cygwin*)
 	CFLAGS="-D_REENTRANT $CFLAGS"
 	THREADS_LDADD="-lpthread"
 	THREADS_LDFLAGS="";
+	LIBS_LDFLAGS="-no-undefined"
 	iscygwin="yes"
       ;;
       *)
       	CFLAGS="-D_REENTRANT $CFLAGS"
 	THREADS_LDADD="-lpthread"
 	THREADS_LDFLAGS=""
+	LIBS_LDFLAGS=""
       ;;
 esac
 
 TEST_LIBS="$TEST_LIBS $THREADS_LDADD"
 AC_SUBST(THREADS_LDADD)
 AC_SUBST(THREADS_LDFLAGS)
+AC_SUBST(LIBS_LDFLAGS)
 
 AC_DEFINE_UNQUOTED(C_ICAP_CONFIGURE_OPTIONS, "$ac_configure_args",
                    [configure command line used to configure c-icap])
@@ -984,9 +991,6 @@ LIBS="$LIBS $EXTRALIBS"
 
 #Configure common flags
 MODULES_LIBADD=""
-if test a"$iscygwin" != a; then
-     MODULES_LIBADD="-L../../ -licapapi"
-fi
 MODULES_CFLAGS="$INVISIBILITY_CFLAG -DCI_BUILD_MODULE"
 AC_SUBST(MODULES_LIBADD)
 AC_SUBST(MODULES_CFLAGS)

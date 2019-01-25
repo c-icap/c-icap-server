@@ -52,15 +52,7 @@ enum ci_encapsulated_entities {ICAP_REQ_HDR, ICAP_RES_HDR,
                               };
 CI_DECLARE_DATA extern const char *ci_encaps_entities[];
 
-#ifdef __CYGWIN__
-
-const char *ci_encaps_entity_string(int e);
-
-#else
-
 #define ci_encaps_entity_string(e) (e <= ICAP_OPT_BODY && e >= ICAP_REQ_HDR?ci_encaps_entities[e]:"UNKNOWN")
-
-#endif
 
 /**
  \typedef ci_headers_list_t
