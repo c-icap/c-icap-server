@@ -61,8 +61,6 @@ int is_icap_running(char *pidfile)
     int fd, bytes, ret;
     pid_t pid;
     char strPid[30];           /*30 must be enough for storing pids on a string */
-    pid = getpid();
-
     if ((fd = open(pidfile, O_RDONLY, 0644)) < 0) {
         return 0;
     }

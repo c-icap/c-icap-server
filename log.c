@@ -240,15 +240,21 @@ int file_log_open()
         if (lf->log_fmt == NULL)
             lf->log_fmt = (char *)DEFAULT_LOG_FORMAT;
 
+        if (ci_thread_rwlock_init(&(lf->rwlock)) != 0) {
+            ci_debug_printf (1, "WARNING! Can not initialize structures for log file: %s\n", lf->file);
+            continue;
+        }
+
         lf->access_log = logfile_open(lf->file);
         if (!lf->access_log) {
             error = 1;
             ci_debug_printf (1, "WARNING! Can not open log file: %s\n", lf->file);
         }
-        ret = ci_thread_rwlock_init(&(lf->rwlock)); // Initialize logfile::rwlock
     }
 
     ret = ci_thread_rwlock_init(&systemlog_rwlock);
+    if (ret != 0)
+        return 0;
     server_log = logfile_open(SERVER_LOG_FILE);
     if (!server_log)
         return 0;

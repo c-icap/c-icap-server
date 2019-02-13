@@ -732,6 +732,7 @@ int ci_tls_connect_nonblock(ci_connection_t *connection, const char *servername,
     char hostname[CI_MAXHOSTNAMELEN + 1];
     SSL *ssl = NULL;
 
+    assert(connection);
     BIO *connection_bio = _CI_CONN_BIO(connection);
     if (!connection_bio) {
 
@@ -842,14 +843,14 @@ ci_connection_t *ci_tls_connect(const char *servername, int port, int proto, ci_
         return NULL;
 
     int ret = ci_tls_connect_nonblock(connection, servername, port, proto, use_ctx);
-    do {
+    while (ret == 0) {
         do {
             ret = ci_connection_wait_tls(connection, timeout, ci_wait_for_write);
         } while (ret > 0 && (ret & ci_wait_should_retry)); //while iterrupted by signal
 
         if (ret > 0)
             ret = ci_tls_connect_nonblock(connection, servername, port, proto, use_ctx);
-    } while (ret == 0);
+    }
 
     if (ret < 0) {
         ci_debug_printf(1, "Connection to '%s:%d' failed/timedout\n",

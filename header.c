@@ -498,7 +498,6 @@ int ci_headers_iterate(ci_headers_list_t * h, void *data, void (*fn)(void *, con
         for (j = 0;  j < sizeof(header)-1 && *s != ':' && *s != ' ' &&  *s != '\0' && *s != '\r' && *s != '\n'; s++, j++)
             header[j] = *s;
         header[j] = '\0';
-        j = 0;
         if (*s == ':') {
             s++;
         } else {

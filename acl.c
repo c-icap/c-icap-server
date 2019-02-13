@@ -506,7 +506,6 @@ void ci_access_entry_release(ci_access_entry_t *list)
     if (!list)
         return;
 
-    access_entry = list;
     while (list) {
         access_entry = list;
         list = list->next;
@@ -1138,7 +1137,7 @@ void *get_data_type(ci_request_t *req, char *param)
     if (type < 0)
         return NULL;
 
-    ret_type = malloc(sizeof(unsigned int));
+    ret_type = malloc(sizeof(int));
     if (!ret_type)
         return NULL;
 
