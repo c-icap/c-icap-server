@@ -420,8 +420,8 @@ int cfg_set_port(const char *directive, const char **argv, void *setdata)
         addr = connect_port;
         if (*addr == '[') {
             if (addr[strlen(addr) - 1] != ']') {
-                free(connect_port);
                 ci_debug_printf(1, "Failed to parse listen address: %s\n", addr);
+                free(connect_port);
                 return 0;
             }
             ++addr;

@@ -228,9 +228,9 @@ int echo_io(char *wbuf, int *wlen, char *rbuf, int *rlen, int iseof,
      to the ICAP client*/
     if (wbuf && wlen) {
         *wlen = ci_ring_buf_read(echo_data->body, wbuf, *wlen);
+        if (*wlen == 0 && echo_data->eof == 1)
+            *wlen = CI_EOF;
     }
-    if (*wlen==0 && echo_data->eof==1)
-        *wlen = CI_EOF;
 
     return ret;
 }

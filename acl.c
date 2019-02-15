@@ -918,7 +918,7 @@ int ci_acl_add_data(const char *name, const char *type, const char *data)
 
     if (!spec) {
         ci_debug_printf(1, "Error in acl:%s! Maybe the acl type \"%s\" does not exists!\n",
-                        name, acl_type);
+                        name, type);
         return 0;
     }
     ci_acl_spec_new_data(spec, data);
