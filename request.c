@@ -377,7 +377,8 @@ static int parse_request(ci_request_t * req, char *buf)
                        len : (MAX_SERVICE_ARGS - args_len));
                 strncpy(req->args + args_len, start, len);
                 req->args[args_len + len] = '\0';
-            }
+            } else
+                return EC_400;
         }      /*end of parsing args */
     }
 
