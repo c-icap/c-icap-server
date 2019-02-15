@@ -387,6 +387,37 @@ static int configure_openssl_bios(BIO *bio, SSL_CTX *ctx)
     return 1;
 }
 
+static struct ci_tls_server_accept_details *ci_tls_server_accept_details_create()
+{
+    struct ci_tls_server_accept_details *acpt = malloc(sizeof(struct ci_tls_server_accept_details));
+    if (!acpt) {
+        ci_debug_printf(1, "Error allocating memory for accepting tls connections\n");
+        return NULL;
+    }
+
+    acpt->tls_context = NULL;
+    acpt->bio = NULL;
+    return acpt;
+}
+
+static void ci_tls_server_accept_details_free(struct ci_tls_server_accept_details *acpt)
+{
+    if (!acpt)
+        return;
+
+    if (acpt->bio) {
+        BIO_free_all(acpt->bio);
+        acpt->bio = NULL;
+    }
+
+    if (acpt->tls_context) {
+        SSL_CTX_free(acpt->tls_context);
+        acpt->tls_context = NULL;
+    }
+
+    free(acpt);
+}
+
 int icap_init_server_tls(ci_port_t *port)
 {
     ci_debug_printf(5, "icap_init_server_ssl\n");
@@ -400,13 +431,9 @@ int icap_init_server_tls(ci_port_t *port)
         return 0;
     }
 
-    struct ci_tls_server_accept_details *acpt = malloc(sizeof(struct ci_tls_server_accept_details));
-    if (!acpt) {
-        ci_debug_printf(1, "Error allocating memory for accepting tls connections\n");
+    struct ci_tls_server_accept_details *acpt = ci_tls_server_accept_details_create();
+    if (!acpt)
         return 0;
-    }
-    acpt->tls_context = NULL;
-    acpt->bio = NULL;
 
     // Convert port
     char portString[32];
@@ -421,11 +448,15 @@ int icap_init_server_tls(ci_port_t *port)
     BIO_set_nbio_accept(acpt->bio, 1);
 
 
-    if (!(acpt->tls_context = create_server_context(port)))
+    if (!(acpt->tls_context = create_server_context(port))) {
+        ci_tls_server_accept_details_free(acpt);
         return 0;
+    }
 
-    if (!configure_openssl_bios(acpt->bio, acpt->tls_context))
+    if (!configure_openssl_bios(acpt->bio, acpt->tls_context)) {
+        ci_tls_server_accept_details_free(acpt);
         return 0;
+    }
 
     port->tls_accept_details = acpt;
 
@@ -441,22 +472,8 @@ int icap_init_server_tls(ci_port_t *port)
 
 void icap_close_server_tls(ci_port_t *port)
 {
-    struct ci_tls_server_accept_details *acpt = port->tls_accept_details;
-    if (!acpt)
-        return;
-
-    if (acpt->bio) {
-        BIO_free_all(acpt->bio);
-        acpt->bio = NULL;
-    }
-
-    if (acpt->tls_context) {
-        SSL_CTX_free(acpt->tls_context);
-        acpt->tls_context = NULL;
-    }
-
-    if (acpt) {
-        free(acpt);
+    if (port->tls_accept_details) {
+        ci_tls_server_accept_details_free(port->tls_accept_details);
         port->tls_accept_details = NULL;
     }
 }
