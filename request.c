@@ -458,6 +458,8 @@ static int check_request(ci_request_t *req)
         if (req->entities[3] != NULL)
             return EC_400;
         else if (req->entities[2] != NULL) {
+            assert(req->entities[0]);
+            assert(req->entities[1]);
             if (req->entities[0]->type != ICAP_REQ_HDR)
                 return EC_400;
             if (req->entities[1]->type != ICAP_RES_HDR)

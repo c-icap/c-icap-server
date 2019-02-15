@@ -97,7 +97,8 @@ int ci_buf_reset_size(struct ci_buf *buf, int req_size)
 void ci_request_t_pack(ci_request_t * req, int is_request)
 {
     ci_encaps_entity_t **elist, *e;
-    char buf[256];
+    char buf[512];
+    int i, added;
 
     req->packed = 1;
 
@@ -108,32 +109,29 @@ void ci_request_t_pack(ci_request_t * req, int is_request)
 
     elist = req->entities;
 
-    if (elist[0] != NULL)
+    if (elist[0] != NULL) {
         elist[0]->start = 0;
 
-    if (elist[1] != NULL) {
-        elist[1]->start = sizeofencaps(elist[0]);
-    }
+        if (elist[1] != NULL) {
+            elist[1]->start = sizeofencaps(elist[0]);
 
-    if (elist[2] != NULL) {
-        elist[2]->start = sizeofencaps(elist[1]) + elist[1]->start;
+            if (elist[2] != NULL) {
+                elist[2]->start = sizeofencaps(elist[1]) + elist[1]->start;
+            }
+        }
     }
 
 
     if (elist[0] == NULL) {
         sprintf(buf, "Encapsulated: null-body=0");
-    } else if (elist[2] != NULL) {
-        sprintf(buf, "Encapsulated: %s=%d, %s=%d, %s=%d",
-                ci_encaps_entity_string(elist[0]->type), elist[0]->start,
-                ci_encaps_entity_string(elist[1]->type), elist[1]->start,
-                ci_encaps_entity_string(elist[2]->type), elist[2]->start);
-    } else if (elist[1] != NULL) {
-        sprintf(buf, "Encapsulated: %s=%d, %s=%d",
-                ci_encaps_entity_string(elist[0]->type), elist[0]->start,
-                ci_encaps_entity_string(elist[1]->type), elist[1]->start);
-    } else {                   /*Only req->entities[0] exists */
-        sprintf(buf, "Encapsulated: %s=%d",
-                ci_encaps_entity_string(elist[0]->type), elist[0]->start);
+    } else {
+        added = snprintf(buf, sizeof(buf), "Encapsulated: ");
+        for (i = 0; elist[i] != NULL && i < 3 && added < sizeof(buf); ++i)
+            added += snprintf(buf + added, sizeof(buf) - added,
+                              "%s%s=%d",
+                              (i != 0 ? ", " : ""),
+                              ci_encaps_entity_string(elist[i]->type),
+                              elist[i]->start);
     }
     if (is_request)
         ci_headers_add(req->request_header, buf);
