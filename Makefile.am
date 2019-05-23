@@ -17,7 +17,7 @@ ACLOCAL_AMFLAGS = -I m4
 SUBDIRS =  . utils modules services tests docs
 
 
-lib_LTLIBRARIES=libicapapi.la
+lib_LTLIBRARIES=libicapapi.la libcicap.la
 bin_PROGRAMS = c-icap
 
 bin_SCRIPTS = c-icap-config c-icap-libicapapi-config
@@ -35,6 +35,8 @@ RPATH_FLAG=
 if USE_RPATH
 RPATH_FLAG+=-rpath @libdir@
 endif
+
+libcicap_la_SOURCES = cicapcalls.c
 
 libicapapi_la_SOURCES=  header.c body.c decode.c encode.c simple_api.c request_common.c \
                         filetype.c debug.c cfg_lib.c mem.c  service_lib.c \
@@ -54,6 +56,11 @@ libicapapi_la_CFLAGS= $(INVISIBILITY_CFLAG) -I$(srcdir)/include/ -Iinclude/ @ZLI
 
 libicapapi_la_LIBADD = @ZLIB_ADD_LDADD@ @BZLIB_ADD_LDADD@ @BROTLI_ADD_LDADD@ @PCRE_ADD_LDADD@ @DL_ADD_FLAG@ @THREADS_LDADD@ @OPENSSL_ADD_LDADD@
 libicapapi_la_LDFLAGS= -shared -version-info @CICAPLIB_VERSION@ @LIBS_LDFLAGS@ @THREADS_LDFLAGS@
+
+libcicap_la_CFLAGS =  $(INVISIBILITY_CFLAG) -I$(srcdir)/include/ -Iinclude/  -DCI_BUILD_LIB
+
+libcicap_la_LIBADD =
+libcicap_la_LDFLAGS =  -static -version-info @CICAPLIB_VERSION@ @LIBS_LDFLAGS@
 
 export EXT_PROGRAMS_MKLIB = @ZLIB_LNDIR_LDADD@ @BZLIB_LNDIR_LDADD@ @BROTLI_LNDIR_LDADD@ @PCRE_LNDIR_LDADD@ @OPENSSL_LNDIR_LDADD@
 

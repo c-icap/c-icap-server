@@ -257,16 +257,3 @@ void  bdb_table_release_result(struct ci_lookup_table *table,void **val)
 {
     ci_buffer_free(val);
 }
-
- #ifdef __CYGWIN__
-#include <w32api/windows.h>
-void ci_command_register_action(const char *name, int type, void *data,
-				void (*command_action) (const char *name, int type, void *data))
- {
-   typedef void (*RA)(const char *, int, void *, void(*)(const char *, int, void *));
-   RA fn;
-   fn = (RA)GetProcAddress(GetModuleHandle(NULL), "ci_command_register_action");
-   if (fn)
-     (*fn)(name, type, data, command_action);
- }
-#endif

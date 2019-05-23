@@ -17,7 +17,7 @@ CICAPCFLAGS="@CFLAGS@"
 CICAPLDFLAGS=
 CICAPLIBS=
 CFLAGS="@MODULES_CFLAGS@ @CFLAGS@"
-LIBS=@MODULES_LIBADD@
+LIBS="@MODULES_LIBADD@"
 LDFLAGS=""
 
 
@@ -47,7 +47,7 @@ case $1 in
         echo $CFLAGS" -I"$INCDIR" -I"$INCDIR2;
         ;;
     '--libs')
-       echo $LIBS;
+       test -n "$LIBS" && echo "-L"$LIBDIR $LIBS  || echo ""
        ;;
     '--datarootdir')
        echo $DATADIR;
