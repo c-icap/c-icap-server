@@ -1,4 +1,8 @@
-echo trunk-`svnversion | cut -d ':' -f 2` > VERSION.m4
+if test -d .git; then
+   git branch --list -v | grep -e '^\*' | awk '{print $2"-"$3}'> VERSION.m4
+else
+   echo "unversioned" > VERSION.m4
+fi
 autoreconf -f -i -v
 #aclocal
 #autoconf
