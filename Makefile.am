@@ -60,7 +60,7 @@ libicapapi_la_LDFLAGS= -shared -version-info @CICAPLIB_VERSION@ @LIBS_LDFLAGS@ @
 libcicap_la_CFLAGS =  $(INVISIBILITY_CFLAG) -I$(srcdir)/include/ -Iinclude/  -DCI_BUILD_LIB
 
 libcicap_la_LIBADD =
-libcicap_la_LDFLAGS =  -static -version-info @CICAPLIB_VERSION@ @LIBS_LDFLAGS@
+libcicap_la_LDFLAGS =  -shared -version-info @CICAPLIB_VERSION@ @LIBS_LDFLAGS@
 
 export EXT_PROGRAMS_MKLIB = @ZLIB_LNDIR_LDADD@ @BZLIB_LNDIR_LDADD@ @BROTLI_LNDIR_LDADD@ @PCRE_LNDIR_LDADD@ @OPENSSL_LNDIR_LDADD@
 
