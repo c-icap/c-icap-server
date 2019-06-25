@@ -225,7 +225,7 @@ CI_DECLARE_FUNC(ci_request_t *)  ci_client_request(ci_connection_t *conn,const c
 CI_DECLARE_FUNC(void)         ci_client_request_reuse(ci_request_t *req);
 
 CI_DECLARE_FUNC(int)          ci_client_get_server_options(ci_request_t *req,int timeout);
-CI_DECLARE_FUNC(int)          ci_client_get_server_options_non_blocking(ci_request_t *req);
+CI_DECLARE_FUNC(int)          ci_client_get_server_options_nonblocking(ci_request_t *req);
 
 CI_DECLARE_FUNC(int)          ci_client_icapfilter(ci_request_t *req,
         int timeout,
