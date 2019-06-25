@@ -288,7 +288,7 @@ int ci_connect_to_nonblock(ci_connection_t *connection, const char *servername, 
                             ci_strerror(errno,  errBuf, sizeof(errBuf)));
             return -1;
         }
-        connection->flags &= CI_CONNECTION_CONNECTED;
+        connection->flags |= CI_CONNECTION_CONNECTED;
     }
 
     return 1;
