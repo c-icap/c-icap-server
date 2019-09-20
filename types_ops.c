@@ -435,7 +435,6 @@ void ci_list_ipv4_to_ipv6();
 #define ci_ipv4_inaddr_are_equal(addr1,addr2) ((addr1).s_addr == (addr2).s_addr)
 #define ci_ipv4_inaddr_check_net(addr1,addr2,mask) (((addr1).s_addr & (mask).s_addr) == ((addr2).s_addr & (mask).s_addr))
 
-#define ci_ipv4_inaddr_hostnetmask(addr)((addr).s_addr=htonl(0xFFFFFFFF))
 #define ci_ipv4_inaddr_zero(addr) ((addr).s_addr=0)
 
 #endif                          /*ifdef HAVE_IPV6 */
