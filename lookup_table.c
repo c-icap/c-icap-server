@@ -208,7 +208,7 @@ const void * lookup_table_get_row(struct ci_lookup_table *table, const void *key
         return NULL;
     }
 
-    if (!table->col_names || table->_lt_type->get_row) {
+    if (!table->col_names || !table->_lt_type->get_row) {
         ci_debug_printf(1, "lookup_table :%s does not support lookup on named columns\n", table->type);
         return NULL;
     }
