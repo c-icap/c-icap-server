@@ -80,6 +80,7 @@ enum {CI_TEXT_DATA,CI_OCTET_DATA};
 /*low level functions should not used by users*/
 CI_DECLARE_FUNC(struct ci_magics_db) *ci_magics_db_build(const char *filename);
 CI_DECLARE_FUNC(int) ci_magics_db_file_add(struct ci_magics_db *db,const char *filename);
+CI_DECLARE_FUNC(void) ci_magics_db_release(struct ci_magics_db *db);
 CI_DECLARE_FUNC(int) ci_get_data_type_id(struct ci_magics_db *db,const char *name);
 CI_DECLARE_FUNC(int) ci_get_data_group_id(struct ci_magics_db *db,const char *group);
 CI_DECLARE_FUNC(int) ci_belongs_to_group(struct ci_magics_db *db, int type, int group);

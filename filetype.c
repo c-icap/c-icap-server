@@ -88,7 +88,8 @@ int types_add(struct ci_magics_db *db, const char *name, const char *descr, int 
     struct ci_data_type *newdata;
     int indx, i;
 
-    CHECK_SIZE(db, types, struct ci_data_type, 50) indx = db->types_num;
+    CHECK_SIZE(db, types, struct ci_data_type, 50);
+    indx = db->types_num;
     db->types_num++;
     strcpy(db->types[indx].name, name);
     strcpy(db->types[indx].descr, descr);
@@ -106,7 +107,8 @@ int groups_add(struct ci_magics_db *db, const char *name, const char *descr)
     struct ci_data_group *newdata;
     int indx;
 
-    CHECK_SIZE(db, groups, struct ci_data_group, 15) indx = db->groups_num;
+    CHECK_SIZE(db, groups, struct ci_data_group, 15);
+    indx = db->groups_num;
     db->groups_num++;
     strcpy(db->groups[indx].name, name);
     strcpy(db->groups[indx].descr, descr);
@@ -265,25 +267,36 @@ static int parse_record(char *line, struct ci_magic_record *record)
 struct ci_magics_db *ci_magics_db_init()
 {
     struct ci_magics_db *db;
-    int i;
+    int i, ret;
     db = malloc(sizeof(struct ci_magics_db));
     if (!db)
         return NULL;
 
-    types_init(db);
-    groups_init(db);
-    magics_init(db);
+    memset(db, 0, sizeof(struct ci_magics_db));
+    ret = types_init(db) && groups_init(db) && magics_init(db);
+    if (!ret) {
+        ci_magics_db_release(db);
+        return NULL;
+    }
 
     i = 0;                     /*Copy predefined types */
     while (predefined_types[i].name[0] != '\0') {
-        types_add(db, predefined_types[i].name, predefined_types[i].descr,
-                  predefined_types[i].groups);
+        ret = types_add(db, predefined_types[i].name, predefined_types[i].descr,
+                        predefined_types[i].groups);
+        if (ret < 0) { /*memory allocation ?*/
+            ci_magics_db_release(db);
+            return NULL;
+        }
         i++;
     }
 
     i = 0;                     /*Copy predefined groups */
     while (predefined_groups[i].name[0] != '\0') {
-        groups_add(db, predefined_groups[i].name, predefined_groups[i].descr);
+        ret = groups_add(db, predefined_groups[i].name, predefined_groups[i].descr);
+        if (ret < 0) { /*memory allocation ?*/
+            ci_magics_db_release(db);
+            return NULL;
+        }
         i++;
     }
     return db;
@@ -291,16 +304,19 @@ struct ci_magics_db *ci_magics_db_init()
 
 void ci_magics_db_release(struct ci_magics_db *db)
 {
-    free(db->types);
-    free(db->groups);
-    free(db->magics);
+    if (db->types)
+        free(db->types);
+    if (db->groups)
+        free(db->groups);
+    if (db->magics)
+        free(db->magics);
     free(db);
 }
 
 int ci_magics_db_file_add(struct ci_magics_db *db, const char *filename)
 {
     int type;
-    int ret, group, i, lineNum;
+    int ret, error, group, i, lineNum;
     int groups[MAX_GROUPS + 1];
     char line[RECORD_LINE];
     struct ci_magic_record record;
@@ -312,37 +328,38 @@ int ci_magics_db_file_add(struct ci_magics_db *db, const char *filename)
     }
 
     lineNum = 0;
-    ret = 0;
-    while (fgets(line, RECORD_LINE, f) != NULL) {
+    error = 0;
+    while (!error && fgets(line, RECORD_LINE, f) != NULL) {
         lineNum ++;
         ret = parse_record(line, &record);
         if (!ret)
             continue;
-        if (ret < 0)
+        if (ret < 0) {
+            error = 1;
             break;
+        }
         if ((type = ci_get_data_type_id(db, record.type)) < 0) {
-            i = 0;
-            while (record.groups[i] != NULL && i < MAX_GROUPS) {
-                if ((group =
-                            ci_get_data_group_id(db, record.groups[i])) < 0) {
+            for (i=0; record.groups[i] != NULL && !error && i < MAX_GROUPS; ++i) {
+                if ((group = ci_get_data_group_id(db, record.groups[i])) < 0) {
                     group = groups_add(db, record.groups[i], "");
                 }
                 groups[i] = group;
-                i++;
+                if (group < 0)
+                    error = 1;
             }
-            groups[i] = -1;
-            type = types_add(db, record.type, record.descr, groups);
-            if (type < 0) {
-                ret = -2;
-                break;
+            if (!error) {
+                groups[i] = -1;
+                type = types_add(db, record.type, record.descr, groups);
+                if (type < 0)
+                    error = 1;
             }
         }
-        magics_add(db, record.offset, record.magic, record.len,
-                   (unsigned int) type);
+        if (magics_add(db, record.offset, record.magic, record.len, (unsigned int) type) < 0)
+            error = 1;
         free_records_group(&record);
     }
     fclose(f);
-    if (ret < 0) {            /*An error occured ..... */
+    if (error) {            /*An error occured ..... */
         ci_debug_printf(1, "Error reading magic file (%d), line number: %d\nBuggy line: %s\n", ret, lineNum, line);
         return 0;
     }
