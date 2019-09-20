@@ -598,13 +598,22 @@ if test "a$libldap" != "ano"; then
         CFLAGS="$CFLAGS -I$libldappath/include"
         LDFLAGS="$LDFLAGS -L$libldappath/lib"
    fi
-   AC_CHECK_LIB(ldap,  ldap_search_ext_s,
-                [libldap="yes"],
+   useldaplib=""
+   AC_CHECK_LIB(ldap_r,  ldap_search_ext_s,
+                [libldap="yes";useldaplib="ldap_r"],
                 [libldap="no"]
                 )
+
+   if test "a$libldap" = "ano"; then
+      AC_CHECK_LIB(ldap,  ldap_search_ext_s,
+                   [libldap="yes";useldaplib="ldap"],
+                   [libldap="no"]
+                   )
+   fi
+
    if test "a$libldap" = "ayes"; then
        AC_DEFINE(HAVE_LDAP, 1, [Define HAVE_LDAP if LDAP libraries are installed])
-       ICFG_BUILD_FLAGS(LDAP, "$libldappath", "-lldap")
+       ICFG_BUILD_FLAGS(LDAP, "$libldappath", "-l$useldaplib -llber")
    fi
    ICFG_STATE_ROLLBACK
 fi
