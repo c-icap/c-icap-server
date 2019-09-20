@@ -305,8 +305,11 @@ ci_connection_t *ci_connect_to(const char *servername, int port, int proto, int 
     }
 
     ret = ci_connect_to_nonblock(connection, servername, port, proto);
-    if (ret < 0)
+    if (ret < 0) {
+        ci_debug_printf(1, "Failed to initialize ci_connection_t object\n");
+        ci_connection_destroy(connection);
         return NULL;
+    }
 
     do {
         ret = ci_wait_for_data(connection->fd, timeout, ci_wait_for_write);

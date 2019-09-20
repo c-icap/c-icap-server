@@ -87,6 +87,8 @@ int main(int argc, char *argv[])
         ci_debug_printf(6, "Thread %d exited\n", i);
     }
 
+    free(threads);
+
     return 0;
 }
 

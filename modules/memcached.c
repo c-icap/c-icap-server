@@ -328,7 +328,7 @@ const void *mc_cache_search(struct ci_cache *cache, const void *key, void **val,
 #if USE_CI_BUFFERS
         *val = value;
 #else
-        if (value_len) {
+        if (value && value_len) {
             *val = ci_buffer_alloc(value_len);
             if (!*val) {
                 free(value);
