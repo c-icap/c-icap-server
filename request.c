@@ -1076,7 +1076,20 @@ static int get_send_body(ci_request_t * req, int parse_only)
 
     if (!action) {
         ci_debug_printf(1,
-                        "Bug in the service. Please report to the service author!!!!\n");
+                        "Bug in the service '%s'. "
+                        "Please report to the service author!!!!\n"
+                        "request status: %d\n"
+                        "request data locked?: %d\n"
+                        "Write to module pending: %d\n"
+                        "Remain send block bytes: %d\n"
+                        "Read block len: %d\n",
+                        req->service,
+                        req->status,
+                        req->data_locked,
+                        req->write_to_module_pending,
+                        req->remain_send_block_bytes,
+                        req->pstrblock_read_len
+            );
     } else {
         ci_debug_printf(5, "Error reading from network......\n");
     }
