@@ -322,7 +322,6 @@ static void kill_all_childs()
     int childs_running;
     ci_debug_printf(5, "Going to term children....\n");
 
-    childs_running = 0;
     do {
         send_term_to_childs(childs_queue);
         if (old_childs_queue)
@@ -368,7 +367,9 @@ static void check_for_exited_childs()
             remove_child(old_childs_queue, pid, exit_status);
             if (childs_queue_is_empty(old_childs_queue)) {
                 ret = destroy_childs_queue(old_childs_queue);
-                /* if(!ret){} */
+                if (!ret) {
+                    ci_debug_printf(1, "WARNING: can not release unused shared mem block after reconfigure\n");
+                }
                 old_childs_queue = NULL;
             }
         }
@@ -583,7 +584,8 @@ int thread_main(server_decl_t * srv)
                 return 1;
             }
             ret = wait_for_queue(con_queue);
-            continue;
+            if (ret >= 0)
+                continue;
         }
 
         if (ret < 0) {        //An error has occured
@@ -894,13 +896,15 @@ void child_main(int pipefd)
         ret =
             ci_thread_create(&thread, (void *(*)(void *)) thread_main,
                              (void *) threads_list[i]);
-        threads_list[i]->srv_pthread = thread;
+        if (ret == 0)
+            threads_list[i]->srv_pthread = thread;
     }
     threads_list[CI_CONF.THREADS_PER_CHILD] = NULL;
     /*Now start the listener thread.... */
     ret = ci_thread_create(&thread, (void *(*)(void *)) listener_thread,
                            NULL);
-    listener_thread_id = thread;
+    if (ret == 0)
+        listener_thread_id = thread;
 
     /*set srand for child......*/
     srand(((unsigned int)time(NULL)) + (unsigned int)getpid());

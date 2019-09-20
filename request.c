@@ -950,7 +950,6 @@ static int get_send_body(ci_request_t * req, int parse_only)
     if (req->pstrblock_read_len == 0)
         action = ci_wait_for_read;
     do {
-        ret = 0;
         if (action) {
             ci_debug_printf(9, "Going to %s/%s data\n",
                             (action & ci_wait_for_read ? "Read" : "-"),
@@ -1029,7 +1028,6 @@ static int get_send_body(ci_request_t * req, int parse_only)
             } else
                 rbytes = 0;
 
-            no_io = 0;
             ci_debug_printf(9, "get send body: going to write/read: %d/%d bytes\n", wbytes, rbytes);
             if ((*service_io)
                     (rchunkdata, &rbytes, wchunkdata, &wbytes, req->eof_received,
@@ -1514,7 +1512,7 @@ static int do_end_of_data(ci_request_t * req)
 static int do_request(ci_request_t * req)
 {
     ci_service_xdata_t *srv_xdata = NULL;
-    int res, preview_status = 0, auth_status = CI_ACCESS_ALLOW;
+    int res, preview_status = 0, auth_status;
     int ret_status = CI_OK; /*By default ret_status is CI_OK, on error must set to CI_ERROR*/
     res = parse_header(req);
     if (res != EC_100) {
@@ -1537,7 +1535,6 @@ static int do_request(ci_request_t * req)
         return CI_ERROR;
     }
 
-    auth_status = req->access_type;
     if ((auth_status = access_check_request(req)) == CI_ACCESS_DENY) {
         req->keepalive = 0;
         if (req->auth_required) {
@@ -1545,6 +1542,7 @@ static int do_request(ci_request_t * req)
         } else {
             ec_responce(req, EC_403); /*Forbitten*/
         }
+        ci_debug_printf(3, "Request not authenticated, status: %d\n", auth_status);
         return CI_ERROR;      /*Or something that means authentication error */
     }
 
@@ -1573,7 +1571,6 @@ static int do_request(ci_request_t * req)
         break;
     case ICAP_REQMOD:
     case ICAP_RESPMOD:
-        preview_status = CI_NO_STATUS;
         if (req->preview >= 0) /*we are inside preview*/
             preview_status = do_request_preview(req);
         else {

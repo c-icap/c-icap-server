@@ -437,7 +437,7 @@ struct auth_hash authenticators_hash;
 int init_auth_hash(struct auth_hash *hash)
 {
     hash->usedsize = 0;
-    if (NULL == (hash->hash = malloc(STEP * sizeof(authenticator_module_t *)))) {
+    if (NULL == (hash->hash = malloc(STEP * sizeof(authenticator_module_t **)))) {
         hash->hash_size = STEP;
         return 0;
     }

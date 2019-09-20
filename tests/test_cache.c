@@ -135,17 +135,20 @@ int main(int argc,char *argv[])
                           );
     ci_str_vector_t *vect_str = ci_str_vector_create(4096);
     str = ci_str_vector_add(vect_str, "1_val1");
-    printf("Found 1_val1: %s\n", str);
+    printf("Add 1_val1: %s\n", str);
     str = ci_str_vector_add(vect_str, "1_val2");
-    printf("Found 1_val2: %s\n", str);
+    printf("Add 1_val2: %s\n", str);
     v_size = ci_cache_store_vector_size(vect_str);
     ci_cache_update(cache, "vect1", vect_str, v_size, &ci_cache_store_vector_val);
     ci_str_vector_destroy(vect_str);
 
     vect_str = ci_str_vector_create(4096);
     str = ci_str_vector_add(vect_str, "2_val1");
+    printf("Add 2_val1: %s\n", str);
     str = ci_str_vector_add(vect_str, "2_val2");
+    printf("Add 2_val2: %s\n", str);
     str = ci_str_vector_add(vect_str, "2_val3");
+    printf("Add 2_val3: %s\n", str);
     v_size = ci_cache_store_vector_size(vect_str);
     ci_cache_update(cache, "vect2", vect_str, v_size, &ci_cache_store_vector_val);
     ci_str_vector_destroy(vect_str);
