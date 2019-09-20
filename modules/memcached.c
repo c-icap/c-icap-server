@@ -434,7 +434,7 @@ int mc_cfg_servers_set(const char *directive, const char **argv, void *setdata)
         strncpy(srv.hostname, argv[argc], HOSTNAME_LEN);
         srv.hostname[HOSTNAME_LEN - 1] = '\0';
         if (srv.hostname[0] != '/' && (s = strchr(srv.hostname, ':')) != NULL) {
-            s = '\0';
+            *s = '\0';
             s++;
             srv.port = atoi(s);
             if (!srv.port)
