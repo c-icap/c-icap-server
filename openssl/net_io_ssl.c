@@ -812,7 +812,7 @@ int ci_tls_connect_nonblock(ci_connection_t *connection, const char *servername,
                         ci_strerror(errno,  buf, sizeof(buf)));
         return -1;
     }
-    connection->flags &= CI_CONNECTION_CONNECTED;
+    connection->flags |= CI_CONNECTION_CONNECTED;
 
     return 1;
 }
