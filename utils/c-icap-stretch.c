@@ -155,7 +155,7 @@ int load_urls(char *filename)
     char line[URL_SIZE+1];
 
     URLS_COUNT = 0;
-    memset(URLS, 0, sizeof(char)*MAX_URLS);
+    memset(URLS, 0, MAX_URLS * sizeof(char *));
 
     if ((f = fopen(filename, "r")) == NULL) {
         printf("Error opening magic file: %s\n", filename);
