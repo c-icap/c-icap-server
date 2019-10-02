@@ -184,7 +184,6 @@ static ci_proc_mutex_scheme_t posix_mutex_scheme = {
 /*NOTE: mkstemp does not exists for some platforms */
 static int file_proc_mutex_init(ci_proc_mutex_t * mutex, const char *name)
 {
-    strcpy(mutex->name, CI_MUTEX_FILE_TEMPLATE);
     snprintf(mutex->name, CI_PROC_MUTEX_NAME_SIZE, "%s_%s.XXXXXX", CI_MUTEX_FILE_TEMPLATE, name);
     if ((mutex->file.fd = mkstemp(mutex->name)) < 0)
         return 0;

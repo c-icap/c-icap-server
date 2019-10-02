@@ -387,14 +387,11 @@ int main(int argc, char **argv)
     }
 
     if (!dbfile) {
-        strncpy(outfile, txtfile, CI_MAX_PATH);
-        outfile[CI_MAX_PATH-1] = '\0';
-        len=strlen(outfile);
+        len = snprintf(outfile, CI_MAX_PATH, "%s.db", txtfile);
         if (len > CI_MAX_PATH-5) {
             ci_debug_printf(1,"The filename  %s is too long\n", outfile);
             exit(0);
         }
-        strcat(outfile,".db");
     } else {
         strncpy(outfile, dbfile, CI_MAX_PATH);
         outfile[CI_MAX_PATH-1] = '\0';

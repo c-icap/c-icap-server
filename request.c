@@ -409,8 +409,10 @@ static int parse_request(ci_request_t * req, char *buf)
         if (!(service = find_service(req->service))) { /*else search for an alias */
             if ((salias = find_service_alias(req->service))) {
                 service = salias->service;
-                if (salias->args[0] != '\0')
-                    strcpy(req->args, salias->args);
+                if (salias->args[0] != '\0') {
+                    strncpy(req->args, salias->args, MAX_SERVICE_ARGS);
+                    req->args[MAX_SERVICE_ARGS] = '\0';
+                }
             }
         }
     }
@@ -774,6 +776,7 @@ static int format_body_chunk(ci_request_t * req)
     int def_bytes;
     char *wbuf = NULL;
     char tmpbuf[EXTRA_CHUNK_SIZE];
+    static const size_t REQ_WBUF_SIZE = sizeof(((request_t *)0)->wbuf);
 
     if (!req->responce_hasbody)
         return CI_EOF;
@@ -798,12 +801,13 @@ static int format_body_chunk(ci_request_t * req)
         req->remain_send_block_bytes += def_bytes + 2;
     } else if (req->remain_send_block_bytes == CI_EOF) {
         if (req->return_code == EC_206 && req->i206_use_original_body >= 0) {
-            def_bytes = sprintf(req->wbuf, "0; use-original-body=%" PRId64 "\r\n\r\n",
-                                req->i206_use_original_body );
+            def_bytes = snprintf(req->wbuf, REQ_WBUF_SIZE,
+                                 "0; use-original-body=%" PRId64 "\r\n\r\n",
+                                 req->i206_use_original_body );
             req->pstrblock_responce = req->wbuf;
             req->remain_send_block_bytes = def_bytes;
         } else {
-            strcpy(req->wbuf, "0\r\n\r\n");
+            snprintf(req->wbuf, REQ_WBUF_SIZE, "0\r\n\r\n");
             req->pstrblock_responce = req->wbuf;
             req->remain_send_block_bytes = 5;
         }
@@ -1171,18 +1175,18 @@ static void options_responce(ci_request_t * req)
         ci_headers_add(head, "ICAP/1.0 500 Server Error");
     else
         ci_headers_add(head, "ICAP/1.0 200 OK");
-    strcpy(buf, "Methods: ");
-    if (ci_method_support(req->current_service_mod->mod_type, ICAP_RESPMOD)) {
-        strcat(buf, "RESPMOD");
-        if (ci_method_support
-                (req->current_service_mod->mod_type, ICAP_REQMOD)) {
-            strcat(buf, ", REQMOD");
-        }
-    } else {                   /*At least one method must supported. A check for error must exists here..... */
-        strcat(buf, "REQMOD");
-    }
 
-    ci_headers_add(head, buf);
+    int hasResp = ci_method_support(req->current_service_mod->mod_type, ICAP_RESPMOD);
+    int hasReq = ci_method_support(req->current_service_mod->mod_type, ICAP_REQMOD);
+    if (hasResp || hasReq) {
+        snprintf(buf, sizeof(buf), "Methods: %s%s%s",
+                 hasResp ? "RESPMOD" : "",
+                 hasResp && hasReq ? ", " : "",
+                 hasReq ? "REQMOD" : ""
+            );
+        ci_headers_add(head, buf);
+    } /*else error?*/
+
     snprintf(buf, MAX_HEADER_SIZE, "Service: C-ICAP/" VERSION " server - %s",
              ((str =
                    req->current_service_mod->mod_short_descr) ? str : req->
@@ -1234,19 +1238,20 @@ static void options_responce(ci_request_t * req)
 
     /* ci_headers_add(head, "Max-Connections: 20"); */
     if (ttl > 0) {
-        sprintf(buf, "Options-TTL: %d", ttl);
+        snprintf(buf, sizeof(buf), "Options-TTL: %d", ttl);
         ci_headers_add(head, buf);
     } else
         ci_headers_add(head, "Options-TTL: 3600");
-    strcpy(buf, "Date: ");
+    strncpy(buf, "Date: ", sizeof(buf));
+    buf[sizeof(buf) - 1] = '\0';
     ci_strtime_rfc822(buf + strlen(buf));
     ci_headers_add(head, buf);
     if (preview >= 0) {
-        sprintf(buf, "Preview: %d", srv_xdata->preview_size);
+        snprintf(buf, sizeof(buf), "Preview: %d", srv_xdata->preview_size);
         ci_headers_add(head, buf);
     }
     if (max_conns >= 0) {
-        sprintf(buf, "Max-Connections: %d", max_conns);
+        snprintf(buf, sizeof(buf), "Max-Connections: %d", max_conns);
         ci_headers_add(head, buf);
     }
     if (allow204 && allow206) {

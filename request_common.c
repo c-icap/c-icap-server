@@ -444,7 +444,8 @@ char *ci_request_set_log_str(ci_request_t *req, char *logstr)
     req->log_str = __intl_malloc(size*sizeof(char));
     if (!req->log_str)
         return NULL;
-    strcpy(req->log_str, logstr);
+    strncpy(req->log_str, logstr, size);
+    req->log_str[size] = '\0';
     return req->log_str;
 }
 

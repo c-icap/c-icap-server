@@ -294,8 +294,9 @@ void init_extra_data(ci_service_xdata_t * srv_xdata, const char *service)
     char stat_group[1024];
     memset(srv_xdata, 0, sizeof(ci_service_xdata_t));
     ci_thread_rwlock_init(&srv_xdata->lock);
-    strcpy(srv_xdata->ISTag, "ISTag: ");
-    strcat(srv_xdata->ISTag, CI_ISTAG "-XXXXXXXXX");
+    strncpy(srv_xdata->ISTag, "ISTag: " CI_ISTAG "-XXXXXXXXX", SRV_ISTAG_SIZE);
+    srv_xdata->ISTag[SRV_ISTAG_SIZE] = '\0';
+
     memset(srv_xdata->xincludes, 0, XINCLUDES_SIZE + 1);
     memset(srv_xdata->TransferPreview, 0, MAX_HEADER_SIZE + 1);
     memset(srv_xdata->TransferIgnore, 0, MAX_HEADER_SIZE + 1);
@@ -540,7 +541,6 @@ service_alias_t *add_service_alias(const char *service_alias, const char *servic
     service_alias_t *salias = NULL;
     ci_service_xdata_t *xdata = NULL;
 
-    int len = 0;
     int alias_indx = 0;
 
     if (!strcmp(service_alias, service_name)) {
@@ -579,19 +579,15 @@ service_alias_t *add_service_alias(const char *service_alias, const char *servic
     strncpy(service_aliases[alias_indx].alias,
             service_alias, MAX_SERVICE_NAME);
     service_aliases[alias_indx].alias[MAX_SERVICE_NAME] = '\0';
-    service_aliases[alias_indx].args[0] = '\0';
-    if (salias) {
-        len = strlen(salias->args);
-        strcpy(service_aliases[alias_indx].args, salias->args);       /*we had check for len */
+    size_t required = snprintf(service_aliases[alias_indx].args, MAX_SERVICE_ARGS,
+                               "%s%s%s",
+                               salias ? salias->args : "",
+                               (salias && strlen(salias->args)) ? "&" : "",
+                               args
+        );
+    if (required > MAX_SERVICE_ARGS) {
+        ci_debug_printf(1, "Warning: service %s args are truncated", service_aliases[alias_indx].alias);
     }
-    if (args && len) {
-        service_aliases[alias_indx].args[len] = '&';
-        len++;
-    }
-    if (args && MAX_SERVICE_ARGS - len > 0) {
-        strcpy(service_aliases[alias_indx].args + len, args);
-    }
-    service_aliases[alias_indx].args[MAX_SERVICE_ARGS] = '\0';
 
     if (xdata->intl_srv_conf_table)
         register_conf_table(service_aliases[alias_indx].alias,

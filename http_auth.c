@@ -260,9 +260,12 @@ int check_user_group(const char *user, const char *group)
 /*defined in types_ops*/
 static void *group_dup(const char *str, ci_mem_allocator_t *allocator)
 {
-    char *new_s = allocator->alloc(allocator,strlen(str)+1);
-    if (new_s)
-        strcpy(new_s, str);
+    const size_t str_size = strlen(str) + 1;
+    char *new_s = allocator->alloc(allocator, str_size);
+    if (new_s) {
+        strncpy(new_s, str, str_size);
+        new_s[str_size] = '\0';
+    }
     return new_s;
 }
 

@@ -81,8 +81,9 @@ const ci_array_item_t * ci_array_add(ci_array_t *array, const char *name, const 
     ci_mem_allocator_t *packer = array->alloc;
     assert(packer);
     item = ci_pack_allocator_alloc_unaligned(packer, array_item_size(ci_array_item_t));
+    size_t name_size = strlen(name) + 1;
     if (item) {
-        item->name =  ci_pack_allocator_alloc_from_rear(packer, strlen(name) + 1);
+        item->name =  ci_pack_allocator_alloc_from_rear(packer, name_size);
         item->value =  ci_pack_allocator_alloc_from_rear(packer, size);
     }
 
@@ -91,7 +92,8 @@ const ci_array_item_t * ci_array_add(ci_array_t *array, const char *name, const 
         return NULL;
     }
 
-    strcpy(item->name, name);
+    strncpy(item->name, name, name_size);
+    item->name[name_size - 1] = '\0';
     memcpy(item->value, value, size);
 
     /*The array->items should point to the first item...*/
@@ -168,14 +170,16 @@ const ci_array_item_t * ci_ptr_array_add(ci_ptr_array_t *ptr_array, const char *
     ci_mem_allocator_t *packer = ptr_array->alloc;
     assert(packer);
     item = ci_pack_allocator_alloc_unaligned(packer, array_item_size(ci_array_item_t));
+    size_t name_size = strlen(name) + 1;
     if (item)
-        item->name =  ci_pack_allocator_alloc_from_rear(packer, strlen(name) + 1);
+        item->name =  ci_pack_allocator_alloc_from_rear(packer, name_size);
 
     if (!item || !item->name) {
         ci_debug_printf(2, "Not enough space to add the new item to array!\n");
         return NULL;
     }
-    strcpy(item->name, name);
+    strncpy(item->name, name, name_size);
+    item->name[name_size - 1] = '\0';
     item->value = value;
 
     /*The array->items should point to the first item...*/

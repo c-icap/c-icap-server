@@ -81,8 +81,10 @@ void log_server(ci_request_t * req, const char *format, ...)
     if (default_logger) {
         if (MY_PROC_PID)
             snprintf(prefix, 64, "%u/%u", (unsigned int)MY_PROC_PID, (unsigned int)ci_thread_self());
-        else /*probably the main process*/
-            strcpy(prefix, "main proc");
+        else { /*probably the main process*/
+            strncpy(prefix, "main proc", sizeof(prefix));
+            prefix[sizeof(prefix) - 1] = '\0';
+        }
 
         default_logger->log_server(prefix, format, ap);    /*First argument must be changed..... */
     }

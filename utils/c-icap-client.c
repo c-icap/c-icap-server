@@ -88,17 +88,19 @@ void build_respmod_headers(int fd, ci_headers_list_t *headers)
     filesize = filestat.st_size;
 
     if (!http_no_resp_headers || !ci_str_vector_search(http_no_resp_headers, "Date")) {
-        strcpy(lbuf, "Date: ");
+        strncpy(lbuf, "Date: ", sizeof(lbuf));
+        lbuf[sizeof(lbuf) -1] = '\0';
         time(&ltimet);
-        ctime_r(&ltimet, lbuf + strlen(lbuf));
+        ctime_r(&ltimet, lbuf + strlen(lbuf)); /*TODO: replace with strftime*/
         lbuf[strlen(lbuf) - 1] = '\0';
         ci_headers_add(headers, lbuf);
     }
 
-    if (!http_no_resp_headers || !ci_str_vector_search(http_no_resp_headers, "Last-Modified")) {
-        strcpy(lbuf, "Last-Modified: ");
-        ctime_r(&ltimet, lbuf + strlen(lbuf));
-        lbuf[strlen(lbuf) - 1] = '\0';
+    if (!http_no_resp_headers || !ci_str_vector_search(http_no_resp_headers, "Last-Modified")) { 
+        strncpy(lbuf, "Last-Modified: ", sizeof(lbuf));
+        lbuf[sizeof(lbuf) -1] = '\0';
+        ctime_r(&ltimet, lbuf + strlen(lbuf)); /*TODO: replace with strftime*/
+        lbuf[sizeof(lbuf) - 1] = '\0';
         ci_headers_add(headers, lbuf);
     }
 
@@ -122,10 +124,11 @@ void build_reqmod_headers(char *url, const char *method, int fd, ci_headers_list
     ci_headers_add(headers, lbuf);
 
     if (!http_no_headers || !ci_str_vector_search(http_no_headers, "Date")) {
-        strcpy(lbuf, "Date: ");
+        strncpy(lbuf, "Date: ", sizeof(lbuf));
+        lbuf[sizeof(lbuf) -1] = '\0';
         time(&ltimet);
-        ctime_r(&ltimet, lbuf + strlen(lbuf));
-        lbuf[strlen(lbuf) - 1] = '\0';
+        ctime_r(&ltimet, lbuf + strlen(lbuf)); /*TODO: replace with strftime*/
+        lbuf[sizeof(lbuf) - 1] = '\0';
         ci_headers_add(headers, lbuf);
     }
 
@@ -133,7 +136,8 @@ void build_reqmod_headers(char *url, const char *method, int fd, ci_headers_list
         if (!http_no_headers || !ci_str_vector_search(http_no_headers, "Last-Modified")) {
             fstat(fd, &filestat);
             filesize = filestat.st_size;
-            strcpy(lbuf, "Last-Modified: ");
+            strncpy(lbuf, "Last-Modified: ", sizeof(lbuf));
+            lbuf[sizeof(lbuf) -1] = '\0';
             ctime_r(&ltimet, lbuf + strlen(lbuf));
             lbuf[strlen(lbuf) - 1] = '\0';
             ci_headers_add(headers, lbuf);

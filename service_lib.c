@@ -46,9 +46,7 @@ void ci_service_set_transfer_preview(ci_service_xdata_t * srv_xdata,
                                      const char *preview)
 {
     ci_thread_rwlock_wrlock(&srv_xdata->lock);
-    strcpy(srv_xdata->TransferPreview, "Transfer-Preview: ");
-    strncat(srv_xdata->TransferPreview, preview,
-            MAX_HEADER_SIZE - sizeof("Transfer-Preview: "));
+    snprintf(srv_xdata->TransferPreview, MAX_HEADER_SIZE, "Transfer-Preview: %s", preview);
     ci_thread_rwlock_unlock(&srv_xdata->lock);
 }
 
@@ -56,9 +54,7 @@ void ci_service_set_transfer_ignore(ci_service_xdata_t * srv_xdata,
                                     const char *ignore)
 {
     ci_thread_rwlock_wrlock(&srv_xdata->lock);
-    strcpy(srv_xdata->TransferIgnore, "Transfer-Ignore: ");
-    strncat(srv_xdata->TransferIgnore, ignore,
-            MAX_HEADER_SIZE - sizeof("Transfer-Ignore: "));
+    snprintf(srv_xdata->TransferIgnore, MAX_HEADER_SIZE, "Transfer-Ignore: %s", ignore);
     ci_thread_rwlock_unlock(&srv_xdata->lock);
 }
 
@@ -66,9 +62,7 @@ void ci_service_set_transfer_complete(ci_service_xdata_t * srv_xdata,
                                       const char *complete)
 {
     ci_thread_rwlock_wrlock(&srv_xdata->lock);
-    strcpy(srv_xdata->TransferComplete, "Transfer-Complete: ");
-    strncat(srv_xdata->TransferComplete, complete,
-            MAX_HEADER_SIZE - sizeof("Transfer-Complete: "));
+    snprintf(srv_xdata->TransferComplete, MAX_HEADER_SIZE, "Transfer-Complete: %s", complete);
     ci_thread_rwlock_unlock(&srv_xdata->lock);
 }
 
@@ -134,7 +128,7 @@ void ci_service_add_xincludes(ci_service_xdata_t * srv_xdata,
     ci_thread_rwlock_wrlock(&srv_xdata->lock);
     while (XINCLUDES_SIZE - len - 2 > 0 && xincludes[i]) {
         if (len) {
-            strcat(srv_xdata->xincludes, ", ");
+            strncat(srv_xdata->xincludes, ", ", 2);
             len += 2;
         }
         strncat(srv_xdata->xincludes, xincludes[i], XINCLUDES_SIZE - len);

@@ -32,9 +32,12 @@
 /*string operators */
 void *stringdup(const char *str, ci_mem_allocator_t *allocator)
 {
-    char *new_s = allocator->alloc(allocator,strlen(str)+1);
-    if (new_s)
-        strcpy(new_s, str);
+    size_t str_size = strlen(str) + 1;
+    char *new_s = allocator->alloc(allocator, str_size);
+    if (new_s) {
+        strncpy(new_s, str, str_size);
+        new_s[str_size - 1] = '\0';
+    }
     return new_s;
 }
 

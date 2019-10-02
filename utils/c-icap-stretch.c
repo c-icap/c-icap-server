@@ -198,13 +198,15 @@ void build_headers(int fd, ci_headers_list_t *headers)
     fstat(fd, &filestat);
     filesize = filestat.st_size;
 
-    strcpy(lbuf, "Date: ");
+    strncpy(lbuf, "Date: ", sizeof(lbuf));
+    lbuf[sizeof(lbuf) -1] = '\0';
     time(&ltimet);
     ctime_r(&ltimet, lbuf + strlen(lbuf));
     lbuf[strlen(lbuf) - 1] = '\0';
     ci_headers_add(headers, lbuf);
 
-    strcpy(lbuf, "Last-Modified: ");
+    strncpy(lbuf, "Last-Modified: ", sizeof(lbuf));
+    lbuf[sizeof(lbuf) -1] = '\0';
     ctime_r(&ltimet, lbuf + strlen(lbuf));
     lbuf[strlen(lbuf) - 1] = '\0';
     ci_headers_add(headers, lbuf);
@@ -225,10 +227,11 @@ void build_request_headers(const char *url, const char *method, ci_headers_list_
     lbuf[1023] = '\0';
     ci_headers_add(headers, lbuf);
 
-    strcpy(lbuf, "Date: ");
+    strncpy(lbuf, "Date: ", sizeof(lbuf));
+    lbuf[sizeof(lbuf) -1] = '\0';
     time(&ltimet);
     ctime_r(&ltimet, lbuf + strlen(lbuf));
-    lbuf[strlen(lbuf) - 1] = '\0';
+    lbuf[sizeof(lbuf) - 1] = '\0';
     ci_headers_add(headers, lbuf);
     ci_headers_add(headers, "User-Agent: C-ICAP-Client/x.xx");
     if (http_xheaders)
@@ -263,37 +266,41 @@ int do_req(ci_request_t *req, char *url, int *keepalive, int transparent)
     int fd_out = 0;
 
     headers = ci_headers_create();
-
+    printf("URl is: %s\n", url);
     if (transparent) {
         if ((s = strchr(url, '/')) != NULL) {
-            strncpy(host, url, 512 > (s-url) ? (s-url): 512);
-            host[512 > (s-url) ? (s-url): 511] = '\0';
-            strncpy(path, s, 512);
-            path[511] = '\0';
+            strncpy(host, url, sizeof(host) > (s-url) ? (s-url): sizeof(path));
+            host[sizeof(host) > (s-url) ? (s-url): sizeof(host) - 1] = '\0';
+            strncpy(path, s, sizeof(path));
+            path[sizeof(path) - 1] = '\0';
         } else {
-            strncpy(host, url, 512);
-            host[511] = '\0';
-            strcpy(path, "/index.html");
+            strncpy(host, url, sizeof(host));
+            host[sizeof(host) - 1] = '\0';
+            strncpy(path, "/index.html", sizeof(path));
+            path[sizeof(path) - 1] = '\0';
         }
-        snprintf(lbuf,1024, "GET %s HTTP/1.0", path);
-        lbuf[1023] = '\0';
+        snprintf(lbuf, sizeof(lbuf), "GET %s HTTP/1.0", path);
+        lbuf[sizeof(lbuf) - 1] = '\0';
     } else {
         if (strstr(url, "://"))
-            snprintf(lbuf,1024, "GET %s HTTP/1.0", url);
+            snprintf(lbuf, sizeof(lbuf), "GET %s HTTP/1.0", url);
         else
-            snprintf(lbuf,1024, "GET http://%s HTTP/1.0", url);
-        lbuf[1023] = '\0';
+            snprintf(lbuf, sizeof(lbuf), "GET http://%s HTTP/1.0", url);
+        host[0] = '\0';
     }
 
     ci_headers_add(headers, lbuf);
-    snprintf(lbuf,1024, "Host: %s", host);
-    lbuf[1023] = '\0';
-    ci_headers_add(headers, lbuf);
 
-    strcpy(lbuf, "Date: ");
+    if (host[0] != '\0') {
+        snprintf(lbuf, sizeof(lbuf), "Host: %s", host);
+        ci_headers_add(headers, lbuf);
+    }
+
+    strncpy(lbuf, "Date: ", sizeof(lbuf));
+    lbuf[sizeof(lbuf) - 1] = '\0';
     time(&ltimet);
     ctime_r(&ltimet, lbuf + strlen(lbuf));
-    lbuf[strlen(lbuf) - 1] = '\0';
+    lbuf[sizeof(lbuf) - 1] = '\0';
     ci_headers_add(headers, lbuf);
     ci_headers_add(headers, "User-Agent: C-ICAP-Stretch/x.xx");
     if (http_xheaders)

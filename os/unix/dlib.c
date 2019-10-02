@@ -30,7 +30,7 @@ void *ci_module_load(const char *module_file, const char *default_path)
     void *handle;
     int len;
     if (module_file[0] != '/' && default_path) {
-        len = strlen(default_path) + strlen(module_file) + 1; /*plus the '/' delimiter */
+        len = snprintf(path, CI_MAX_PATH, "%s/%s", default_path, module_file);
         if (len >= CI_MAX_PATH) {
             ci_debug_printf(1,
                             "Path name len of %s+%s is greater than "
@@ -38,13 +38,11 @@ void *ci_module_load(const char *module_file, const char *default_path)
                             default_path, module_file, CI_MAX_PATH);
             return NULL;
         }
-        strcpy(path, default_path);
-        strcat(path, "/");
-        strcat(path, module_file);
-    } else
+    } else {
         strncpy(path, module_file, CI_MAX_PATH - 1);
+        path[CI_MAX_PATH - 1] = '\0';
+    }
 
-    path[CI_MAX_PATH - 1] = '\0';
     handle = dlopen(path, RTLD_NOW | RTLD_GLOBAL);
 
     if (!handle) {

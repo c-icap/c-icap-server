@@ -63,14 +63,14 @@ void compute_my_hostname()
     int ret;
     ret = gethostname(hostname, 63);
     if (ret == 0) {
-        hostname[63] = '\0';
-        if ((hent = gethostbyname(hostname)) != NULL) {
+        hostname[sizeof(hostname) - 1] = '\0';
+        if ((hent = gethostbyname(hostname)) != NULL)
             strncpy(MY_HOSTNAME, hent->h_name, CI_MAXHOSTNAMELEN);
-            MY_HOSTNAME[CI_MAXHOSTNAMELEN] = '\0';
-        } else
-            strcpy(MY_HOSTNAME, hostname);
+        else
+            strncpy(MY_HOSTNAME, hostname, CI_MAXHOSTNAMELEN);
     } else
-        strcpy(MY_HOSTNAME, "localhost");
+        strncpy(MY_HOSTNAME, "localhost", CI_MAXHOSTNAMELEN);
+    MY_HOSTNAME[CI_MAXHOSTNAMELEN] = '\0';
 }
 
 #if ! defined(_WIN32)

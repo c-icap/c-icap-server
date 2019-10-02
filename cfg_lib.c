@@ -154,12 +154,13 @@ int ci_cfg_set_str(const char *directive, const char **argv, void *setdata)
         return 0;
     }
 
-    if (!(*((char **) setdata) = ci_cfg_alloc_mem(strlen(argv[0]) + 1))) {
+    const size_t str_size = strlen(argv[0]) + 1;
+    if (!(*((char **) setdata) = ci_cfg_alloc_mem(str_size))) {
         return 0;
     }
 
-    strcpy(*((char **) setdata), argv[0]);
-    /*     *((char **) setdata) = (char *) strdup(argv[0]); */
+    strncpy(*((char **) setdata), argv[0], str_size);
+    (*((char **) setdata))[str_size - 1] = '\0';
     ci_debug_printf(2, "Setting parameter: %s=%s\n", directive, argv[0]);
     return 1;
 }

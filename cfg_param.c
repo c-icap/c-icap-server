@@ -615,14 +615,15 @@ int cfg_set_tmp_dir(const char *directive, const char **argv, void *setdata)
     len = strlen(argv[0]);
 
     CI_CONF.TMPDIR = ci_cfg_alloc_mem((len + 2) * sizeof(char));
-    strcpy(CI_CONF.TMPDIR, argv[0]);
+    strncpy(CI_CONF.TMPDIR, argv[0], len + 1);
+    CI_CONF.TMPDIR[len] = '\0';
 #ifdef _WIN32
-    if (CI_CONF.TMPDIR[len] != '\\') {
+    if (CI_CONF.TMPDIR[len - 1] != '\\') {
         CI_CONF.TMPDIR[len] = '\\';
         CI_CONF.TMPDIR[len + 1] = '\0';
     }
 #else
-    if (CI_CONF.TMPDIR[len] != '/') {
+    if (CI_CONF.TMPDIR[len - 1] != '/') {
         CI_CONF.TMPDIR[len] = '/';
         CI_CONF.TMPDIR[len + 1] = '\0';
     }
