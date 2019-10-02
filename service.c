@@ -48,7 +48,23 @@ static service_alias_t *service_aliases = NULL;
 static int service_aliases_size;
 static int service_aliases_num = 0;
 
-
+const char *ci_service_xoption_str(int xopt)
+{
+    switch(xopt) {
+    case CI_XCLIENTIP:
+        return "X-Client-IP";
+    case CI_XSERVERIP:
+        return "X-Server-IP";
+    case CI_XSUBSCRIBERID:
+        return "X-Subscriber-ID";
+    case CI_XAUTHENTICATEDUSER:
+        return "X-Authenticated-User";
+    case CI_XAUTHENTICATEDGROUPS:
+        return "X-Authenticated-Groups";
+    default:
+        return "-";
+    }
+}
 
 /**************************************************************/
 /*service globale config table                                */

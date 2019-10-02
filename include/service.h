@@ -59,6 +59,9 @@ extern "C"
 #define CI_XAUTHENTICATEDUSER     8
 #define CI_XAUTHENTICATEDGROUPS  16
 
+/*Return an CI_X* option string. Used internally */
+const char *ci_service_xoption_str(int option);
+
 struct ci_request;
 struct ci_list;
 

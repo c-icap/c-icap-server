@@ -1255,45 +1255,28 @@ static void options_responce(ci_request_t * req)
         ci_headers_add(head, "Allow: 204");
     }
     if (xopts) {
-        strcpy(buf, "X-Include: ");
-        xlen = 11;            /*sizeof("X-Include: ") */
-        if ((xopts & CI_XCLIENTIP)) {
-            strcat(buf, "X-Client-IP");
-            xlen += sizeof("X-Client-IP");
-        }
-        if ((xopts & CI_XSERVERIP)) {
-            if (xlen > 11) {
-                strcat(buf, ", ");
-                xlen += 2;
+        strncpy(buf, "X-Include: ", sizeof(buf));
+        buf[sizeof(buf) -1] = '\0';
+        const size_t XINCSIZE = strlen(buf);
+        xlen = XINCSIZE;
+        static const unsigned int check_options[] = {
+            CI_XCLIENTIP,
+            CI_XSERVERIP,
+            CI_XSUBSCRIBERID,
+            CI_XAUTHENTICATEDUSER,
+            CI_XAUTHENTICATEDGROUPS,
+            0
+        };
+        for (int i = 0; check_options[i] !=0 && xlen < sizeof(buf); ++i) {
+            unsigned int check_xopt = check_options[i];
+            if (xopts & check_xopt) {
+                if (xlen > XINCSIZE)
+                    xlen += snprintf(buf + xlen, sizeof(buf) - xlen, ", ");
+                if (xlen < sizeof(buf))
+                    xlen += snprintf(buf + xlen, sizeof(buf) - xlen, "%s", ci_service_xoption_str(check_xopt));
             }
-            strcat(buf, "X-Server-IP");
-            xlen += sizeof("X-Server-IP");
         }
-        if ((xopts & CI_XSUBSCRIBERID)) {
-            if (xlen > 11) {
-                strcat(buf, ", ");
-                xlen += 2;
-            }
-            strcat(buf, "X-Subscriber-ID");
-            xlen += sizeof("X-Subscriber-ID");
-        }
-        if ((xopts & CI_XAUTHENTICATEDUSER)) {
-            if (xlen > 11) {
-                strcat(buf, ", ");
-                xlen += 2;
-            }
-            strcat(buf, "X-Authenticated-User");
-            xlen += sizeof("X-Authenticated-User");
-        }
-        if ((xopts & CI_XAUTHENTICATEDGROUPS)) {
-            if (xlen > 11) {
-                strcat(buf, ", ");
-                xlen += 2;
-            }
-            strcat(buf, "X-Authenticated-Groups");
-            xlen += sizeof("X-Authenticated-Groups");
-        }
-        if (xlen > 11)
+        if (xlen > XINCSIZE)
             ci_headers_add(head, buf);
     }
     if (!ci_headers_is_empty(req->xheaders)) {
