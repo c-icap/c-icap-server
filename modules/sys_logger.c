@@ -204,11 +204,8 @@ void sys_log_server(const char *server, const char *format, va_list ap)
     char buf[512];
     char prefix[150];
 
-    snprintf(prefix, 149, "%s, %s ", server, format);
-    prefix[149] = '\0';
-
-    vsnprintf(buf, 511, (const char *) prefix, ap);
-    buf[511] = '\0';
+    snprintf(prefix, sizeof(prefix), "%s, %s ", server, format);
+    vsnprintf(buf, sizeof(buf), (const char *) prefix, ap);
     syslog(SERVER_PRIORITY, "%s", buf);
 }
 

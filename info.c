@@ -351,10 +351,14 @@ int build_statistics(struct info_req_data *info_data)
 
     accept_mutex.scheme->proc_mutex_print_info(&accept_mutex, buf2, LOCAL_BUF_SIZE);
     sz = snprintf(buf, LOCAL_BUF_SIZE, tmpl->d1TableEntry_tmpl, buf2);
+    if (sz > LOCAL_BUF_SIZE)
+        sz = LOCAL_BUF_SIZE;
     ci_membuf_write(info_data->body,buf, sz, 0);
 
     childs_queue->queue_mtx.scheme->proc_mutex_print_info(&childs_queue->queue_mtx, buf2, LOCAL_BUF_SIZE);
     sz = snprintf(buf, LOCAL_BUF_SIZE, tmpl->d1TableEntry_tmpl, buf2);
+    if (sz > LOCAL_BUF_SIZE)
+        sz = LOCAL_BUF_SIZE;
     ci_membuf_write(info_data->body,buf, sz, 0);
 
     ci_membuf_write(info_data->body, tmpl->d1TableEnd_tmpl, strlen(tmpl->d1TableEnd_tmpl), 0);
@@ -369,6 +373,8 @@ int build_statistics(struct info_req_data *info_data)
 
         childs_queue->shmid.scheme->shared_mem_print_info(&childs_queue->shmid, buf2, LOCAL_BUF_SIZE);
         sz = snprintf(buf, LOCAL_BUF_SIZE, tmpl->d1TableEntry_tmpl, buf2);
+        if (sz > LOCAL_BUF_SIZE)
+            sz = LOCAL_BUF_SIZE;
         ci_membuf_write(info_data->body,buf, sz, 0);
     }
     ci_membuf_write(info_data->body, tmpl->d1TableEnd_tmpl, strlen(tmpl->d1TableEnd_tmpl), 0);

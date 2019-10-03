@@ -617,9 +617,8 @@ static void ec_responce_simple(ci_request_t * req, int ec)
 {
     char buf[256];
     int len;
-    snprintf(buf, 256, "ICAP/1.0 %d %s\r\n\r\n",
+    snprintf(buf, sizeof(buf), "ICAP/1.0 %d %s\r\n\r\n",
              ci_error_code(ec), ci_error_code_string(ec));
-    buf[255] = '\0';
     len = strlen(buf);
     ci_connection_write(req->connection, buf, len, TIMEOUT);
     req->bytes_out += len;
@@ -639,7 +638,7 @@ static int ec_responce(ci_request_t * req, int ec)
         allow204to200OK = 1;
         ec = EC_200;
     }
-    snprintf(buf, 256, "ICAP/1.0 %d %s",
+    snprintf(buf, sizeof(buf), "ICAP/1.0 %d %s",
              ci_error_code(ec), ci_error_code_string(ec));
     ci_headers_add(req->response_header, buf);
     ci_headers_add(req->response_header, "Server: C-ICAP/" VERSION);
@@ -693,7 +692,7 @@ static int mk_responce_header(ci_request_t * req)
     ci_headers_reset(req->response_header);
     head = req->response_header;
     assert(req->return_code >= EC_100 && req->return_code < EC_MAX);
-    snprintf(buf, 512, "ICAP/1.0 %d %s",
+    snprintf(buf, sizeof(buf), "ICAP/1.0 %d %s",
              ci_error_code(req->return_code), ci_error_code_string(req->return_code));
     ci_headers_add(head, buf);
     ci_headers_add(head, "Server: C-ICAP/" VERSION);
@@ -718,7 +717,7 @@ static int mk_responce_header(ci_request_t * req)
         }
     }
 
-    snprintf(buf, 512, "Via: ICAP/1.0 %s (C-ICAP/" VERSION " %s )",
+    snprintf(buf, sizeof(buf), "Via: ICAP/1.0 %s (C-ICAP/" VERSION " %s )",
              MY_HOSTNAME,
              (req->current_service_mod->mod_short_descr ? req->
               current_service_mod->mod_short_descr : req->current_service_mod->
@@ -793,8 +792,9 @@ static int format_body_chunk(ci_request_t * req)
         *(wbuf++) = '\r';
         *wbuf = '\n';
         def_bytes =
-            snprintf(tmpbuf, EXTRA_CHUNK_SIZE, "%x\r\n",
+            snprintf(tmpbuf, sizeof(tmpbuf), "%x\r\n",
                      req->remain_send_block_bytes);
+        assert(def_bytes < EXTRA_CHUNK_SIZE);
         wbuf = req->wbuf + EXTRA_CHUNK_SIZE - def_bytes;      /*Copy the chunk define in the beggining of chunk ..... */
         memcpy(wbuf, tmpbuf, def_bytes);
         req->pstrblock_responce = wbuf;
@@ -807,9 +807,9 @@ static int format_body_chunk(ci_request_t * req)
             req->pstrblock_responce = req->wbuf;
             req->remain_send_block_bytes = def_bytes;
         } else {
-            snprintf(req->wbuf, REQ_WBUF_SIZE, "0\r\n\r\n");
+            def_bytes = snprintf(req->wbuf, REQ_WBUF_SIZE, "0\r\n\r\n");
             req->pstrblock_responce = req->wbuf;
-            req->remain_send_block_bytes = 5;
+            req->remain_send_block_bytes = def_bytes;
         }
         return CI_EOF;
     }
@@ -1187,11 +1187,10 @@ static void options_responce(ci_request_t * req)
         ci_headers_add(head, buf);
     } /*else error?*/
 
-    snprintf(buf, MAX_HEADER_SIZE, "Service: C-ICAP/" VERSION " server - %s",
+    snprintf(buf, sizeof(buf), "Service: C-ICAP/" VERSION " server - %s",
              ((str =
                    req->current_service_mod->mod_short_descr) ? str : req->
               current_service_mod->mod_name));
-    buf[MAX_HEADER_SIZE] = '\0';
     ci_headers_add(head, buf);
 
     ci_service_data_read_lock(srv_xdata);

@@ -93,13 +93,16 @@ struct ldap_connection {
     struct ldap_connection *next;
 };
 
+#define LDURISZ 1024
+#define LDUSERSZ 256
+#define LDPWDSZ 256
 struct ldap_connections_pool {
-    char ldap_uri[1024];
+    char ldap_uri[LDURISZ];
     char server[CI_MAXHOSTNAMELEN+1];
     int port;
     int ldapversion;
-    char user[256];
-    char password[256];
+    char user[LDUSERSZ];
+    char password[LDPWDSZ];
     int connections;
 #ifdef LDAP_MAX_CONNECTIONS
     int max_connections;
@@ -197,14 +200,14 @@ static struct ldap_connections_pool *ldap_pool_create(char *server, int port, ch
     pool->next = NULL;
 
     if (user) {
-        strncpy(pool->user,user,256);
-        pool->user[255] = '\0';
+        strncpy(pool->user, user, LDUSERSZ);
+        pool->user[LDUSERSZ - 1] = '\0';
     } else
         pool->user[0] = '\0';
 
     if (password) {
-        strncpy(pool->password,password,256);
-        pool->password[255] = '\0';
+        strncpy(pool->password, password, LDPWDSZ);
+        pool->password[LDPWDSZ - 1] = '\0';
     } else
         pool->password[0] = '\0';
 
@@ -213,10 +216,9 @@ static struct ldap_connections_pool *ldap_pool_create(char *server, int port, ch
     pool->used = NULL;
 
     if (pool->port > 0)
-        snprintf(pool->ldap_uri, 1024, "%s://%s:%d", pool->scheme, pool->server, pool->port);
+        snprintf(pool->ldap_uri, LDURISZ, "%s://%s:%d", pool->scheme, pool->server, pool->port);
     else
-        snprintf(pool->ldap_uri, 1024, "%s://%s", pool->scheme, pool->server);
-    pool->ldap_uri[1023] = '\0';
+        snprintf(pool->ldap_uri, LDURISZ, "%s://%s", pool->scheme, pool->server);
     ci_thread_mutex_init(&pool->mutex);
 #ifdef LDAP_MAX_CONNECTIONS
     pool->max_connections = 0;
@@ -599,7 +601,6 @@ static void *ldap_open(struct ci_lookup_table *table, const char *scheme)
                                       ldapdata->user, ldapdata->password, ldapdata->scheme);
     if (use_cache) {
         snprintf(tname, sizeof(tname), "ldap:%s", ldapdata->name ? ldapdata->name : ldapdata->str);
-        tname[sizeof(tname) - 1] = '\0';
         ldapdata->cache = ci_cache_build(tname, use_cache,
                                          cache_size, cache_item_size, cache_ttl,
                                          &ci_str_ops);

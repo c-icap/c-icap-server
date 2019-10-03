@@ -119,8 +119,7 @@ void build_reqmod_headers(char *url, const char *method, int fd, ci_headers_list
     char lbuf[1024];
     time_t ltimet;
 
-    snprintf(lbuf,1024, "%s %s HTTP/1.0", method, url);
-    lbuf[1023] = '\0';
+    snprintf(lbuf, sizeof(lbuf), "%s %s HTTP/1.0", method, url);
     ci_headers_add(headers, lbuf);
 
     if (!http_no_headers || !ci_str_vector_search(http_no_headers, "Date")) {

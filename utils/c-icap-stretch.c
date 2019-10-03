@@ -223,8 +223,7 @@ void build_request_headers(const char *url, const char *method, ci_headers_list_
     char lbuf[1024];
     time_t ltimet;
 
-    snprintf(lbuf,1024, "%s %s HTTP/1.0", method, url);
-    lbuf[1023] = '\0';
+    snprintf(lbuf, sizeof(lbuf), "%s %s HTTP/1.0", method, url);
     ci_headers_add(headers, lbuf);
 
     strncpy(lbuf, "Date: ", sizeof(lbuf));
@@ -280,7 +279,6 @@ int do_req(ci_request_t *req, char *url, int *keepalive, int transparent)
             path[sizeof(path) - 1] = '\0';
         }
         snprintf(lbuf, sizeof(lbuf), "GET %s HTTP/1.0", path);
-        lbuf[sizeof(lbuf) - 1] = '\0';
     } else {
         if (strstr(url, "://"))
             snprintf(lbuf, sizeof(lbuf), "GET %s HTTP/1.0", url);
