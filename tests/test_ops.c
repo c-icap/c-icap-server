@@ -15,7 +15,7 @@ char *str_ip(ci_ip_t *ip)
     char ip_buf[512];
     char mask_buf[512];
     static char buf[1024];
-    sprintf(buf, "%s/%s",
+    snprintf(buf, sizeof(buf), "%s/%s",
             ci_inet_ntoa(ip->family, &ip->address, ip_buf, sizeof(ip_buf)),
             ci_inet_ntoa(ip->family, &ip->netmask, mask_buf, sizeof(mask_buf)));
     return buf;

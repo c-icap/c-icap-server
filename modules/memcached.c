@@ -26,6 +26,7 @@
 #include "mem.h"
 #include "module.h"
 
+#include <assert.h>
 #include <libmemcached/memcached.h>
 
 /*
@@ -107,7 +108,7 @@ void *mc_mem_realloc(memcached_st *ptr, void *mem, const size_t size);
 void *mc_mem_calloc(memcached_st *ptr, size_t nelem, const size_t elsize);
 #endif
 #endif
-static int computekey(char *mckey, const char *key, const char *search_domain);
+static int computekey(char *mckey, size_t mckey_size, const char *key, const char *search_domain);
 
 int mc_module_init(struct ci_server_conf *server_conf)
 {
@@ -292,7 +293,7 @@ const void *mc_cache_search(struct ci_cache *cache, const void *key, void **val,
     int found = 0;
     struct mc_cache_data *mc_data = (struct mc_cache_data *)cache->cache_data;
 
-    mckeylen = computekey(mckey, key, mc_data->domain);
+    mckeylen = computekey(mckey, sizeof(mckey), key, mc_data->domain);
     if (mckeylen == 0)
         return NULL;
 
@@ -351,7 +352,7 @@ int mc_cache_update(struct ci_cache *cache, const void *key, const void *val, si
     int mckeylen = 0;
     struct mc_cache_data *mc_data = (struct mc_cache_data *)cache->cache_data;
     memcached_st *mlocal;
-    mckeylen = computekey(mckey, key, mc_data->domain);
+    mckeylen = computekey(mckey, sizeof(mckey), key, mc_data->domain);
     if (mckeylen == 0)
         return 0;
 
@@ -402,7 +403,7 @@ int mc_cache_delete(const char *key, const char *search_domain)
 
     char mckey[MC_MAXKEYLEN+1];
     int mckeylen = 0;
-    mckeylen = computekey(mckey,key,search_domain);
+    mckeylen = computekey(mckey, sizeof(mckey), key,search_domain);
     if (mckeylen == 0)
         return 0;
 
@@ -504,27 +505,27 @@ void *mc_mem_calloc(memcached_st *ptr, size_t nelem, const size_t elsize)
 }
 #endif
 
-int computekey(char *mckey, const char *key, const char *search_domain)
+int computekey(char *mckey, size_t mckey_size, const char *key, const char *search_domain)
 {
     ci_MD5_CTX md5;
     unsigned char digest[16];
     int mckeylen;
-    /*we need to use keys in the form "search_domain:key"
-      We can not use keys bigger than MC_MAXKEYLEN
-     */
-    if (strlen(key)+strlen(search_domain)+2 < MC_MAXKEYLEN) {
-        mckeylen = sprintf(mckey, "v%s:%s", search_domain, key);
+    /*we need to use keys in the form "v[search_domain]:[key]" */
+    if (strlen(key) + strlen(search_domain) + 3 < mckey_size) {
+        mckeylen = snprintf(mckey, mckey_size, "v%s:%s", search_domain, key);
+        assert(mckeylen < mckey_size);
     } else if (USE_MD5_SUM_KEYS) {
         ci_MD5Init(&md5);
         ci_MD5Update(&md5, (const unsigned char *)key, strlen(key));
         ci_MD5Final(digest, &md5);
 
-        mckeylen = sprintf(mckey, "v%s:%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
+        mckeylen = snprintf(mckey, mckey_size, "v%s:%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
                            search_domain,
                            digest[0], digest[1], digest[2], digest[3],
                            digest[4], digest[5], digest[6], digest[7],
                            digest[8], digest[9], digest[10], digest[11],
                            digest[12], digest[13], digest[14], digest[15]);
+        assert(mckeylen < mckey_size); // Assume that the caller passed enough big buffer to hold digests.
     } else {
         mckeylen = 0;
     }

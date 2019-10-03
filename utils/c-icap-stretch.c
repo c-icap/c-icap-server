@@ -211,7 +211,7 @@ void build_headers(int fd, ci_headers_list_t *headers)
     lbuf[strlen(lbuf) - 1] = '\0';
     ci_headers_add(headers, lbuf);
 
-    sprintf(lbuf, "Content-Length: %d", filesize);
+    snprintf(lbuf, sizeof(lbuf), "Content-Length: %d", filesize);
     ci_headers_add(headers, lbuf);
     if (http_resp_xheaders)
         ci_headers_addheaders(headers, http_resp_xheaders);
@@ -658,7 +658,7 @@ int add_xclient_headers(const char *directive, const char **argv, void *setdata)
     } else
         ip4_end = ip4_start;
     for (i = ip4_start; i <= ip4_end; i++) {
-        sprintf(buf, "X-Client-IP: %d.%d.%d.%d", ip1, ip2,ip3,i);
+        snprintf(buf, sizeof(buf), "X-Client-IP: %d.%d.%d.%d", ip1, ip2,ip3,i);
         xclient_headers[xclient_headers_num++] = strdup(buf);
     }
     return 1;

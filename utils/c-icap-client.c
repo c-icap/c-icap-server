@@ -105,7 +105,7 @@ void build_respmod_headers(int fd, ci_headers_list_t *headers)
     }
 
     if (!http_no_resp_headers || !ci_str_vector_search(http_no_resp_headers, "Content-Length")) {
-        sprintf(lbuf, "Content-Length: %d", filesize);
+        snprintf(lbuf, sizeof(lbuf), "Content-Length: %d", filesize);
         ci_headers_add(headers, lbuf);
     }
 
@@ -144,7 +144,7 @@ void build_reqmod_headers(char *url, const char *method, int fd, ci_headers_list
         }
 
         if (!http_no_headers || !ci_str_vector_search(http_no_headers, "Content-Length")) {
-            sprintf(lbuf, "Content-Length: %d", filesize);
+            snprintf(lbuf, sizeof(lbuf), "Content-Length: %d", filesize);
             ci_headers_add(headers, lbuf);
         }
     }

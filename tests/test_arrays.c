@@ -59,8 +59,8 @@ int main(int argc,char *argv[])
     ci_debug_printf(1, "Creating array of strings ... ");
     arr_str = ci_str_array_new(32768);
     for (i = 1; i< 128; i++) {
-        sprintf(name, "name%d", i);
-        sprintf(value, "value%d", i);
+        snprintf(name, sizeof(name), "name%d", i);
+        snprintf(value, sizeof(value), "value%d", i);
         ci_str_array_add(arr_str, name, value);
     }
     ci_debug_printf(1, "done  ...  test it ... ");
@@ -81,8 +81,8 @@ int main(int argc,char *argv[])
     for (i = 0; i < 64; i++)
         ci_str_array_pop(arr_str);
     for (i = 64; i < 128; i++) {
-        sprintf(name, "name%d", i);
-        sprintf(value, "value%d", i);
+        snprintf(name, sizeof(name), "name%d", i);
+        snprintf(value, sizeof(value), "value%d", i);
         ci_str_array_add(arr_str, name, value);
     }
 
@@ -100,8 +100,8 @@ int main(int argc,char *argv[])
     ci_debug_printf(1, "Creating array of pointers ... ");
     arr_ptr = ci_ptr_array_new(32768);
     for (i = 1; i< 128; i++) {
-        sprintf(name, "name%d", i);
-        sprintf(value, "dynvalue%d", i);
+        snprintf(name, sizeof(name), "name%d", i);
+        snprintf(value, sizeof(value), "dynvalue%d", i);
         data = strdup(value);
         ci_ptr_array_add(arr_ptr, name, data);
     }
@@ -122,7 +122,7 @@ int main(int argc,char *argv[])
 
     for (j = 1; j < 3; j++) {
         for (i = 1; i< 128; i++) {
-            sprintf(value, "value: %d", i);
+            snprintf(value, sizeof(value), "value: %d", i);
             strdata = ci_str_vector_add(vect_str, value);
             if (!strdata)
                 ci_debug_printf(2, "Can not add: %s\n", value);
@@ -149,8 +149,8 @@ int main(int argc,char *argv[])
     ci_debug_printf(1, "\nTest for dynamic arrays\n");
     dyn_arr = ci_dyn_array_new(1024);
     for (i = 0, j = 0; i < 1024; ++i) {
-        sprintf(name, "name%d", i);
-        sprintf(value, "value%d", i);
+        snprintf(name, sizeof(name), "name%d", i);
+        snprintf(value, sizeof(value), "value%d", i);
         if (ci_dyn_array_add(dyn_arr, name, value, strlen(value) + 1) == NULL) {
             ci_debug_printf(1, "Failed to add : %s/%s!\n", name, value);
         } else

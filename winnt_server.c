@@ -518,7 +518,7 @@ int send_handles(DWORD child_ID,
         ci_debug_printf(1, "Error sending handles\n");
         return 0;
     }
-//   sprintf(buf,"%d:%d:%d:%d:%d",child_handle,dupmutex,dupshmem,dupshmemmtx,qsize);
+//   snprintf(buf, sizeof(buf), "%d:%d:%d:%d:%d",child_handle,dupmutex,dupshmem,dupshmemmtx,qsize);
 //   WriteFile(pipe, buf, strlen(buf)+1, &dwWritten, NULL);
     return 1;
 }

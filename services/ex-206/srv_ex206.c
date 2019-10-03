@@ -153,16 +153,15 @@ int ex206_check_preview_handler(char *preview_data, int preview_data_len,
                 // The content length increased because the script was added.
                 content_len += ex206_data->script_size;
                 ci_http_response_remove_header(req, "Content-Length");
-                char head[512];
-                snprintf(head, 512, "Content-Length: %" PRINTF_OFF_T, (CAST_OFF_T) content_len);
-                ci_http_response_add_header(req, head);
+                snprintf(buf, sizeof(buf), "Content-Length: %" PRINTF_OFF_T, (CAST_OFF_T) content_len);
+                ci_http_response_add_header(req, buf);
             }
         } else //Else no HTML tag use all of the original body data
             ci_request_206_origin_body(req, 0);
     } else //Use all of the original body data
         ci_request_206_origin_body(req, 0);
 
-    sprintf(buf, "X-Ex206-Service: %s", (body_altered ? "Modified" : "Unmodified"));
+    snprintf(buf, sizeof(buf), "X-Ex206-Service: %s", (body_altered ? "Modified" : "Unmodified"));
     if (req->type == ICAP_REQMOD)
         ci_http_request_add_header(req, buf);
     else if (req->type == ICAP_RESPMOD)
