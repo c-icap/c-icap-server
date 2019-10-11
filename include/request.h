@@ -119,7 +119,7 @@ typedef struct ci_request {
     int access_type;
     char user[MAX_USERNAME_LEN+1];
     char service[MAX_SERVICE_NAME+1];
-    char args[MAX_SERVICE_ARGS];
+    char args[MAX_SERVICE_ARGS + 1];
     int preview;
     int keepalive;
     int allow204;
