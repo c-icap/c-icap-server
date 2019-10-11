@@ -512,7 +512,7 @@ int computekey(char *mckey, const char *key, const char *search_domain)
     /*we need to use keys in the form "search_domain:key"
       We can not use keys bigger than MC_MAXKEYLEN
      */
-    if (strlen(key)+strlen(search_domain)+1 < MC_MAXKEYLEN) {
+    if (strlen(key)+strlen(search_domain)+2 < MC_MAXKEYLEN) {
         mckeylen = sprintf(mckey, "v%s:%s", search_domain, key);
     } else if (USE_MD5_SUM_KEYS) {
         ci_MD5Init(&md5);
