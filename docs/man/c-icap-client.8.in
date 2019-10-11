@@ -55,6 +55,12 @@ c-icap-client - simple ICAP client
 .B \-rhx "http-response-header"
 ]
 [
+.B \-no-h "http-request-header-name"
+]
+[
+.B \-no-rh "http-response-header-name"
+]
+[
 .B \-w preview_size
 ]
 [
@@ -98,6 +104,10 @@ Include the icap-header in icap request headers
 Include the http-request-header in http request headers
 .IP "-rhx http-response-header"
 Include the http-response-header in http response headers
+.IP \-no-h "http-request-header-name"
+Do not add the http-request-header-name header in http request headers
+.IP \-no-rh "http-response-header-name"
+Do not add the http-response-header-name header in http response headers
 .IP "-w preview"
 Sets the maximum preview data size to preview
 .IP "-v"

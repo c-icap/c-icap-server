@@ -28,6 +28,7 @@
 #include <assert.h>
 #include <time.h>
 #include <fcntl.h>
+#include "array.h"
 #include "request.h"
 #include "simple_api.h"
 #include "net_io.h"
@@ -37,6 +38,9 @@
 #include "net_io_ssl.h"
 #endif
 
+
+ci_str_vector_t *http_no_headers = NULL;
+ci_str_vector_t *http_no_resp_headers = NULL;
 
 /*Must declared ....*/
 int CONN_TIMEOUT = 300;
@@ -83,19 +87,25 @@ void build_respmod_headers(int fd, ci_headers_list_t *headers)
     fstat(fd, &filestat);
     filesize = filestat.st_size;
 
-    strcpy(lbuf, "Date: ");
-    time(&ltimet);
-    ctime_r(&ltimet, lbuf + strlen(lbuf));
-    lbuf[strlen(lbuf) - 1] = '\0';
-    ci_headers_add(headers, lbuf);
+    if (!http_no_resp_headers || !ci_str_vector_search(http_no_resp_headers, "Date")) {
+        strcpy(lbuf, "Date: ");
+        time(&ltimet);
+        ctime_r(&ltimet, lbuf + strlen(lbuf));
+        lbuf[strlen(lbuf) - 1] = '\0';
+        ci_headers_add(headers, lbuf);
+    }
 
-    strcpy(lbuf, "Last-Modified: ");
-    ctime_r(&ltimet, lbuf + strlen(lbuf));
-    lbuf[strlen(lbuf) - 1] = '\0';
-    ci_headers_add(headers, lbuf);
+    if (!http_no_resp_headers || !ci_str_vector_search(http_no_resp_headers, "Last-Modified")) {
+        strcpy(lbuf, "Last-Modified: ");
+        ctime_r(&ltimet, lbuf + strlen(lbuf));
+        lbuf[strlen(lbuf) - 1] = '\0';
+        ci_headers_add(headers, lbuf);
+    }
 
-    sprintf(lbuf, "Content-Length: %d", filesize);
-    ci_headers_add(headers, lbuf);
+    if (!http_no_resp_headers || !ci_str_vector_search(http_no_resp_headers, "Content-Length")) {
+        sprintf(lbuf, "Content-Length: %d", filesize);
+        ci_headers_add(headers, lbuf);
+    }
 
 }
 
@@ -111,25 +121,33 @@ void build_reqmod_headers(char *url, const char *method, int fd, ci_headers_list
     lbuf[1023] = '\0';
     ci_headers_add(headers, lbuf);
 
-    strcpy(lbuf, "Date: ");
-    time(&ltimet);
-    ctime_r(&ltimet, lbuf + strlen(lbuf));
-    lbuf[strlen(lbuf) - 1] = '\0';
-
-    if (fd > 0) {
-        fstat(fd, &filestat);
-        filesize = filestat.st_size;
-        strcpy(lbuf, "Last-Modified: ");
+    if (!http_no_headers || !ci_str_vector_search(http_no_headers, "Date")) {
+        strcpy(lbuf, "Date: ");
+        time(&ltimet);
         ctime_r(&ltimet, lbuf + strlen(lbuf));
         lbuf[strlen(lbuf) - 1] = '\0';
         ci_headers_add(headers, lbuf);
-
-        sprintf(lbuf, "Content-Length: %d", filesize);
-        ci_headers_add(headers, lbuf);
     }
 
-    ci_headers_add(headers, lbuf);
-    ci_headers_add(headers, "User-Agent: C-ICAP-Client/x.xx");
+    if (fd > 0) {
+        if (!http_no_headers || !ci_str_vector_search(http_no_headers, "Last-Modified")) {
+            fstat(fd, &filestat);
+            filesize = filestat.st_size;
+            strcpy(lbuf, "Last-Modified: ");
+            ctime_r(&ltimet, lbuf + strlen(lbuf));
+            lbuf[strlen(lbuf) - 1] = '\0';
+            ci_headers_add(headers, lbuf);
+        }
+
+        if (!http_no_headers || !ci_str_vector_search(http_no_headers, "Content-Length")) {
+            sprintf(lbuf, "Content-Length: %d", filesize);
+            ci_headers_add(headers, lbuf);
+        }
+    }
+
+    if (!http_no_headers || !ci_str_vector_search(http_no_headers, "User-Agent")) {
+        ci_headers_add(headers, "User-Agent: C-ICAP-Client/x.xx");
+    }
 
 }
 
@@ -182,6 +200,24 @@ int add_xheader(const char *directive, const char **argv, void *setdata)
         *xh = ci_headers_create();
 
     ci_headers_add(*xh, h);
+    return 1;
+}
+
+int add_header_name(const char *directive, const char **argv, void *setdata)
+{
+    ci_str_vector_t **hnames = (ci_str_vector_t **)setdata;
+    const char *h;
+
+    if (argv == NULL || argv[0] == NULL) {
+        ci_debug_printf(1, "Missing arguments in directive:%s\n", directive);
+        return 0;
+    }
+    h = argv[0];
+
+    if (*hnames == NULL)
+        *hnames = ci_str_vector_create(1024);
+
+    ci_str_vector_add(*hnames, h);
     return 1;
 }
 
@@ -249,7 +285,9 @@ static struct ci_options_entry options[] = {
     {"-206", NULL, &allow206, ci_cfg_enable, "Support allow206"},
     {"-x", "xheader", &xheaders, add_xheader, "Include xheader in icap request headers"},
     {"-hx", "xheader", &http_xheaders, add_xheader, "Include xheader in http request headers"},
+    {"-no-h", "header-name", &http_no_headers, add_header_name, "Do not include header in http request headers"},
     {"-rhx", "xheader", &http_resp_xheaders, add_xheader, "Include xheader in http response headers"},
+    {"-no-rh", "header-name", &http_no_resp_headers, add_header_name, "Do not include header in http response headers"},
     {"-w", "preview", &preview_size, ci_cfg_set_int, "Sets the maximum preview data size"},
     {"-v", NULL, &verbose, ci_cfg_enable, "Print response headers"},
     {NULL, NULL, NULL, NULL}
