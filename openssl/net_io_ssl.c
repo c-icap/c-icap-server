@@ -436,8 +436,8 @@ int icap_init_server_tls(ci_port_t *port)
         return 0;
 
     // Convert port
-    char portString[32];
-    sprintf(portString, "%s%s%d",
+    char portString[128];
+    snprintf(portString, sizeof(portString), "%s%s%d",
             (port->address ? port->address : ""),
             (port->address ? ":" : ""),
             port->port);
