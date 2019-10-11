@@ -712,7 +712,7 @@ int ci_simple_file_write(ci_simple_file_t * body, const char *buf, int len, int 
             body->endpos = 0;
             if (!(body->flags & CI_FILE_RING_MODE)) {
                 body->flags |= CI_FILE_RING_MODE;
-                ci_debug_printf(9, "Entering Ring mode!\n");
+                ci_debug_printf(5, "ci_simple_file_write: Entering Ring mode!\n");
             }
             wsize = min(body->readpos-body->endpos-1, len);
         } else {
