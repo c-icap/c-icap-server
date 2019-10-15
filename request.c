@@ -1243,7 +1243,8 @@ static void options_responce(ci_request_t * req)
         ci_headers_add(head, "Options-TTL: 3600");
     strncpy(buf, "Date: ", sizeof(buf));
     buf[sizeof(buf) - 1] = '\0';
-    ci_strtime_rfc822(buf + strlen(buf));
+    const size_t DATE_PREFIX_LEN = strlen(buf);
+    ci_strntime_rfc822(buf + DATE_PREFIX_LEN, sizeof(buf) - DATE_PREFIX_LEN);
     ci_headers_add(head, buf);
     if (preview >= 0) {
         snprintf(buf, sizeof(buf), "Preview: %d", srv_xdata->preview_size);

@@ -75,27 +75,49 @@ static const char *months[] = {
     "Sep", "Oct", "Nov", "Dec"
 };
 
-
 void ci_strtime(char *buf)
 {
-    SYSTEMTIME tm;
-    GetLocalTime(&tm);
-    buf[0] = '\0';
-    snprintf(buf, STR_TIME_SIZE, "%s %s %d %d:%d:%d %d", days[tm.wDayOfWeek],
-             months[tm.wMonth], tm.wDay, tm.wHour, tm.wMinute, tm.wSecond,
-             tm.wYear);
-    buf[STR_TIME_SIZE - 1] = '\0';
+    ci_strntime(buf, STR_TIME_SIZE);
 }
 
 void ci_strtime_rfc822(char *buf)
 {
+    ci_strntime_rfc822(buf, STR_TIME_SIZE);
+}
+
+void ci_strntime(char *buf, size_t size)
+{
+    assert(size > 0);
+    SYSTEMTIME tm;
+    GetLocalTime(&tm);
+    snprintf(buf, size, "%s %s %d %d:%d:%d %d", days[tm.wDayOfWeek],
+             months[tm.wMonth], tm.wDay, tm.wHour, tm.wMinute, tm.wSecond,
+             tm.wYear);
+}
+
+void ci_strntime_rfc822(char *buf, size_t size)
+{
+    assert(size > 0);
     SYSTEMTIME tm;
     GetLocalTime(&tm);         /*Here we need GMT time not localtime! */
-    buf[0] = '\0';
-    snprintf(buf, STR_TIME_SIZE, "%s, %0.2d %s %d %0.2d:%0.2d:%0.2d GMT",
+    snprintf(buf, size, "%s, %0.2d %s %d %0.2d:%0.2d:%0.2d GMT",
              days[tm.wDayOfWeek], tm.wDay, months[tm.wMonth], tm.wYear,
              tm.wHour, tm.wMinute, tm.wSecond);
-    buf[STR_TIME_SIZE - 1] = '\0';
+}
+
+//Untested code:
+void ci_to_strntime_rfc822(char *buf, size_t size, const time_t *tm)
+{
+    assert(size > 0);
+    LONGLONG ll = Int32x32To64(*tm, 10000000) + 116444736000000000;
+    FILETIME ft;
+    ft.dwLowDateTime = (DWORD) ll;
+    ft.dwHighDateTime = ll >>32;
+    SYSTEMTIME tm;
+    FileTimeToSystemTime(&fd, &tm);
+    snprintf(buf, size, "%s, %0.2d %s %d %0.2d:%0.2d:%0.2d GMT",
+             days[tm.wDayOfWeek], tm.wDay, months[tm.wMonth], tm.wYear,
+             tm.wHour, tm.wMinute, tm.wSecond);
 }
 
 int ci_mktemp_file(char *dir, char *template, char *filename)

@@ -343,7 +343,7 @@ void file_log_server(const char *server, const char *format, va_list ap)
     if (!server_log)
         return;
 
-    ci_strtime(buf); /* requires STR_TIME_SIZE=64 bytes size */
+    ci_strntime(buf, sizeof(buf));
     const size_t len = strlen(buf);
     const size_t written = snprintf(buf + len,  sizeof(buf) - len, ", %s, %s", server, format);
     assert(written < sizeof(buf) - len);

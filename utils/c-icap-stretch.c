@@ -35,7 +35,7 @@
 #include "net_io.h"
 #include "cfg_param.h"
 #include "debug.h"
-
+#include "util.h"
 
 
 /*GLOBALS ........*/
@@ -189,7 +189,6 @@ void build_headers(int fd, ci_headers_list_t *headers)
     struct stat filestat;
     int filesize;
     char lbuf[512];
-    time_t ltimet;
 
     ci_headers_add(headers, "200 OK HTTP/1.1");
     ci_headers_add(headers, "Filetype: Unknown");
@@ -200,15 +199,14 @@ void build_headers(int fd, ci_headers_list_t *headers)
 
     strncpy(lbuf, "Date: ", sizeof(lbuf));
     lbuf[sizeof(lbuf) -1] = '\0';
-    time(&ltimet);
-    ctime_r(&ltimet, lbuf + strlen(lbuf));
-    lbuf[strlen(lbuf) - 1] = '\0';
+    const size_t DATE_PREFIX_LEN = strlen(lbuf);
+    ci_strntime_rfc822(lbuf + DATE_PREFIX_LEN, sizeof(lbuf) - DATE_PREFIX_LEN);
     ci_headers_add(headers, lbuf);
 
     strncpy(lbuf, "Last-Modified: ", sizeof(lbuf));
     lbuf[sizeof(lbuf) -1] = '\0';
-    ctime_r(&ltimet, lbuf + strlen(lbuf));
-    lbuf[strlen(lbuf) - 1] = '\0';
+    const size_t LM_PREFIX_LEN = strlen(lbuf);
+    ci_to_strntime_rfc822(lbuf + LM_PREFIX_LEN, sizeof(lbuf) - LM_PREFIX_LEN, &filestat.st_mtime);
     ci_headers_add(headers, lbuf);
 
     snprintf(lbuf, sizeof(lbuf), "Content-Length: %d", filesize);
@@ -221,16 +219,14 @@ void build_headers(int fd, ci_headers_list_t *headers)
 void build_request_headers(const char *url, const char *method, ci_headers_list_t *headers)
 {
     char lbuf[1024];
-    time_t ltimet;
 
     snprintf(lbuf, sizeof(lbuf), "%s %s HTTP/1.0", method, url);
     ci_headers_add(headers, lbuf);
 
     strncpy(lbuf, "Date: ", sizeof(lbuf));
     lbuf[sizeof(lbuf) -1] = '\0';
-    time(&ltimet);
-    ctime_r(&ltimet, lbuf + strlen(lbuf));
-    lbuf[sizeof(lbuf) - 1] = '\0';
+    const size_t DATE_PREFIX_LEN = strlen(lbuf);
+    ci_strntime_rfc822(lbuf + DATE_PREFIX_LEN, sizeof(lbuf) - DATE_PREFIX_LEN);
     ci_headers_add(headers, lbuf);
     ci_headers_add(headers, "User-Agent: C-ICAP-Client/x.xx");
     if (http_xheaders)
@@ -260,7 +256,6 @@ int do_req(ci_request_t *req, char *url, int *keepalive, int transparent)
     char host[512];
     char path[512];
     char *s;
-    time_t ltimet;
     ci_headers_list_t *headers;
     int fd_out = 0;
 
@@ -296,9 +291,8 @@ int do_req(ci_request_t *req, char *url, int *keepalive, int transparent)
 
     strncpy(lbuf, "Date: ", sizeof(lbuf));
     lbuf[sizeof(lbuf) - 1] = '\0';
-    time(&ltimet);
-    ctime_r(&ltimet, lbuf + strlen(lbuf));
-    lbuf[sizeof(lbuf) - 1] = '\0';
+    const size_t DATE_PREFIX_LEN = strlen(lbuf);
+    ci_strntime_rfc822(lbuf + DATE_PREFIX_LEN, sizeof(lbuf) - DATE_PREFIX_LEN);
     ci_headers_add(headers, lbuf);
     ci_headers_add(headers, "User-Agent: C-ICAP-Stretch/x.xx");
     if (http_xheaders)

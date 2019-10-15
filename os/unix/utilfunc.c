@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include "util.h"
 #include <time.h>
+#include <assert.h>
 
 static const char *days[] = {
     "Sun",
@@ -50,28 +51,41 @@ static const char *months[] = {
 
 void ci_strtime(char *buf)
 {
-    struct tm br_tm;
-    time_t tm;
-    time(&tm);
-    asctime_r(localtime_r(&tm, &br_tm), buf);
-    buf[STR_TIME_SIZE - 1] = '\0';
-    buf[strlen(buf) - 1] = '\0';
+    ci_strntime(buf, STR_TIME_SIZE);
 }
 
 void ci_strtime_rfc822(char *buf)
 {
+    ci_strntime_rfc822(buf, STR_TIME_SIZE);
+}
+
+void ci_strntime(char *buf, size_t size)
+{
+    assert(size > 0);
     struct tm br_tm;
     time_t tm;
     time(&tm);
-    gmtime_r(&tm, &br_tm);
+    if (!strftime(buf, size, "%a %b %e %T %Y", localtime_r(&tm, &br_tm)))
+        buf[0] = '\0';
+}
 
-    snprintf(buf, STR_TIME_SIZE, "%s, %.2d %s %d %.2d:%.2d:%.2d GMT",
+void ci_to_strntime_rfc822(char *buf, size_t size, const time_t *tm)
+{
+    assert(size > 0);
+    struct tm br_tm;
+    gmtime_r(tm, &br_tm);
+    snprintf(buf, size, "%s, %.2d %s %d %.2d:%.2d:%.2d GMT",
              days[br_tm.tm_wday],
              br_tm.tm_mday,
              months[br_tm.tm_mon],
              br_tm.tm_year + 1900, br_tm.tm_hour, br_tm.tm_min, br_tm.tm_sec);
+}
 
-    buf[STR_TIME_SIZE - 1] = '\0';
+void ci_strntime_rfc822(char *buf, size_t size)
+{
+    time_t tm;
+    time(&tm);
+    ci_to_strntime_rfc822(buf, size, &tm);
 }
 
 int ci_mktemp_file(char *dir, char *template, char *filename)

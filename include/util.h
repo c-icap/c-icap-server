@@ -29,8 +29,12 @@ extern "C"
 
 #define STR_TIME_SIZE 64
 
-CI_DECLARE_FUNC(void) ci_strtime(char *buf);
-CI_DECLARE_FUNC(void) ci_strtime_rfc822(char *buf);
+CI_DECLARE_FUNC(void) ci_strtime(char *buf); /*Obsoleted*/
+CI_DECLARE_FUNC(void) ci_strtime_rfc822(char *buf); /*Obsoleted*/
+CI_DECLARE_FUNC(void) ci_strntime(char *buf, size_t size);
+CI_DECLARE_FUNC(void) ci_strntime_rfc822(char *buf, size_t size);
+CI_DECLARE_FUNC(void) ci_to_strntime_rfc822(char *buf, size_t size, const time_t *tm);
+
 CI_DECLARE_FUNC(int)  ci_mktemp_file(char*dir,char *name_template,char *filename);
 CI_DECLARE_FUNC(int)  ci_usleep(unsigned long usec);
 
