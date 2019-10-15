@@ -79,12 +79,11 @@ void print_headers(ci_request_t * req)
 void build_respmod_headers(int fd, ci_headers_list_t *headers)
 {
     struct stat filestat;
-    int filesize;
     char lbuf[512];
 
     ci_headers_add(headers, "HTTP/1.0 200 OK");
     fstat(fd, &filestat);
-    filesize = filestat.st_size;
+    int64_t filesize = filestat.st_size;
 
     if (!http_no_resp_headers || !ci_str_vector_search(http_no_resp_headers, "Date")) {
         strncpy(lbuf, "Date: ", sizeof(lbuf));
@@ -103,7 +102,7 @@ void build_respmod_headers(int fd, ci_headers_list_t *headers)
     }
 
     if (!http_no_resp_headers || !ci_str_vector_search(http_no_resp_headers, "Content-Length")) {
-        snprintf(lbuf, sizeof(lbuf), "Content-Length: %d", filesize);
+        snprintf(lbuf, sizeof(lbuf), "Content-Length: %" PRId64, filesize);
         ci_headers_add(headers, lbuf);
     }
 
@@ -113,7 +112,6 @@ void build_respmod_headers(int fd, ci_headers_list_t *headers)
 void build_reqmod_headers(char *url, const char *method, int fd, ci_headers_list_t *headers)
 {
     struct stat filestat;
-    int filesize;
     char lbuf[1024];
 
     snprintf(lbuf, sizeof(lbuf), "%s %s HTTP/1.0", method, url);
@@ -128,9 +126,9 @@ void build_reqmod_headers(char *url, const char *method, int fd, ci_headers_list
     }
 
     if (fd > 0) {
+        fstat(fd, &filestat);
+        int64_t filesize = filestat.st_size;
         if (!http_no_headers || !ci_str_vector_search(http_no_headers, "Last-Modified")) {
-            fstat(fd, &filestat);
-            filesize = filestat.st_size;
             strncpy(lbuf, "Last-Modified: ", sizeof(lbuf));
             lbuf[sizeof(lbuf) -1] = '\0';
             const size_t LM_PREFIX_LEN = strlen(lbuf);
@@ -139,7 +137,7 @@ void build_reqmod_headers(char *url, const char *method, int fd, ci_headers_list
         }
 
         if (!http_no_headers || !ci_str_vector_search(http_no_headers, "Content-Length")) {
-            snprintf(lbuf, sizeof(lbuf), "Content-Length: %d", filesize);
+            snprintf(lbuf, sizeof(lbuf), "Content-Length: %" PRId64, filesize);
             ci_headers_add(headers, lbuf);
         }
     }
