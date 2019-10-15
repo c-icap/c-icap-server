@@ -94,7 +94,7 @@ void build_respmod_headers(int fd, ci_headers_list_t *headers)
         ci_headers_add(headers, lbuf);
     }
 
-    if (!http_no_resp_headers || !ci_str_vector_search(http_no_resp_headers, "Last-Modified")) { 
+    if (!http_no_resp_headers || !ci_str_vector_search(http_no_resp_headers, "Last-Modified")) {
         strncpy(lbuf, "Last-Modified: ", sizeof(lbuf));
         lbuf[sizeof(lbuf) -1] = '\0';
         const size_t LM_PREFIX_LEN = strlen(lbuf);
