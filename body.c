@@ -815,14 +815,51 @@ int ci_simple_file_truncate(ci_simple_file_t *body, ci_off_t new_size)
     return 1;
 }
 
+static int mmap_body_prerequisites(ci_simple_file_t *body, const char *msg)
+{
+#if defined(USE_POSIX_MAPPED_FILES)
+     if (!(body->flags & CI_FILE_HAS_EOF)) {
+         ci_debug_printf(1, "%s: '%s' failed, the eof flag is not set!\n", msg, body->filename);
+        return 0;
+    }
+
+    if (body->endpos > SIZE_MAX) {
+        ci_debug_printf(1, "%s: '%s' failed, huge body data!\n", msg, body->filename);
+        return 0;
+    }
+    return 1;
+#else
+    ci_debug_printf( 1, "%s: Requires posix mapped files to work, which is not supported.", msg);
+    return 0;
+#endif
+}
+
+static void mmap_body_map(ci_simple_file_t *body, size_t map_size, const char *msg)
+{
+#if defined(USE_POSIX_MAPPED_FILES)
+    int flags = body->flags & CI_FILE_SHARED ? MAP_SHARED : MAP_PRIVATE;
+    char *addr = mmap(NULL, map_size,  PROT_READ | PROT_WRITE, flags, body->fd, 0);
+    if (!addr)
+        return;
+
+    body->mmap_addr = addr;
+    body->mmap_size = map_size;
+#endif
+}
 
 const char * ci_simple_file_to_const_string(ci_simple_file_t *body)
 {
-#if defined(USE_POSIX_MAPPED_FILES)
     ci_off_t map_size;
-    char *addr = NULL;
-    if (!(body->flags & CI_FILE_HAS_EOF)) {
-        ci_debug_printf(1, "mmap to file: '%s' failed, the eof flag is not set!\n", body->filename);
+    if (!mmap_body_prerequisites(body, "ci_simple_file_to_const_string"))
+        return NULL;
+
+    if (body->mmap_addr) {
+        if (body->mmap_size > body->endpos && body->mmap_addr[body->endpos == '\0'])
+            return body->mmap_addr; /*It is already NULL terminated*/
+
+        /*Else it is already mapped but it is not NULL terminated.
+         It is safer to return NULL for now.*/
+        ci_debug_printf(1, "ci_simple_file_to_const_string: '%s' failed, already mmaped as raw data!\n", body->filename);
         return NULL;
     }
 
@@ -831,21 +868,24 @@ const char * ci_simple_file_to_const_string(ci_simple_file_t *body)
     if (ftruncate(body->fd, map_size) != 0)
         return NULL; /*failed to resize*/
 
-    if (body->mmap_addr == NULL) {
-        addr = mmap(NULL, map_size,  PROT_READ | PROT_WRITE, MAP_PRIVATE, body->fd, 0);
-        if (!addr)
-            return NULL;
+    assert(body->mmap_addr == NULL);
+    mmap_body_map(body, map_size, "ci_simple_file_to_const_string");
+    /*Terminate buffer (already terminated by ftruncate?) */
+    body->mmap_addr[map_size - 1] = '\0';
 
-        /*Terminate buffer (already terminated by ftruncate?) */
-        addr[map_size - 1] = '\0';
-        body->mmap_addr = addr;
-        body->mmap_size = map_size;
-    }
     return body->mmap_addr;
-#else
-    ci_debug_printf( 1, "ci_simple_file_to_const_string: Requires posix mapped files to work, which is not supported.");
-    return NULL;
-#endif
+}
+
+const char * ci_simple_file_to_const_raw_data(ci_simple_file_t *body, size_t *data_size)
+{
+    if (!mmap_body_prerequisites(body, "ci_simple_file_to_const_raw_data"))
+        return NULL;
+
+    if (body->mmap_addr == NULL)
+        mmap_body_map(body, (size_t)body->endpos, "ci_simple_file_to_const_raw_data");
+
+    *data_size = body->endpos;
+    return body->mmap_addr;
 }
 
 #define CI_MEMBUF_SF_FLAGS (CI_MEMBUF_CONST | CI_MEMBUF_RO | CI_MEMBUF_NULL_TERMINATED)
@@ -853,10 +893,21 @@ ci_membuf_t *ci_simple_file_to_membuf(ci_simple_file_t *body, unsigned int flags
 {
     assert((CI_MEMBUF_SF_FLAGS & flags) == flags);
     assert(flags & CI_MEMBUF_CONST);
-    void *addr = (void *)ci_simple_file_to_const_string(body);
+    void *addr;
+    if (flags & CI_MEMBUF_NULL_TERMINATED)
+        addr = (void *)ci_simple_file_to_const_string(body);
+    else {
+        size_t asize = 0;
+        addr = (void *)ci_simple_file_to_const_raw_data(body, &asize);
+    }
+
     if (!addr)
         return NULL;
-    return ci_membuf_from_content(body->mmap_addr, body->mmap_size, body->endpos, CI_MEMBUF_CONST | CI_MEMBUF_RO | CI_MEMBUF_NULL_TERMINATED | CI_MEMBUF_HAS_EOF);
+
+    unsigned int memflags =  CI_MEMBUF_CONST | CI_MEMBUF_RO | CI_MEMBUF_HAS_EOF;
+    if (flags & CI_MEMBUF_NULL_TERMINATED)
+        memflags |= CI_MEMBUF_NULL_TERMINATED;
+    return ci_membuf_from_content(body->mmap_addr, body->mmap_size, body->endpos, memflags);
 }
 
 /*******************************************************************/

@@ -74,6 +74,7 @@ CI_DECLARE_FUNC(unsigned int) ci_membuf_set_flag(struct ci_membuf *body, unsigne
 #define CI_FILE_USELOCK    0x01
 #define CI_FILE_HAS_EOF    0x02
 #define CI_FILE_RING_MODE  0x04
+#define CI_FILE_SHARED     0x08
 
 typedef struct ci_cached_file {
     ci_off_t endpos;
@@ -138,11 +139,13 @@ CI_DECLARE_FUNC(int) ci_simple_file_read(ci_simple_file_t *body,char *buf,int le
 CI_DECLARE_FUNC(int) ci_simple_file_truncate(ci_simple_file_t *body, ci_off_t new_size);
 
 /*Currently it is just creates a MAP_PRIVATE memory.
-  Only CI_MEMBUF_CONST flag is supported.
+  Currently the CI_MEMBUF_CONST and CI_MEMBUF_NULL_TERMINATED flags
+  are supported. The CI_MEMBUF_CONST flag is required.
   Works only if USE_POSIX_MAPPED_FILES is defined
 */
 CI_DECLARE_FUNC(ci_membuf_t *) ci_simple_file_to_membuf(ci_simple_file_t *body, unsigned int flags);
 CI_DECLARE_FUNC(const char *) ci_simple_file_to_const_string(ci_simple_file_t *body);
+CI_DECLARE_FUNC(const char *) ci_simple_file_to_const_raw_data(ci_simple_file_t *body, size_t *data_size);
 
 #define ci_simple_file_lock_all(body)            (body->flags |= CI_FILE_USELOCK,body->unlocked = 0)
 #define ci_simple_file_unlock(body, len)     (body->unlocked = ((body->readpos) > len ? (body->readpos) : len))
