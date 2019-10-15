@@ -336,17 +336,18 @@ void file_log_access(ci_request_t *req)
 
 void file_log_server(const char *server, const char *format, va_list ap)
 {
-    char buf[STR_TIME_SIZE];
+    char buf[1024];
 
     if (!server_log)
         return;
 
-    ci_strtime(buf);
+    ci_strtime(buf); /* requires STR_TIME_SIZE=64 bytes size */
+    const size_t len = strlen(buf);
+    const size_t written = snprintf(buf + len,  sizeof(buf) - len, ", %s, %s", server, format);
+    assert(written < sizeof(buf) - len);
     ci_thread_rwlock_rdlock(&systemlog_rwlock); /*obtain a read lock*/
-    fprintf(server_log, "%s, %s, ", buf, server);
-    vfprintf(server_log, format, ap);
+    vfprintf(server_log, buf, ap);
     ci_thread_rwlock_unlock(&systemlog_rwlock); /*release a read lock*/
-//     fprintf(server_log,"\n");
 }
 
 
