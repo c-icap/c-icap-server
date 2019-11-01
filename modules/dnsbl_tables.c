@@ -58,7 +58,6 @@ struct dnsbl_data {
 void *dnsbl_table_open(struct ci_lookup_table *table)
 {
     struct dnsbl_data *dnsbl_data;
-    char tname[CI_MAXHOSTNAMELEN];
     ci_dyn_array_t *args = NULL;
     ci_array_item_t *arg = NULL;
     char *use_cache = "local";
@@ -113,6 +112,7 @@ void *dnsbl_table_open(struct ci_lookup_table *table)
     }
 
     if (use_cache) {
+        char tname[CI_MAXHOSTNAMELEN + 8];
         snprintf(tname, sizeof(tname), "dnsbl:%s", table->path);
         tname[sizeof(tname) - 1] = '\0';
         dnsbl_data->cache = ci_cache_build(tname, use_cache, cache_size, 1024, cache_ttl, &ci_str_ops);
@@ -139,7 +139,7 @@ void  dnsbl_table_close(struct ci_lookup_table *table)
 static ci_vector_t  *resolv_hostname(char *hostname);
 void *dnsbl_table_search(struct ci_lookup_table *table, void *key, void ***vals)
 {
-    char dnsname[CI_MAXHOSTNAMELEN + 1];
+    char dnsname[CI_MAXHOSTNAMELEN + 8];
     char *server;
     ci_str_vector_t  *v;
     size_t v_size;
@@ -161,8 +161,8 @@ void *dnsbl_table_search(struct ci_lookup_table *table, void *key, void ***vals)
         return key;
     }
 
-    snprintf(dnsname, CI_MAXHOSTNAMELEN, "%s.%s", server, dnsbl_data->check_domain);
-    dnsname[CI_MAXHOSTNAMELEN] = '\0';
+    snprintf(dnsname, sizeof(dnsname), "%s.%s", server, dnsbl_data->check_domain);
+    dnsname[sizeof(dnsname) - 1] = '\0';
     v = resolv_hostname(dnsname);
     if (dnsbl_data->cache) {
         v_size =  v != NULL ? ci_cache_store_vector_size(v) : 0;
