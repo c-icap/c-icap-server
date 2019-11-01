@@ -884,7 +884,7 @@ static int client_send_request_headers(ci_request_t * req, int has_eof)
         }
     }
 
-    static const size_t REQ_WBUF_SIZE = sizeof(((request_t *)0)->wbuf);
+    static const size_t REQ_WBUF_SIZE = sizeof(((ci_request_t *)0)->wbuf);
     if (req->status == CLIENT_SEND_HEADERS_WRITE_RES_HEADERS) {
         if (req->preview > 0 && req->preview_data.used > 0) {
             int bytes = snprintf(req->wbuf, REQ_WBUF_SIZE, "%x\r\n", req->preview);

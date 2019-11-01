@@ -775,7 +775,7 @@ static int format_body_chunk(ci_request_t * req)
     int def_bytes;
     char *wbuf = NULL;
     char tmpbuf[EXTRA_CHUNK_SIZE];
-    static const size_t REQ_WBUF_SIZE = sizeof(((request_t *)0)->wbuf);
+    static const size_t REQ_WBUF_SIZE = sizeof(((ci_request_t *)0)->wbuf);
 
     if (!req->responce_hasbody)
         return CI_EOF;
