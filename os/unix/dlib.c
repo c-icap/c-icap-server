@@ -28,19 +28,15 @@ void *ci_module_load(const char *module_file, const char *default_path)
 {
     char path[CI_MAX_PATH];
     void *handle;
-    int len;
-    if (module_file[0] != '/' && default_path) {
-        len = snprintf(path, CI_MAX_PATH, "%s/%s", default_path, module_file);
-        if (len >= CI_MAX_PATH) {
-            ci_debug_printf(1,
-                            "Path name len of %s+%s is greater than "
-                            "MAXPATH:%d, not loading\n",
-                            default_path, module_file, CI_MAX_PATH);
-            return NULL;
-        }
-    } else {
-        strncpy(path, module_file, CI_MAX_PATH - 1);
-        path[CI_MAX_PATH - 1] = '\0';
+    int requiredLen;
+    if (module_file[0] != '/' && default_path)
+        requiredLen = snprintf(path, CI_MAX_PATH, "%s/%s", default_path, module_file);
+    else
+        requiredLen = snprintf(path, sizeof(path), "%s", module_file);
+
+    if (requiredLen >= CI_MAX_PATH) {
+        ci_debug_printf(1, "Error: too long filename, truncated to '%s'\n", path);
+        return NULL;
     }
 
     handle = dlopen(path, RTLD_NOW | RTLD_GLOBAL);
