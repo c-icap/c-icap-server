@@ -165,21 +165,21 @@ CI_DECLARE_FUNC(int) ci_headers_remove(ci_headers_list_t *heads, const char *hea
  *
  *example usage:
  \code
- char *head;
+ const char *head;
  head = ci_headers_search(heads,"Content-Length")
  \endcode
  * In this example on success the head pointer will point to a
  * \em "Content-Lenght: 1025" string
  *
  */
-CI_DECLARE_FUNC(const char *)  ci_headers_search(ci_headers_list_t *heads, const char *header);
+CI_DECLARE_FUNC(const char *)  ci_headers_search(const ci_headers_list_t *heads, const char *header);
 
 /**
  * Similar to ci_headers_search but also sets to a parameter the size of
  * returned header
  \ingroup HEADERS
  */
-CI_DECLARE_FUNC(const char *) ci_headers_search2(ci_headers_list_t * h, const char *header, size_t *return_size);
+CI_DECLARE_FUNC(const char *) ci_headers_search2(const ci_headers_list_t * h, const char *header, size_t *return_size);
 
 /**
  * Search for a header in a header list and return the value of the first
@@ -191,21 +191,21 @@ CI_DECLARE_FUNC(const char *) ci_headers_search2(ci_headers_list_t * h, const ch
  *
  *example usage:
  \code
- char *headval;
+ const char *headval;
  int content_length;
  headval = ci_headers_value(heads,"Content-Length");
  content_length = strtol(headval,NULL,10);
  \endcode
  *
  */
-CI_DECLARE_FUNC(const char *) ci_headers_value(ci_headers_list_t *heads, const char *header);
+CI_DECLARE_FUNC(const char *) ci_headers_value(const ci_headers_list_t *heads, const char *header);
 
 /**
  * Similar to ci_headers_search but also sets to a parameter the size of
  * returned header value
  \ingroup HEADERS
  */
-CI_DECLARE_FUNC(const char *) ci_headers_value2(ci_headers_list_t * h, const char *header, size_t *return_size);
+CI_DECLARE_FUNC(const char *) ci_headers_value2(const ci_headers_list_t * h, const char *header, size_t *return_size);
 
 /**
  * Search for a header in a header list and copy the value to a buffer if exist
@@ -218,7 +218,7 @@ CI_DECLARE_FUNC(const char *) ci_headers_value2(ci_headers_list_t * h, const cha
  *
  *example usage:
  \code
- char *headval;
+ const char *headval;
  char buf[1024];
  int content_length;
  headval = ci_headers_copy_value(heads, "Content-Length", buf, sizeof(buf));
@@ -227,7 +227,7 @@ CI_DECLARE_FUNC(const char *) ci_headers_value2(ci_headers_list_t * h, const cha
  \endcode
  *
  */
-CI_DECLARE_FUNC(const char *) ci_headers_copy_value(ci_headers_list_t *heads, const char *header, char *buf, size_t len);
+CI_DECLARE_FUNC(const char *) ci_headers_copy_value(const ci_headers_list_t *heads, const char *header, char *buf, size_t len);
 
 /**
  * Run the given function for each header name/value pair
@@ -239,7 +239,7 @@ CI_DECLARE_FUNC(const char *) ci_headers_copy_value(ci_headers_list_t *heads, co
  *      name/value pair.
  \return non zero on success, zero otherwise
  */
-CI_DECLARE_FUNC(int) ci_headers_iterate(ci_headers_list_t *heads, void *data, void (*fn)(void *data, const char  *header_name, const char  *header_value));
+CI_DECLARE_FUNC(int) ci_headers_iterate(const ci_headers_list_t *heads, void *data, void (*fn)(void *data, const char  *header_name, const char  *header_value));
 
 /**
  * Copy the headers to a buffer in a form they can be transmitted to the
@@ -252,7 +252,7 @@ CI_DECLARE_FUNC(int) ci_headers_iterate(ci_headers_list_t *heads, void *data, vo
  \return the size of written data, or zero if the headers does not fit to
  *       buffer.
  */
-CI_DECLARE_FUNC(size_t) ci_headers_pack_to_buffer(ci_headers_list_t *heads, char *buf, size_t size);
+CI_DECLARE_FUNC(size_t) ci_headers_pack_to_buffer(const ci_headers_list_t *heads, char *buf, size_t size);
 
 /**
  * Get the first line of headers
@@ -260,7 +260,7 @@ CI_DECLARE_FUNC(size_t) ci_headers_pack_to_buffer(ci_headers_list_t *heads, char
  \param heads is a pointer to the ci_headers_list_t object
  \return the first line on success, NULL otherwise
 */
-CI_DECLARE_FUNC(const char *) ci_headers_first_line(ci_headers_list_t *heads);
+CI_DECLARE_FUNC(const char *) ci_headers_first_line(const ci_headers_list_t *heads);
 
 /**
  * Get the first line of headers and its size
@@ -269,7 +269,7 @@ CI_DECLARE_FUNC(const char *) ci_headers_first_line(ci_headers_list_t *heads);
  \param return_size where to store the size of first line in bytes
  \return the first line on success, NULL otherwise
 */
-CI_DECLARE_FUNC(const char *) ci_headers_first_line2(ci_headers_list_t *heads, size_t *return_size);
+CI_DECLARE_FUNC(const char *) ci_headers_first_line2(const ci_headers_list_t *heads, size_t *return_size);
 
 /*compatibility macro*/
 #define ci_headers_copy_header_bytes ci_headers_pack_to_buffer
@@ -277,12 +277,12 @@ CI_DECLARE_FUNC(const char *) ci_headers_first_line2(ci_headers_list_t *heads, s
 /*The following headers are only used internally */
 CI_DECLARE_FUNC(void) ci_headers_pack(ci_headers_list_t *heads);
 CI_DECLARE_FUNC(int)  ci_headers_unpack(ci_headers_list_t *heads);
-CI_DECLARE_FUNC(int)  sizeofheader(ci_headers_list_t *heads);
+CI_DECLARE_FUNC(int)  sizeofheader(const ci_headers_list_t *heads);
 
 CI_DECLARE_FUNC(ci_encaps_entity_t) *mk_encaps_entity(int type,int val);
 CI_DECLARE_FUNC(void) destroy_encaps_entity(ci_encaps_entity_t *e);
 CI_DECLARE_FUNC(int) get_encaps_type(const char *buf,int *val,char **endpoint);
-CI_DECLARE_FUNC(int)  sizeofencaps(ci_encaps_entity_t *e);
+CI_DECLARE_FUNC(int)  sizeofencaps(const ci_encaps_entity_t *e);
 
 #ifdef __CI_COMPAT
 #define ci_headers_make ci_header_create

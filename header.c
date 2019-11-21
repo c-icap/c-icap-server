@@ -278,7 +278,7 @@ int ci_headers_addheaders(ci_headers_list_t * h, const ci_headers_list_t * heade
     return 1;
 }
 
-const char *ci_headers_first_line2(ci_headers_list_t *h, size_t *return_size)
+const char *ci_headers_first_line2(const ci_headers_list_t *h, size_t *return_size)
 {
     const char *eol;
     if (h->used == 0)
@@ -291,14 +291,14 @@ const char *ci_headers_first_line2(ci_headers_list_t *h, size_t *return_size)
     return h->buf;
 }
 
-const char *ci_headers_first_line(ci_headers_list_t *h)
+const char *ci_headers_first_line(const ci_headers_list_t *h)
 {
     if (h->used == 0)
         return NULL;
     return h->buf;
 }
 
-static const char *do_header_search(ci_headers_list_t * h, const char *header, const char **value, const char **end)
+static const char *do_header_search(const ci_headers_list_t * h, const char *header, const char **value, const char **end)
 {
     int i;
     size_t header_size = strlen(header);
@@ -333,12 +333,12 @@ static const char *do_header_search(ci_headers_list_t * h, const char *header, c
     return NULL;
 }
 
-const char *ci_headers_search(ci_headers_list_t * h, const char *header)
+const char *ci_headers_search(const ci_headers_list_t * h, const char *header)
 {
     return do_header_search(h, header, NULL, NULL);
 }
 
-const char *ci_headers_search2(ci_headers_list_t * h, const char *header, size_t *return_size)
+const char *ci_headers_search2(const ci_headers_list_t * h, const char *header, size_t *return_size)
 {
     const char *phead, *pend = NULL;
     if ((phead = do_header_search(h, header, NULL, &pend))) {
@@ -349,7 +349,7 @@ const char *ci_headers_search2(ci_headers_list_t * h, const char *header, size_t
     return NULL;
 }
 
-const char *ci_headers_value(ci_headers_list_t * h, const char *header)
+const char *ci_headers_value(const ci_headers_list_t * h, const char *header)
 {
     const char *pval, *phead;
     pval = NULL;
@@ -358,7 +358,7 @@ const char *ci_headers_value(ci_headers_list_t * h, const char *header)
     return NULL;
 }
 
-const char *ci_headers_value2(ci_headers_list_t * h, const char *header, size_t *return_size)
+const char *ci_headers_value2(const ci_headers_list_t * h, const char *header, size_t *return_size)
 {
     const char *pval, *phead, *pend = NULL;
     pval = NULL;
@@ -369,7 +369,7 @@ const char *ci_headers_value2(ci_headers_list_t * h, const char *header, size_t 
     return NULL;
 }
 
-const char *ci_headers_copy_value(ci_headers_list_t * h, const char *header, char *buf, size_t len)
+const char *ci_headers_copy_value(const ci_headers_list_t * h, const char *header, char *buf, size_t len)
 {
     const char *phead = NULL, *pval = NULL, *pend = NULL;
     char *dest, *dest_end;
@@ -454,7 +454,7 @@ const char *ci_headers_replace(ci_headers_list_t * h, const char *header, const 
 
 #define eoh(s) ((*s == '\r' && *(s+1) == '\n' && *(s+2) != '\t' && *(s+2) != ' ') || (*s == '\n' && *(s+1) != '\t' && *(s+1) != ' '))
 
-int ci_headers_iterate(ci_headers_list_t * h, void *data, void (*fn)(void *, const char  *head, const char  *value))
+int ci_headers_iterate(const ci_headers_list_t * h, void *data, void (*fn)(void *, const char  *head, const char  *value))
 {
     char header[256];
     char value[8196];
@@ -567,7 +567,7 @@ int ci_headers_unpack(ci_headers_list_t * h)
     return EC_100;
 }
 
-size_t ci_headers_pack_to_buffer(ci_headers_list_t *heads, char *buf, size_t size)
+size_t ci_headers_pack_to_buffer(const ci_headers_list_t *heads, char *buf, size_t size)
 {
     size_t n;
     int i;
@@ -653,7 +653,7 @@ int get_encaps_type(const char *buf, int *val, char **endpoint)
 }
 
 
-int sizeofheader(ci_headers_list_t * h)
+int sizeofheader(const ci_headers_list_t * h)
 {
     /*
       int size=0,i;
@@ -666,7 +666,7 @@ int sizeofheader(ci_headers_list_t * h)
     return h->bufused + 2;
 }
 
-int sizeofencaps(ci_encaps_entity_t * e)
+int sizeofencaps(const ci_encaps_entity_t * e)
 {
     if (e->type == ICAP_REQ_HDR || e->type == ICAP_RES_HDR) {
         return sizeofheader((ci_headers_list_t *) e->entity);
