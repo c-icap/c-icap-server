@@ -775,12 +775,12 @@ int cfg_set_template_reload_time(const char *directive, const char **argv, void 
 
 int cfg_set_template_cache_size(const char *directive, const char **argv, void *setdata)
 {
-    return intl_cfg_set_str(directive, argv, &TEMPLATE_CACHE_SIZE);
+    return intl_cfg_set_int(directive, argv, &TEMPLATE_CACHE_SIZE);
 }
 
 int cfg_set_template_membuf_size(const char *directive, const char **argv, void *setdata)
 {
-    return intl_cfg_set_str(directive, argv, &TEMPLATE_MEMBUF_SIZE);
+    return intl_cfg_set_int(directive, argv, &TEMPLATE_MEMBUF_SIZE);
 }
 
 /**************************************************************************/
