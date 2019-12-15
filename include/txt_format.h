@@ -68,7 +68,7 @@ struct ci_fmt_entry {
  * \param buffer The output buffer
  * \param len The length of the output buffer
  * \param user_table An array of user defined directives
- * \return Non zero on success, zero on error
+ * \return the number of written bytes
  *
  * This function uses the internal formating directives table. Also the user can define his own table.
  */
