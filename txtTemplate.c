@@ -399,24 +399,36 @@ ci_membuf_t *ci_txt_template_build_content(const ci_request_t *req, const char *
         return NULL;
     }
 
+    // make the ci_membuf a null terminated
+    ci_membuf_set_flag(content, CI_MEMBUF_NULL_TERMINATED);
+
+    char *rawContentBuf = ci_buffer_alloc(TEMPLATE_MEMBUF_SIZE);
+    size_t rawContentBufSize = 0;
+    if (!rawContentBuf) {
+        const char *err =  "Failed to allocate memory buffer to load template";
+        ci_debug_printf(1, "Error : %s\n", err);
+        ci_membuf_write(content, err, strlen(err), 1);
+        return content;
+    }
+
     /*templateLoadText also locks the template*/
     template = templateLoadText(req, SERVICE_NAME, TEMPLATE_NAME);
     if (template) {
-        content->endpos = ci_format_text((ci_request_t *)req, template->data->buf, content->buf, content->bufsize, user_table);
-        ci_membuf_write(content, "\0", 1, 1);      // terminate the string for safety (????)
+        rawContentBufSize = ci_format_text((ci_request_t *)req, template->data->buf, rawContentBuf, TEMPLATE_MEMBUF_SIZE, user_table);
+        rawContentBufSize -= 1; /*exclude the eos '\0' char*/
         if (template->LANGUAGE)
             ci_membuf_attr_add(content, "lang", template->LANGUAGE, strlen(template->LANGUAGE) + 1);
 
         template_release(template);
     } else {
         makeTemplatePathFileName(templpath, CI_MAX_PATH, SERVICE_NAME, TEMPLATE_NAME, TEMPLATE_DEF_LANG);
-        content->endpos = snprintf(content->buf, content->bufsize, "ERROR: Unable to find specified template: %s\n", templpath);
-        if (content->endpos > content->bufsize)
-            content->endpos = content->bufsize;
+        snprintf(rawContentBuf, TEMPLATE_MEMBUF_SIZE, "Unable to find specified template: %s\n", templpath);
+        ci_debug_printf(1, "ERROR: %s\n", rawContentBuf);
+        rawContentBufSize = strlen(rawContentBuf);
         ci_membuf_attr_add(content, "lang", TEMPLATE_DEF_LANG, strlen(TEMPLATE_DEF_LANG) + 1);
-        ci_debug_printf(1, "ERROR: Unable to find specified template: %s\n", templpath);
     }
-
+    ci_membuf_write(content, rawContentBuf, rawContentBufSize, 1);
+    ci_buffer_free(rawContentBuf);
     return content;
 }
 
