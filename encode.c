@@ -128,7 +128,7 @@ static int write_simple_file_func(void *obj, const char *buf, size_t len)
 
 #ifdef HAVE_BROTLI
 #define DEFAULT_LGWIN    22
-#define DEFAULT_QUALITY  11
+#define DEFAULT_QUALITY  4
 #define kFileBufferSize 16384
 
 BROTLI_BOOL brotli_compress(BrotliEncoderState* s, const char *buf, int inlen,
@@ -200,7 +200,7 @@ int ci_mem_brdeflate(const char *inbuf, int inlen, void *outbuf,
         ci_debug_printf(4, "data-compression: brotli out of memory\n");
         return -1;
     }
-    BrotliEncoderSetParameter(s, BROTLI_PARAM_MODE, BROTLI_MODE_TEXT);
+    BrotliEncoderSetParameter(s, BROTLI_PARAM_MODE, BROTLI_MODE_GENERIC);
     BrotliEncoderSetParameter(s, BROTLI_PARAM_QUALITY, DEFAULT_QUALITY);
     BrotliEncoderSetParameter(s, BROTLI_PARAM_LGWIN, DEFAULT_LGWIN);
     ccode = brotli_compress(s, inbuf, inlen, outbuf, get_outbuf, writefunc,
