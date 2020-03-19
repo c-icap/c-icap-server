@@ -225,7 +225,7 @@ int cfg_syslog_access(const char *directive, const char **argv, void *setdata)
         return 0;
     }
 
-    ci_debug_printf(1,"Creating new access entry for syslog module with specs:\n");
+    ci_debug_printf(5,"Creating new access entry for syslog module with specs:\n");
     error = 0;
     for (argc = 0; argv[argc] != NULL; argc++) {
         acl_spec_name = argv[argc];
@@ -234,7 +234,7 @@ int cfg_syslog_access(const char *directive, const char **argv, void *setdata)
             ci_debug_printf(1,"Error adding acl spec: %s. Probably does not exist!\n", acl_spec_name);
             error = 1;
         } else
-            ci_debug_printf(1,"\tAdding acl spec: %s\n", acl_spec_name);
+            ci_debug_printf(5,"\tAdding acl spec: %s\n", acl_spec_name);
     }
 
     if (error)
