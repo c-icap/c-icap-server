@@ -156,6 +156,7 @@ int intl_cfg_enable(const char *directive,const char **argv,void *setdata);
 int intl_cfg_size_off(const char *directive,const char **argv,void *setdata);
 int intl_cfg_size_long(const char *directive,const char **argv,void *setdata);
 int intl_cfg_set_octal(const char *directive, const char **argv, void *setdata);
+int intl_cfg_set_int_range(const char *directive, const char **argv, void *setdata);
 #endif
 
 
@@ -218,6 +219,37 @@ CI_DECLARE_FUNC(int) ci_cfg_size_long(const char *directive,const char **argv,vo
  \ingroup CONFIG
  */
 CI_DECLARE_FUNC(int) ci_cfg_set_octal(const char *directive, const char **argv, void *setdata);
+
+
+struct ci_cfg_int_range {
+    int *data;
+    int start;
+    int end;
+};
+
+/**
+ * Builds range specification for integer variable VAR.
+ * For use with the  ci_cfg_set_int_range function.
+ \ingroup CONFIG
+ */
+#define CI_CFG_INT_RANGE(VAR, START, END) (&(struct ci_cfg_int_range){&VAR, START, END})
+
+/**
+ * Sets an int configuration parameter.
+ * The setdata is passed using the CI_CFG_INT_RANGE macro to define the
+ * range of accepted values.
+ \ingroup CONFIG
+ * example usage:
+ \code
+ int RangeParam = 0;
+ struct ci_conf_entry my_module_conf_variables[] = {
+ ...
+ {"RangeParameter", CI_CFG_INT_RANGE(RangeParam, -100, 100), ci_cfg_set_int_range, NULL},
+ ...
+ };
+ \endcode
+ */
+CI_DECLARE_FUNC(int) ci_cfg_set_int_range(const char *directive, const char **argv, void *setdata);
 
 /**
  * Sets a configuration parameter of type int to 1 and prints c-icap version.

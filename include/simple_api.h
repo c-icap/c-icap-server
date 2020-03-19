@@ -160,6 +160,51 @@ enum {
     CI_ENCODE_BROTLI
 };
 
+// Encoding configuration parameters
+#ifdef HAVE_ZLIB
+/**
+   Zlib default compression window size to use (between 1 and 15)
+   The default value is 15
+   \ingroup UTILITY
+*/
+CI_DECLARE_DATA extern int CI_ZLIB_WINDOW_SIZE;
+
+/**
+   Zlib default memory amount level to use (between 1 and 9)
+   The default value is 8
+   \ingroup UTILITY
+*/
+CI_DECLARE_DATA extern int CI_ZLIB_MEMLEVEL;
+#endif
+
+#ifdef HAVE_BROTLI
+/**
+   Brotli default compression quality to use (between 0 and 11).
+   The higher quality results to a slower compression. Higher
+   values than 4 result in high CPU usage and very slow compression
+   procedure and should not be used.
+   The default value is 4.
+   \ingroup UTILITY
+*/
+CI_DECLARE_DATA extern int CI_BROTLI_QUALITY;
+
+/**
+   Brotli maximum input block size to use (between 16 and 24).
+   Bigger input block size consumes more memory but allows better compression.
+   The default value is 24.
+   \ingroup UTILITY
+*/
+CI_DECLARE_DATA extern int CI_BROTLI_MAX_INPUT_BLOCK;
+
+/**
+   Brotli default compression window size to use (between 10 and 24).
+   Bigger window sizes can improve compression quality, but require more memory.
+   The default value is 22.
+   \ingroup UTILITY
+*/
+CI_DECLARE_DATA extern int CI_BROTLI_WINDOW;
+#endif
+
 /**
  * Return the encoding method integer representation from string.
  \ingroup UTILITY

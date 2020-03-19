@@ -35,6 +35,7 @@
 #include "port.h"
 #include "registry.h"
 #include "shared_mem.h"
+#include "simple_api.h"
 #ifdef USE_OPENSSL
 #include "net_io_ssl.h"
 #endif
@@ -108,7 +109,6 @@ extern access_control_module_t **used_access_controllers;
 extern char *REMOTE_PROXY_USER_HEADER;
 extern int ALLOW_REMOTE_PROXY_USERS;
 extern int REMOTE_PROXY_USER_HEADER_ENCODED;
-
 
 /*Functions declaration */
 int parse_file(const char *conf_file);
@@ -215,6 +215,15 @@ static struct ci_conf_entry conf_variables[] = {
     {"SupportBuggyClients", &CHECK_FOR_BUGGY_CLIENT, intl_cfg_onoff, NULL},
     {"Allow204As200okZeroEncaps", &ALLOW204_AS_200OK_ZERO_ENCAPS, intl_cfg_enable, NULL},
     {"FakeAllow204", &FAKE_ALLOW204, intl_cfg_onoff, NULL},
+#ifdef HAVE_BROTLI
+    {"BrotliQuality", CI_CFG_INT_RANGE(CI_BROTLI_QUALITY, 0, 11), intl_cfg_set_int_range, NULL},
+    {"BrotliMaxInputBlock", CI_CFG_INT_RANGE(CI_BROTLI_MAX_INPUT_BLOCK, 16, 24), intl_cfg_set_int_range, NULL},
+    {"BrotliWindowSize", CI_CFG_INT_RANGE(CI_BROTLI_WINDOW, 10, 24), intl_cfg_set_int_range, NULL},
+#endif
+#ifdef HAVE_ZLIB
+    {"ZlibWindowSize", CI_CFG_INT_RANGE(CI_ZLIB_WINDOW_SIZE, 1, 15), intl_cfg_set_int_range, NULL},
+    {"ZlibMemLevel", CI_CFG_INT_RANGE(CI_ZLIB_MEMLEVEL, 1, 9), intl_cfg_set_int_range, NULL},
+#endif
     {NULL, NULL, NULL, NULL}
 };
 
@@ -1238,6 +1247,17 @@ int intl_cfg_set_octal(const char *directive, const char **argv, void *setdata)
         return 0;
     cfg_default_value_store(setdata, setdata, sizeof(int));
     return ci_cfg_set_octal(directive, argv, setdata);;
+}
+
+int intl_cfg_set_int_range(const char *directive, const char **argv, void *setdata)
+{
+    if (!setdata)
+        return 0;
+    struct ci_cfg_int_range *range = (struct ci_cfg_int_range *)setdata;
+    if (!range->data)
+        return 0;
+    cfg_default_value_store(range->data, range->data, sizeof(int));
+    return ci_cfg_set_int_range(directive, argv, setdata);
 }
 
 int intl_cfg_onoff(const char *directive, const char **argv, void *setdata)

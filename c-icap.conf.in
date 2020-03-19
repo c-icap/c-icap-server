@@ -303,6 +303,53 @@ SupportBuggyClients off
 # Default:
 # FakeAllow204 on
 
+# TAG: ZlibWindowSize
+# Format: ZlibWindowSize size
+# Description:
+#	Zlib default compression window size to use. Accepts values
+#	between 1 and 15. Larger values of this parameter result in
+#	better compression but require more memory.
+# Default:
+# ZlibWindowSize 15
+
+# TAG: ZlibMemLevel
+# Format: ZlibMemLevel level
+# Description:
+#	Specifies how much memory should be allocated for the internal
+#	compression state.  memLevel=1 uses minimum memory but is
+#	slow and reduces compression ratio; memLevel=9 uses maximum
+#	memory for optimal speed
+# Default:
+# ZlibMemLevel 8
+
+# TAG: BrotliQuality
+# Format: BrotliQuality quality
+# Description:
+#	Brotli default compression quality to use. Accepts values
+#	between 0 and 11. The higher quality results to a slower
+#	compression. Higher values than 4 result in high CPU usage
+#	and slow responses for services using compression and
+#	should not be used.
+# Default:
+# BrotliQuality 4
+
+# TAG: BrotliMaxInputBlock
+# Format: BrotliMaxInputBlock size
+# Description:
+#	Brotli maximum input block size to use. Accepts values
+#	between 16 and 24. Bigger input block size consumes more memory
+#	but allows better compression.
+# Default:
+# BrotliMaxInputBlock 24
+
+# TAG: BrotliWindowSize
+# Format: BrotliWindowSize size
+#	Brotli default compression window size to use. Accepts values
+#	between 10 and 24. Bigger window sizes can improve compression
+#	quality, but require more memory.
+# Default:
+# BrotliWindowSize 22
+
 # TAG: ModulesDir
 # Format: ModulesDir dir
 # Description:

@@ -39,6 +39,8 @@
 #include "brotli/port.h"
 #endif
 
+#define value_in_range(val, start, end, default_val) ((val >= start && val <= end) ? val : default_val)
+
 /*return CI_DEFLATE_ERRORS
 */
 int ci_compress_to_membuf(int encoding_format, const char *inbuf,
@@ -114,8 +116,6 @@ int ci_compress_to_simple_file(int encoding_format, const char *inbuf,
     }
 }
 
-#define CHUNK 8192
-
 static int write_membuf_func(void *obj, const char *buf, size_t len)
 {
     return ci_membuf_write((ci_membuf_t *)obj, buf, len, 0);
@@ -127,8 +127,9 @@ static int write_simple_file_func(void *obj, const char *buf, size_t len)
 }
 
 #ifdef HAVE_BROTLI
-#define DEFAULT_LGWIN    22
-#define DEFAULT_QUALITY  11
+int CI_BROTLI_QUALITY = 4; /* values 1..11 */
+int CI_BROTLI_MAX_INPUT_BLOCK = 24; /* values 16..24*/
+int CI_BROTLI_WINDOW = 22; /* values 10..24*/
 #define kFileBufferSize 16384
 
 BROTLI_BOOL brotli_compress(BrotliEncoderState* s, const char *buf, int inlen,
@@ -200,9 +201,10 @@ int ci_mem_brdeflate(const char *inbuf, int inlen, void *outbuf,
         ci_debug_printf(4, "data-compression: brotli out of memory\n");
         return -1;
     }
-    BrotliEncoderSetParameter(s, BROTLI_PARAM_MODE, BROTLI_MODE_TEXT);
-    BrotliEncoderSetParameter(s, BROTLI_PARAM_QUALITY, DEFAULT_QUALITY);
-    BrotliEncoderSetParameter(s, BROTLI_PARAM_LGWIN, DEFAULT_LGWIN);
+    BrotliEncoderSetParameter(s, BROTLI_PARAM_MODE, BROTLI_MODE_GENERIC);
+    BrotliEncoderSetParameter(s, BROTLI_PARAM_QUALITY, value_in_range(CI_BROTLI_QUALITY, 0, 11, 4));
+    BrotliEncoderSetParameter(s, BROTLI_PARAM_LGWIN, value_in_range(CI_BROTLI_WINDOW, 10, 24, 22));
+    BrotliEncoderSetParameter(s, BROTLI_PARAM_LGBLOCK, value_in_range(CI_BROTLI_MAX_INPUT_BLOCK, 16, 24, 24));
     ccode = brotli_compress(s, inbuf, inlen, outbuf, get_outbuf, writefunc,
                             max_size);
     BrotliEncoderDestroyInstance(s);
@@ -248,13 +250,15 @@ int ci_brdeflate_to_simple_file(const char *inbuf, size_t inlen,
 }
 #endif
 
+#define CHUNK 8192
 #ifdef HAVE_ZLIB
 #define ZIP_HEAD_CRC     0x02   /* bit 1 set: header CRC present */
 #define ZIP_EXTRA_FIELD  0x04   /* bit 2 set: extra field present */
 #define ZIP_ORIG_NAME    0x08   /* bit 3 set: original file name present */
 #define ZIP_COMMENT      0x10   /* bit 4 set: file comment present */
 
-#define windowBits 15
+int CI_ZLIB_WINDOW_SIZE = 15; /* values 1..15 */
+int CI_ZLIB_MEMLEVEL = 8; /* values 1..9 */
 #define GZIP_ENCODING 16
 
 static void *alloc_a_buffer(void *op, unsigned int items, unsigned int size)
@@ -287,7 +291,8 @@ static int strm_init(z_stream * strm, int which, int inlen)
     default:
         ci_debug_printf(4, "data-compression: gzip called size: %d\n", inlen);
         ret = deflateInit2(strm, Z_DEFAULT_COMPRESSION, Z_DEFLATED,
-                           windowBits | GZIP_ENCODING, 8,
+                           value_in_range(CI_ZLIB_WINDOW_SIZE, 1, 15, 15) | GZIP_ENCODING,
+                           value_in_range(CI_ZLIB_MEMLEVEL, 1, 9, 8),
                            Z_DEFAULT_STRATEGY);
         break;
     }

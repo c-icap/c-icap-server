@@ -295,6 +295,26 @@ int ci_cfg_set_octal(const char *directive, const char **argv, void *setdata)
     return 1;
 }
 
+int ci_cfg_set_int_range(const char *directive, const char **argv, void *setdata)
+{
+    if (!setdata)
+        return 0;
+
+    struct ci_cfg_int_range *range = (struct ci_cfg_int_range *)setdata;
+    if (!range->data)
+        return 0;
+
+    int tmpVal;
+    if (!ci_cfg_set_int(directive, argv, (void *)&tmpVal))
+        return 0;
+    if (tmpVal < range->start || tmpVal > range->end) {
+        ci_debug_printf(1, "Please use an integer value between %d and %d for directive '%s'\n", range->start, range->end, directive);
+        return 0;
+    }
+    *range->data = tmpVal;
+    return 1;
+}
+
 int ci_cfg_version(const char *directive, const char **argv, void *setdata)
 {
     if (setdata)
