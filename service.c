@@ -24,14 +24,15 @@
 #include "header.h"
 #include "body.h"
 #include "debug.h"
+#include "dlib.h"
+#include "cfg_param.h"
+#include "request_util.h"
+#include "module.h"
+#include "stats.h"
+
 #ifdef _WIN32
 #include <windows.h>
 #endif
-#include "dlib.h"
-#include "cfg_param.h"
-#include "simple_api.h"
-#include "module.h"
-#include "stats.h"
 #include <errno.h>
 
 

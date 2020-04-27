@@ -24,9 +24,9 @@
 #include "service.h"
 #include "header.h"
 #include "request.h"
+#include "request_util.h"
 #include "debug.h"
 #include "txtTemplate.h"
-#include "simple_api.h"
 
 #include <fcntl.h>
 #include <errno.h>

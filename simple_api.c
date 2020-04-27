@@ -18,7 +18,9 @@
  */
 
 #include "common.h"
-#include "simple_api.h"
+#include "c-icap.h"
+#include "encoding.h"
+#include "request_util.h"
 #include "debug.h"
 #include <ctype.h>
 #include <errno.h>

@@ -29,13 +29,13 @@
 #include "filetype.h"
 #include "cfg_param.h"
 #include "commands.h"
+#include "encoding.h"
 #include "acl.h"
 #include "txtTemplate.h"
 #include "proc_mutex.h"
 #include "port.h"
 #include "registry.h"
 #include "shared_mem.h"
-#include "simple_api.h"
 #ifdef USE_OPENSSL
 #include "net_io_ssl.h"
 #endif

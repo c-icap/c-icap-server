@@ -19,8 +19,9 @@
 #include "common.h"
 #include "c-icap.h"
 #include "body.h"
-#include "simple_api.h"
 #include "debug.h"
+#include "encoding.h"
+#include "request.h"
 
 #ifdef HAVE_ZLIB
 #include <zlib.h>

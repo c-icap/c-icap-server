@@ -20,22 +20,16 @@
 #include "common.h"
 #include "c-icap.h"
 #include "util.h"
+#include "debug.h"
+#include "encoding.h"
+#include "request.h"
+#include "request_util.h"
+#include "mem.h"
+#include "filetype.h"
+
 #include <stdio.h>
 #include <ctype.h>
 #include <errno.h>
-
-#ifdef HAVE_ZLIB
-#include <zlib.h>
-#endif
-#ifdef HAVE_BZLIB
-#include <bzlib.h>
-#endif
-
-#include "simple_api.h"
-#include "debug.h"
-#include "request.h"
-#include "mem.h"
-#include "filetype.h"
 
 #define MAGIC_SIZE 64
 #define NAME_SIZE 31

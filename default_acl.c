@@ -24,10 +24,7 @@
 #include "cfg_param.h"
 #include "debug.h"
 #include "access.h"
-#include "simple_api.h"
 #include "acl.h"
-#include "net_io.h"
-#include "common.h"
 
 
 /*********************************************************************************************/

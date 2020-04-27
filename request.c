@@ -19,24 +19,20 @@
 
 #include "common.h"
 #include "c-icap.h"
-#include <errno.h>
-#include <ctype.h>
-#include <time.h>
-#include <assert.h>
-#ifdef _NOTUSED
-#include <sys/ioctl.h>
-#endif
-
 #include "debug.h"
 #include "request.h"
+#include "request_util.h"
 #include "service.h"
 #include "access.h"
 #include "util.h"
-#include "simple_api.h"
 #include "cfg_param.h"
 #include "stats.h"
 #include "body.h"
 
+#include <errno.h>
+#include <ctype.h>
+#include <time.h>
+#include <assert.h>
 
 extern int TIMEOUT;
 extern int KEEPALIVE_TIMEOUT;

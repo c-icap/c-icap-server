@@ -18,19 +18,9 @@
  */
 
 #include "common.h"
-#include <stdlib.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <string.h>
-#include <errno.h>
-#include <stdarg.h>
-#include <ctype.h>
-#include <assert.h>
-#include <time.h>
-#include <fcntl.h>
 #include "array.h"
 #include "request.h"
-#include "simple_api.h"
+#include "request_util.h"
 #include "net_io.h"
 #include "cfg_param.h"
 #include "debug.h"
@@ -39,6 +29,10 @@
 #endif
 #include "util.h"
 
+#include <stdio.h>
+#include <errno.h>
+#include <assert.h>
+#include <fcntl.h>
 
 ci_str_vector_t *http_no_headers = NULL;
 ci_str_vector_t *http_no_resp_headers = NULL;

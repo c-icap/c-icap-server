@@ -20,7 +20,7 @@
 #include "common.h"
 #include "c-icap.h"
 #include "request.h"
-#include "simple_api.h"
+#include "request_util.h"
 #include "debug.h"
 #include "txt_format.h"
 

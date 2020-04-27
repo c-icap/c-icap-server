@@ -25,7 +25,7 @@
 #include <assert.h>
 #include "debug.h"
 #include "request.h"
-#include "simple_api.h"
+#include "request_util.h"
 #include "util.h"
 #include "body.h"
 

@@ -22,7 +22,7 @@
 #include "service.h"
 #include "header.h"
 #include "body.h"
-#include "simple_api.h"
+#include "request_util.h"
 #include "debug.h"
 
 int ex206_init_service(ci_service_xdata_t * srv_xdata,

@@ -20,11 +20,11 @@
 #include "common.h"
 #include "c-icap.h"
 #include "request.h"
+#include "request_util.h"
 #include "module.h"
 #include "cfg_param.h"
 #include "debug.h"
 #include "access.h"
-#include "simple_api.h"
 #include "net_io.h"
 
 

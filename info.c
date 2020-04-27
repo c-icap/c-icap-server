@@ -22,7 +22,7 @@
 #include "service.h"
 #include "header.h"
 #include "body.h"
-#include "simple_api.h"
+#include "request_util.h"
 #include "stats.h"
 #include "proc_threads_queues.h"
 #include "debug.h"

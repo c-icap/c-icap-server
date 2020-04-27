@@ -1,18 +1,8 @@
 #include "common.h"
-#include <stdlib.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <string.h>
-#include <errno.h>
-#include <stdarg.h>
-#include <ctype.h>
-#include "simple_api.h"
 #include "header.h"
 #include "debug.h"
 
-
-
-
+#include <stdio.h>
 
 int main(int argc, char *argv[])
 {

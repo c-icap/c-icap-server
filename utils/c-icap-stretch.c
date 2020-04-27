@@ -18,24 +18,21 @@
  */
 
 #include "common.h"
-#include <stdlib.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <string.h>
+#include "c-icap.h"
+#include "request.h"
+#include "request_util.h"
+#include "ci_threads.h"
+#include "net_io.h"
+#include "cfg_param.h"
+#include "debug.h"
+#include "util.h"
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <signal.h>
 #include <assert.h>
 #include <time.h>
 #include <fcntl.h>
-
-#include "request.h"
-#include "ci_threads.h"
-#include "simple_api.h"
-#include "net_io.h"
-#include "cfg_param.h"
-#include "debug.h"
-#include "util.h"
 
 
 /*GLOBALS ........*/
