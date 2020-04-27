@@ -127,10 +127,11 @@ static int write_simple_file_func(void *obj, const char *buf, size_t len)
     return ci_simple_file_write((ci_simple_file_t *)obj, buf, len, 0);
 }
 
-#ifdef HAVE_BROTLI
 int CI_BROTLI_QUALITY = 4; /* values 1..11 */
 int CI_BROTLI_MAX_INPUT_BLOCK = 24; /* values 16..24*/
 int CI_BROTLI_WINDOW = 22; /* values 10..24*/
+
+#ifdef HAVE_BROTLI
 #define kFileBufferSize 16384
 
 BROTLI_BOOL brotli_compress(BrotliEncoderState* s, const char *buf, int inlen,
@@ -251,15 +252,14 @@ int ci_brdeflate_to_simple_file(const char *inbuf, size_t inlen,
 }
 #endif
 
+int CI_ZLIB_WINDOW_SIZE = 15; /* values 1..15 */
+int CI_ZLIB_MEMLEVEL = 8; /* values 1..9 */
 #define CHUNK 8192
 #ifdef HAVE_ZLIB
 #define ZIP_HEAD_CRC     0x02   /* bit 1 set: header CRC present */
 #define ZIP_EXTRA_FIELD  0x04   /* bit 2 set: extra field present */
 #define ZIP_ORIG_NAME    0x08   /* bit 3 set: original file name present */
 #define ZIP_COMMENT      0x10   /* bit 4 set: file comment present */
-
-int CI_ZLIB_WINDOW_SIZE = 15; /* values 1..15 */
-int CI_ZLIB_MEMLEVEL = 8; /* values 1..9 */
 #define GZIP_ENCODING 16
 
 static void *alloc_a_buffer(void *op, unsigned int items, unsigned int size)
