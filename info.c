@@ -124,6 +124,12 @@ void info_release_request_data(void *data)
     if (info_data->body)
         ci_membuf_free(info_data->body);
 
+    if (info_data->child_pids)
+        free(info_data->child_pids);
+
+    if (info_data->closing_child_pids)
+        free(info_data->closing_child_pids);
+
     if (info_data->collect_stats)
         free(info_data->collect_stats);
 
