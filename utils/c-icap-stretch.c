@@ -51,6 +51,8 @@ int DoTransparent = 0;
 char *URLS[MAX_URLS];
 int URLS_COUNT = 0;
 
+char *BASE_URL = NULL;
+
 time_t START_TIME = 0;
 int FILES_NUMBER = 0;
 char **FILES = NULL;
@@ -411,14 +413,21 @@ int do_file(ci_request_t *req, char *input_file, int *keepalive)
     int indx;
     ci_headers_list_t *headers, *request_headers = NULL;
     const char *useUrl = NULL;
+    char buf[4096];
 
-    if (URLS_COUNT > 0) {
+    if (BASE_URL) {
+        snprintf(buf, sizeof(buf), "%s%s%s", BASE_URL, input_file[0] != '/' ? "/" : "" ,input_file);
+        useUrl = buf;
+    } else if (URLS_COUNT > 0) {
         ci_thread_mutex_lock(&statsmtx);
         arand = rand();  /*rand is not thread safe .... */
         ci_thread_mutex_unlock(&statsmtx);
 
         indx = (int) ((((double) arand) / (double) RAND_MAX) * (double)URLS_COUNT);
         useUrl = URLS[indx];
+    } else {
+        snprintf(buf, sizeof(buf), "file://%s", input_file);
+        useUrl = buf;
     }
 
     if ((fd_in = open(input_file, O_RDONLY)) < 0) {
@@ -668,6 +677,10 @@ static struct ci_options_entry options[] = {
     {
         "-urls", "filename", &urls_file, ci_cfg_set_str,
         "File with urls to use for reqmod stress test"
+    },
+    {
+        "-bU", "base_url", &BASE_URL, ci_cfg_set_str,
+        "Base URL  to use for respmod stress test urls computation"
     },
     {
         "-req", NULL, &DoReqmod, ci_cfg_enable,
