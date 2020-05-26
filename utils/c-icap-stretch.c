@@ -219,7 +219,7 @@ void build_request_headers(const char *url, const char *method, ci_headers_list_
 {
     char lbuf[1024];
 
-    snprintf(lbuf, sizeof(lbuf), "%s %s HTTP/1.0", method, url);
+    snprintf(lbuf, sizeof(lbuf), "%s %s HTTP/1.1", method, url);
     ci_headers_add(headers, lbuf);
 
     strncpy(lbuf, "Date: ", sizeof(lbuf));
@@ -272,12 +272,12 @@ int do_req(ci_request_t *req, char *url, int *keepalive, int transparent)
             strncpy(path, "/index.html", sizeof(path));
             path[sizeof(path) - 1] = '\0';
         }
-        snprintf(lbuf, sizeof(lbuf), "GET %s HTTP/1.0", path);
+        snprintf(lbuf, sizeof(lbuf), "GET %s HTTP/1.1", path);
     } else {
         if (strstr(url, "://"))
-            snprintf(lbuf, sizeof(lbuf), "GET %s HTTP/1.0", url);
+            snprintf(lbuf, sizeof(lbuf), "GET %s HTTP/1.1", url);
         else
-            snprintf(lbuf, sizeof(lbuf), "GET http://%s HTTP/1.0", url);
+            snprintf(lbuf, sizeof(lbuf), "GET http://%s HTTP/1.1", url);
         host[0] = '\0';
     }
 
