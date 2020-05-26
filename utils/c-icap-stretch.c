@@ -190,14 +190,14 @@ char *xclient_header()
     return xclient_headers[indx];
 }
 
-void build_headers(int fd, ci_headers_list_t *headers)
+static void build_response_headers(int fd, ci_headers_list_t *headers)
 {
     struct stat filestat;
     int filesize;
     char lbuf[512];
     time_t ltimet;
 
-    ci_headers_add(headers, "200 OK HTTP/1.1");
+    ci_headers_add(headers, "HTTP/1.1 200 OK");
     ci_headers_add(headers, "Filetype: Unknown");
     ci_headers_add(headers, "User: chtsanti");
 
@@ -445,7 +445,7 @@ int do_file(ci_request_t *req, char *input_file, int *keepalive)
     fd_out = 0;
 
     headers = ci_headers_create();
-    build_headers(fd_in, headers);
+    build_response_headers(fd_in, headers);
     if (useUrl) {
         request_headers = ci_headers_create();
         build_request_headers(useUrl, "GET", request_headers);
