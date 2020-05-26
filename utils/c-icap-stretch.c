@@ -77,7 +77,7 @@ ci_thread_mutex_t statsmtx;
 
 
 
-void print_stats()
+static void print_stats()
 {
     time_t rtime;
     time(&rtime);
@@ -125,7 +125,7 @@ static void sigint_handler(int sig)
     exit(0);
 }
 
-void str_trim(char *str)
+static void str_trim(char *str)
 {
     char *s, *e;
 
@@ -147,7 +147,7 @@ void str_trim(char *str)
     while (*(--e) == ' ' && e >= str) *e = '\0';
 }
 
-int load_urls(char *filename)
+static int load_urls(char *filename)
 {
     FILE *f;
 #define URL_SIZE  1024
@@ -174,7 +174,7 @@ int load_urls(char *filename)
     return 1;
 }
 
-char *xclient_header()
+static char *xclient_header()
 {
     if (!xclient_headers_num)
         return NULL;
@@ -215,7 +215,7 @@ static void build_response_headers(int fd, ci_headers_list_t *headers)
 
 }
 
-void build_request_headers(const char *url, const char *method, ci_headers_list_t *headers)
+static void build_request_headers(const char *url, const char *method, ci_headers_list_t *headers)
 {
     char lbuf[1024];
 
@@ -233,7 +233,7 @@ void build_request_headers(const char *url, const char *method, ci_headers_list_
 }
 
 
-int fileread(void *fd, char *buf, int len)
+static int fileread(void *fd, char *buf, int len)
 {
     int ret;
     ret = read(*(int *) fd, buf, len);
@@ -242,13 +242,13 @@ int fileread(void *fd, char *buf, int len)
     return ret;
 }
 
-int filewrite(void *fd, char *buf, int len)
+static int filewrite(void *fd, char *buf, int len)
 {
     return len;
 }
 
 
-int do_req(ci_request_t *req, char *url, int *keepalive, int transparent)
+static int do_req(ci_request_t *req, char *url, int *keepalive, int transparent)
 {
     int ret;
     char lbuf[1024];
@@ -333,7 +333,7 @@ int do_req(ci_request_t *req, char *url, int *keepalive, int transparent)
     return 1;
 }
 
-int threadjobreqmod()
+static int threadjobreqmod()
 {
     ci_request_t *req;
     ci_connection_t *conn;
@@ -406,7 +406,7 @@ int threadjobreqmod()
     return 1;
 }
 
-int do_file(ci_request_t *req, char *input_file, int *keepalive)
+static int do_file(ci_request_t *req, char *input_file, int *keepalive)
 {
     int fd_in,fd_out;
     int ret, arand;
@@ -478,7 +478,7 @@ int do_file(ci_request_t *req, char *input_file, int *keepalive)
 }
 
 
-int threadjobsendfiles()
+static int threadjobsendfiles()
 {
     ci_request_t *req;
     ci_connection_t *conn;
@@ -563,16 +563,7 @@ int threadjobsendfiles()
     return 1;
 }
 
-void usage(char *myname)
-{
-    printf("Usage:\n  %s servername service threadsnum max_requests file1 file2 .....\n",
-           myname);
-    printf("or:\n");
-    printf("  %s -req servername service threadsnum max_requests file\n",
-           myname);
-}
-
-int add_xheader(const char *directive, const char **argv, void *setdata)
+static int add_xheader(const char *directive, const char **argv, void *setdata)
 {
     ci_headers_list_t **xh = (ci_headers_list_t **)setdata;
     const char *h;
@@ -596,7 +587,7 @@ int add_xheader(const char *directive, const char **argv, void *setdata)
 }
 
 static int FILES_SIZE =0;
-int cfg_files_to_use(const char *directive, const char **argv, void *setdata)
+static int cfg_files_to_use(const char *directive, const char **argv, void *setdata)
 {
     assert ((void *)FILES == *(void **)setdata);
 
@@ -618,7 +609,7 @@ int cfg_files_to_use(const char *directive, const char **argv, void *setdata)
     return 1;
 }
 
-int add_xclient_headers(const char *directive, const char **argv, void *setdata)
+static int add_xclient_headers(const char *directive, const char **argv, void *setdata)
 {
     int ip1, ip2, ip3, ip4_start, ip4_end, i;
     const char *ip, *s;
@@ -662,7 +653,7 @@ int add_xclient_headers(const char *directive, const char **argv, void *setdata)
     return 1;
 }
 
-char *urls_file = NULL;
+static char *urls_file = NULL;
 
 
 static struct ci_options_entry options[] = {
@@ -708,7 +699,8 @@ static struct ci_options_entry options[] = {
     {NULL, NULL, NULL, NULL}
 };
 
-void log_errors(ci_request_t * req, const char *format, ...)
+#if ! defined(_WIN32)
+static void log_errors(ci_request_t * req, const char *format, ...)
 {
     va_list ap;
     va_start(ap, format);
@@ -716,10 +708,12 @@ void log_errors(ci_request_t * req, const char *format, ...)
     va_end(ap);
 }
 
-void vlog_errors(ci_request_t * req, const char *format, va_list ap)
+#else
+static void vlog_errors(ci_request_t * req, const char *format, va_list ap)
 {
     vfprintf(stderr, format, ap);
 }
+#endif
 
 int main(int argc, char **argv)
 {
