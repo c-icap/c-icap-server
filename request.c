@@ -1268,7 +1268,8 @@ static void options_responce(ci_request_t * req)
             CI_XAUTHENTICATEDGROUPS,
             0
         };
-        for (int i = 0; check_options[i] !=0 && xlen < sizeof(buf); ++i) {
+        int i;
+        for (i = 0; check_options[i] !=0 && xlen < sizeof(buf); ++i) {
             unsigned int check_xopt = check_options[i];
             if (xopts & check_xopt) {
                 if (xlen > XINCSIZE)
