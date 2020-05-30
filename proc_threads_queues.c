@@ -116,10 +116,15 @@ int wait_for_queue(struct connections_queue *q)
 /*                                                                                 */
 /*  Children queue......                                                             */
 
-int create_childs_queue(struct childs_queue *q, int size)
+struct childs_queue *create_childs_queue(int size)
 {
     int ret, i;
     struct stat_memblock *mem_block;
+    struct childs_queue *q = malloc(sizeof(struct childs_queue));
+    if (!q) {
+        log_server(NULL, "Error allocation memory for children-queue data\n");
+        return NULL;
+    }
     q->stats_block_size = ci_stat_memblock_size();
 
     q->shared_mem_size = sizeof(child_shared_data_t) * size /*child shared data*/
@@ -129,7 +134,8 @@ int create_childs_queue(struct childs_queue *q, int size)
     if ((q->childs =
                 ci_shared_mem_create(&(q->shmid), "kids-queue", q->shared_mem_size)) == NULL) {
         log_server(NULL, "can't get shared memory!");
-        return 0;
+        free(q);
+        return NULL;
     }
 
     q->size = size;
@@ -142,7 +148,7 @@ int create_childs_queue(struct childs_queue *q, int size)
     q->stats_history->sig = MEMBLOCK_SIG;
 
     q->srv_stats = (struct server_statistics *)(q->stats_area + q->size * q->stats_block_size + q->stats_block_size);
-    ci_debug_printf(2, "Create shared mem, qsize=%d stat_block_size=%d childshared data:%d\n",
+    ci_debug_printf(2, "Create shared mem, qsize=%d stat_block_size=%d children shared data of size:%d\n",
                     q->size,  q->stats_block_size, (int)sizeof(child_shared_data_t) * q->size);
 
     stat_memblock_fix(q->stats_history);
@@ -162,9 +168,10 @@ int create_childs_queue(struct childs_queue *q, int size)
         /*Release shared mem which is allocated */
         ci_shared_mem_destroy(&(q->shmid));
         log_server(NULL, "can't create children queue semaphore!");
-        return 0;
+        free(q);
+        return NULL;
     }
-    return 1;
+    return q;
 }
 
 int attach_childs_queue(struct childs_queue *q)
@@ -213,6 +220,7 @@ int destroy_childs_queue(struct childs_queue *q)
     q->childs = NULL;
     ci_proc_mutex_unlock(&(q->queue_mtx));
     ci_proc_mutex_destroy(&(q->queue_mtx));
+    free(q);
     return 1;
 }
 
