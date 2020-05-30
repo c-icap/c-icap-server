@@ -366,8 +366,7 @@ static void check_for_exited_childs()
                             pid);
             remove_child(old_childs_queue, pid, exit_status);
             if (childs_queue_is_empty(old_childs_queue)) {
-                ret = destroy_childs_queue(old_childs_queue);
-                if (!ret) {
+                if (!destroy_childs_queue(old_childs_queue)) {
                     ci_debug_printf(1, "WARNING: can not release unused shared mem block after reconfigure\n");
                 }
                 old_childs_queue = NULL;
@@ -410,8 +409,7 @@ static int server_reconfigure()
        Create new shared mem for childs queue
      */
     old_childs_queue = childs_queue;
-    childs_queue = malloc(sizeof(struct childs_queue));
-    if (!create_childs_queue(childs_queue, 2 * CI_CONF.MAX_SERVERS)) {
+    if (!(childs_queue = create_childs_queue(2 * CI_CONF.MAX_SERVERS))) {
         ci_debug_printf(1,
                         "Cannot init shared memory. Fatal error, exiting!\n");
         return 0;              /*It is not enough. We must wait all childs to exit ..... */
@@ -1115,8 +1113,7 @@ int start_server()
                         "Can't init mutex for accepting conenctions. Fatal error, exiting!\n");
         exit(0);
     }
-    childs_queue = malloc(sizeof(struct childs_queue));
-    if (!create_childs_queue(childs_queue, 2 * CI_CONF.MAX_SERVERS)) {
+    if (!(childs_queue = create_childs_queue(2 * CI_CONF.MAX_SERVERS))) {
         ci_proc_mutex_destroy(&accept_mutex);
         ci_debug_printf(1,
                         "Can't init shared memory. Fatal error, exiting!\n");
@@ -1244,6 +1241,7 @@ int start_server()
     child_main(0);
     ci_proc_mutex_destroy(&accept_mutex);
     destroy_childs_queue(childs_queue);
+    childs_queue = NULL;
 #endif
     return 1;
 }

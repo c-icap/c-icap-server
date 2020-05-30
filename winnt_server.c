@@ -49,7 +49,7 @@ server_decl_t **threads_list = NULL;
 ci_thread_cond_t free_server_cond;
 ci_thread_mutex_t counters_mtx;
 
-struct childs_queue childs_queue;
+struct childs_queue *childs_queue = NULL;
 child_shared_data_t *child_data;
 struct connections_queue *con_queue;
 
@@ -84,7 +84,7 @@ static void exit_normaly()
         i++;
     }
     free(threads_list);
-    dettach_childs_queue(&childs_queue);
+    dettach_childs_queue(childs_queue);
     log_close();
 }
 
@@ -532,8 +532,8 @@ HANDLE start_child(ci_socket fd)
         return 0;
     printf("For child %d Writing to pipe:%d\n", pi.hProcess, child_pipe);
     send_handles(pi.dwProcessId, child_pipe, pi.hProcess, fd, accept_mutex,
-                 childs_queue.shmid, childs_queue.queue_mtx,
-                 childs_queue.size);
+                 childs_queue->shmid, childs_queue->queue_mtx,
+                 childs_queue->size);
     return pi.hProcess;
 }
 
@@ -573,18 +573,18 @@ int do_child()
         ci_debug_printf(1, "Error reading handles.....\n");
         exit(0);
     }
-    if (!ReadFile(hStdin, &(childs_queue.shmid), sizeof(HANDLE), &dwRead, NULL)
+    if (!ReadFile(hStdin, &(childs_queue->shmid), sizeof(HANDLE), &dwRead, NULL)
             || dwRead != sizeof(HANDLE)) {
         ci_debug_printf(1, "Error reading handles.....\n");
         exit(0);
     }
     if (!ReadFile
-            (hStdin, &(childs_queue.queue_mtx), sizeof(HANDLE), &dwRead, NULL)
+            (hStdin, &(childs_queue->queue_mtx), sizeof(HANDLE), &dwRead, NULL)
             || dwRead != sizeof(HANDLE)) {
         ci_debug_printf(1, "Error reading handles.....\n");
         exit(0);
     }
-    if (!ReadFile(hStdin, &(childs_queue.size), sizeof(int), &dwRead, NULL) ||
+    if (!ReadFile(hStdin, &(childs_queue->size), sizeof(int), &dwRead, NULL) ||
             dwRead != sizeof(int)) {
         ci_debug_printf(1, "Error reading handles.....\n");
         exit(0);
@@ -607,13 +607,13 @@ int do_child()
     }
 
 
-    if (!attach_childs_queue(&childs_queue)) {
+    if (!attach_childs_queue(childs_queue)) {
         ci_debug_printf(1, "Error in new child .....\n");
         return 0;
     }
     ci_debug_printf(1, "Shared memory attached....\n");
     child_data =
-        register_child(&childs_queue, child_handle, CI_CONF.THREADS_PER_CHILD,
+        register_child(childs_queue, child_handle, CI_CONF.THREADS_PER_CHILD,
                        parent_pipe);
     ci_debug_printf(1, "child registered ....\n");
 
@@ -650,13 +650,13 @@ int wait_achild_to_die()
 {
     DWORD i, count, ret;
     HANDLE died_child, *child_handles =
-        malloc(sizeof(HANDLE) * childs_queue.size);
+        malloc(sizeof(HANDLE) * childs_queue->size);
     child_shared_data_t *ach;
     while (1) {
         ci_thread_mutex_lock(&control_process_mtx);
-        for (i = 0, count = 0; i < (DWORD) childs_queue.size; i++) {
-            if (childs_queue.childs[i].pid != 0)
-                child_handles[count++] = childs_queue.childs[i].pid;
+        for (i = 0, count = 0; i < (DWORD) childs_queue->size; i++) {
+            if (childs_queue->childs[i].pid != 0)
+                child_handles[count++] = childs_queue->childs[i].pid;
         }
         if (count == 0) {
             Sleep(100);
@@ -677,9 +677,9 @@ int wait_achild_to_die()
         ci_debug_printf(1,
                         "Child with handle %d died, lets clean-up the queue\n",
                         died_child);
-        ach = get_child_data(&childs_queue, died_child);
+        ach = get_child_data(childs_queue, died_child);
         CloseHandle(ach->pipe);
-        remove_child(&childs_queue, died_child);
+        remove_child(childs_queue, died_child);
         CloseHandle(died_child);
         ci_thread_mutex_unlock(&control_process_mtx);
     }
@@ -693,9 +693,9 @@ int check_for_died_child(DWORD msecs)
 //     HANDLE died_child,*child_handles = malloc(sizeof(HANDLE)*childs_queue.size);
     HANDLE died_child, child_handles[MAXIMUM_WAIT_OBJECTS];
     child_shared_data_t *ach;
-    for (i = 0, count = 0; i < (DWORD) childs_queue.size; i++) {
-        if (childs_queue.childs[i].pid != (HANDLE) 0) {
-            child_handles[count++] = childs_queue.childs[i].pid;
+    for (i = 0, count = 0; i < (DWORD) childs_queue->size; i++) {
+        if (childs_queue->childs[i].pid != (HANDLE) 0) {
+            child_handles[count++] = childs_queue->childs[i].pid;
         }
         if (count == MAXIMUM_WAIT_OBJECTS)
             break;
@@ -720,9 +720,9 @@ int check_for_died_child(DWORD msecs)
     died_child = child_handles[ret];
     ci_debug_printf(1, "Child with handle %d died, lets clean-up the queue\n",
                     died_child);
-    ach = get_child_data(&childs_queue, died_child);
+    ach = get_child_data(childs_queue, died_child);
     CloseHandle(ach->pipe);
-    remove_child(&childs_queue, died_child);
+    remove_child(childs_queue, died_child);
     CloseHandle(died_child);
     return 1;
 }
@@ -750,7 +750,7 @@ int start_server()
     ci_proc_mutex_init(&accept_mutex);
     ci_thread_mutex_init(&control_process_mtx);
 
-    if (!create_childs_queue(&childs_queue, CI_CONF.MAX_SERVERS)) {
+    if (!(childs_queue = create_childs_queue(CI_CONF.MAX_SERVERS))) {
         log_server(NULL, "Can't init shared memory.Fatal error, exiting!\n");
         ci_debug_printf(1,
                         "Can't init shared memory.Fatal error, exiting!\n");
@@ -770,7 +770,7 @@ int start_server()
         if (check_for_died_child(5000))
             continue;
 //        Sleep(5000);
-        childs_queue_stats(&childs_queue, &childs, &freeservers, &used,
+        childs_queue_stats(childs_queue, &childs, &freeservers, &used,
                            &maxrequests);
         ci_debug_printf(1,
                         "Server stats: \n\t Children:%d\n\t Free servers:%d\n\tUsed servers:%d\n\tRequests served:%d\n",
@@ -782,13 +782,13 @@ int start_server()
             child_handle = start_child(LISTEN_SOCKET);
         } else if (freeservers >= CI_CONF.MAX_SPARE_THREADS && childs > CI_CONF.START_SERVERS) {
             ci_thread_mutex_lock(&control_process_mtx);
-            if ((child_indx = find_an_idle_child(&childs_queue)) < 0)
+            if ((child_indx = find_an_idle_child(childs_queue)) < 0)
                 continue;
-            childs_queue.childs[child_indx].to_be_killed = GRACEFULLY;
-            tell_child_to_die(childs_queue.childs[child_indx].pipe);
+            childs_queue->childs[child_indx].to_be_killed = GRACEFULLY;
+            tell_child_to_die(childs_queue->childs[child_indx].pipe);
             ci_thread_mutex_unlock(&control_process_mtx);
             ci_debug_printf(1, "Going to stop child %d .....\n",
-                            childs_queue.childs[child_indx].pid);
+                            childs_queue->childs[child_indx].pid);
         }
     }
     /*
