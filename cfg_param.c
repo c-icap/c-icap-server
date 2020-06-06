@@ -720,7 +720,6 @@ int cfg_include_config_file(const char *directive, const char **argv, void *setd
     cfg_file = argv[0];
     if (cfg_file[0] != '/') {  /*Win32 code? */
         snprintf(path, CI_MAX_PATH, CI_CONFDIR "/%s", cfg_file);
-        path[CI_MAX_PATH - 1] = '\0';
         cfg_file = path;
     }
 

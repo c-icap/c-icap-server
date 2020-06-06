@@ -114,7 +114,6 @@ void *dnsbl_table_open(struct ci_lookup_table *table)
     if (use_cache) {
         char tname[CI_MAXHOSTNAMELEN + 8];
         snprintf(tname, sizeof(tname), "dnsbl:%s", table->path);
-        tname[sizeof(tname) - 1] = '\0';
         dnsbl_data->cache = ci_cache_build(tname, use_cache, cache_size, 1024, cache_ttl, &ci_str_ops);
     } else
         dnsbl_data->cache = NULL;
@@ -162,7 +161,6 @@ void *dnsbl_table_search(struct ci_lookup_table *table, void *key, void ***vals)
     }
 
     snprintf(dnsname, sizeof(dnsname), "%s.%s", server, dnsbl_data->check_domain);
-    dnsname[sizeof(dnsname) - 1] = '\0';
     v = resolv_hostname(dnsname);
     if (dnsbl_data->cache) {
         v_size =  v != NULL ? ci_cache_store_vector_size(v) : 0;

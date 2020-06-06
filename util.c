@@ -152,7 +152,6 @@ char * ci_strerror(int error, char *buf, size_t buflen)
         return buf;
 #else
     snprintf(buf, buflen, "%d", error);
-    buf[buflen - 1] = '\0';
     return buf;
 
 #endif
