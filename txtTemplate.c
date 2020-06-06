@@ -71,7 +71,6 @@ static void makeTemplatePathFileName(char *path, int path_len, const char *servi
 {
     snprintf(path, path_len, "%s/%s/%s/%s", TEMPLATE_DIR, service_name, lang,
              page_name);
-    path[path_len-1] = '\0';
 }
 
 int ci_txt_template_init(void)

@@ -722,7 +722,6 @@ static int mk_responce_header(ci_request_t * req)
              (req->current_service_mod->mod_short_descr ? req->
               current_service_mod->mod_short_descr : req->current_service_mod->
               mod_name));
-    buf[511] = '\0';
     /*Here we must append it to an existsing Via header not just add a new header */
     if (req->type == ICAP_RESPMOD) {
         ci_http_response_add_header(req, buf);

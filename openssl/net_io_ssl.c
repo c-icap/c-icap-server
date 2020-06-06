@@ -69,7 +69,6 @@ static char *path_dup(const char *path, const char *config_dir)
         return strdup(path);
 
     snprintf(fpath, CI_MAX_PATH, "%s/%s", config_dir, path);
-    fpath[CI_MAX_PATH -1] = '\0';
     return strdup(fpath);
 }
 
@@ -185,7 +184,6 @@ static int openssl_cert_passphrase_cb(char *buf, int size, int rwflag, void *u)
     }
 
     snprintf(script, sizeof(script), "%s %s %d", TLS_PASSPHRASE_SCRIPT, port->address ? port->address : "*", port->port);
-    script[sizeof(script) - 1] = '\0';
 
     FILE *f = popen(script, "r");
     int bytes = fread(buf, 1, size, f);

@@ -77,7 +77,6 @@ void ci_strtime_rfc822(char *buf)
 int ci_mktemp_file(char *dir, char *template, char *filename)
 {
     snprintf(filename, CI_FILENAME_LEN, "%s%s",dir,template);
-    filename[CI_FILENAME_LEN-1] = '\0';
     return mkstemp(filename);
 }
 
