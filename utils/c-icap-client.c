@@ -19,6 +19,7 @@
 
 #include "common.h"
 #include "array.h"
+#include "client.h"
 #include "request.h"
 #include "request_util.h"
 #include "net_io.h"

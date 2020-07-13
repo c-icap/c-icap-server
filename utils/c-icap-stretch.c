@@ -22,6 +22,7 @@
 #include "request.h"
 #include "request_util.h"
 #include "ci_threads.h"
+#include "client.h"
 #include "net_io.h"
 #include "cfg_param.h"
 #include "debug.h"
