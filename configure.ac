@@ -697,7 +697,7 @@ fi
 
 # Check for header files
 AC_HEADER_STDC
-AC_CHECK_HEADERS(strings.h unistd.h sys/stat.h limits.h)
+AC_CHECK_HEADERS(stdio.h strings.h unistd.h sys/stat.h limits.h)
 SYS_TYPES_H="0"
 AC_CHECK_HEADERS(sys/types.h,
 [AC_DEFINE(HAVE_SYS_TYPES_H,1,[Define HAVE_SYS_TYPES_H if you have the <sys/types.h> header file.])
