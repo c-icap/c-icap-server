@@ -221,8 +221,15 @@ int ci_host_to_sockaddr_t(const char *servername, ci_sockaddr_t * addr, int prot
         ci_debug_printf(5, "Error getting addrinfo for '%s':%s\n", servername, gai_strerror(ret));
         return 0;
     }
+#ifndef USE_IPV6
+    if (res->ai_family != AF_INET) {
+        ci_debug_printf(5, "Did not get an IPv4 address for '%s' (built without IPv6 support)\n", servername);
+        freeaddrinfo(res);
+        return 0;
+    }
+#endif
     //fill the addr..... and
-    memcpy(&(addr->sockaddr), res->ai_addr, CI_SOCKADDR_SIZE);
+    memcpy(&(addr->sockaddr), res->ai_addr, res->ai_addrlen);
     freeaddrinfo(res);
     ci_fill_sockaddr(addr);
     return 1;
