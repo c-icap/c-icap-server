@@ -747,6 +747,16 @@ int ci_tls_connect_nonblock(ci_connection_t *connection, const char *servername,
     char hostname[CI_MAXHOSTNAMELEN + 1];
     SSL *ssl = NULL;
 
+    struct in_addr ipv4_addr;
+    int servername_is_ip_v4 = (ci_inet_aton(AF_INET, servername, &ipv4_addr) != 0);
+#ifdef USE_IPV6
+    struct in6_addr ipv6_addr;
+    int servername_is_ip_v6 = (ci_inet_aton(AF_INET6, servername, &ipv6_addr) != 0);
+#else
+    int servername_is_ip_v6 = 0;
+#endif
+    int servername_is_ip = servername_is_ip_v4 || servername_is_ip_v6;
+
     assert(connection);
     BIO *connection_bio = _CI_CONN_BIO(connection);
     if (!connection_bio) {
@@ -785,7 +795,12 @@ int ci_tls_connect_nonblock(ci_connection_t *connection, const char *servername,
             X509_VERIFY_PARAM *param = SSL_get0_param(ssl);
             /* Enable automatic hostname checks */
             X509_VERIFY_PARAM_set_hostflags(param, X509_CHECK_FLAG_NO_PARTIAL_WILDCARDS);
-            X509_VERIFY_PARAM_set1_host(param, servername, 0);
+            if (servername_is_ip) {
+                X509_VERIFY_PARAM_set1_ip_asc(param, servername);
+            }
+            else {
+                X509_VERIFY_PARAM_set1_host(param, servername, 0);
+            }
         }
 #else
         // Implement
@@ -797,14 +812,24 @@ int ci_tls_connect_nonblock(ci_connection_t *connection, const char *servername,
         BIO_set_ssl(ssl_bio, ssl, BIO_CLOSE);
 
 #if defined(SSL_CTRL_SET_TLSEXT_HOSTNAME)
-        SSL_set_tlsext_host_name(ssl, servername);
+        if (!servername_is_ip) {
+            SSL_set_tlsext_host_name(ssl, servername);
+        }
 #endif
 
         snprintf(buf, sizeof(buf), "%d", port);
 
         connection_bio = BIO_new(BIO_s_connect());
         BIO_set_conn_port(connection_bio, buf);
-        BIO_set_conn_hostname(connection_bio, servername);
+        if (servername_is_ip_v6) {
+            // IPv6 addresses must be written in square brackets
+            char ipv6_servername[64];
+            snprintf(ipv6_servername, sizeof(ipv6_servername), "[%s]", servername);
+            BIO_set_conn_hostname(connection_bio, ipv6_servername);
+        }
+        else {
+            BIO_set_conn_hostname(connection_bio, servername);
+        }
         BIO_set_nbio(connection_bio, 1);
 
         connection_bio = BIO_push(ssl_bio, connection_bio);
