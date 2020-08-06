@@ -392,9 +392,8 @@ ci_vector_t *ci_vector_cast_from_voidvoid(const void **p)
     ci_vector_t *v;
     v = (ci_vector_t *)((void *)p - _CI_ALIGN(sizeof(ci_vector_t)));
     buf = (void *)v - ci_pack_allocator_required_size();
-    /*Check if it is a valid vector. The ci_buffer_blocksize will return 0, if buf  is not a ci_buffer object*/
     assert(v->mem == buf);
-    assert(ci_buffer_blocksize(buf) != 0);
+    assert(ci_buffer_check(buf));
     return v;
 }
 

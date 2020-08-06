@@ -45,7 +45,7 @@ CI_DECLARE_DATA extern ci_mem_allocator_t *default_allocator;
 
 CI_DECLARE_FUNC(void) ci_mem_allocator_destroy(ci_mem_allocator_t *allocator);
 CI_DECLARE_FUNC(ci_mem_allocator_t *) ci_create_os_allocator();
-CI_DECLARE_FUNC(ci_mem_allocator_t *) ci_create_serial_allocator(int size);
+CI_DECLARE_FUNC(ci_mem_allocator_t *) ci_create_serial_allocator(size_t size);
 
 /*pack_allocator related functions ....*/
 CI_DECLARE_FUNC(ci_mem_allocator_t *) ci_create_pack_allocator(char *memblock, size_t  size);
@@ -63,10 +63,14 @@ CI_DECLARE_FUNC(void) ci_pack_allocator_set_end_pos(ci_mem_allocator_t *allocato
 CI_DECLARE_FUNC(int) ci_buffers_init();
 CI_DECLARE_FUNC(void) ci_buffers_destroy();
 
-CI_DECLARE_FUNC(void *)  ci_buffer_alloc(int block_size);
-CI_DECLARE_FUNC(void *)  ci_buffer_realloc(void *data, int block_size);
+CI_DECLARE_FUNC(void *)  ci_buffer_alloc(size_t block_size);
+CI_DECLARE_FUNC(void *)  ci_buffer_alloc2(size_t block_size, size_t *allocated_size);
+CI_DECLARE_FUNC(void *)  ci_buffer_realloc(void *data, size_t block_size);
+CI_DECLARE_FUNC(void *)  ci_buffer_realloc2(void *data, size_t block_size, size_t *allocated_size);
 CI_DECLARE_FUNC(void)    ci_buffer_free(void *data);
-CI_DECLARE_FUNC(size_t)  ci_buffer_blocksize(const void *data);
+
+CI_DECLARE_FUNC(size_t)  ci_buffer_size(const void *data);
+CI_DECLARE_FUNC(int)  ci_buffer_check(const void *data);
 
 CI_DECLARE_FUNC(int)     ci_object_pool_register(const char *name, int size);
 CI_DECLARE_FUNC(void)    ci_object_pool_unregister(int id);

@@ -31,8 +31,8 @@ int ci_buffers_init();
 
 /*General Functions */
 ci_mem_allocator_t *default_allocator = NULL;
-int MEM_ALLOCATOR_POOL = -1;
-int PACK_ALLOCATOR_POOL = -1;
+static int MEM_ALLOCATOR_POOL = -1;
+static int PACK_ALLOCATOR_POOL = -1;
 
 static size_t sizeof_pack_allocator();
 ci_mem_allocator_t *ci_create_pool_allocator(int items_size);
@@ -95,7 +95,7 @@ static ci_mem_allocator_t *alloc_mem_allocator_struct()
 #define BUF_SIGNATURE 0xAA55
 struct mem_buffer_block {
     uint16_t sig;
-    int ID;
+    size_t ID;
     union {
         double __align;
         char ptr[1];
@@ -107,8 +107,8 @@ struct mem_buffer_block {
 #endif
 #define PTR_OFFSET offsetof(struct mem_buffer_block,data.ptr[0])
 
-ci_mem_allocator_t *short_buffers[16];
-ci_mem_allocator_t *long_buffers[16];
+static ci_mem_allocator_t *short_buffers[16];
+static ci_mem_allocator_t *long_buffers[16];
 
 int ci_buffers_init()
 {
@@ -149,7 +149,7 @@ int ci_buffers_init()
     return 1;
 }
 
-int short_buffer_sizes[16] =  {
+static int short_buffer_sizes[16] =  {
     64,
     128,
     256,256,
@@ -157,7 +157,7 @@ int short_buffer_sizes[16] =  {
     1024, 1024, 1024, 1024, 1024, 1024, 1024, 1024
 };
 
-int long_buffer_sizes[16] =  {
+static int long_buffer_sizes[16] =  {
     2048,
     4096,
     8192, 8192,
@@ -174,123 +174,158 @@ void ci_buffers_destroy()
     }
 }
 
-void *ci_buffer_alloc(int block_size)
+void *ci_buffer_alloc2(size_t block_size, size_t *allocated_size)
 {
-    int type, size;
+    int type;
+    size_t mem_size, allocated_buffer_size;
     struct mem_buffer_block *block = NULL;
-    size = block_size + PTR_OFFSET;
+    mem_size = block_size + PTR_OFFSET;
     type = (block_size-1) >> 6;
-    if (type< 16 && short_buffers[type] != NULL) {
-        block = short_buffers[type]->alloc(short_buffers[type], size);
+    if (type < 16) {
+        assert(short_buffers[type] != NULL);
+        block = short_buffers[type]->alloc(short_buffers[type], mem_size);
+        allocated_buffer_size = short_buffer_sizes[type];
     } else if (type < 512) {
-        type = type >> 5;
-        if (long_buffers[type] != NULL) {
-            block = long_buffers[type]->alloc(long_buffers[type], size);
-        }
+        int long_sub_type = type >> 5;
+        assert(long_buffers[long_sub_type] != NULL);
+        block = long_buffers[long_sub_type]->alloc(long_buffers[long_sub_type], mem_size);
+        allocated_buffer_size = long_buffer_sizes[long_sub_type];
+    } else {
+        block = (struct mem_buffer_block *)malloc(mem_size);
+        allocated_buffer_size = block_size;
     }
 
-    if (!block)
-        block = (struct mem_buffer_block *)malloc(size);
-
     if (!block) {
-        ci_debug_printf(1, "Failed to allocate space for buffer of size:%d\n", block_size);
+        ci_debug_printf(1, "Failed to allocate space for buffer of size:%d\n", (int)block_size);
         return NULL;
     }
 
     block->sig = BUF_SIGNATURE;
-    block->ID = block_size;
-    ci_debug_printf(8, "Geting buffer from pool %d:%d\n", block_size, type);
+    if (allocated_size) {
+        *allocated_size = allocated_buffer_size;
+        block->ID = allocated_buffer_size;
+    } else
+        block->ID = block_size;
+    ci_debug_printf(9, "Requested size %d, getting buffer %p from pool %d:%d\n", (int)block_size, (void *)block->data.ptr, type, (int)allocated_buffer_size);
     return (void *)block->data.ptr;
 }
 
-size_t ci_buffer_blocksize(const void *data)
+void *ci_buffer_alloc(size_t block_size)
 {
-    const struct mem_buffer_block *block;
+    return ci_buffer_alloc2(block_size, NULL);
+}
+
+static struct mem_buffer_block *to_block(const void *data)
+{
+    struct mem_buffer_block *block;
+    block = (struct mem_buffer_block *)(data-PTR_OFFSET);
+    if (block->sig != BUF_SIGNATURE) {
+        ci_debug_printf(1,"ci_buffer internal check: ERROR, %p is not a ci_buffer object. This is a bug!!!!\n", data);
+        return NULL;
+    }
+    return block;
+}
+
+CI_DECLARE_FUNC(int)  ci_buffer_check(const void *data)
+{
+    return to_block(data) ? 1 : 0;
+}
+
+CI_DECLARE_FUNC(size_t)  ci_buffer_size(const void *data)
+{
+    const struct mem_buffer_block *block = to_block(data);
+    return block ? block->ID : 0;
+}
+
+static size_t ci_buffer_real_size(const void *data)
+{
+    const struct mem_buffer_block *block = to_block(data);
+    if (!block)
+        return 0;
+
     int type;
     size_t buffer_block_size = 0;
-    block = (const struct mem_buffer_block *)(data-PTR_OFFSET);
-    if (block->sig != BUF_SIGNATURE) {
-        ci_debug_printf(1,"ci_buffer_blocksize: ERROR, %p is not internal buffer. This is a bug!!!!\n", data);
-        return 0;
-    }
-
     type = (block->ID - 1) >> 6;
-    if (type< 16 && short_buffers[type] != NULL) {
+    if (type < 16) {
+        assert(short_buffers[type] != NULL);
         buffer_block_size = short_buffer_sizes[type];
     } else if (type < 512) {
         type = type >> 5;
-        if (long_buffers[type] != NULL) {
-            buffer_block_size = long_buffer_sizes[type];
-        }
-    }
-
-    if (!buffer_block_size)
+        assert(long_buffers[type] != NULL);
+        buffer_block_size = long_buffer_sizes[type];
+    } else
         buffer_block_size = block->ID;
     return buffer_block_size;
 }
 
-void * ci_buffer_realloc(void *data, int block_size)
+void *  ci_buffer_realloc2(void *data, size_t new_block_size, size_t *allocated_size)
 {
-    int buffer_size = 0;
+    if (!data)
+        return ci_buffer_alloc2(new_block_size, allocated_size);
+
+    size_t current_buffer_size = 0;
     struct mem_buffer_block *block;
 
-    if (!data)
-        return ci_buffer_alloc(block_size);
-
-    block = (struct mem_buffer_block *)(data-PTR_OFFSET);
-    if (block->sig != BUF_SIGNATURE) {
-        ci_debug_printf(1,"ci_buffer_realloc: ERROR, %p is not internal buffer. This is a bug!!!!\n", data);
+    if (!(block = to_block(data)))
         return NULL;
-    }
 
-    buffer_size = ci_buffer_blocksize(data);
-    assert(buffer_size > 0);
-    ci_debug_printf(8, "Current block size for realloc: %d, requested block size: %d. The initial size: %d\n",
-                    buffer_size, block_size, block->ID);
+    current_buffer_size = ci_buffer_real_size(data);
+    assert(current_buffer_size > 0);
+    ci_debug_printf(9, "Current buffer %p of size for realloc: %d, requested block size: %d. The initial size: %d\n",
+                    data,
+                    (int)current_buffer_size, (int)new_block_size, (int)block->ID);
 
     /*If no block_size created than our buffer actual size probably requires a realloc.....*/
-    if (block_size > buffer_size) {
-        ci_debug_printf(10, "We are going to allocate a bigger block of size: %d\n", block_size);
-        data = ci_buffer_alloc(block_size);
+    if (new_block_size > current_buffer_size) {
+        data = ci_buffer_alloc2(new_block_size, allocated_size);
         if (!data)
             return NULL;
-        ci_debug_printf(10, "Preserve data of size: %d\n", block->ID);
         memcpy(data, block->data.ptr, block->ID);
         ci_buffer_free(block->data.ptr);
     } else {
         /*we neeed to update block->ID to the new requested size...*/
-        block->ID = block_size;
+        if (allocated_size) {
+            *allocated_size = current_buffer_size;
+            block->ID = current_buffer_size;
+        } else
+            block->ID = new_block_size;
     }
+
+    ci_debug_printf(9, "New memory buffer %p of size %d, actual reserved buffer of size: %d\n", data, (int) new_block_size, (int)ci_buffer_real_size(data));
 
     return data;
 }
 
+void * ci_buffer_realloc(void *data, size_t block_size)
+{
+    return ci_buffer_realloc2(data, block_size, NULL);
+}
+
 void ci_buffer_free(void *data)
 {
-    int block_size, type;
+    int type;
+    size_t block_size;
     struct mem_buffer_block *block;
 
     if (!data)
         return;
 
-    block = (struct mem_buffer_block *)(data-PTR_OFFSET);
-    if (block->sig != BUF_SIGNATURE) {
-        ci_debug_printf(1,"ci_buffer_free: ERROR, %p is not internal buffer. This is a bug!!!!\n", data);
+    if (!(block = to_block(data)))
         return;
-    }
+
     block_size = block->ID;
     type = (block_size-1) >> 6;
-    if (type < 16 && short_buffers[type] != NULL) {
+    if (type < 16) {
+        assert(short_buffers[type] != NULL);
         short_buffers[type]->free(short_buffers[type], block);
-        ci_debug_printf(8, "Store buffer to short pool %d:%d\n", block_size, type);
+        ci_debug_printf(9, "Store buffer %p (used %d bytes) to short pool %d:%d\n", data, (int)block_size, type, short_buffer_sizes[type]);
     } else if (type < 512) {
-        type = type >> 5;
-        if (long_buffers[type] != NULL)
-            long_buffers[type]->free(long_buffers[type], block);
-        else
-            free(block);
-        ci_debug_printf(8, "Store buffer to long pool %d:%d\n", block_size, type);
+        int long_sub_type = type >> 5;
+        assert(long_buffers[long_sub_type] != NULL);
+        long_buffers[long_sub_type]->free(long_buffers[long_sub_type], block);
+        ci_debug_printf(9, "Store buffer %p (used %d bytes) to long pool %d:%d\n", data, (int)block_size, type, long_buffer_sizes[long_sub_type]);
     } else {
+        ci_debug_printf(9, "Free buffer %p (free at %p, used %d bytes)\n", data, block, (int)block->ID);
         free(block);
     }
 }
@@ -393,7 +428,7 @@ void ci_object_pool_free(void *ptr)
         ci_debug_printf(1,"ci_object_pool_free: ERROR, %p is pointing to corrupted mem? This is a bug!!!!\n", ptr);
         return;
     }
-    ci_debug_printf(8, "Storing to objects pool object %d\n", block->ID);
+    ci_debug_printf(8, "Storing to objects pool object %d\n", (int)block->ID);
     object_pools[block->ID]->free(object_pools[block->ID], block);
 }
 
@@ -449,7 +484,7 @@ typedef struct serial_allocator {
 } serial_allocator_t;
 
 
-static serial_allocator_t *serial_allocator_build(int size)
+static serial_allocator_t *serial_allocator_build(size_t size)
 {
     serial_allocator_t *serial_alloc;
     void *buffer;
@@ -458,11 +493,11 @@ static serial_allocator_t *serial_allocator_build(int size)
      allocated in the buffer */
     if (size < sizeof(serial_allocator_t) + sizeof(ci_mem_allocator_t))
         return NULL;
-    buffer = ci_buffer_alloc(size);
-    serial_alloc = buffer;
+
     /*The allocated block size maybe is larger, than the requested.
-      Lets fix size to actual block size: */
-    size = ci_buffer_blocksize(buffer);
+      Fix size to actual block size */
+    buffer = ci_buffer_alloc2(size, &size);
+    serial_alloc = buffer;
 
     serial_alloc->memchunk = buffer + sizeof(serial_allocator_t);
     size -= sizeof(serial_allocator_t);
@@ -474,7 +509,7 @@ static serial_allocator_t *serial_allocator_build(int size)
 
 static void *serial_allocation(serial_allocator_t *serial_alloc, size_t size)
 {
-    int max_size;
+    size_t max_size;
     void *mem;
     size = _CI_ALIGN(size); /*round size to a correct alignment size*/
     max_size = serial_alloc->endpos - serial_alloc->memchunk;
@@ -543,7 +578,7 @@ static void serial_allocator_destroy(ci_mem_allocator_t *allocator)
     }
 }
 
-ci_mem_allocator_t *ci_create_serial_allocator(int size)
+ci_mem_allocator_t *ci_create_serial_allocator(size_t size)
 {
     ci_mem_allocator_t *allocator;
 
