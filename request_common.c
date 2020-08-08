@@ -28,20 +28,7 @@
 #include "request_util.h"
 #include "util.h"
 #include "body.h"
-
-static void * _os_malloc(int size)
-{
-    return malloc(size);
-}
-
-static void _os_free(void *ptr)
-{
-    free(ptr);
-}
-
-void *(*__intl_malloc)(int) = _os_malloc;
-void (*__intl_free)(void *) = _os_free;
-
+#include "mem.h"
 
 /* struct buf functions*/
 void ci_buf_init(struct ci_buf *buf)
@@ -55,25 +42,24 @@ void ci_buf_reset(struct ci_buf *buf)
 {
     buf->used = 0;
 }
-int ci_buf_mem_alloc(struct ci_buf *buf, int size)
+int ci_buf_mem_alloc(struct ci_buf *buf, size_t size)
 {
-    if (!(buf->buf = __intl_malloc(size * sizeof(char))))
+    if (!(buf->buf = ci_buffer_alloc2(size * sizeof(char), &buf->size)))
         return 0;
-    buf->size = size;
     buf->used = 0;
-    return size;
+    return buf->size;
 }
 
 void ci_buf_mem_free(struct ci_buf *buf)
 {
-    __intl_free(buf->buf);
+    ci_buffer_free(buf->buf);
     buf->buf = NULL;
     buf->size = 0;
     buf->used = 0;
 }
 
 
-int ci_buf_write(struct ci_buf *buf, char *data, int len)
+int ci_buf_write(struct ci_buf *buf, char *data, size_t len)
 {
     if (len > (buf->size - buf->used))
         return -1;
@@ -82,13 +68,21 @@ int ci_buf_write(struct ci_buf *buf, char *data, int len)
     return len;
 }
 
+int ci_buf_reset_and_resize(struct ci_buf *buf, size_t req_size)
+{
+    if (buf->size >= req_size) {
+        buf->used = 0;
+        return buf->size;
+    }
+
+    if (buf->buf)
+        ci_buffer_free(buf->buf);
+    return ci_buf_mem_alloc(buf, req_size);
+}
+
 int ci_buf_reset_size(struct ci_buf *buf, int req_size)
 {
-    if (buf->size > req_size)
-        return req_size;
-    if (buf->buf)
-        __intl_free(buf->buf);
-    return ci_buf_mem_alloc(buf, req_size);
+    return ci_buf_reset_and_resize(buf, (size_t)req_size);
 }
 
 void ci_request_t_pack(ci_request_t * req, int is_request)
@@ -230,7 +224,7 @@ ci_request_t *ci_request_alloc(ci_connection_t * connection)
 {
     ci_request_t *req;
     int i;
-    req = (ci_request_t *) __intl_malloc(sizeof(ci_request_t));
+    req = (ci_request_t *) malloc(sizeof(ci_request_t));
     if (!req)
         return NULL;
 
@@ -352,7 +346,7 @@ void ci_request_reset(ci_request_t * req)
     req->auth_required = 0;
 
     if (req->log_str)
-        __intl_free(req->log_str);
+        ci_buffer_free(req->log_str);
     req->log_str = NULL;
 
     if (req->attributes)
@@ -374,7 +368,7 @@ void ci_request_reset(ci_request_t * req)
 
     /*Reset the encapsulated response or request headers*/
     if (req->trash_entities[ICAP_REQ_HDR] &&
-            req->trash_entities[ICAP_REQ_HDR]->entity)
+        req->trash_entities[ICAP_REQ_HDR]->entity)
         ci_headers_reset((ci_headers_list_t *)req->trash_entities[ICAP_REQ_HDR]->entity);
     if (req->trash_entities[ICAP_RES_HDR] &&
             req->trash_entities[ICAP_RES_HDR]->entity)
@@ -385,7 +379,7 @@ void ci_request_destroy(ci_request_t * req)
 {
     int i;
     if (req->connection)
-        __intl_free(req->connection);
+        free(req->connection);
 
     ci_buf_mem_free(&(req->preview_data));
     ci_headers_destroy(req->request_header);
@@ -405,22 +399,22 @@ void ci_request_destroy(ci_request_t * req)
     }
 
     if (req->log_str)
-        __intl_free(req->log_str);
+        ci_buffer_free(req->log_str);
 
     if (req->attributes)
         ci_array_destroy(req->attributes);
 
-    __intl_free(req);
+    free(req);
 }
 
 char *ci_request_set_log_str(ci_request_t *req, char *logstr)
 {
     int size;
     if (req->log_str)
-        __intl_free(req->log_str);
+        ci_buffer_free(req->log_str);
 
     size = strlen(logstr) + 1;
-    req->log_str = __intl_malloc(size*sizeof(char));
+    req->log_str = ci_buffer_alloc(size * sizeof(char));
     if (!req->log_str)
         return NULL;
     strncpy(req->log_str, logstr, size);

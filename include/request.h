@@ -74,8 +74,8 @@ enum SENDDATA_STATUS {SEND_NOTHING = 0, SEND_RESPHEAD, SEND_HEAD1, SEND_HEAD2, S
 
 typedef struct ci_buf {
     char *buf;
-    int size;
-    int used;
+    size_t size;
+    size_t used;
 } ci_buf_t;
 
 
@@ -175,10 +175,13 @@ CI_DECLARE_FUNC(int) process_encapsulated(ci_request_t *req, const char *buf);
 /*Buffer functions (I do not know if they must included in ci library....) */
 CI_DECLARE_FUNC(void)  ci_buf_init(struct ci_buf *buf);
 CI_DECLARE_FUNC(void)  ci_buf_reset(struct ci_buf *buf);
-CI_DECLARE_FUNC(int)   ci_buf_mem_alloc(struct ci_buf *buf,int size);
+CI_DECLARE_FUNC(int)   ci_buf_mem_alloc(struct ci_buf *buf,size_t size);
 CI_DECLARE_FUNC(void)  ci_buf_mem_free(struct ci_buf *buf);
-CI_DECLARE_FUNC(int)   ci_buf_write(struct ci_buf *buf,char *data,int len);
-CI_DECLARE_FUNC(int)   ci_buf_reset_size(struct ci_buf *buf,int req_size);
+CI_DECLARE_FUNC(int)   ci_buf_write(struct ci_buf *buf, char *data, size_t len);
+CI_DECLARE_FUNC(int)   ci_buf_reset_and_resize(struct ci_buf *buf, size_t req_size);
+
+/*Deprecated: */
+CI_DECLARE_FUNC(int) ci_buf_reset_size(struct ci_buf *buf, int req_size);
 
 /***************/
 /*API defines */

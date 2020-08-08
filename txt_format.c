@@ -637,7 +637,7 @@ int fmt_req_preview_len(ci_request_t *req, char *buf, int len, const char *param
         return 0;
 
     if (req->preview >= 0)
-        return snprintf(buf, len, "%d", req->preview_data.used);
+        return snprintf(buf, len, "%ld", (long)req->preview_data.used);
 
     *buf = '-';
     return 1;

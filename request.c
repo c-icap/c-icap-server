@@ -504,7 +504,7 @@ static int parse_header(ci_request_t * req)
             if (errno != EINVAL && errno != ERANGE) {
                 req->preview = result;
                 if (result >= 0)
-                    ci_buf_reset_size(&(req->preview_data), result + 64);
+                    ci_buf_reset_and_resize(&(req->preview_data), result + 64);
             }
         } else if (strncasecmp("Encapsulated:", h->headers[i], 13) == 0)
             request_status = process_encapsulated(req, h->headers[i]);
