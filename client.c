@@ -958,6 +958,7 @@ void ci_client_set_user_agent(const char *agent)
 
 void ci_client_library_init()
 {
+    ci_buffers_init();
     ci_cfg_lib_init();
 }
 
@@ -967,4 +968,6 @@ void ci_client_library_release()
         free(CI_USER_AGENT);
         CI_USER_AGENT = NULL;
     }
+    /*Currently ci_buffers_destroy is buggy */
+    /*ci_buffers_destroy();*/
 }
