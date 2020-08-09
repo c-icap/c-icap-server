@@ -110,41 +110,48 @@ struct mem_buffer_block {
 static ci_mem_allocator_t *short_buffers[16];
 static ci_mem_allocator_t *long_buffers[16];
 
+enum {
+    BUF64_POOL, BUF128_POOL, BUF256_POOL,BUF512_POOL, BUF1024_POOL,
+    BUF2048_POOL, BUF4096_POOL, BUF8192_POOL, BUF16384_POOL, BUF32768_POOL,
+    BUF_END_POOL
+};
+
+static ci_mem_allocator_t *Pools[BUF_END_POOL];
+
 int ci_buffers_init()
 {
     int i;
-    ci_mem_allocator_t *buf64_pool, *buf128_pool,
-                       *buf256_pool,*buf512_pool, *buf1024_pool;
-    ci_mem_allocator_t *buf2048_pool, *buf4096_pool,
-                       *buf8192_pool, *buf16384_pool, *buf32768_pool;
+    memset(Pools, 0, sizeof(Pools));
+    memset(short_buffers, 0, sizeof(short_buffers));
+    memset(long_buffers, 0, sizeof(long_buffers));
 
-    buf64_pool = ci_create_pool_allocator(64+PTR_OFFSET);
-    buf128_pool = ci_create_pool_allocator(128+PTR_OFFSET);
-    buf256_pool = ci_create_pool_allocator(256+PTR_OFFSET);
-    buf512_pool = ci_create_pool_allocator(512+PTR_OFFSET);
-    buf1024_pool = ci_create_pool_allocator(1024+PTR_OFFSET);
+    Pools[BUF64_POOL] = ci_create_pool_allocator(64+PTR_OFFSET);
+    Pools[BUF128_POOL] = ci_create_pool_allocator(128+PTR_OFFSET);
+    Pools[BUF256_POOL] = ci_create_pool_allocator(256+PTR_OFFSET);
+    Pools[BUF512_POOL] = ci_create_pool_allocator(512+PTR_OFFSET);
+    Pools[BUF1024_POOL] = ci_create_pool_allocator(1024+PTR_OFFSET);
 
-    buf2048_pool = ci_create_pool_allocator(2048+PTR_OFFSET);
-    buf4096_pool = ci_create_pool_allocator(4096+PTR_OFFSET);
-    buf8192_pool = ci_create_pool_allocator(8192+PTR_OFFSET);
-    buf16384_pool = ci_create_pool_allocator(16384+PTR_OFFSET);
-    buf32768_pool = ci_create_pool_allocator(32768+PTR_OFFSET);
+    Pools[BUF2048_POOL] = ci_create_pool_allocator(2048+PTR_OFFSET);
+    Pools[BUF4096_POOL] = ci_create_pool_allocator(4096+PTR_OFFSET);
+    Pools[BUF8192_POOL] = ci_create_pool_allocator(8192+PTR_OFFSET);
+    Pools[BUF16384_POOL] = ci_create_pool_allocator(16384+PTR_OFFSET);
+    Pools[BUF32768_POOL] = ci_create_pool_allocator(32768+PTR_OFFSET);
 
-    short_buffers[0] = buf64_pool;
-    short_buffers[1] = buf128_pool;
-    short_buffers[2] = short_buffers[3] = buf256_pool;
+    short_buffers[0] = Pools[BUF64_POOL];
+    short_buffers[1] = Pools[BUF128_POOL];
+    short_buffers[2] = short_buffers[3] = Pools[BUF256_POOL];
     short_buffers[4] = short_buffers[5] =
-                           short_buffers[6] = short_buffers[7] = buf512_pool;
+                           short_buffers[6] = short_buffers[7] = Pools[BUF512_POOL];
     for (i = 8; i < 16; i++)
-        short_buffers[i] = buf1024_pool;
+        short_buffers[i] = Pools[BUF1024_POOL];
 
-    long_buffers[0] = buf2048_pool;
-    long_buffers[1] = buf4096_pool;
-    long_buffers[2] = long_buffers[3] = buf8192_pool;
+    long_buffers[0] = Pools[BUF2048_POOL];
+    long_buffers[1] = Pools[BUF4096_POOL];
+    long_buffers[2] = long_buffers[3] = Pools[BUF8192_POOL];
     long_buffers[4] = long_buffers[5] =
-                          long_buffers[6] = long_buffers[7] = buf16384_pool;
+                          long_buffers[6] = long_buffers[7] = Pools[BUF16384_POOL];
     for (i = 8; i < 16; i++)
-        long_buffers[i] = buf32768_pool;
+        long_buffers[i] = Pools[BUF32768_POOL];
 
     return 1;
 }
@@ -168,10 +175,13 @@ static int long_buffer_sizes[16] =  {
 void ci_buffers_destroy()
 {
     int i;
-    for (i = 0; i < 16; i++) {
-        if (short_buffers[i] != NULL)
-            ci_mem_allocator_destroy(short_buffers[i]);
+    for (i = 0; i < BUF_END_POOL; i++) {
+        if (Pools[i] != NULL)
+            ci_mem_allocator_destroy(Pools[i]);
     }
+    memset(Pools, 0, sizeof(Pools));
+    memset(short_buffers, 0, sizeof(short_buffers));
+    memset(long_buffers, 0, sizeof(long_buffers));
 }
 
 void *ci_buffer_alloc2(size_t block_size, size_t *allocated_size)

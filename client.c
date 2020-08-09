@@ -968,6 +968,5 @@ void ci_client_library_release()
         free(CI_USER_AGENT);
         CI_USER_AGENT = NULL;
     }
-    /*Currently ci_buffers_destroy is buggy */
-    /*ci_buffers_destroy();*/
+    ci_buffers_destroy();
 }
