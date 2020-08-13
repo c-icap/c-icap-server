@@ -385,10 +385,11 @@ int ci_magics_db_file_add(struct ci_magics_db *db, const char *filename)
         return 0;
     }
 
+    memset(&record, 0, sizeof(struct ci_magic_record));
     lineNum = 0;
     error = 0;
     while (!error && fgets(line, RECORD_LINE, f) != NULL) {
-        lineNum ++;
+        lineNum++;
         ci_str_trim(line);
         ret = parse_record(line, &record);
         if (!ret)
@@ -477,7 +478,7 @@ static int check_magics(const struct ci_magics_db *db, const char *buf, int bufl
     int i, j;
     int matched;
     const char *test;
-    int required;;
+    int required;
     for (i = 0; i < db->magics_num; i++) {
         matched = 0;
         for (j = 0; j < db->magics[i]->blocks_num; ++j) {
