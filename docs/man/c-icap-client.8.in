@@ -19,6 +19,15 @@ c-icap-client - simple ICAP client
 .B \-s "service"
 ]
 [
+.B \-tls
+]
+[
+.B \-tls-method method
+]
+[
+.B \-tls-no-verify
+]
+[
 .B \-f "input_file"
 ]
 [
@@ -74,6 +83,12 @@ The hostname of the icap server. The default is localhost
 The server port. The default port value is 1344
 .IP "-s service"
 The service name. The default service name is "echo"
+.IP "-tls"
+Use TLS
+.IP "-tls-method method"
+Select the TLS method to use, normaly one of TLSv1, TLSv1_1, TLSv1_2 or TLSv1_3
+.IP "-tls-no-verify"
+Disable TLS server certificate verify
 .IP "-f filename"
 Send this file to the icap server. Default is to send an options request
 .IP "-o filename"
