@@ -218,6 +218,99 @@ static const SSL_METHOD* get_tls_method(int b_for_server)
 #endif
 }
 
+static void restrict_tls_method(SSL_CTX *ctx, const char* method_str)
+{
+    long method_options = 0;
+
+    if (!method_str || !method_str[0])
+        return;
+
+#if (OPENSSL_VERSION_NUMBER >= 0x10100000L)
+    if ( 0 == strcmp(method_str, "SSLv23")) {
+        method_options = SSL_OP_NO_TLSv1
+#if defined(SSL_OP_NO_TLSv1_1)
+            | SSL_OP_NO_TLSv1_1
+#endif
+#if defined(SSL_OP_NO_TLSv1_2)
+            | SSL_OP_NO_TLSv1_2
+#endif
+#if defined(SSL_OP_NO_TLSv1_3)
+            | SSL_OP_NO_TLSv1_3
+#endif
+            ;
+    }
+#endif
+#if defined(SSL_OP_NO_TLSv1_3) /* TLSv1.3 is supported */
+    else if ( 0 == strcmp(method_str, "TLSv1_3")) {
+        method_options = SSL_OP_NO_TLSv1 | SSL_OP_NO_SSLv3 | SSL_OP_NO_SSLv2
+#if defined(SSL_OP_NO_TLSv1_1)
+            | SSL_OP_NO_TLSv1_1
+#endif
+#if defined(SSL_OP_NO_TLSv1_2)
+            | SSL_OP_NO_TLSv1_2
+#endif
+            ;
+    }
+#endif
+#if defined(SSL_OP_NO_TLSv1_2) /* TLSv1.2 is supported */
+    else if ( 0 == strcmp(method_str, "TLSv1_2")) {
+        method_options = SSL_OP_NO_TLSv1 | SSL_OP_NO_SSLv3 | SSL_OP_NO_SSLv2
+#if defined(SSL_OP_NO_TLSv1_1)
+            | SSL_OP_NO_TLSv1_1
+#endif
+#if defined(SSL_OP_NO_TLSv1_3)
+            | SSL_OP_NO_TLSv1_3
+#endif
+            ;
+    }
+#endif
+#if defined(SSL_OP_NO_TLSv1_1) /* TLSv1.1 is supported */
+    else if ( 0 == strcmp(method_str, "TLSv1_1")) {
+        method_options = SSL_OP_NO_TLSv1 | SSL_OP_NO_SSLv3 | SSL_OP_NO_SSLv2
+#if defined(SSL_OP_NO_TLSv1_2)
+            | SSL_OP_NO_TLSv1_2
+#endif
+#if defined(SSL_OP_NO_TLSv1_3)
+            | SSL_OP_NO_TLSv1_3
+#endif
+            ;
+    }
+#endif
+    else if ( 0 == strcmp(method_str, "TLSv1")) {
+        method_options = SSL_OP_NO_SSLv3 | SSL_OP_NO_SSLv2
+#if defined(SSL_OP_NO_TLSv1_1)
+            | SSL_OP_NO_TLSv1_1
+#endif
+#if defined(SSL_OP_NO_TLSv1_2)
+            | SSL_OP_NO_TLSv1_2
+#endif
+#if defined(SSL_OP_NO_TLSv1_3)
+            | SSL_OP_NO_TLSv1_3
+#endif
+            ;
+    }
+#ifndef OPENSSL_NO_SSL3_METHOD
+    else if ( 0 == strcmp(method_str, "SSLv3")) {
+        method_options = SSL_OP_NO_TLSv1 | SSL_OP_NO_SSLv2
+#if defined(SSL_OP_NO_TLSv1_1)
+            | SSL_OP_NO_TLSv1_1
+#endif
+#if defined(SSL_OP_NO_TLSv1_2)
+            | SSL_OP_NO_TLSv1_2
+#endif
+#if defined(SSL_OP_NO_TLSv1_3)
+            | SSL_OP_NO_TLSv1_3
+#endif
+            ;
+    }
+#endif
+    else {
+        ci_debug_printf(1, "TLS/SSL method string \"%s\" not available.\n", method_str);
+        return;
+    }
+
+    SSL_CTX_set_options(ctx, method_options);
+}
 
 /*
  * SSL callback function for locking
@@ -716,6 +809,9 @@ ci_tls_pcontext_t ci_tls_create_context(ci_tls_client_options_t *opts)
     }
 
     ctx = SSL_CTX_new(method);
+
+    restrict_tls_method(ctx, opts ? opts->method : NULL);
+
     if (!opts || opts->verify) {
         SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER, openssl_verify_cert_cb);
         SSL_CTX_set_default_verify_paths(ctx);
