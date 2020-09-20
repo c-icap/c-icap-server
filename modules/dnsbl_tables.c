@@ -206,7 +206,12 @@ static ci_vector_t  *resolv_hostname(char *hostname)
 
     if (vect) {
         for (cur = res; cur != NULL; cur = cur->ai_next) {
-            memcpy(&(addr.sockaddr), cur->ai_addr, CI_SOCKADDR_SIZE);
+#ifndef USE_IPV6
+            if (res->ai_family != AF_INET) {
+                continue;
+            }
+#endif
+            memcpy(&(addr.sockaddr), cur->ai_addr, cur->ai_addrlen);
             ci_fill_sockaddr(&addr);
             if (ci_sockaddr_t_to_ip(&addr, buf, sizeof(buf)))
                 (void)ci_str_vector_add(vect, buf);

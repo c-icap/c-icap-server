@@ -80,7 +80,6 @@ typedef union ci_inaddr {
                      ci_in6_addr_u32(addr)[3] = htonl(0xFFFFFFFF))
 
 #define CI_IPLEN      46
-#define CI_SOCKADDR_SIZE sizeof(struct sockaddr_storage)
 
 #else /*IPV4 only*/
 
@@ -91,7 +90,6 @@ typedef struct in_addr ci_in_addr_t;
 
 
 #define CI_IPLEN      16
-#define CI_SOCKADDR_SIZE sizeof(struct sockaddr_in)
 #endif
 
 #define wait_for_read       0x1
