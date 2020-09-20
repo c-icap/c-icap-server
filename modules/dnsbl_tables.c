@@ -207,6 +207,10 @@ static ci_vector_t  *resolv_hostname(char *hostname)
     if (vect) {
         for (cur = res; cur != NULL; cur = cur->ai_next) {
 #ifndef USE_IPV6
+            /*XXX: the modules should not care about supported
+                   protocols, however the ci_sockaddr_t_to_ip is buggy
+                   and will return a (wrong) value if this is an
+                   IPv6 address and IPv6 protocol is not supported */
             if (res->ai_family != AF_INET) {
                 continue;
             }

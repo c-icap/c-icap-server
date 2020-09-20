@@ -154,6 +154,10 @@ const char *ci_inet_ntoa(int af, const void *src, char *dst, int cnt)
 #ifdef USE_IPV6
     return inet_ntop(af, src, dst, cnt);
 #else
+    /*
+    XXX: It must return NULL if the af is IPv6 or an other not
+         supported protocol
+    */
     unsigned char *addr_bytes;
     addr_bytes = (unsigned char *) src;
     snprintf(dst, cnt, "%d.%d.%d.%d", addr_bytes[0], addr_bytes[1],
