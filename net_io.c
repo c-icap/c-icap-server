@@ -123,47 +123,45 @@ const char *ci_sockaddr_t_to_ip(ci_sockaddr_t * addr, char *ip, int maxlen)
     return ci_inet_ntoa(addr->ci_sin_family, addr->ci_sin_addr, ip, maxlen);
 }
 
-
-/*
-  Needed check in configure.in for inet_pton and inet_ntop ?
-  For Linux and Solaris exists.
-  But I did not found these functions in win32 for example .
-*/
-
 int ci_inet_aton(int af, const char *cp, void *addr)
 {
-#ifdef USE_IPV6
+#ifdef HAVE_INET_PTON
     return inet_pton(af, cp, addr);
 #else
+    if (af == AF_INET) {
 #ifdef HAVE_INET_ATON
-    return inet_aton(cp, (struct in_addr *) addr);
+        return inet_aton(cp, (struct in_addr *) addr);
 #else
-    ((struct in_addr *) addr)->s_addr = inet_addr(cp);
-    if (((struct in_addr *) addr)->s_addr == 0xffffffff
+        ((struct in_addr *) addr)->s_addr = inet_addr(cp);
+        if (((struct in_addr *) addr)->s_addr == 0xffffffff
             && strcmp(cp, "255.255.255.255") != 0)
-        return 0;             /*0xffffffff =255.255.255.255 which is a valid address */
-    return 1;
+            return 0;             /*0xffffffff =255.255.255.255 which is a valid address */
+        return 1;
 #endif
-#endif                          /*USE_IPV6 */
+    }
+
+    ci_debug_printf(1, "ci_inet_aton: WARNING: can not convert address '%s' of AF_type: %d\n", cp, af);
+    return 0;
+#endif /* HAVE_INET_PTON */
 }
 
 
 
 const char *ci_inet_ntoa(int af, const void *src, char *dst, int cnt)
 {
-#ifdef USE_IPV6
+#ifdef HAVE_INET_NTOP
     return inet_ntop(af, src, dst, cnt);
 #else
-    /*
-    XXX: It must return NULL if the af is IPv6 or an other not
-         supported protocol
-    */
-    unsigned char *addr_bytes;
-    addr_bytes = (unsigned char *) src;
-    snprintf(dst, cnt, "%d.%d.%d.%d", addr_bytes[0], addr_bytes[1],
-             addr_bytes[2], addr_bytes[3]);
-    dst[cnt - 1] = '\0';
-    return (const char *) dst;
+    if (af == AF_INET) {
+        unsigned char *addr_bytes;
+        addr_bytes = (unsigned char *) src;
+        snprintf(dst, cnt, "%d.%d.%d.%d", addr_bytes[0], addr_bytes[1],
+                 addr_bytes[2], addr_bytes[3]);
+        dst[cnt - 1] = '\0';
+        return (const char *) dst;
+    }
+    ci_debug_printf(1, "ci_inet_ntoa: WARNING: can not convert address of AF_type: %d to string\n", af);
+    return NULL;
 #endif
 }
 

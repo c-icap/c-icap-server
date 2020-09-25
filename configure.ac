@@ -803,6 +803,9 @@ AC_DEFINE(HAVE_STRNCASESTR,1,[Define HAVE_STRNCASESTR if strncasestr exists])
 
 AC_CHECK_FUNCS(setgroups)
 
+AC_CHECK_FUNCS(inet_pton)
+AC_CHECK_FUNCS(inet_ntop)
+
 AC_FUNC_STRERROR_R
 
 USE_POLL="0"
