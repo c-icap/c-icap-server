@@ -44,11 +44,9 @@ static inline const char *ci_method_string(int method) {
     return ((method & CI_METHOD_ALL) ? ci_methods[method]: "UNKNOWN");
 }
 
-enum ci_error_codes { EC_100, EC_200, EC_204, EC_206, EC_400,
-                      EC_401, EC_403,
-                      EC_404, EC_405, EC_407, EC_408,
-                      EC_500, EC_501, EC_502,
-                      EC_503, EC_505,
+enum ci_error_codes { EC_100, EC_200, EC_204, EC_206,
+                      EC_400, EC_401, EC_403, EC_404, EC_405, EC_407, EC_408,
+                      EC_500, EC_501, EC_502, EC_503, EC_505,
                       EC_MAX
                     };
 
@@ -58,8 +56,14 @@ typedef struct ci_error_code {
 } ci_error_code_t;
 
 CI_DECLARE_DATA extern const struct ci_error_code ci_error_codes[];
-#define ci_error_code(ec) (ec>=EC_100&&ec<EC_MAX?ci_error_codes[ec].code:1000)
-#define ci_error_code_string(ec) (ec>=EC_100&&ec<EC_MAX?ci_error_codes[ec].str:"UNKNOWN ERROR CODE")
+
+inline int ci_error_code(int ec) {
+    return ((ec >= EC_100 && ec < EC_MAX ) ? ci_error_codes[ec].code : 1000);
+}
+
+inline const char *ci_error_code_string(int ec) {
+    return ((ec >= EC_100 && ec<EC_MAX) ? ci_error_codes[ec].str : "UNKNOWN ERROR CODE");
+}
 
 enum ci_request_headers { ICAP_AUTHORIZATION, ICAP_ALLOW,
                           ICAP_FROM, ICAP_HOST, ICAP_REFERER,
