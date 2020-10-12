@@ -48,6 +48,8 @@ extern int CHILD_HALT;
 
 #define FORBITTEN_STR "ICAP/1.0 403 Forbidden\r\n\r\n"
 
+#define ci_method_supported(METHOD, METHOD_DEF) (METHOD & METHOD_DEF)
+
 static int STAT_REQUESTS = -1;
 static int STAT_FAILED_REQUESTS = -1;
 static int STAT_BYTES_IN = -1;
@@ -417,8 +419,7 @@ static int parse_request(ci_request_t * req, char *buf)
     if (!req->current_service_mod)
         return EC_404; /*Service not found*/
 
-    if (!ci_method_support
-            (req->current_service_mod->mod_type, req->type)
+    if (!ci_method_supported(req->current_service_mod->mod_type, req->type)
             && req->type != ICAP_OPTIONS) {
         return EC_405;    /* Method not allowed for service. */
     }
@@ -1171,8 +1172,8 @@ static void options_responce(ci_request_t * req)
     else
         ci_headers_add(head, "ICAP/1.0 200 OK");
 
-    int hasResp = ci_method_support(req->current_service_mod->mod_type, ICAP_RESPMOD);
-    int hasReq = ci_method_support(req->current_service_mod->mod_type, ICAP_REQMOD);
+    int hasResp = ci_method_supported(req->current_service_mod->mod_type, ICAP_RESPMOD);
+    int hasReq = ci_method_supported(req->current_service_mod->mod_type, ICAP_REQMOD);
     if (hasResp || hasReq) {
         snprintf(buf, sizeof(buf), "Methods: %s%s%s",
                  hasResp ? "RESPMOD" : "",

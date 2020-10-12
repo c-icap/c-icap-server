@@ -40,7 +40,6 @@ extern "C"
 
 CI_DECLARE_DATA extern const char *ci_methods[];
 
-#define ci_method_support(METHOD, METHOD_DEF) (METHOD&METHOD_DEF)
 #define ci_method_string(method) (method<=ICAP_RESPMOD && method>=ICAP_OPTIONS ?ci_methods[method]:"UNKNOWN")
 
 enum ci_error_codes { EC_100, EC_200, EC_204, EC_206, EC_400,
