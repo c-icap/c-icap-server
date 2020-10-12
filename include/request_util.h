@@ -41,89 +41,74 @@ extern "C"
 
 /*The following defines are request related and should be moved to request.h include file*/
 /**
- \def ci_req_lock_data(ci_request_t)
  \ingroup REQUEST
  * Lock a ci_request_t object. After called the c-icap server stops sending
  * body data to the ICAP client.
- \param req is pointer to an object of type ci_request_t
  */
-#define ci_req_lock_data(req) ((req)->data_locked = 1)
+static inline void ci_req_lock_data(ci_request_t *req) { req->data_locked = 1; }
 
 /**
- \def ci_req_unlock_data(ci_request_t)
  \ingroup REQUEST
  * Unlock a ci_request_t object. When called the c-icap server will start
  * sending body data to the ICAP client.
- \param req is pointer to an object of type ci_request_t
  */
-#define ci_req_unlock_data(req) ((req)->data_locked = 0)
+static inline void ci_req_unlock_data(ci_request_t *req) { req->data_locked = 0; }
 
 /**
- \def ci_req_hasbody(ci_request_t)
  \ingroup REQUEST
- \param req  is pointer to an object of type ci_request_t
+ \param req pointer to the ci_request_t object
  \return true (non zero int) if the ICAP request contains body data else zero
  */
-#define ci_req_hasbody(req) ((req)->hasbody)
+static inline int ci_req_hasbody(ci_request_t *req) { return req->hasbody; }
 
 /**
- \def ci_req_type(ci_request_t)
  \ingroup REQUEST
  \return  ICAP_OPTIONS, ICAP_REQMOD or ICAP_RESPMOD if the ICAP request is
  * options, request modification or response modification ICAP request
  */
-#define ci_req_type(req) ((req)->type)
+static inline int ci_req_type(ci_request_t *req) { return req->type; }
 
 /**
- \def ci_req_preview_size(ci_request_t)
  \ingroup REQUEST
  \param req  is pointer to an object of type ci_request_t
- \return The ICAP preview size
+ \return -1 if preview is not supported else the ICAP preview size
  */
-#define ci_req_preview_size(req) ((req)->preview) /*The preview data size*/
+static inline int ci_req_preview_size(ci_request_t *req) { return req->preview; }
 
 /**
- \def ci_req_allow204(ci_request_t)
  \ingroup REQUEST
- \param req  is pointer to an object of type ci_request_t
  \return True (non zero int) if the ICAP request supports "Allow 204"
  */
-#define ci_req_allow204(req) ((req)->allow204)
+static inline int ci_req_allow204(ci_request_t *req) { return req->allow204; }
 
 /**
- \def ci_req_allow206(ci_request_t)
  \ingroup REQUEST
- \param req  is pointer to an object of type ci_request_t
  \return True (non zero int) if the ICAP request supports "Allow 206"
  */
-#define ci_req_allow206(req) ((req)->allow206)
+static inline int ci_req_allow206(ci_request_t *req) { return req->allow206; }
 
 /**
- \def ci_req_allow206_outside_preview(ci_request_t)
  \ingroup REQUEST
- \param req  is pointer to an object of type ci_request_t
  \return True (non zero int) if the ICAP request supports "Allow 206" outside
  *       preview requests
  */
-#define ci_req_allow206_outside_preview(req) ((req)->allow206 && (req)->allow204)
+static inline int ci_req_allow206_outside_preview(ci_request_t *req) { return (req->allow206 && req->allow204); }
 
 
 /**
- \def ci_req_sent_data(ci_request_t)
  \ingroup REQUEST
- \param req  is pointer to an object of type ci_request_t
+ \param req  is pointer to the ci_request_t object
  \return True (non zero int) if the c-icap server has send data to the client
  */
-#define ci_req_sent_data(req)((req)->status)
+static inline int ci_req_sent_data(ci_request_t *req) { return (req->status); }
 
 /**
- \def ci_req_hasalldata(ci_request_t)
  \ingroup REQUEST
- \param req is pointer to an object of type ci_request_t
+ \param req is pointer to the ci_request_t object
  \return True (non zero int) if the ICAP client has sent all the data
  *       (headers and body data) to the ICAP server
  */
-#define ci_req_hasalldata(req)((req)->eof_received)
+static inline int ci_req_hasalldata(ci_request_t *req) { return (req->eof_received); }
 
 /**
  */

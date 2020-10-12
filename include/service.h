@@ -255,7 +255,7 @@ struct  ci_service_module {
      *       The service must not return CI_MOD_ALLOW204 if has already send
      *       some data to the client, or when the client does not support
      *       allow204 responses. To examine if client supports 204 responses
-     *       the ci_req_allow204 macro can be used
+     *       the ci_req_allow204 function can be used
      */
     int (*mod_end_of_data_handler)(struct ci_request *req);
 
