@@ -37,10 +37,12 @@ extern "C"
 #define ICAP_OPTIONS   0x01
 #define ICAP_REQMOD    0x02
 #define ICAP_RESPMOD   0x04
+#define CI_METHOD_ALL (ICAP_OPTIONS | ICAP_REQMOD | ICAP_RESPMOD)
 
 CI_DECLARE_DATA extern const char *ci_methods[];
-
-#define ci_method_string(method) (method<=ICAP_RESPMOD && method>=ICAP_OPTIONS ?ci_methods[method]:"UNKNOWN")
+static inline const char *ci_method_string(int method) {
+    return ((method & CI_METHOD_ALL) ? ci_methods[method]: "UNKNOWN");
+}
 
 enum ci_error_codes { EC_100, EC_200, EC_204, EC_206, EC_400,
                       EC_401, EC_403,
