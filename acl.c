@@ -694,9 +694,6 @@ int ci_acl_typelist_add(struct ci_acl_type_list *list, const ci_acl_type_t *type
     ci_acl_type_t *cur;
     ci_acl_type_t *nl = NULL;
 
-    if (!type->name)
-        return 0;
-
     if (ci_acl_typelist_search(list, type->name) != NULL) {
         ci_debug_printf(3, "The acl type %s already defined\n", type->name);
         return 0;
