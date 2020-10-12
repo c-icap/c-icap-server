@@ -764,7 +764,7 @@ void listener_thread(void *unused)
 
             for (i = 0; (port = (ci_port_t *)ci_vector_get(CI_CONF.PORTS, i)) != NULL; ++i) {
 #if defined(USE_POLL)
-                if (!pfds[i].revents & POLLIN)
+                if (!(pfds[i].revents & POLLIN))
                     continue;
 #else
                 if (!FD_ISSET(port->accept_socket, &fds))
