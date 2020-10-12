@@ -756,7 +756,7 @@ int ci_simple_file_read(ci_simple_file_t * body, char *buf, int len)
     if (len <= 0)
         return 0;
 
-    if ((body->readpos == body->endpos)) {
+    if (body->readpos == body->endpos) {
         if ((body->flags & CI_FILE_HAS_EOF)) {
             ci_debug_printf(9, "Has EOF and no data to read, send EOF\n");
             return CI_EOF;
