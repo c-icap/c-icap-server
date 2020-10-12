@@ -1617,7 +1617,7 @@ static int do_request(ci_request_t * req)
         /*else we have to send response to the client*/
 
 
-        unlock_data(req); /*unlock data if locked so that it can be send to the client*/
+        ci_req_unlock_data(req); /*unlock data if locked so that it can be send to the client*/
         ret_status = send_remaining_response(req);
         if (ret_status == CI_ERROR) {
             req->keepalive = 0; /*close the connection*/

@@ -142,11 +142,11 @@ static int client_create_request(ci_request_t * req, char *servername, char *ser
         ci_headers_add(req->request_header, buf);
     }
 
-    if (ci_allow204(req) && ci_allow206(req))
+    if (ci_req_allow204(req) && ci_req_allow206(req))
         ci_headers_add(req->request_header, "Allow: 204, 206");
-    else if (ci_allow204(req))
+    else if (ci_req_allow204(req))
         ci_headers_add(req->request_header, "Allow: 204");
-    if (ci_allow206(req))
+    if (ci_req_allow206(req))
         ci_headers_add(req->request_header, "Allow: 206");
 
     if (!ci_headers_is_empty(req->xheaders)) {
@@ -538,7 +538,7 @@ static int client_parse_incoming_data(ci_request_t * req, void *data_dest,
         ci_debug_printf(3, "Response was with status:%d \n", status);
         ci_headers_unpack(req->response_header);
 
-        if (ci_allow204(req) && status == 204) {
+        if (ci_req_allow204(req) && status == 204) {
             req->status = CLIENT_PROCESS_DATA_GET_EOF;
             return 204;
         }

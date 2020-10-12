@@ -157,9 +157,6 @@ typedef struct ci_request {
     ci_ip_t xclient_ip;
 } ci_request_t;
 
-#define lock_data(req) (req->data_locked = 1)
-#define unlock_data(req) (req->data_locked = 0)
-
 /*This functions needed in server (mpmt_server.c ) */
 ci_request_t *newrequest(ci_connection_t *connection);
 int recycle_request(ci_request_t *req,ci_connection_t *connection);
@@ -180,14 +177,9 @@ CI_DECLARE_FUNC(void)  ci_buf_mem_free(struct ci_buf *buf);
 CI_DECLARE_FUNC(int)   ci_buf_write(struct ci_buf *buf, char *data, size_t len);
 CI_DECLARE_FUNC(int)   ci_buf_reset_and_resize(struct ci_buf *buf, size_t req_size);
 
-/*Deprecated: */
-CI_DECLARE_FUNC(int) ci_buf_reset_size(struct ci_buf *buf, int req_size);
-
 /***************/
 /*API defines */
 static inline void *ci_service_data(ci_request_t *req) { return req->service_data; }
-#define ci_allow204(req)     ((req)->allow204)
-#define ci_allow206(req)     ((req)->allow206)
 /*API functions ......*/
 CI_DECLARE_FUNC(ci_request_t *)  ci_request_alloc(ci_connection_t *connection);
 CI_DECLARE_FUNC(void)         ci_request_reset(ci_request_t *req);
@@ -201,11 +193,15 @@ CI_DECLARE_FUNC(int)       ci_request_set_str_attribute(ci_request_t *req, const
 
 CI_DECLARE_FUNC(int)          ci_request_206_origin_body(ci_request_t *req, uint64_t offset);
 
-/*ICAP client api*/
-
 #ifdef __CI_COMPAT
 #define request_t   ci_request_t
 #endif
+
+/*Deprecated: */
+#define unlock_data(req) (req->data_locked = 0)
+#define ci_allow204(req) ((req)->allow204)
+#define ci_allow206(req) ((req)->allow206)
+CI_DECLARE_FUNC(int) ci_buf_reset_size(struct ci_buf *buf, int req_size);
 
 #ifdef __cplusplus
 }
