@@ -34,6 +34,32 @@ extern "C"
  * Headers manipulation related API.
  */
 
+#define ICAP_OPTIONS   0x01
+#define ICAP_REQMOD    0x02
+#define ICAP_RESPMOD   0x04
+
+CI_DECLARE_DATA extern const char *ci_methods[];
+
+#define ci_method_support(METHOD, METHOD_DEF) (METHOD&METHOD_DEF)
+#define ci_method_string(method) (method<=ICAP_RESPMOD && method>=ICAP_OPTIONS ?ci_methods[method]:"UNKNOWN")
+
+enum ci_error_codes { EC_100, EC_200, EC_204, EC_206, EC_400,
+                      EC_401, EC_403,
+                      EC_404, EC_405, EC_407, EC_408,
+                      EC_500, EC_501, EC_502,
+                      EC_503, EC_505,
+                      EC_MAX
+                    };
+
+typedef struct ci_error_code {
+    int code;
+    char *str;
+} ci_error_code_t;
+
+CI_DECLARE_DATA extern const struct ci_error_code ci_error_codes[];
+#define ci_error_code(ec) (ec>=EC_100&&ec<EC_MAX?ci_error_codes[ec].code:1000)
+#define ci_error_code_string(ec) (ec>=EC_100&&ec<EC_MAX?ci_error_codes[ec].str:"UNKNOWN ERROR CODE")
+
 enum ci_request_headers { ICAP_AUTHORIZATION, ICAP_ALLOW,
                           ICAP_FROM, ICAP_HOST, ICAP_REFERER,
                           ICAP_USERAGENT,ICAP_PREVIEW
