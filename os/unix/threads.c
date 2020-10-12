@@ -162,7 +162,7 @@ int ci_thread_rwlock_destroy(ci_thread_rwlock_t *rwlock)
 */
 int ci_thread_rwlock_init(ci_thread_rwlock_t * rwlock)
 {
-    return ci_thread_mutex_init(rwlock, NULL);
+    return ci_thread_mutex_init(rwlock);
 }
 
 int ci_thread_rwlock_destroy(ci_thread_rwlock_t * rwlock)
