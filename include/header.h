@@ -72,7 +72,9 @@ enum ci_encapsulated_entities {ICAP_REQ_HDR, ICAP_RES_HDR,
                               };
 CI_DECLARE_DATA extern const char *ci_encaps_entities[];
 
-#define ci_encaps_entity_string(e) (e <= ICAP_OPT_BODY && e >= ICAP_REQ_HDR?ci_encaps_entities[e]:"UNKNOWN")
+static inline const char *ci_encaps_entity_string(int e) {
+    return (e <= ICAP_OPT_BODY && e >= ICAP_REQ_HDR ? ci_encaps_entities[e] : "UNKNOWN");
+}
 
 /**
  \typedef ci_headers_list_t
@@ -104,8 +106,8 @@ typedef struct ci_encaps_entity {
 #define HEADSBUFSIZE     BUFSIZE
 #define MAX_HEADER_SIZE  1023
 
-#define ci_headers_not_empty(h) ((h)->used)
-#define ci_headers_is_empty(h) ((h)->used == 0)
+static inline int ci_headers_not_empty(const ci_headers_list_t *h) { return h && h->used; }
+static inline int ci_headers_is_empty(const ci_headers_list_t *h) { return !h || h->used == 0; }
 
 /**
  * Allocate memory for a ci_headers_list_t object and initialize it.
