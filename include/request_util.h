@@ -59,40 +59,40 @@ static inline void ci_req_unlock_data(ci_request_t *req) { req->data_locked = 0;
  \param req pointer to the ci_request_t object
  \return true (non zero int) if the ICAP request contains body data else zero
  */
-static inline int ci_req_hasbody(ci_request_t *req) { return req->hasbody; }
+static inline int ci_req_hasbody(const ci_request_t *req) { return req->hasbody; }
 
 /**
  \ingroup REQUEST
  \return  ICAP_OPTIONS, ICAP_REQMOD or ICAP_RESPMOD if the ICAP request is
  * options, request modification or response modification ICAP request
  */
-static inline int ci_req_type(ci_request_t *req) { return req->type; }
+static inline int ci_req_type(const ci_request_t *req) { return req->type; }
 
 /**
  \ingroup REQUEST
  \param req  is pointer to an object of type ci_request_t
  \return -1 if preview is not supported else the ICAP preview size
  */
-static inline int ci_req_preview_size(ci_request_t *req) { return req->preview; }
+static inline int ci_req_preview_size(const ci_request_t *req) { return req->preview; }
 
 /**
  \ingroup REQUEST
  \return True (non zero int) if the ICAP request supports "Allow 204"
  */
-static inline int ci_req_allow204(ci_request_t *req) { return req->allow204; }
+static inline int ci_req_allow204(const ci_request_t *req) { return req->allow204; }
 
 /**
  \ingroup REQUEST
  \return True (non zero int) if the ICAP request supports "Allow 206"
  */
-static inline int ci_req_allow206(ci_request_t *req) { return req->allow206; }
+static inline int ci_req_allow206(const ci_request_t *req) { return req->allow206; }
 
 /**
  \ingroup REQUEST
  \return True (non zero int) if the ICAP request supports "Allow 206" outside
  *       preview requests
  */
-static inline int ci_req_allow206_outside_preview(ci_request_t *req) { return (req->allow206 && req->allow204); }
+static inline int ci_req_allow206_outside_preview(const ci_request_t *req) { return (req->allow206 && req->allow204); }
 
 
 /**
@@ -100,7 +100,7 @@ static inline int ci_req_allow206_outside_preview(ci_request_t *req) { return (r
  \param req  is pointer to the ci_request_t object
  \return True (non zero int) if the c-icap server has send data to the client
  */
-static inline int ci_req_sent_data(ci_request_t *req) { return (req->status); }
+static inline int ci_req_sent_data(const ci_request_t *req) { return (req->status); }
 
 /**
  \ingroup REQUEST
@@ -108,7 +108,7 @@ static inline int ci_req_sent_data(ci_request_t *req) { return (req->status); }
  \return True (non zero int) if the ICAP client has sent all the data
  *       (headers and body data) to the ICAP server
  */
-static inline int ci_req_hasalldata(ci_request_t *req) { return (req->eof_received); }
+static inline int ci_req_hasalldata(const ci_request_t *req) { return (req->eof_received); }
 
 /**
  */
