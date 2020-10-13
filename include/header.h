@@ -65,17 +65,6 @@ inline const char *ci_error_code_string(int ec) {
     return ((ec >= EC_100 && ec<EC_MAX) ? ci_error_codes[ec].str : "UNKNOWN ERROR CODE");
 }
 
-enum ci_request_headers { ICAP_AUTHORIZATION, ICAP_ALLOW,
-                          ICAP_FROM, ICAP_HOST, ICAP_REFERER,
-                          ICAP_USERAGENT,ICAP_PREVIEW
-                        };
-
-
-extern const char *ci_common_headers[];
-extern const char *ci_request_headers[];
-extern const char *ci_responce_headers[];
-extern const char *ci_options_headers[];
-
 
 enum ci_encapsulated_entities {ICAP_REQ_HDR, ICAP_RES_HDR,
                                ICAP_REQ_BODY, ICAP_RES_BODY,

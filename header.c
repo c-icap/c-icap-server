@@ -25,21 +25,6 @@
 #include "debug.h"
 #include "header.h"
 
-
-const char *ci_common_headers[] = {
-    "Cache-Control",
-    "Connection",
-    "Date",
-    "Expires",
-    "Pragma",
-    "Trailer",
-    "Upgrade",
-    /*And ICAP speciffic headers ..... */
-    "Encapsulated"
-};
-
-
-
 const char *ci_methods[] = {
     "",                        /*0x00 */
     "OPTIONS",                 /*0x01 */
@@ -47,42 +32,6 @@ const char *ci_methods[] = {
     "",                        /*0x03 */
     "RESPMOD"                  /*0x04 */
 };
-
-
-const char *ci_request_headers[] = {
-    "Authorization",
-    "Allow",
-    "From",
-    "Host",                    /*REQUIRED ...... */
-    "Referer",
-    "User-Agent",
-    /*And ICAP specific headers ..... */
-    "Preview"
-};
-
-const char *ci_responce_headers[] = {
-    "Server",
-    /*ICAP spacific headers */
-    "ISTag"
-};
-
-const char *ci_options_headers[] = {
-    "Methods",
-    "Service",
-    "ISTag",
-    "Encapsulated",
-    "Opt-body-type",
-    "Max-Connections",
-    "Options-TTL",
-    "Date",
-    "Service-ID",
-    "Allow",
-    "Preview",
-    "Transfer-Preview",
-    "Transfer-Ignore",
-    "Transfer-Complete"
-};
-
 
 const struct ci_error_code ci_error_codes[] = {
     {100, "Continue"},         /*Continue after ICAP Preview */
