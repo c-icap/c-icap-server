@@ -57,11 +57,11 @@ typedef struct ci_error_code {
 
 CI_DECLARE_DATA extern const struct ci_error_code ci_error_codes[];
 
-inline int ci_error_code(int ec) {
+static inline int ci_error_code(int ec) {
     return ((ec >= EC_100 && ec < EC_MAX ) ? ci_error_codes[ec].code : 1000);
 }
 
-inline const char *ci_error_code_string(int ec) {
+static inline const char *ci_error_code_string(int ec) {
     return ((ec >= EC_100 && ec<EC_MAX) ? ci_error_codes[ec].str : "UNKNOWN ERROR CODE");
 }
 
