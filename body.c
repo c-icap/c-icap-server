@@ -282,7 +282,8 @@ int ci_membuf_truncate(struct ci_membuf *body, int new_size)
 }
 
 /****/
-int do_write(int fd, const void *buf, size_t count)
+/*To be removed after ci_cached_file removed*/
+static int do_write_old(int fd, const void *buf, size_t count)
 {
     int bytes;
     errno = 0;
@@ -293,12 +294,37 @@ int do_write(int fd, const void *buf, size_t count)
     return bytes;
 }
 
-int do_read(int fd, void *buf, size_t count)
+static int do_write(int fd, const void *buf, size_t count, ci_off_t pos)
 {
     int bytes;
     errno = 0;
+#if !defined(HAVE_PREAD)
+    lseek(fd, pos, SEEK_SET);
+#endif
     do {
+#if !defined(HAVE_PREAD)
+        bytes = write(fd, buf, count);
+#else
+        bytes = pwrite(fd, buf, count, pos);
+#endif
+    } while (bytes < 0 && errno == EINTR);
+
+    return bytes;
+}
+
+static int do_read(int fd, void *buf, size_t count, ci_off_t pos)
+{
+    int bytes;
+    errno = 0;
+#if !defined(HAVE_PREAD)
+    lseek(fd, pos, SEEK_SET);
+#endif
+    do {
+#if !defined(HAVE_PREAD)
         bytes = read(fd, buf, count);
+#else
+        bytes = pread(fd, buf, count, pos);
+#endif
     } while (bytes < 0 && errno == EINTR);
 
     return bytes;
@@ -480,7 +506,7 @@ int ci_cached_file_write(ci_cached_file_t * body, const char *buf, int len, int 
 
     if (body->fd > 0) {        /*A file was open so write the data at the end of file....... */
         lseek(body->fd, 0, SEEK_END);
-        if ((ret = do_write(body->fd, buf, len)) < 0) {
+        if ((ret = do_write_old(body->fd, buf, len)) < 0) {
             ci_debug_printf(1, "Cannot write to file!!! (errno=%d)\n",
                             errno);
         }
@@ -499,8 +525,8 @@ int ci_cached_file_write(ci_cached_file_t * body, const char *buf, int len, int 
                             body->filename);
             return -1;
         }
-        ret = do_write(body->fd, body->buf, body->endpos);
-        if (ret >= 0 && do_write(body->fd, buf, len) >= 0) {
+        ret = do_write_old(body->fd, body->buf, body->endpos);
+        if (ret >= 0 && do_write_old(body->fd, buf, len) >= 0) {
             body->endpos += len;
             return len;
         } else {
@@ -542,8 +568,7 @@ int ci_cached_file_read(ci_cached_file_t * body, char *buf, int len)
 
         bytes = (remains > len ? len : remains);      /*Number of bytes that we are going to read from file..... */
 
-        lseek(body->fd, body->readpos, SEEK_SET);
-        if ((bytes = do_read(body->fd, buf, bytes)) > 0)
+        if ((bytes = do_read(body->fd, buf, bytes, body->readpos)) > 0)
             body->readpos += bytes;
         return bytes;
     }
@@ -727,8 +752,7 @@ int ci_simple_file_write(ci_simple_file_t * body, const char *buf, int len, int 
             wsize = len;
     }
 
-    lseek(body->fd, body->endpos, SEEK_SET);
-    if ((ret = do_write(body->fd, buf, wsize)) < 0) {
+    if ((ret = do_write(body->fd, buf, wsize, body->endpos)) < 0) {
         ci_debug_printf(1, "Cannot write to file: %s\n", strerror(errno));
     } else {
         body->endpos += ret;
@@ -781,8 +805,7 @@ int ci_simple_file_read(ci_simple_file_t * body, char *buf, int len)
 
     assert(remains >= 0);
     bytes = (remains > len ? len : remains);   /*Number of bytes that we are going to read from file..... */
-    lseek(body->fd, body->readpos, SEEK_SET);
-    if ((bytes = do_read(body->fd, buf, bytes)) > 0) {
+    if ((bytes = do_read(body->fd, buf, bytes, body->readpos)) > 0) {
         body->readpos += bytes;
         body->bytes_out += bytes;
     }

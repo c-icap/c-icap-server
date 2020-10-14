@@ -805,6 +805,7 @@ AC_CHECK_FUNCS(setgroups)
 
 AC_CHECK_FUNCS(inet_pton)
 AC_CHECK_FUNCS(inet_ntop)
+AC_CHECK_FUNCS(pread)
 
 AC_FUNC_STRERROR_R
 
