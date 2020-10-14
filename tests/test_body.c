@@ -102,6 +102,17 @@ int main(int argc,char *argv[])
 
     if (mb)
         ci_membuf_free(mb);
+
+    mb = ci_membuf_new_sized(65*1024);
+    ci_membuf_flag(mb, CI_MEMBUF_NULL_TERMINATED);
+    while ((len = ci_simple_file_read(sf, buf, sizeof(buf))) > 0)
+        ci_membuf_write(mb, buf, len, 0);
+    ci_membuf_write(mb, buf, 0, 1);
+    ci_MD5Init(&md);
+    ci_MD5Update(&md, (unsigned char *)mb->buf, mb->endpos);
+    ci_MD5Final(digest, &md);
+    MDPrint("From membuf_t after write, whole string md5", digest);
+
     ci_simple_file_destroy(sf);
     return 0;
 }

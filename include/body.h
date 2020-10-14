@@ -35,40 +35,45 @@ extern "C"
 #define CI_MEMBUF_RO                  0x04
 #define CI_MEMBUF_CONST               0x08
 #define CI_MEMBUF_FOREIGN_BUF         0x10
+#define CI_MEMBUF_LOCKED              0x20
 
 /*Flags can be set by user: */
 #define CI_MEMBUF_USER_FLAGS (CI_MEMBUF_NULL_TERMINATED | CI_MEMBUF_RO)
 #define CI_MEMBUF_FROM_CONTENT_FLAGS (CI_MEMBUF_NULL_TERMINATED | CI_MEMBUF_RO | CI_MEMBUF_CONST | CI_MEMBUF_HAS_EOF)
 
 typedef struct ci_membuf {
-    int endpos;
-    int readpos;
-    int bufsize;
-    int unlocked;
+    size_t endpos;
+    size_t readpos;
+    size_t bufsize;
+    size_t unlocked;
     unsigned int flags;
     char *buf;
     ci_array_t *attributes;
 } ci_membuf_t;
 
 CI_DECLARE_FUNC(struct ci_membuf *) ci_membuf_new();
-CI_DECLARE_FUNC(struct ci_membuf *) ci_membuf_new_sized(int size);
+CI_DECLARE_FUNC(struct ci_membuf *) ci_membuf_new_sized(size_t size);
 CI_DECLARE_FUNC(struct ci_membuf *) ci_membuf_from_content(char *buf, size_t buf_size, size_t content_size, unsigned int flags);
 CI_DECLARE_FUNC(void) ci_membuf_free(struct ci_membuf *);
-CI_DECLARE_FUNC(int) ci_membuf_write(struct ci_membuf *body, const char *buf,int len, int iseof);
-CI_DECLARE_FUNC(int) ci_membuf_read(struct ci_membuf *body,char *buf,int len);
+CI_DECLARE_FUNC(int) ci_membuf_write(struct ci_membuf *body, const char *buf, size_t len, int iseof);
+CI_DECLARE_FUNC(int) ci_membuf_read(struct ci_membuf *body, char *buf, size_t len);
 CI_DECLARE_FUNC(int) ci_membuf_attr_add(struct ci_membuf *body,const char *attr, const void *val, size_t val_size);
 CI_DECLARE_FUNC(const void *) ci_membuf_attr_get(struct ci_membuf *body,const char *attr);
-CI_DECLARE_FUNC(int) ci_membuf_truncate(struct ci_membuf *body, int new_size);
+CI_DECLARE_FUNC(int) ci_membuf_truncate(struct ci_membuf *body, size_t new_size);
 CI_DECLARE_FUNC(unsigned int) ci_membuf_set_flag(struct ci_membuf *body, unsigned int flag);
 
-static inline void ci_membuf_lock_all(ci_membuf_t *body) { body->unlocked = 0; }
+static inline void ci_membuf_lock_all(ci_membuf_t *body) {
+    body->flags |= CI_MEMBUF_LOCKED;
+    body->unlocked = 0;
+}
 
-static inline void  ci_membuf_unlock(ci_membuf_t *body, int len) {
+static inline void  ci_membuf_unlock(ci_membuf_t *body, size_t len) {
     body->unlocked = ((body->readpos) > len ? (body->readpos) : len);
 }
 
 static inline void ci_membuf_unlock_all(ci_membuf_t *body) {
-    body->unlocked = -1;
+    body->flags &= ~CI_MEMBUF_LOCKED;
+    body->unlocked = 0;
 }
 
 static inline int ci_membuf_size(ci_membuf_t *body) {return body->endpos; }

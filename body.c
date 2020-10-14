@@ -84,7 +84,7 @@ struct ci_membuf *ci_membuf_new()
     return ci_membuf_new_sized(STARTLEN);
 }
 
-struct ci_membuf *ci_membuf_new_sized(int size)
+struct ci_membuf *ci_membuf_new_sized(size_t size)
 {
     struct ci_membuf *b;
     b = ci_object_pool_alloc(MEMBUF_POOL);
@@ -100,7 +100,7 @@ struct ci_membuf *ci_membuf_new_sized(int size)
         return NULL;
     }
     b->bufsize = size;
-    b->unlocked = -1;
+    b->unlocked = 0;
     b->attributes = NULL;
     return b;
 }
@@ -139,7 +139,7 @@ struct ci_membuf *ci_membuf_from_content(char *buf, size_t buf_size, size_t cont
     b->readpos = 0;
     b->buf = buf;
     b->bufsize = buf_size;
-    b->unlocked = -1;
+    b->unlocked = 0;
     b->attributes = NULL;
     return b;
 }
@@ -164,9 +164,9 @@ unsigned int ci_membuf_set_flag(struct ci_membuf *body, unsigned int flag)
     return body->flags;
 }
 
-int ci_membuf_write(struct ci_membuf *b, const char *data, int len, int iseof)
+int ci_membuf_write(struct ci_membuf *b, const char *data, size_t len, int iseof)
 {
-    int remains, newsize;
+    size_t has_space, required_space, newsize;
     char *newbuf;
     int terminate = b->flags & CI_MEMBUF_NULL_TERMINATED;
 
@@ -189,30 +189,22 @@ int ci_membuf_write(struct ci_membuf *b, const char *data, int len, int iseof)
         */
     }
 
-    remains = b->bufsize - b->endpos - (terminate ? 1 : 0);
-    assert(remains >= -1); /*can be -1 when NULL_TERMINATED flag just set by user and no space to*/
+    assert(b->bufsize >= b->endpos);
+    has_space = b->bufsize- b->endpos;
+    required_space = len + ((terminate ? 1 : 0));
 
-    while (remains < len) {
-        newsize = b->bufsize + INCSTEP;
+    if (has_space < required_space) {
+        /*adjust required space to be at least INCSTEP*/
+        if (required_space < INCSTEP)
+            required_space = INCSTEP;
+        newsize = b->bufsize + (required_space - has_space);
         newbuf = ci_buffer_realloc(b->buf, newsize);
         if (newbuf == NULL) {
             ci_debug_printf(1, "ci_membuf_write: Failed to grow membuf for new data!\n");
-            if (remains >= 0) {
-                if (remains)
-                    memcpy(b->buf + b->endpos, data, remains);
-                if (terminate) {
-                    b->endpos = b->bufsize  - 1;
-                    b->buf[b->endpos] = '\0';
-                } else
-                    b->endpos = b->bufsize;
-            } else {
-                ci_debug_printf(1, "ci_membuf_write: Failed to NULL terminate membuf!\n");
-            }
-            return remains;
+            return 0;
         }
         b->buf = newbuf;
         b->bufsize = newsize;
-        remains = b->bufsize - b->endpos - (terminate ? 1 : 0);
     }                          /*while remains<len */
     if (len) {
         memcpy(b->buf + b->endpos, data, len);
@@ -224,23 +216,27 @@ int ci_membuf_write(struct ci_membuf *b, const char *data, int len, int iseof)
     return len;
 }
 
-int ci_membuf_read(struct ci_membuf *b, char *data, int len)
+int ci_membuf_read(struct ci_membuf *b, char *data, size_t len)
 {
-    int remains, copybytes;
-    if (b->unlocked >= 0)
-        remains = b->unlocked - b->readpos;
-    else
-        remains = b->endpos - b->readpos;
-    assert(remains >= 0);
-    if (remains == 0 && (b->flags & CI_MEMBUF_HAS_EOF))
+    size_t remains, copybytes;
+    assert(b->endpos >= b->readpos);
+
+    if (b->readpos == b->endpos && (b->flags & CI_MEMBUF_HAS_EOF))
         return CI_EOF;
+
+    if (b->flags & CI_MEMBUF_LOCKED) {
+        assert(b->unlocked <= b->endpos);
+        remains = (b->unlocked > b->readpos) ? (b->unlocked - b->readpos) : 0;
+    } else {
+        remains = b->endpos - b->readpos;
+    }
     copybytes = (len <= remains ? len : remains);
     if (copybytes) {
         memcpy(data, b->buf + b->readpos, copybytes);
         b->readpos += copybytes;
     }
 
-    return copybytes;
+    return (int)copybytes;
 }
 
 #define BODY_ATTRS_SIZE 1024
@@ -263,7 +259,7 @@ const void * ci_membuf_attr_get(struct ci_membuf *body,const char *attr)
     return NULL;
 }
 
-int ci_membuf_truncate(struct ci_membuf *body, int new_size)
+int ci_membuf_truncate(struct ci_membuf *body, size_t new_size)
 {
     if (body->endpos < new_size)
         return 0;
