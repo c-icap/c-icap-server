@@ -22,7 +22,6 @@
 #define __C_ICAP_BODY_H
 
 #include "c-icap.h"
-#include <stdio.h>
 #include "util.h"
 #include "array.h"
 
@@ -62,11 +61,21 @@ CI_DECLARE_FUNC(const void *) ci_membuf_attr_get(struct ci_membuf *body,const ch
 CI_DECLARE_FUNC(int) ci_membuf_truncate(struct ci_membuf *body, int new_size);
 CI_DECLARE_FUNC(unsigned int) ci_membuf_set_flag(struct ci_membuf *body, unsigned int flag);
 
-#define ci_membuf_lock_all(body)        ((body)->unlocked = 0)
-#define ci_membuf_unlock(body, len)     ((body)->unlocked = ((body->readpos) > len ? (body->readpos) : len))
-#define ci_membuf_unlock_all(body)      ((body)->unlocked = -1)
-#define ci_membuf_size(body)            ((body)->endpos)
-#define ci_membuf_flag(body, flag)      ((body)->flags & flag)
+static inline void ci_membuf_lock_all(ci_membuf_t *body) { body->unlocked = 0; }
+
+static inline void  ci_membuf_unlock(ci_membuf_t *body, int len) {
+    body->unlocked = ((body->readpos) > len ? (body->readpos) : len);
+}
+
+static inline void ci_membuf_unlock_all(ci_membuf_t *body) {
+    body->unlocked = -1;
+}
+
+static inline int ci_membuf_size(ci_membuf_t *body) {return body->endpos; }
+
+static inline int ci_membuf_flag(ci_membuf_t *body, unsigned int flag) {
+    return body->flags & flag;
+}
 
 /*****************************************************************/
 /* Cached file functions and structure                           */
@@ -147,11 +156,27 @@ CI_DECLARE_FUNC(ci_membuf_t *) ci_simple_file_to_membuf(ci_simple_file_t *body, 
 CI_DECLARE_FUNC(const char *) ci_simple_file_to_const_string(ci_simple_file_t *body);
 CI_DECLARE_FUNC(const char *) ci_simple_file_to_const_raw_data(ci_simple_file_t *body, size_t *data_size);
 
-#define ci_simple_file_lock_all(body)            (body->flags |= CI_FILE_USELOCK,body->unlocked = 0)
-#define ci_simple_file_unlock(body, len)     (body->unlocked = ((body->readpos) > len ? (body->readpos) : len))
-#define ci_simple_file_unlock_all(body)      (body->flags &= ~CI_FILE_USELOCK,body->unlocked = 0)
-#define ci_simple_file_size(body)            (body->endpos)
-#define ci_simple_file_haseof(body)        (body->flags & CI_FILE_HAS_EOF)
+static inline void ci_simple_file_lock_all(ci_simple_file_t *body) {
+    body->flags |= CI_FILE_USELOCK;
+    body->unlocked = 0;
+}
+
+static inline void ci_simple_file_unlock(ci_simple_file_t *body, ci_off_t len) {
+    body->unlocked = ((body->readpos) > len ? (body->readpos) : len);
+}
+
+static inline void ci_simple_file_unlock_all(ci_simple_file_t *body) {
+    body->flags &= ~CI_FILE_USELOCK;
+    body->unlocked = 0;
+}
+
+static inline ci_off_t ci_simple_file_size(ci_simple_file_t *body) {
+    return body->endpos;
+}
+
+static inline int ci_simple_file_haseof(ci_simple_file_t *body) {
+    return (body->flags & CI_FILE_HAS_EOF);
+}
 
 
 /*******************************************************************/
