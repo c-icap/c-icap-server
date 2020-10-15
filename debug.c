@@ -47,6 +47,14 @@ void __ldebug_printf(int i, const char *format, ...)
 }
 #endif
 
+void _ci_debug_abort(const char *file, int line, const char *function, const char *mesg)
+{
+    ci_debug_printf(1, "Abort at %s, %d, %s: \'%s\'\n", file, line, function, mesg);
+    fflush(stderr);
+    fflush(stdout);
+    abort();
+}
+
 /*
 void debug_print_request(ci_request_t *req){
      int i,j;
