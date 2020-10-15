@@ -943,7 +943,7 @@ ci_membuf_t *ci_simple_file_to_membuf(ci_simple_file_t *body, unsigned int flags
 /*******************************************************************/
 /*ring memory buffer implementation                                */
 
-struct ci_ring_buf *ci_ring_buf_new(int size)
+struct ci_ring_buf *ci_ring_buf_new(size_t size)
 {
     struct ci_ring_buf *buf = ci_object_pool_alloc(RING_BUF_POOL);
     if (!buf)
@@ -973,7 +973,7 @@ int ci_ring_buf_is_empty(struct ci_ring_buf *buf)
     return (buf->read_pos == buf->write_pos) && (buf->full == 0);
 }
 
-int ci_ring_buf_write_block(struct ci_ring_buf *buf, char **wb, int *len)
+int ci_ring_buf_write_direct(struct ci_ring_buf *buf, char **wb, size_t *len)
 {
     if (buf->read_pos == buf->write_pos && buf->full == 0) {
         *wb = buf->write_pos;
@@ -990,7 +990,15 @@ int ci_ring_buf_write_block(struct ci_ring_buf *buf, char **wb, int *len)
     }
 }
 
-int ci_ring_buf_read_block(struct ci_ring_buf *buf, char **rb, int *len)
+int ci_ring_buf_write_block(struct ci_ring_buf *buf, char **wb, int *len)
+{
+    size_t wsize;
+    int ret = ci_ring_buf_write_direct(buf, wb, &wsize);
+    *len = wsize;
+    return ret;
+}
+
+int ci_ring_buf_read_direct(struct ci_ring_buf *buf, char **rb, size_t *len)
 {
     if (buf->read_pos == buf->write_pos && buf->full == 0) {
         *rb = buf->read_pos;
@@ -1007,7 +1015,15 @@ int ci_ring_buf_read_block(struct ci_ring_buf *buf, char **rb, int *len)
     }
 }
 
-void ci_ring_buf_consume(struct ci_ring_buf *buf, int len)
+int ci_ring_buf_read_block(struct ci_ring_buf *buf, char **rb, int *len)
+{
+    size_t rsize;
+    int ret = ci_ring_buf_read_direct(buf, rb, &rsize);
+    *len = rsize;
+    return ret;
+}
+
+void ci_ring_buf_consume(struct ci_ring_buf *buf, size_t len)
 {
     if (len <= 0)
         return;
@@ -1018,7 +1034,7 @@ void ci_ring_buf_consume(struct ci_ring_buf *buf, int len)
         buf->full = 0;
 }
 
-void ci_ring_buf_produce(struct ci_ring_buf *buf, int len)
+void ci_ring_buf_produce(struct ci_ring_buf *buf, size_t len)
 {
     if (len <= 0)
         return;
@@ -1031,13 +1047,14 @@ void ci_ring_buf_produce(struct ci_ring_buf *buf, int len)
 
 }
 
-int ci_ring_buf_write(struct ci_ring_buf *buf, const char *data,int size)
+int ci_ring_buf_write(struct ci_ring_buf *buf, const char *data, size_t size)
 {
     char *wb;
-    int wb_len, ret, written;
+    size_t wb_len;
+    int ret, written;
     written = 0;
     do {
-        ret = ci_ring_buf_write_block(buf, &wb, &wb_len);
+        ret = ci_ring_buf_write_direct(buf, &wb, &wb_len);
         if (wb_len) {
             wb_len = min(size, wb_len);
             memcpy(wb, data, wb_len);
@@ -1051,13 +1068,14 @@ int ci_ring_buf_write(struct ci_ring_buf *buf, const char *data,int size)
 }
 
 
-int ci_ring_buf_read(struct ci_ring_buf *buf, char *data,int size)
+int ci_ring_buf_read(struct ci_ring_buf *buf, char *data, size_t size)
 {
     char *rb;
-    int rb_len, ret, data_read;
+    size_t rb_len;
+    int ret, data_read;
     data_read = 0;
     do {
-        ret = ci_ring_buf_read_block(buf, &rb, &rb_len);
+        ret = ci_ring_buf_read_direct(buf, &rb, &rb_len);
         if (rb_len) {
             rb_len = min(size, rb_len);
             memcpy(data, rb, rb_len);

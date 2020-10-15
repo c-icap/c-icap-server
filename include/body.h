@@ -196,16 +196,20 @@ typedef struct ci_ring_buf {
 } ci_ring_buf_t;
 
 
-CI_DECLARE_FUNC(struct ci_ring_buf *) ci_ring_buf_new(int size);
+CI_DECLARE_FUNC(struct ci_ring_buf *) ci_ring_buf_new(size_t size);
 CI_DECLARE_FUNC(void) ci_ring_buf_destroy(struct ci_ring_buf *buf);
-CI_DECLARE_FUNC(int) ci_ring_buf_write(struct ci_ring_buf *buf, const char *data,int size);
-CI_DECLARE_FUNC(int) ci_ring_buf_read(struct ci_ring_buf *buf, char *data,int size);
+CI_DECLARE_FUNC(int) ci_ring_buf_write(struct ci_ring_buf *buf, const char *data, size_t size);
+CI_DECLARE_FUNC(int) ci_ring_buf_read(struct ci_ring_buf *buf, char *data, size_t size);
 
 /*low level functions for ci_ring_buf*/
+CI_DECLARE_FUNC(int) ci_ring_buf_write_direct(struct ci_ring_buf *buf, char **wb, size_t *len);
+CI_DECLARE_FUNC(int) ci_ring_buf_read_direct(struct ci_ring_buf *buf, char **rb, size_t *len);
+CI_DECLARE_FUNC(void) ci_ring_buf_consume(struct ci_ring_buf *buf, size_t len);
+CI_DECLARE_FUNC(void) ci_ring_buf_produce(struct ci_ring_buf *buf, size_t len);
+
+/*The following functions are deprecated : */
 CI_DECLARE_FUNC(int) ci_ring_buf_write_block(struct ci_ring_buf *buf, char **wb, int *len);
 CI_DECLARE_FUNC(int) ci_ring_buf_read_block(struct ci_ring_buf *buf, char **rb, int *len);
-CI_DECLARE_FUNC(void) ci_ring_buf_consume(struct ci_ring_buf *buf, int len);
-CI_DECLARE_FUNC(void) ci_ring_buf_produce(struct ci_ring_buf *buf, int len);
 
 #ifdef __cplusplus
 }
