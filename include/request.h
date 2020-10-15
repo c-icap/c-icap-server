@@ -26,6 +26,7 @@
 #ifndef __C_ICAP_REQUEST_H
 #define __C_ICAP_REQUEST_H
 
+#include "debug.h"
 #include "header.h"
 #include "service.h"
 #include "net_io.h"
@@ -179,7 +180,10 @@ CI_DECLARE_FUNC(int)   ci_buf_reset_and_resize(struct ci_buf *buf, size_t req_si
 
 /***************/
 /*API defines */
-static inline void *ci_service_data(const ci_request_t *req) { return req->service_data; }
+static inline void *ci_service_data(const ci_request_t *req) {
+    _CI_ASSERT(req);
+    return req->service_data;
+}
 /*API functions ......*/
 CI_DECLARE_FUNC(ci_request_t *)  ci_request_alloc(ci_connection_t *connection);
 CI_DECLARE_FUNC(void)         ci_request_reset(ci_request_t *req);

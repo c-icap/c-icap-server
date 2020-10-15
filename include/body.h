@@ -22,6 +22,7 @@
 #define __C_ICAP_BODY_H
 
 #include "c-icap.h"
+#include "debug.h"
 #include "util.h"
 #include "array.h"
 
@@ -63,22 +64,29 @@ CI_DECLARE_FUNC(int) ci_membuf_truncate(struct ci_membuf *body, size_t new_size)
 CI_DECLARE_FUNC(unsigned int) ci_membuf_set_flag(struct ci_membuf *body, unsigned int flag);
 
 static inline void ci_membuf_lock_all(ci_membuf_t *body) {
+    _CI_ASSERT(body);
     body->flags |= CI_MEMBUF_LOCKED;
     body->unlocked = 0;
 }
 
 static inline void  ci_membuf_unlock(ci_membuf_t *body, size_t len) {
+    _CI_ASSERT(body);
     body->unlocked = ((body->readpos) > len ? (body->readpos) : len);
 }
 
 static inline void ci_membuf_unlock_all(ci_membuf_t *body) {
+    _CI_ASSERT(body);
     body->flags &= ~CI_MEMBUF_LOCKED;
     body->unlocked = 0;
 }
 
-static inline int ci_membuf_size(ci_membuf_t *body) {return body->endpos; }
+static inline int ci_membuf_size(ci_membuf_t *body) {
+    _CI_ASSERT(body);
+    return body->endpos;
+}
 
 static inline int ci_membuf_flag(ci_membuf_t *body, unsigned int flag) {
+    _CI_ASSERT(body);
     return body->flags & flag;
 }
 
@@ -161,24 +169,29 @@ CI_DECLARE_FUNC(const char *) ci_simple_file_to_const_string(ci_simple_file_t *b
 CI_DECLARE_FUNC(const char *) ci_simple_file_to_const_raw_data(ci_simple_file_t *body, size_t *data_size);
 
 static inline void ci_simple_file_lock_all(ci_simple_file_t *body) {
+    _CI_ASSERT(body);
     body->flags |= CI_FILE_USELOCK;
     body->unlocked = 0;
 }
 
 static inline void ci_simple_file_unlock(ci_simple_file_t *body, ci_off_t len) {
+    _CI_ASSERT(body);
     body->unlocked = ((body->readpos) > len ? (body->readpos) : len);
 }
 
 static inline void ci_simple_file_unlock_all(ci_simple_file_t *body) {
+    _CI_ASSERT(body);
     body->flags &= ~CI_FILE_USELOCK;
     body->unlocked = 0;
 }
 
 static inline ci_off_t ci_simple_file_size(ci_simple_file_t *body) {
+    _CI_ASSERT(body);
     return body->endpos;
 }
 
 static inline int ci_simple_file_haseof(ci_simple_file_t *body) {
+    _CI_ASSERT(body);
     return (body->flags & CI_FILE_HAS_EOF);
 }
 
