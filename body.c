@@ -707,10 +707,10 @@ void ci_simple_file_release(ci_simple_file_t * body)
 }
 
 
-int ci_simple_file_write(ci_simple_file_t * body, const char *buf, int len, int iseof)
+int ci_simple_file_write(ci_simple_file_t * body, const char *buf, size_t len, int iseof)
 {
     int ret;
-    int wsize = 0;
+    size_t wsize = 0;
 
     if (body->flags & CI_FILE_HAS_EOF) {
         if (len > 0) {
@@ -725,9 +725,13 @@ int ci_simple_file_write(ci_simple_file_t * body, const char *buf, int len, int 
         return 0;
     }
 
+    assert(!body->max_store_size || body->endpos <= body->max_store_size);
+    assert(!body->max_store_size || body->readpos <= body->max_store_size);
+
     if (body->endpos < body->readpos) {
-        wsize = min(body->readpos-body->endpos-1, len);
-    } else if (body->max_store_size && body->endpos >= body->max_store_size) {
+        assert(body->flags & CI_FILE_RING_MODE);
+        wsize = (size_t)min(body->readpos - body->endpos - (ci_off_t)1, (ci_off_t)len);
+    } else if (body->max_store_size && body->endpos == body->max_store_size) {
         /*If we are going to entre ring mode. If we are using locking we can not enter ring mode.*/
         if (body->readpos != 0 && (body->flags & CI_FILE_USELOCK) == 0) {
             body->endpos = 0;
@@ -735,7 +739,7 @@ int ci_simple_file_write(ci_simple_file_t * body, const char *buf, int len, int 
                 body->flags |= CI_FILE_RING_MODE;
                 ci_debug_printf(5, "ci_simple_file_write: Entering Ring mode!\n");
             }
-            wsize = min(body->readpos-body->endpos-1, len);
+            wsize = (size_t)min(body->readpos - (ci_off_t)1, (ci_off_t)len);
         } else {
             if ((body->flags & CI_FILE_USELOCK) != 0)
                 ci_debug_printf(1, "File locked and no space on file for writing data, (Is this a bug?)!\n");
@@ -743,7 +747,7 @@ int ci_simple_file_write(ci_simple_file_t * body, const char *buf, int len, int 
         }
     } else {
         if (body->max_store_size)
-            wsize = min(body->max_store_size - body->endpos, len);
+            wsize = (size_t)min(body->max_store_size - body->endpos, (ci_off_t)len);
         else
             wsize = len;
     }
@@ -755,7 +759,7 @@ int ci_simple_file_write(ci_simple_file_t * body, const char *buf, int len, int 
         body->bytes_in += ret;
     }
 
-    if (iseof && ret == len) {
+    if (iseof && ((size_t)ret) == len) {
         body->flags |= CI_FILE_HAS_EOF;
         ci_debug_printf(9, "Body data size=%" PRINTF_OFF_T "\n ",
                         (CAST_OFF_T) body->endpos);
@@ -766,9 +770,11 @@ int ci_simple_file_write(ci_simple_file_t * body, const char *buf, int len, int 
 
 
 
-int ci_simple_file_read(ci_simple_file_t * body, char *buf, int len)
+int ci_simple_file_read(ci_simple_file_t * body, char *buf, size_t len)
 {
-    int remains, bytes;
+    ci_off_t available;
+    size_t needs;
+    int ret;
 
     if (len <= 0)
         return 0;
@@ -783,29 +789,34 @@ int ci_simple_file_read(ci_simple_file_t * body, char *buf, int len)
     }
 
     if (body->max_store_size && body->readpos == body->max_store_size) {
+        assert(body->endpos < body->readpos);
+        assert((body->flags & CI_FILE_RING_MODE));
         body->readpos = 0;
     }
 
     if ((body->flags & CI_FILE_USELOCK) && body->unlocked >= 0) {
-        remains = body->unlocked - body->readpos;
+        assert(!(body->flags & CI_FILE_RING_MODE)); /*locks and ring modes can not coexist*/
+        available = body->unlocked - body->readpos;
     } else if (body->endpos > body->readpos) {
-        remains = body->endpos - body->readpos;
+        available = body->endpos - body->readpos;
     } else {
+        assert((body->endpos < body->readpos) || (body->readpos == 0));
+        assert((body->flags & CI_FILE_RING_MODE));
         if (body->max_store_size) {
-            remains = body->max_store_size - body->readpos;
+            available = body->max_store_size - body->readpos;
         } else {
             ci_debug_printf(9, "Error? anyway send EOF\n");
             return CI_EOF;
         }
     }
 
-    assert(remains >= 0);
-    bytes = (remains > len ? len : remains);   /*Number of bytes that we are going to read from file..... */
-    if ((bytes = do_read(body->fd, buf, bytes, body->readpos)) > 0) {
-        body->readpos += bytes;
-        body->bytes_out += bytes;
+    assert(available >= 0);
+    needs = (size_t)min(available, (ci_off_t)len);   /*Number of bytes that we are going to read from file..... */
+    if ((ret = do_read(body->fd, buf, needs, body->readpos)) > 0) {
+        body->readpos += ret;
+        body->bytes_out += ret;
     }
-    return bytes;
+    return ret;
 
 }
 

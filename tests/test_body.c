@@ -1,11 +1,12 @@
 #include "common.h"
-#include <stdio.h>
 #include "c-icap.h"
 #include "body.h"
 #include "cfg_param.h"
 #include "debug.h"
 #include "md5.h"
 #include "mem.h"
+#include <stdio.h>
+#include <time.h>
 
 static void
 MDPrint(const char *label, unsigned char digest[16])
@@ -90,7 +91,7 @@ int main(int argc,char *argv[])
     ci_MD5Init(&md);
     ci_MD5Update(&md, (unsigned char *)mb->buf, mb->endpos);
     ci_MD5Final(digest, &md);
-    MDPrint("From membuf_t, whole string md5", digest);
+    MDPrint("ci_simple_file_t to ci_membuf_t, whole string md5", digest);
 
     ci_MD5Init(&md);
     int len;
@@ -98,7 +99,7 @@ int main(int argc,char *argv[])
         ci_MD5Update(&md, (unsigned char *)buf, len);
     }
     ci_MD5Final(digest, &md);
-    MDPrint("From membuf_t read blocks md5", digest);
+    MDPrint("ci_simple_file_t to ci_membuf_t read blocks md5", digest);
 
     if (mb)
         ci_membuf_free(mb);
@@ -111,8 +112,55 @@ int main(int argc,char *argv[])
     ci_MD5Init(&md);
     ci_MD5Update(&md, (unsigned char *)mb->buf, mb->endpos);
     ci_MD5Final(digest, &md);
-    MDPrint("From membuf_t after write, whole string md5", digest);
+    MDPrint("new membuf_t build from read blocks from ci_simple_file, whole string md5", digest);
 
     ci_simple_file_destroy(sf);
+
+    /* Test RING mode*/
+    printf("\nTesting ci_simple_file ring mode\n");
+    ci_MD5_CTX md2;
+    unsigned char digest2[16];
+    ci_MD5Init(&md);
+    ci_MD5Init(&md2);
+    rewind(f);
+    if (!(sf = ci_simple_file_new(128*1024))) {
+        ci_debug_printf(1, "Error allocating simple body struct!\n");
+        exit(-1);
+    }
+
+    char buf2[sizeof(buf)];
+    int ret;
+    size_t written, tryread;
+    int getback;
+    srand((unsigned int)time(NULL));
+    while ((bytes = fread(buf, 1, sizeof(buf), f))) {
+        ci_MD5Update(&md, (unsigned char *)buf, bytes);
+        written = 0;
+        do {
+            ret = ci_simple_file_write(sf, buf + written, bytes - written, 0);
+            if (ret < 0) {
+                ci_debug_printf(1, "Error writing to out file");
+                exit(-1);
+            }
+            written += ret;
+
+            tryread = ((sizeof(buf2) / 2 ) * rand()) / RAND_MAX;
+            getback = ci_simple_file_read(sf, buf2, tryread);
+            ci_debug_printf(7, "written:%lu, read %d (/%lu)\n", written, getback, tryread);
+            ci_MD5Update(&md2, (unsigned char *)buf2, getback);
+        } while (written < bytes);
+    }
+    ci_simple_file_write(sf, buf, 0, 1);
+
+    while ((getback = ci_simple_file_read(sf, buf2, sizeof(buf2))) > 0) {
+        ci_debug_printf(7, "written:-, read %d\n", getback);
+        ci_MD5Update(&md2, (unsigned char *)buf2, getback);
+    }
+
+    ci_MD5Final(digest, &md);
+    ci_MD5Final(digest2, &md2);
+    MDPrint("From ci_simple_file_t ring mode before write md5", digest);
+    MDPrint("From ci_simple_file_t ring mode after read md5", digest2);
+
     return 0;
 }

@@ -147,9 +147,8 @@ CI_DECLARE_FUNC(ci_simple_file_t) * ci_simple_file_named_new(char *tmp,char*file
 
 CI_DECLARE_FUNC(void) ci_simple_file_release(ci_simple_file_t *);
 CI_DECLARE_FUNC(void) ci_simple_file_destroy(ci_simple_file_t *body);
-CI_DECLARE_FUNC(int) ci_simple_file_write(ci_simple_file_t *body,
-        const char *buf,int len, int iseof);
-CI_DECLARE_FUNC(int) ci_simple_file_read(ci_simple_file_t *body,char *buf,int len);
+CI_DECLARE_FUNC(int) ci_simple_file_write(ci_simple_file_t *body, const char *buf, size_t len, int iseof);
+CI_DECLARE_FUNC(int) ci_simple_file_read(ci_simple_file_t *body, char *buf, size_t len);
 CI_DECLARE_FUNC(int) ci_simple_file_truncate(ci_simple_file_t *body, ci_off_t new_size);
 
 /*Currently it is just creates a MAP_PRIVATE memory.
