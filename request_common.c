@@ -85,7 +85,7 @@ int ci_buf_reset_size(struct ci_buf *buf, int req_size)
     return ci_buf_reset_and_resize(buf, (size_t)req_size);
 }
 
-void ci_request_t_pack(ci_request_t * req, int is_request)
+static void ci_request_t_pack(ci_request_t * req, int is_request)
 {
     ci_encaps_entity_t **elist, *e;
     char buf[512];
@@ -378,6 +378,7 @@ void ci_request_reset(ci_request_t * req)
 void ci_request_destroy(ci_request_t * req)
 {
     int i;
+    assert(req);
     if (req->connection)
         free(req->connection);
 
@@ -410,6 +411,7 @@ void ci_request_destroy(ci_request_t * req)
 char *ci_request_set_log_str(ci_request_t *req, char *logstr)
 {
     int size;
+    assert(req);
     if (req->log_str)
         ci_buffer_free(req->log_str);
 
@@ -424,6 +426,7 @@ char *ci_request_set_log_str(ci_request_t *req, char *logstr)
 
 int  ci_request_set_str_attribute(ci_request_t *req, const char *name, const char *value)
 {
+    assert(req);
     if (req->attributes == NULL) {
         req->attributes = ci_array_new(4096);
         if (!req->attributes) {

@@ -160,6 +160,7 @@ unsigned int ci_membuf_set_flag(struct ci_membuf *body, unsigned int flag)
     if (!(flag & CI_MEMBUF_USER_FLAGS))
         return 0;
 
+    assert(body);
     body->flags |= flag;
     return body->flags;
 }
@@ -168,7 +169,10 @@ int ci_membuf_write(struct ci_membuf *b, const char *data, size_t len, int iseof
 {
     size_t has_space, required_space, newsize;
     char *newbuf;
-    int terminate = b->flags & CI_MEMBUF_NULL_TERMINATED;
+    int terminate;
+
+    assert(b);
+    terminate = b->flags & CI_MEMBUF_NULL_TERMINATED;
 
     if ((b->flags & CI_MEMBUF_RO) || (b->flags & CI_MEMBUF_CONST)) {
         ci_debug_printf(1, "ci_membuf_write: can not write: buffer is read-only!\n");
@@ -219,6 +223,8 @@ int ci_membuf_write(struct ci_membuf *b, const char *data, size_t len, int iseof
 int ci_membuf_read(struct ci_membuf *b, char *data, size_t len)
 {
     size_t remains, copybytes;
+
+    assert(b);
     assert(b->endpos >= b->readpos);
 
     if (b->readpos == b->endpos && (b->flags & CI_MEMBUF_HAS_EOF))
@@ -242,7 +248,7 @@ int ci_membuf_read(struct ci_membuf *b, char *data, size_t len)
 #define BODY_ATTRS_SIZE 1024
 int ci_membuf_attr_add(struct ci_membuf *body,const char *attr, const void *val, size_t val_size)
 {
-
+    assert(body);
     if (!body->attributes)
         body->attributes = ci_array_new(BODY_ATTRS_SIZE);
 
@@ -254,6 +260,7 @@ int ci_membuf_attr_add(struct ci_membuf *body,const char *attr, const void *val,
 
 const void * ci_membuf_attr_get(struct ci_membuf *body,const char *attr)
 {
+    assert(body);
     if (body->attributes)
         return ci_array_search(body->attributes, attr);
     return NULL;
@@ -261,6 +268,7 @@ const void * ci_membuf_attr_get(struct ci_membuf *body,const char *attr)
 
 int ci_membuf_truncate(struct ci_membuf *body, size_t new_size)
 {
+    assert(body);
     if (body->endpos < new_size)
         return 0;
     body->endpos = new_size;
@@ -332,7 +340,7 @@ static int do_read(int fd, void *buf, size_t count, ci_off_t pos)
 #define F_PERM S_IREAD|S_IWRITE|S_IRGRP|S_IROTH
 #endif
 
-int do_open(const char *pathname, int flags)
+static int do_open(const char *pathname, int flags)
 {
     int fd;
     errno = 0;
@@ -343,7 +351,7 @@ int do_open(const char *pathname, int flags)
     return fd;
 }
 
-void do_close(int fd)
+static void do_close(int fd)
 {
     errno = 0;
     while (close(fd) < 0 && errno == EINTR);
@@ -712,6 +720,7 @@ int ci_simple_file_write(ci_simple_file_t * body, const char *buf, size_t len, i
     int ret;
     size_t wsize = 0;
 
+    assert(body);
     if (body->flags & CI_FILE_HAS_EOF) {
         if (len > 0) {
             ci_debug_printf(1, "Cannot write to file: '%s', the eof flag is set!\n", body->filename);
@@ -779,6 +788,7 @@ int ci_simple_file_read(ci_simple_file_t * body, char *buf, size_t len)
     if (len <= 0)
         return 0;
 
+    assert(body);
     if (body->readpos == body->endpos) {
         if ((body->flags & CI_FILE_HAS_EOF)) {
             ci_debug_printf(9, "Has EOF and no data to read, send EOF\n");
@@ -822,6 +832,7 @@ int ci_simple_file_read(ci_simple_file_t * body, char *buf, size_t len)
 
 int ci_simple_file_truncate(ci_simple_file_t *body, ci_off_t new_size)
 {
+    assert(body);
     if (new_size > body->endpos)
         return 0;
 
@@ -880,6 +891,7 @@ static void mmap_body_map(ci_simple_file_t *body, size_t map_size, const char *m
 const char * ci_simple_file_to_const_string(ci_simple_file_t *body)
 {
     ci_off_t map_size;
+    assert(body);
     if (!mmap_body_prerequisites(body, "ci_simple_file_to_const_string"))
         return NULL;
 
@@ -908,6 +920,7 @@ const char * ci_simple_file_to_const_string(ci_simple_file_t *body)
 
 const char * ci_simple_file_to_const_raw_data(ci_simple_file_t *body, size_t *data_size)
 {
+    assert(body);
     if (!mmap_body_prerequisites(body, "ci_simple_file_to_const_raw_data"))
         return NULL;
 
@@ -923,6 +936,7 @@ ci_membuf_t *ci_simple_file_to_membuf(ci_simple_file_t *body, unsigned int flags
 {
     assert((CI_MEMBUF_SF_FLAGS & flags) == flags);
     assert(flags & CI_MEMBUF_CONST);
+    assert(body);
     void *addr;
     if (flags & CI_MEMBUF_NULL_TERMINATED)
         addr = (void *)ci_simple_file_to_const_string(body);
@@ -964,17 +978,20 @@ struct ci_ring_buf *ci_ring_buf_new(size_t size)
 
 void ci_ring_buf_destroy(struct ci_ring_buf *buf)
 {
+    assert(buf);
     ci_buffer_free(buf->buf);
     ci_object_pool_free(buf);
 }
 
 int ci_ring_buf_is_empty(struct ci_ring_buf *buf)
 {
+    assert(buf);
     return (buf->read_pos == buf->write_pos) && (buf->full == 0);
 }
 
 int ci_ring_buf_write_direct(struct ci_ring_buf *buf, char **wb, size_t *len)
 {
+    assert(buf);
     if (buf->read_pos == buf->write_pos && buf->full == 0) {
         *wb = buf->write_pos;
         *len = buf->end_buf - buf->write_pos + 1;
@@ -1000,6 +1017,7 @@ int ci_ring_buf_write_block(struct ci_ring_buf *buf, char **wb, int *len)
 
 int ci_ring_buf_read_direct(struct ci_ring_buf *buf, char **rb, size_t *len)
 {
+    assert(buf);
     if (buf->read_pos == buf->write_pos && buf->full == 0) {
         *rb = buf->read_pos;
         *len = 0;
@@ -1027,6 +1045,7 @@ void ci_ring_buf_consume(struct ci_ring_buf *buf, size_t len)
 {
     if (len <= 0)
         return;
+    assert(buf);
     buf->read_pos += len;
     if (buf->read_pos > buf->end_buf)
         buf->read_pos = buf->buf;
@@ -1038,6 +1057,7 @@ void ci_ring_buf_produce(struct ci_ring_buf *buf, size_t len)
 {
     if (len <= 0)
         return;
+    assert(buf);
     buf->write_pos += len;
     if (buf->write_pos > buf->end_buf)
         buf->write_pos = buf->buf;

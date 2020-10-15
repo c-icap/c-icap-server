@@ -73,6 +73,7 @@ void ci_client_request_reuse(ci_request_t * req)
 {
     int i;
 
+    assert(req);
     req->packed = 0;
     req->args[0] = '\0';
     req->type = -1;
@@ -412,6 +413,7 @@ int ci_client_get_server_options_nonblocking(ci_request_t * req)
 {
     int ret, i;
 
+    assert(req);
     if (req->status == CLIENT_INIT) {
         if (CI_OK != client_create_request(req, req->req_server,
                                            req->service, ICAP_OPTIONS)) {
@@ -843,6 +845,7 @@ int ci_client_icapfilter_nonblocking(ci_request_t * req, int io_action,
 {
     int ret, preview_status, i;
 
+    assert(req);
     if (req->status == CLIENT_INIT) {
         ret = prepare_headers(req, req_headers, resp_headers,
                               data_source, source_read);
@@ -942,6 +945,7 @@ int ci_client_icapfilter(ci_request_t * req, int timeout,
  */
 int ci_client_http_headers_completed(ci_request_t * req)
 {
+    assert(req);
     return (req->status >= CLIENT_PROCESS_DATA_HEADERS_FINISHED);
 }
 

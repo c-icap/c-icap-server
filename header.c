@@ -19,11 +19,9 @@
 
 #include "common.h"
 #include "c-icap.h"
-#include <stdio.h>
-#include <fcntl.h>
-#include <ctype.h>
 #include "debug.h"
 #include "header.h"
+#include <ctype.h>
 
 const char *ci_methods[] = {
     "",                        /*0x00 */
@@ -100,6 +98,8 @@ ci_headers_list_t *ci_headers_create()
 
 void ci_headers_destroy(ci_headers_list_t * h)
 {
+    if (!h)
+        return;
     free(h->headers);
     free(h->buf);
     free(h);
@@ -111,6 +111,7 @@ int ci_headers_setsize(ci_headers_list_t * h, int size)
 {
     char *newbuf;
     int new_size;
+    assert(h);
     if (size < h->bufsize)
         return 1;
     /*Allocate buffer of size multiple of HEADSBUFSIZE */
@@ -127,6 +128,7 @@ int ci_headers_setsize(ci_headers_list_t * h, int size)
 
 void ci_headers_reset(ci_headers_list_t * h)
 {
+    assert(h);
     h->packed = 0;
     h->used = 0;
     h->bufused = 0;
@@ -138,6 +140,7 @@ const char *ci_headers_add(ci_headers_list_t * h, const char *line)
     int len, linelen;
     int i = 0;
 
+    assert(h);
     if (h->packed) { /*Not in edit mode*/
         return NULL;
     }
@@ -186,6 +189,7 @@ int ci_headers_addheaders(ci_headers_list_t * h, const ci_headers_list_t * heade
     int len, i;
     char *newbuf, **newspace;
 
+    assert(h);
     if (h->packed) { /*Not in edit mode*/
         return 0;
     }
@@ -230,6 +234,7 @@ int ci_headers_addheaders(ci_headers_list_t * h, const ci_headers_list_t * heade
 const char *ci_headers_first_line2(const ci_headers_list_t *h, size_t *return_size)
 {
     const char *eol;
+    assert(h);
     if (h->used == 0)
         return NULL;
 
@@ -242,6 +247,7 @@ const char *ci_headers_first_line2(const ci_headers_list_t *h, size_t *return_si
 
 const char *ci_headers_first_line(const ci_headers_list_t *h)
 {
+    assert(h);
     if (h->used == 0)
         return NULL;
     return h->buf;
@@ -250,13 +256,16 @@ const char *ci_headers_first_line(const ci_headers_list_t *h)
 static const char *do_header_search(const ci_headers_list_t * h, const char *header, const char **value, const char **end)
 {
     int i;
-    size_t header_size = strlen(header);
-    const char *h_end = (h->buf + h->bufused);
+    size_t header_size;
+    const char *h_end;
     const char *check_head, *lval;
 
+    header_size = strlen(header);
     if (!header_size)
         return NULL;
 
+    assert(h);
+    h_end = h->buf + h->bufused;
     for (i = 0; i < h->used; i++) {
         check_head = h->headers[i];
         if (h_end < check_head + header_size)
@@ -348,6 +357,7 @@ int ci_headers_remove(ci_headers_list_t * h, const char *header)
     int i, j, cur_head_size, rest_len;
     size_t header_size;
 
+    assert(h);
     if (h->packed) { /*Not in edit mode*/
         return 0;
     }
@@ -395,6 +405,7 @@ int ci_headers_remove(ci_headers_list_t * h, const char *header)
 
 const char *ci_headers_replace(ci_headers_list_t * h, const char *header, const char *newval)
 {
+    assert(h);
     if (h->packed) /*Not in edit mode*/
         return NULL;
 
@@ -409,6 +420,7 @@ int ci_headers_iterate(const ci_headers_list_t * h, void *data, void (*fn)(void 
     char value[8196];
     char *s;
     int i, j;
+    assert(h);
     for (i = 0; i < h->used; i++) {
         s = h->headers[i];
         for (j = 0;  j < sizeof(header)-1 && *s != ':' && *s != ' ' &&  *s != '\0' && *s != '\r' && *s != '\n'; s++, j++)
@@ -433,6 +445,7 @@ void ci_headers_pack(ci_headers_list_t * h)
 {
     /*Put the \r\n sequence at the end of each header before sending...... */
     int i = 0, len = 0;
+    assert(h);
     for (i = 0; i < h->used; i++) {
         len = strlen(h->headers[i]);
         if (h->headers[i][len + 1] == '\n') {
@@ -461,6 +474,7 @@ int ci_headers_unpack(ci_headers_list_t * h)
     char **newspace;
     char *ebuf, *str;
 
+    assert(h);
     if (h->bufused < 2)        /*???????????? */
         return EC_400;
 
@@ -522,6 +536,7 @@ size_t ci_headers_pack_to_buffer(const ci_headers_list_t *heads, char *buf, size
     int i;
     char *pos;
 
+    assert(heads);
     n = heads->bufused;
     if (!heads->packed)
         n += 2;

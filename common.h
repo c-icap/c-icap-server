@@ -56,6 +56,10 @@
 #include <limits.h>
 #endif
 
+#ifdef HAVE_ASSERT_H
+#include <assert.h>
+#endif
+
 #ifndef HAVE_STRNSTR
 #define strnstr(s, find, slen) ci_strnstr(s, find, slen)
 #endif

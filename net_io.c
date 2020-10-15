@@ -179,6 +179,7 @@ void ci_copy_connection(ci_connection_t * dest, ci_connection_t * src)
 
 void ci_connection_reset(ci_connection_t *conn)
 {
+    assert(conn);
     conn->fd = CI_SOCKET_INVALID;
 #if defined(USE_OPENSSL)
     conn->tls_conn_pcontext = NULL;
@@ -191,6 +192,7 @@ int ci_connection_init(ci_connection_t *conn, ci_connection_type_t type)
     socklen_t claddrlen;
     struct sockaddr *addr;
     assert(type == ci_connection_server_side || type == ci_connection_client_side);
+    assert(conn);
     if (type == ci_connection_server_side) {
         claddrlen = sizeof(conn->srvaddr.sockaddr);
         addr = (struct sockaddr *) &(conn->srvaddr.sockaddr);
