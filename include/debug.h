@@ -44,8 +44,8 @@ CI_DECLARE_DATA extern void (*__log_error)(void *req, const char *format,... );
 #define ci_debug_printf(i, args...) if(i<=CI_DEBUG_LEVEL){ if(__log_error) (*__log_error)(NULL,args); if(CI_DEBUG_STDOUT) printf(args);}
 #endif
 
-CI_DECLARE_FUNC(void) _ci_debug_abort(const char *file, int line, const char *function, const char *mesg);
-#define _CI_ASSERT(expression) {if (!(expression)) _ci_debug_abort(__FILE__, __LINE__, __func__, #expression);}
+CI_DECLARE_DATA extern void (*__ci_debug_abort)(const char *file, int line, const char *function, const char *mesg);
+#define _CI_ASSERT(expression) {if (!(expression)) (*__ci_debug_abort)(__FILE__, __LINE__, __func__, #expression);}
 
 
 #ifdef __cplusplus
