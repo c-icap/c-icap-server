@@ -187,5 +187,6 @@ ci_dyn_array_t *ci_parse_key_value_list(const char *str, char sep)
         }
         k = (e && *e) ? e : NULL;
     }
+    free(s);
     return args_array;
 }
