@@ -327,6 +327,7 @@ int ci_magics_db_file_add(struct ci_magics_db *db, const char *filename)
         return 0;
     }
 
+    memset(&record, 0, sizeof(struct ci_magic_record));
     lineNum = 0;
     error = 0;
     while (!error && fgets(line, RECORD_LINE, f) != NULL) {
