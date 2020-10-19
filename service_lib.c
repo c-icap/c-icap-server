@@ -128,7 +128,7 @@ void ci_service_add_xincludes(ci_service_xdata_t * srv_xdata,
     ci_thread_rwlock_wrlock(&srv_xdata->lock);
     while (XINCLUDES_SIZE - len - 2 > 0 && xincludes[i]) {
         if (len) {
-            strncat(srv_xdata->xincludes, ", ", 2);
+            strncat(srv_xdata->xincludes, ", ", 3);
             len += 2;
         }
         strncat(srv_xdata->xincludes, xincludes[i], XINCLUDES_SIZE - len);
