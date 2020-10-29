@@ -836,7 +836,6 @@ int ci_tls_connect_nonblock(ci_connection_t *connection, const char *servername,
             X509_VERIFY_PARAM *param = SSL_get0_param(ssl);
             /* Enable automatic hostname checks */
             X509_VERIFY_PARAM_set_hostflags(param, X509_CHECK_FLAG_NO_PARTIAL_WILDCARDS);
-            X509_VERIFY_PARAM_set1_host(param, servername, 0);
             if (servername_is_ip) {
                 X509_VERIFY_PARAM_set1_ip_asc(param, servername);
             }
