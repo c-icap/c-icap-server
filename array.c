@@ -689,18 +689,9 @@ static int pointers_cmp(const void *obj1, const void *obj2, size_t size)
     return (obj1 == obj2 ? 0 : (obj1 > obj2 ? 1 : -1));
 }
 
-int ci_list_remove(ci_list_t *list, const void *obj)
+int ci_list_remove2(ci_list_t *list, const void *obj, int (*cmp_func)(const void *obj, const void *user_data, size_t user_data_size))
 {
     ci_list_item_t *it, *prev;
-    int (*cmp_func)(const void *, const void *, size_t);
-
-    if (list->cmp_func)
-        cmp_func = list->cmp_func;
-    else if (list->obj_size)
-        cmp_func = default_cmp;
-    else
-        cmp_func = pointers_cmp;
-
     prev = NULL;
     for (it = list->items; it != NULL; prev = it,it = it->next) {
         if (cmp_func(it->item, obj, list->obj_size) == 0) {
@@ -720,6 +711,20 @@ int ci_list_remove(ci_list_t *list, const void *obj)
     }
 
     return 0;
+}
+
+int ci_list_remove(ci_list_t *list, const void *obj)
+{
+    int (*cmp_func)(const void *, const void *, size_t);
+
+    if (list->cmp_func)
+        cmp_func = list->cmp_func;
+    else if (list->obj_size)
+        cmp_func = default_cmp;
+    else
+        cmp_func = pointers_cmp;
+
+    return ci_list_remove2(list, obj, cmp_func);
 }
 
 const void * ci_list_search(ci_list_t *list, const void *data)
