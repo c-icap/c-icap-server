@@ -729,7 +729,6 @@ int ci_list_remove(ci_list_t *list, const void *obj)
 
 const void * ci_list_search(ci_list_t *list, const void *data)
 {
-    ci_list_item_t *it;
     int (*cmp_func)(const void *, const void *, size_t);
 
     if (list->cmp_func)
@@ -739,11 +738,7 @@ const void * ci_list_search(ci_list_t *list, const void *data)
     else
         cmp_func = pointers_cmp;
 
-    for (it = list->items; it != NULL; it = it->next) {
-        if (cmp_func(it->item, data, list->obj_size) == 0)
-            return it->item;
-    }
-    return NULL;
+    return ci_list_search2(list, data, cmp_func);
 }
 
 const void * ci_list_search2(ci_list_t *list, const void *data, int (*cmp_func)(const void *obj, const void *user_data, size_t user_data_size))
