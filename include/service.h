@@ -49,11 +49,8 @@ extern "C"
 
 #define CI_ISTAG     "CI0001" /*Always length of 6 chars*/
 #define CI_ISTAG_SIZE 32
-#define SRV_ISTAG_SIZE    39 /* contains the ISTag: field, the istag part
-                 of server and the istag part of service (32+7) */
-#define SRV_ISTAG_POS     13 /* strlen("ISTAG: ")+6, 6 is the size of server
-                 part of istag */
-#define SERVICE_ISTAG_SIZE 26
+#define SERVICE_ISTAG_SIZE 26 /* Deprecated */
+#define CI_SERVICE_ISTAG_SIZE 26
 #define XINCLUDES_SIZE    511 /* it is enough I think ....*/
 
 #define CI_XCLIENTIP              1
@@ -92,7 +89,7 @@ typedef struct ci_service_xdata {
     int status;
     struct ci_conf_entry *intl_srv_conf_table;
     uint64_t xopts;
-    char ISTag[SRV_ISTAG_SIZE+1];
+    char ISTag[sizeof("ISTag: \"") + CI_ISTAG_SIZE + sizeof("\"") + 1];
     char xincludes[XINCLUDES_SIZE+1];
     char TransferPreview[MAX_HEADER_SIZE+1];
     char TransferIgnore[MAX_HEADER_SIZE+1];
