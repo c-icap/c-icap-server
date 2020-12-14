@@ -134,7 +134,7 @@ CI_DECLARE_FUNC(void) ci_connection_destroy(ci_connection_t *connection);
 CI_DECLARE_FUNC(void) ci_fill_sockaddr(ci_sockaddr_t *addr);
 CI_DECLARE_FUNC(void) ci_fill_ip_t(ci_ip_t *ip, ci_sockaddr_t *addr);
 
-CI_DECLARE_FUNC(void) ci_copy_sockaddr(ci_sockaddr_t *dest, ci_sockaddr_t *src);
+CI_DECLARE_FUNC(void) ci_copy_sockaddr(ci_sockaddr_t *dest, const ci_sockaddr_t *src);
 CI_DECLARE_FUNC(int) ci_inet_aton(int af,const char *cp, void *inp);
 CI_DECLARE_FUNC(const char *) ci_inet_ntoa(int af,const void *src, char *dst,int cnt);
 
@@ -184,7 +184,10 @@ CI_DECLARE_FUNC(ci_socket_t) ci_socket_connect(ci_sockaddr_t *srvaddr, int *errc
 CI_DECLARE_FUNC(int) ci_socket_connected_ok(ci_socket_t socket);
 
 CI_DECLARE_FUNC(ci_connection_t *) ci_connect_to(const char *servername, int port, int proto, int timeout);
+CI_DECLARE_FUNC(ci_connection_t *) ci_connect_to_address(const ci_sockaddr_t *addr, int port, int secs);
+CI_DECLARE_FUNC(ci_connection_t *) ci_connect_ms_to_address(const ci_sockaddr_t *addr, int port, int msecs);
 CI_DECLARE_FUNC(int) ci_connect_to_nonblock(ci_connection_t *connection, const char *servername, int port, int proto);
+CI_DECLARE_FUNC(int) ci_connect_to_address_nonblock(ci_connection_t *connection,  const ci_sockaddr_t *address, int port);
 
 CI_DECLARE_FUNC(int) ci_connection_wait(ci_connection_t *conn, int secs, int what_wait);
 CI_DECLARE_FUNC(int) ci_connection_read(ci_connection_t *conn, void *buf, size_t count, int timeout);
