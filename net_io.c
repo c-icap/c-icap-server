@@ -328,35 +328,12 @@ int ci_connect_to_address_nonblock(ci_connection_t *connection, const ci_sockadd
 
 ci_connection_t *ci_connect_to(const char *servername, int port, int proto, int timeout)
 {
-    int ret;
-    ci_connection_t *connection = ci_connection_create();
-    if (!connection) {
-        ci_debug_printf(1, "Failed to allocate memory for ci_connection_t object\n");
+    ci_sockaddr_t dest;
+    if (!ci_host_to_sockaddr_t(servername, &dest, proto)) {
+        ci_debug_printf(1, "Error getting address info for host '%s'\n", servername);
         return NULL;
     }
-
-    ret = ci_connect_to_nonblock(connection, servername, port, proto);
-    if (ret < 0) {
-        ci_debug_printf(1, "Failed to initialize ci_connection_t object\n");
-        ci_connection_destroy(connection);
-        return NULL;
-    }
-
-    do {
-        ret = ci_wait_for_data(connection->fd, timeout, ci_wait_for_write);
-    } while (ret > 0 && (ret & ci_wait_should_retry)); //while iterrupted by signal
-
-    if (ret > 0)
-        ret = ci_connect_to_nonblock(connection, servername, port, proto);
-
-    if (ret <= 0) {
-        ci_debug_printf(1, "Connection to '%s:%d' failed/timedout\n",
-                        servername, port);
-        ci_connection_destroy(connection);
-        return NULL;
-    }
-
-    return connection;
+    return ci_connect_to_address(&dest, port, timeout);
 }
 
 ci_connection_t *ci_connect_to_address(const ci_sockaddr_t *addr, int port, int secs)
