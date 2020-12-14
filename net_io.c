@@ -239,6 +239,12 @@ int ci_host_to_sockaddr_t(const char *servername, ci_sockaddr_t * addr, int prot
     return 1;
 }
 
+int ci_wait_for_data(int fd, int secs, int what_wait)
+{
+    const int msecs = secs * 1000; // Should be in milliseconds
+    return ci_wait_ms_for_data(fd, msecs, what_wait);
+}
+
 ci_connection_t *ci_connection_create()
 {
     ci_connection_t *connection = malloc(sizeof(ci_connection_t));

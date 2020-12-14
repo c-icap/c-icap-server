@@ -180,15 +180,15 @@ int ci_wait_for_data(ci_socket fd,int secs,int what_wait){
 */
 
 
-int ci_wait_for_data(int fd, int secs, int what_wait)
+int ci_wait_ms_for_data(int fd, int msecs, int what_wait)
 {
     fd_set rfds, wfds, *preadfds, *pwritefds;
     struct timeval tv;
     int ret = 0;
 
     if (secs >= 0) {
-        tv.tv_sec = secs;
-        tv.tv_usec = 0;
+        tv.tv_sec = msecs / 1000;
+        tv.tv_usec = (msecs % 1000) * 1000;
     }
 
     preadfds = NULL;

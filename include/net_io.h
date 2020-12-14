@@ -163,6 +163,7 @@ CI_DECLARE_FUNC(int) icap_accept_raw_connection(struct ci_port *port, ci_connect
 
 
 CI_DECLARE_FUNC(int) ci_wait_for_data(ci_socket fd,int secs,int what_wait);
+CI_DECLARE_FUNC(int) ci_wait_ms_for_data(int fd, int msecs, int what_wait);
 
 #define ci_wait_for_incomming_data(fd,timeout) ci_wait_for_data(fd,timeout,wait_for_read)
 #define ci_wait_for_outgoing_data(fd,timeout) ci_wait_for_data(fd,timeout,wait_for_write)
