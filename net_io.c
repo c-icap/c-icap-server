@@ -123,6 +123,28 @@ const char *ci_sockaddr_t_to_ip(ci_sockaddr_t * addr, char *ip, int maxlen)
     return ci_inet_ntoa(addr->ci_sin_family, addr->ci_sin_addr, ip, maxlen);
 }
 
+const ci_sockaddr_t *ci_ip_to_ci_sockaddr_t(const char *ip, ci_sockaddr_t *addr)
+{
+    assert(addr);
+#ifdef USE_IPV6
+    int af = strchr(ip, ':') ? AF_INET6 : AF_INET;
+    void *rawaddr = (af == AF_INET6) ? (void *)&(((struct sockaddr_in6 *) &(addr->sockaddr))->sin6_addr) : (void *)&(((struct sockaddr_in *) &(addr->sockaddr))->sin_addr);
+
+    int ret = ci_inet_aton(af, ip, rawaddr);
+#else
+    int af = AF_INET;
+    int ret = ci_inet_aton(af, ip, &(((struct sockaddr_in *) &(addr->sockaddr))->sin_addr));
+#endif
+
+    if (ret) {
+        ci_sockaddr_set_family(*addr, af);
+        ci_fill_sockaddr(addr);
+        return addr;
+    }
+
+    return NULL;
+}
+
 int ci_inet_aton(int af, const char *cp, void *addr)
 {
 #ifdef HAVE_INET_PTON
@@ -265,12 +287,12 @@ void ci_connection_destroy(ci_connection_t *connection)
     }
 }
 
-int ci_connect_to_nonblock(ci_connection_t *connection, const char *servername, int port, int proto)
+int ci_connect_to_nonblock(ci_connection_t *connection, const char *serverip, int port, int unused)
 {
     ci_sockaddr_t dest;
     if (!ci_socket_valid(connection->fd)) {
-        if (!ci_host_to_sockaddr_t(servername, &dest, proto)) {
-            ci_debug_printf(1, "Error getting address info for host '%s'\n", servername);
+        if (!ci_ip_to_ci_sockaddr_t(serverip, &dest)) {
+            ci_debug_printf(1, "Error invalid ip address '%s'\n", serverip);
             return -1;
         }
     } else

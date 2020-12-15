@@ -138,17 +138,17 @@ CI_DECLARE_FUNC(void) ci_copy_sockaddr(ci_sockaddr_t *dest, const ci_sockaddr_t 
 CI_DECLARE_FUNC(int) ci_inet_aton(int af,const char *cp, void *inp);
 CI_DECLARE_FUNC(const char *) ci_inet_ntoa(int af,const void *src, char *dst,int cnt);
 
-
+CI_DECLARE_FUNC(const ci_sockaddr_t *) ci_ip_to_ci_sockaddr_t(const char *ip, ci_sockaddr_t *addr);
 CI_DECLARE_FUNC(const char *) ci_sockaddr_t_to_ip(ci_sockaddr_t *addr, char *ip,int ip_strlen);
 #define ci_conn_remote_ip(conn,ip) ci_sockaddr_t_to_ip(&(conn->claddr),ip,CI_IPLEN)
 #define ci_conn_local_ip(conn,ip)  ci_sockaddr_t_to_ip(&(conn->srvaddr),ip,CI_IPLEN)
 
 #ifdef USE_IPV6
 CI_DECLARE_FUNC(void) ci_sockaddr_set_port(ci_sockaddr_t *addr, int port);
-#define ci_sockaddr_set_family(addr,family) ((addr).sockaddr.ss_family=family)
+#define ci_sockaddr_set_family(addr,family) (void)(((addr).sockaddr.ss_family = family) && ((addr).ci_sin_family = family))
 #else
 CI_DECLARE_FUNC(void) ci_sockaddr_set_port(ci_sockaddr_t *addr, int port);
-#define ci_sockaddr_set_family(addr,family) ((addr).sockaddr.sin_family=family/*,(addr).ci_sin_family=family*/)
+#define ci_sockaddr_set_family(addr,family) (void)(((addr).sockaddr.sin_family = family) && ((addr).ci_sin_family = family))
 #endif
 
 CI_DECLARE_FUNC(const char *) ci_sockaddr_t_to_host(ci_sockaddr_t *addr, char *hname, int maxhostlen);
@@ -186,7 +186,7 @@ CI_DECLARE_FUNC(int) ci_socket_connected_ok(ci_socket_t socket);
 CI_DECLARE_FUNC(ci_connection_t *) ci_connect_to(const char *servername, int port, int proto, int timeout);
 CI_DECLARE_FUNC(ci_connection_t *) ci_connect_to_address(const ci_sockaddr_t *addr, int port, int secs);
 CI_DECLARE_FUNC(ci_connection_t *) ci_connect_ms_to_address(const ci_sockaddr_t *addr, int port, int msecs);
-CI_DECLARE_FUNC(int) ci_connect_to_nonblock(ci_connection_t *connection, const char *servername, int port, int proto);
+CI_DECLARE_FUNC(int) ci_connect_to_nonblock(ci_connection_t *connection, const char *serverip, int port, int unused);
 CI_DECLARE_FUNC(int) ci_connect_to_address_nonblock(ci_connection_t *connection,  const ci_sockaddr_t *address, int port);
 
 CI_DECLARE_FUNC(int) ci_connection_wait(ci_connection_t *conn, int secs, int what_wait);
