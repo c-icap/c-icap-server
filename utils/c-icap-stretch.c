@@ -24,6 +24,9 @@
 #include "ci_threads.h"
 #include "client.h"
 #include "net_io.h"
+#if defined(USE_OPENSSL)
+#include "net_io_ssl.h"
+#endif
 #include "cfg_param.h"
 #include "debug.h"
 #include "util.h"
@@ -74,6 +77,12 @@ int xclient_headers_num =0;
 ci_headers_list_t *xheaders = NULL;
 ci_headers_list_t *http_xheaders = NULL;
 ci_headers_list_t *http_resp_xheaders = NULL;
+#if defined(USE_OPENSSL)
+int use_tls = 0;
+int tls_verify = 1;
+const char *tls_method = NULL;
+ci_tls_pcontext_t ctx = NULL;
+#endif
 
 ci_thread_mutex_t statsmtx;
 
@@ -187,6 +196,15 @@ static ci_connection_t *connect_to_server()
       list is shared among worker threads*/
     for (li = addresses->items; conn == NULL && li != NULL; li = li->next) {
         addr = (ci_sockaddr_t *)li->item;
+#if defined(USE_OPENSSL)
+        if (use_tls) {
+            if (!(conn = ci_tls_connect_to_address(addr, PORT, servername, ctx, CONN_TIMEOUT))) {
+                char ipStr[256];
+                ci_debug_printf(2, "Failed to establish TLS connection to the address: %s:%d\n", ci_sockaddr_t_to_ip(addr, ipStr, sizeof(ipStr)), PORT);
+            }
+        } else
+#endif
+
         if (!(conn = ci_connect_to_address(addr, PORT, CONN_TIMEOUT))) {
             char ipStr[256];
             ci_debug_printf(2, "Failed to connect to address: '%s:%d'\n", ci_sockaddr_t_to_ip(addr, ipStr, sizeof(ipStr)), PORT);
@@ -688,6 +706,12 @@ static struct ci_options_entry options[] = {
     },
     {"-p", "port", &PORT, ci_cfg_set_int, "The ICAP server port"},
     {"-s", "service", &service, ci_cfg_set_str, "The service name"},
+#if defined(USE_OPENSSL)
+    {"-tls", NULL, &use_tls, ci_cfg_enable, "Use TLS"},
+    {"-tls-method", "tls_method", &tls_method, ci_cfg_set_str, "Use TLS method"},
+    {"-tls-no-verify", NULL, &tls_verify, ci_cfg_disable, "Disable server certificate verify"},
+#endif
+
     {
         "-urls", "filename", &urls_file, ci_cfg_set_str,
         "File with urls to use for reqmod stress test"
@@ -761,6 +785,19 @@ int main(int argc, char **argv)
 #else
     __vlog_error = vlog_errors;        /*set c-icap library  log function for win32..... */
 #endif
+
+#if defined(USE_OPENSSL)
+    if (use_tls) {
+        ci_tls_client_options_t tlsOpts;
+        ci_tls_init();
+
+        memset((void *)&tlsOpts, 0, sizeof(ci_tls_client_options_t));
+        tlsOpts.method = tls_method;
+        tlsOpts.verify = tls_verify;
+        ctx = ci_tls_create_context(&tlsOpts);
+    }
+#endif
+
 
     signal(SIGPIPE, SIG_IGN);
     signal(SIGINT, sigint_handler);
