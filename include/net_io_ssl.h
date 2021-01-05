@@ -94,6 +94,8 @@ CI_DECLARE_FUNC(ci_tls_pcontext_t) ci_tls_create_context(ci_tls_client_options_t
 /**
  \ingroup TLS
  \brief Initializes and establishes a connection to a server.
+ * \b Deprecated. Use ci_tls_connect_to_address instead
+ * \n\b Warning: It tries only the first available ip address for the given name.
  \param servername The ip or dns name of the server
  \param p The port number to use
  \param proto One of AF_INET, AF_INET6
@@ -107,18 +109,29 @@ CI_DECLARE_FUNC(ci_connection_t*) ci_tls_connect(const char *servername, int por
 /**
  \ingroup TLS
  \brief The non-blocking version of ci_tls_connect function
+ *
+ * \b Deprecated, use the ci_tls_connect_to_address_nonblock instead.
+ * \n\b Warning: This function promises non-blocking but it uses the
+ * getaddrinfo system call, which may block waiting a DNS answer.
  \return -1 on error, 1 when connection is established or 0 if should be
  *       called again.
+ */
+CI_DECLARE_FUNC(int) ci_tls_connect_nonblock(ci_connection_t *connection, const char *servername, int port, int proto, ci_tls_pcontext_t ctx);
+
+/**
+ \ingroup TLS
+ \brief The non-blocking version of ci_tls_connect_to_address function
  *
  * To establish a connection required more than one calls to
- * ci_tls_connect_nonblock. The user should monitor the connection->fd
- * file descriptor for events in order to call again ci_tls_connect_nonblock.
- * If it is used with a custom monitor of file descriptors event, it should
- * be used with ci_connection_should_read_tls/ci_connection_should_write_tls
- * functions. In this case it should be used as follows:
+ * ci_tls_connect_to_address_nonblock. The user should monitor the
+ * connection->fd file descriptor for events in order to call again
+ * ci_tls_connect_nonblock. If it is used with a custom monitor of file
+ * descriptors event, it should be used with ci_connection_should_read_tls/
+ * ci_connection_should_write_tls functions. In this case it should be used
+ *  as follows:
  \code
            ci_connection_t *connection = ci_connection_create();
-           int ret = ci_tls_connect_nonblock(connection, servername, port, proto, use_ctx);
+           int ret = ci_tls_connect_to_address_nonblock(connection, address, port, sni_name, use_ctx);
            while (ret == 0) {
                int wants_read = ci_connection_should_read_tls(connection);
                int wants_write = ci_connection_should_write_tls(connection);
@@ -131,13 +144,39 @@ CI_DECLARE_FUNC(ci_connection_t*) ci_tls_connect(const char *servername, int por
                if (mresult == error) {
                    return error;
                }
-               ret = ci_tls_connect_nonblock(connection, servername, port, proto, use_ctx);
+               ret = ci_tls_connect_to_address_nonblock(connection, address, port, sni_name, use_ctx);
            }
            if (ret < 0)
                return error;
  \endcode
  */
-CI_DECLARE_FUNC(int) ci_tls_connect_nonblock(ci_connection_t *connection, const char *servername, int port, int proto, ci_tls_pcontext_t ctx);
+CI_DECLARE_FUNC(int) ci_tls_connect_to_address_nonblock(ci_connection_t *connection, const ci_sockaddr_t *address, int port, const char *sni, ci_tls_pcontext_t use_ctx);
+
+/**
+ \ingroup TLS
+ \brief Initializes and establishes a connection to a server.
+ * This variant uses connecting timeout in seconds
+ \param address The ip address of the server
+ \param port The port number to use
+ \param sni The server name to use
+ \param ctx The context object to use
+ \param secs Connect timeout in seconds
+ \return NULL on failures the ci_connection_t object which can be used
+ *       with various ci_connection_*  api functions on success.
+ */
+CI_DECLARE_FUNC(ci_connection_t *) ci_tls_connect_to_address(const ci_sockaddr_t *address, int port, const char *sni, ci_tls_pcontext_t use_ctx, int secs);
+
+/**
+ \ingroup TLS
+ \copybrief ci_tls_connect_to_address
+ * This variant uses connecting timeout in milliseconds
+ \param address The ip address of the server
+ \param port The port number to use
+ \param sni The server name to use
+ \param ctx The context object to use
+ \param msecs Connect timeout in miliseconds
+*/
+CI_DECLARE_FUNC(ci_connection_t *) ci_tls_connect_ms_to_address(const ci_sockaddr_t *address, int port, const char *sni, ci_tls_pcontext_t use_ctx, int msecs);
 
 /**
  \ingroup TLS
@@ -182,6 +221,7 @@ CI_DECLARE_FUNC(void) ci_tls_set_passphrase_script(const char *script);
 /*
   Low level functions which not exported, but used internally by libicapapi.so library.
 */
+int ci_connection_wait_ms_tls(ci_connection_t *conn, int msecs, int what_wait);
 int ci_connection_wait_tls(ci_connection_t *conn, int secs, int what_wait);
 int ci_connection_read_tls(ci_connection_t *conn, void *buf, size_t count, int timeout);
 int ci_connection_write_tls(ci_connection_t *conn, const void *buf, size_t count, int timeout);

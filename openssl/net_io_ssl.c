@@ -588,6 +588,12 @@ int ci_port_reconfigure_tls(ci_port_t *port)
 
 int ci_connection_wait_tls(ci_connection_t *conn, int secs, int what_wait)
 {
+    const int ms = secs * 1000;
+    return ci_connection_wait_ms_tls(conn, ms, what_wait);
+}
+
+int ci_connection_wait_ms_tls(ci_connection_t *conn, int msecs, int what_wait)
+{
     BIO *conn_bio = _CI_CONN_BIO(conn);
     if (!ci_socket_valid(conn->fd) || !conn_bio)
         return -1;
@@ -611,7 +617,7 @@ int ci_connection_wait_tls(ci_connection_t *conn, int secs, int what_wait)
                    (BIO_should_write(conn_bio) ? ci_wait_for_write : 0);
     if (bio_wait == 0)
         bio_wait = what_wait;
-    return ci_wait_for_data(conn->fd, secs, bio_wait);
+    return ci_wait_ms_for_data(conn->fd, msecs, bio_wait);
 }
 
 int ci_connection_read_tls(ci_connection_t *conn, void *buf, size_t count, int timeout)
@@ -839,10 +845,6 @@ ci_tls_pcontext_t ci_tls_create_context(ci_tls_client_options_t *opts)
 
 int ci_tls_connect_nonblock(ci_connection_t *connection, const char *servername, int port, int proto, ci_tls_pcontext_t use_ctx)
 {
-    char buf[512];
-    char hostname[CI_MAXHOSTNAMELEN + 1];
-    SSL *ssl = NULL;
-
     struct in_addr ipv4_addr;
     int servername_is_ip_v4 = (ci_inet_aton(AF_INET, servername, &ipv4_addr) != 0);
 #ifdef USE_IPV6
@@ -853,16 +855,28 @@ int ci_tls_connect_nonblock(ci_connection_t *connection, const char *servername,
 #endif
     int servername_is_ip = servername_is_ip_v4 || servername_is_ip_v6;
 
+    ci_sockaddr_t dest;
+    if (!ci_host_to_sockaddr_t(servername, &dest, proto)) {
+        ci_debug_printf(1, "Error getting address info for host '%s'\n",
+                        servername);
+        return -1;
+    }
+
+    return ci_tls_connect_to_address_nonblock(connection, &dest, port, (servername_is_ip ? NULL : servername), use_ctx);
+}
+
+int ci_tls_connect_to_address_nonblock(ci_connection_t *connection, const ci_sockaddr_t *address, int port, const char *sni, ci_tls_pcontext_t use_ctx)
+{
+    char buf[512];
+    char strIP[512];
+    SSL *ssl = NULL;
+
     assert(connection);
     BIO *connection_bio = _CI_CONN_BIO(connection);
     if (!connection_bio) {
-
-        if (!ci_host_to_sockaddr_t(servername, &(connection->srvaddr), proto)) {
-            ci_debug_printf(1, "Error getting address info for host '%s'\n",
-                            servername);
-            return -1;
-        }
+        ci_copy_sockaddr(&(connection->srvaddr), address);
         ci_sockaddr_set_port(&(connection->srvaddr), port);
+        ci_sockaddr_t_to_ip(&(connection->srvaddr), strIP, sizeof(strIP));
 
         SSL_CTX *ctx = NULL;
         if (use_ctx)
@@ -891,11 +905,11 @@ int ci_tls_connect_nonblock(ci_connection_t *connection, const char *servername,
             X509_VERIFY_PARAM *param = SSL_get0_param(ssl);
             /* Enable automatic hostname checks */
             X509_VERIFY_PARAM_set_hostflags(param, X509_CHECK_FLAG_NO_PARTIAL_WILDCARDS);
-            if (servername_is_ip) {
-                X509_VERIFY_PARAM_set1_ip_asc(param, servername);
+            if (!sni) {
+                X509_VERIFY_PARAM_set1_ip_asc(param, strIP);
             }
             else {
-                X509_VERIFY_PARAM_set1_host(param, servername, 0);
+                X509_VERIFY_PARAM_set1_host(param, sni, 0);
             }
         }
 #else
@@ -908,8 +922,8 @@ int ci_tls_connect_nonblock(ci_connection_t *connection, const char *servername,
         BIO_set_ssl(ssl_bio, ssl, BIO_CLOSE);
 
 #if defined(SSL_CTRL_SET_TLSEXT_HOSTNAME)
-        if (!servername_is_ip) {
-            SSL_set_tlsext_host_name(ssl, servername);
+        if (sni) {
+            SSL_set_tlsext_host_name(ssl, sni);
         }
 #endif
 
@@ -917,14 +931,12 @@ int ci_tls_connect_nonblock(ci_connection_t *connection, const char *servername,
 
         connection_bio = BIO_new(BIO_s_connect());
         BIO_set_conn_port(connection_bio, buf);
-        if (servername_is_ip_v6) {
+        if (address->ci_sin_family == AF_INET6) {
             // IPv6 addresses must be written in square brackets
-            char ipv6_servername[64];
-            snprintf(ipv6_servername, sizeof(ipv6_servername), "[%s]", servername);
-            BIO_set_conn_hostname(connection_bio, ipv6_servername);
-        }
-        else {
-            BIO_set_conn_hostname(connection_bio, servername);
+            snprintf(buf, sizeof(buf), "[%s]", strIP);
+            BIO_set_conn_hostname(connection_bio, buf);
+        } else {
+            BIO_set_conn_hostname(connection_bio, strIP);
         }
         BIO_set_nbio(connection_bio, 1);
 
@@ -933,9 +945,10 @@ int ci_tls_connect_nonblock(ci_connection_t *connection, const char *servername,
     } else { /*if (connection_bio != NULL)*/
         BIO_get_ssl(connection_bio, &ssl);
         if (!ssl) {
-            ci_debug_printf(1, "Error connecting to host  '%s': Missing SSL object\n", hostname);
+            ci_debug_printf(1, "Error connecting to host  '%s': Missing SSL object\n", strIP);
             return -1;
         }
+        ci_sockaddr_t_to_host(&(connection->srvaddr), strIP, sizeof(strIP));
     }
 
     int ret = BIO_do_connect(connection_bio);
@@ -945,9 +958,8 @@ int ci_tls_connect_nonblock(ci_connection_t *connection, const char *servername,
     if (ret <= 0) {
         if (BIO_should_retry(connection_bio))
             return 0;
-        ci_sockaddr_t_to_host(&(connection->srvaddr), hostname, CI_MAXHOSTNAMELEN);
         ci_debug_printf(1, "Error connecting to host  '%s': %s \n",
-                        hostname,
+                        strIP,
                         ERR_error_string(ERR_get_error(), buf));
         return -1;
     }
@@ -955,7 +967,8 @@ int ci_tls_connect_nonblock(ci_connection_t *connection, const char *servername,
 #if !defined(OPENSSL_VERSION_NUMBER) || OPENSSL_VERSION_NUMBER <= 0x1000201fL
     if (SSL_get_verify_mode(ssl) & SSL_VERIFY_PEER) {
         X509 *cert = SSL_get_peer_certificate(ssl);
-        if (!match_X509_names(cert, servername)) {
+        const char *usePeerName = sni ? sni : strIP;
+        if (!match_X509_names(cert, usePeerName)) {
             ci_debug_printf(1, "Error: server certificate subject does not match\n");
             return -1;
         }
@@ -972,30 +985,79 @@ int ci_tls_connect_nonblock(ci_connection_t *connection, const char *servername,
     return 1;
 }
 
-ci_connection_t *ci_tls_connect(const char *servername, int port, int proto, ci_tls_pcontext_t use_ctx, int timeout)
+static inline int tls_connect_getio(ci_connection_t *connection)
+{
+    BIO *connection_bio = _CI_CONN_BIO(connection);
+    if (!connection_bio)
+        return -1;
+
+    int io = 0;
+    if (BIO_should_read(connection_bio))
+        io |=  ci_wait_for_read;
+    /* io_special is true when we are going to block on connect system call */
+    if (BIO_should_write(connection_bio) || BIO_should_io_special(connection_bio))
+        io |= ci_wait_for_write;
+    return io;
+}
+
+ci_connection_t * ci_tls_connect_ms_to_address(const ci_sockaddr_t *address, int port, const char *sni, ci_tls_pcontext_t use_ctx, int msecs)
 {
     ci_connection_t *connection = ci_connection_create();
     if (!connection)
         return NULL;
 
-    int ret = ci_tls_connect_nonblock(connection, servername, port, proto, use_ctx);
+    int ret = ci_tls_connect_to_address_nonblock(connection, address, port, sni, use_ctx);
     while (ret == 0) {
-        do {
-            ret = ci_connection_wait_tls(connection, timeout, ci_wait_for_write);
-        } while (ret > 0 && (ret & ci_wait_should_retry)); //while iterrupted by signal
+        const int tryio = tls_connect_getio(connection);
+
+        if (tryio) {
+            do {
+                ret = ci_connection_wait_ms_tls(connection, msecs, tryio);
+            } while (ret > 0 && (ret & ci_wait_should_retry)); //while iterrupted by signal
+        } else
+            ret = -1;
 
         if (ret > 0)
-            ret = ci_tls_connect_nonblock(connection, servername, port, proto, use_ctx);
+            ret = ci_tls_connect_to_address_nonblock(connection, address, port, sni, use_ctx);
     }
 
     if (ret < 0) {
-        ci_debug_printf(1, "Connection to '%s:%d' failed/timedout\n",
-                        servername, port);
+        char server[256];
+        ci_debug_printf(1, "Connection to '%s:%d' with sni: '%s' failed/timedout\n",
+                        ci_sockaddr_t_to_ip(&(connection->srvaddr), server, sizeof(server)), port, (sni ? sni : "-"));
         ci_connection_destroy(connection);
         return NULL;
     }
 
     return connection;
+}
+
+ci_connection_t * ci_tls_connect_to_address(const ci_sockaddr_t *address, int port, const char *sni, ci_tls_pcontext_t use_ctx, int secs)
+{
+    const int msecs = secs * 1000;
+    return ci_tls_connect_ms_to_address(address, port, sni, use_ctx, msecs);
+}
+
+ci_connection_t *ci_tls_connect(const char *servername, int port, int proto, ci_tls_pcontext_t use_ctx, int timeout)
+{
+    struct in_addr ipv4_addr;
+    int servername_is_ip_v4 = (ci_inet_aton(AF_INET, servername, &ipv4_addr) != 0);
+#ifdef USE_IPV6
+    struct in6_addr ipv6_addr;
+    int servername_is_ip_v6 = (ci_inet_aton(AF_INET6, servername, &ipv6_addr) != 0);
+#else
+    int servername_is_ip_v6 = 0;
+#endif
+    int servername_is_ip = servername_is_ip_v4 || servername_is_ip_v6;
+
+    ci_sockaddr_t dest;
+    if (!ci_host_to_sockaddr_t(servername, &dest, proto)) {
+        ci_debug_printf(1, "Error getting address info for host '%s'\n",
+                        servername);
+        return NULL;
+    }
+
+    return ci_tls_connect_to_address(&dest, port, (servername_is_ip ? NULL : servername), use_ctx, timeout);
 }
 
 int ci_connection_should_read_tls(ci_connection_t *connection)
