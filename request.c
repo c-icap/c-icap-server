@@ -46,6 +46,7 @@ extern int FAKE_ALLOW204;
   halt imediatelly:*/
 extern int CHILD_HALT;
 
+#define DOUBLE_CRLF "\r\n\r\n"
 #define FORBITTEN_STR "ICAP/1.0 403 Forbidden\r\n\r\n"
 
 #define ci_method_supported(METHOD, METHOD_DEF) (METHOD & METHOD_DEF)
@@ -112,6 +113,20 @@ ci_request_t *newrequest(ci_connection_t * connection)
     assert(conn);
     ci_copy_connection(conn, connection);
     req = ci_request_alloc(conn);
+
+    const char *sim_response = ci_headers_value(req->request_header, "Symphony-ICAP-Simulator-Response");
+    if (sim_response) {
+        ci_debug_printf(5, "Symphony simulator response: %s\n", sim_response);
+        int sim_len = strlen(sim_response);
+        int crlf_len = strlen(DOUBLE_CRLF);
+        int buf_len = sim_len + crlf_len;
+        char buf[buf_len];
+        memcpy(buf, sim_response, sim_len);
+        memcpy(buf + sim_len, DOUBLE_CRLF, crlf_len);
+        ci_connection_write(connection, buf, buf_len, TIMEOUT);
+        ci_request_destroy(req);
+        return NULL;
+    }
 
     if ((access = access_check_client(req)) == CI_ACCESS_DENY) { /*Check for client access */
         len = strlen(FORBITTEN_STR);
