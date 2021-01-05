@@ -239,6 +239,26 @@ int ci_encoding_method(const char *content_encoding)
     return CI_ENCODE_UNKNOWN;
 }
 
+const char * ci_encoding_method_str(int encoding)
+{
+    switch(encoding) {
+    case CI_ENCODE_UNKNOWN:
+        return "unknown";
+    case CI_ENCODE_GZIP:
+        return "gzip";
+    case CI_ENCODE_DEFLATE:
+        return "deflate";
+    case CI_ENCODE_BROTLI:
+        return "br";
+    case CI_ENCODE_BZIP2:
+        return "bzip2";
+    case CI_ENCODE_NONE:
+    default:
+        return "none";
+    }
+}
+
+
 static int write_membuf_func(void *obj, const char *buf, size_t len)
 {
     return ci_membuf_write((ci_membuf_t *)obj, buf, len, 0);

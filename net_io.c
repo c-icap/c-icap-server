@@ -50,7 +50,7 @@ void ci_fill_sockaddr(ci_sockaddr_t * addr)
     }
 }
 
-void ci_copy_sockaddr(ci_sockaddr_t * dest, ci_sockaddr_t * src)
+void ci_copy_sockaddr(ci_sockaddr_t * dest, const ci_sockaddr_t * src)
 {
     memcpy(dest, src, sizeof(ci_sockaddr_t));
     if (dest->ci_sin_family == AF_INET6)
@@ -70,7 +70,7 @@ void ci_fill_sockaddr(ci_sockaddr_t * addr)
     addr->ci_inaddr_len = sizeof(struct in_addr);
 }
 
-void ci_copy_sockaddr(ci_sockaddr_t * dest, ci_sockaddr_t * src)
+void ci_copy_sockaddr(ci_sockaddr_t * dest, const ci_sockaddr_t * src)
 {
     memcpy(dest, src, sizeof(ci_sockaddr_t));
     dest->ci_sin_addr = &(dest->sockaddr.sin_addr);
@@ -121,6 +121,28 @@ void ci_sockaddr_set_port(ci_sockaddr_t * addr, int port)
 const char *ci_sockaddr_t_to_ip(ci_sockaddr_t * addr, char *ip, int maxlen)
 {
     return ci_inet_ntoa(addr->ci_sin_family, addr->ci_sin_addr, ip, maxlen);
+}
+
+const ci_sockaddr_t *ci_ip_to_ci_sockaddr_t(const char *ip, ci_sockaddr_t *addr)
+{
+    assert(addr);
+#ifdef USE_IPV6
+    int af = strchr(ip, ':') ? AF_INET6 : AF_INET;
+    void *rawaddr = (af == AF_INET6) ? (void *)&(((struct sockaddr_in6 *) &(addr->sockaddr))->sin6_addr) : (void *)&(((struct sockaddr_in *) &(addr->sockaddr))->sin_addr);
+
+    int ret = ci_inet_aton(af, ip, rawaddr);
+#else
+    int af = AF_INET;
+    int ret = ci_inet_aton(af, ip, &(((struct sockaddr_in *) &(addr->sockaddr))->sin_addr));
+#endif
+
+    if (ret) {
+        ci_sockaddr_set_family(*addr, af);
+        ci_fill_sockaddr(addr);
+        return addr;
+    }
+
+    return NULL;
 }
 
 int ci_inet_aton(int af, const char *cp, void *addr)
@@ -239,6 +261,12 @@ int ci_host_to_sockaddr_t(const char *servername, ci_sockaddr_t * addr, int prot
     return 1;
 }
 
+int ci_wait_for_data(int fd, int secs, int what_wait)
+{
+    const int msecs = secs * 1000; // Should be in milliseconds
+    return ci_wait_ms_for_data(fd, msecs, what_wait);
+}
+
 ci_connection_t *ci_connection_create()
 {
     ci_connection_t *connection = malloc(sizeof(ci_connection_t));
@@ -259,25 +287,40 @@ void ci_connection_destroy(ci_connection_t *connection)
     }
 }
 
-int ci_connect_to_nonblock(ci_connection_t *connection, const char *servername, int port, int proto)
+int ci_connect_to_nonblock(ci_connection_t *connection, const char *serverip, int port, int unused)
+{
+    ci_sockaddr_t dest;
+    if (!ci_socket_valid(connection->fd)) {
+        if (!ci_ip_to_ci_sockaddr_t(serverip, &dest)) {
+            ci_debug_printf(1, "Error invalid ip address '%s'\n", serverip);
+            return -1;
+        }
+    } else
+        ci_copy_sockaddr(&dest, &(connection->srvaddr));
+
+    return ci_connect_to_address_nonblock(connection,  &dest, port);
+}
+
+int ci_connect_to_address_nonblock(ci_connection_t *connection, const ci_sockaddr_t *address, int port)
 {
     char errBuf[512];
+    char server[256];
     int errcode;
 
     if (!connection)
         return -1;
 
+    if (!address || port < 0)
+        return -1;
+
     if (!ci_socket_valid(connection->fd)) {
-        if (!ci_host_to_sockaddr_t(servername, &(connection->srvaddr), proto)) {
-            ci_debug_printf(1, "Error getting address info for host '%s'\n", servername);
-            return -1;
-        }
+        ci_copy_sockaddr(&(connection->srvaddr), address);
         ci_sockaddr_set_port(&(connection->srvaddr), port);
 
         connection->fd = ci_socket_connect(&(connection->srvaddr), &errcode);
         if (!ci_socket_valid(connection->fd)) {
-            ci_debug_printf(1, "Error connecting to host  '%s': %s \n",
-                            servername,
+            ci_debug_printf(1, "Error connecting to '%s:%d': %s \n",
+                            ci_sockaddr_t_to_ip(&(connection->srvaddr), server, sizeof(server)), port,
                             ci_strerror(errcode,  errBuf, sizeof(errBuf)));
             return -1;
         }
@@ -287,15 +330,15 @@ int ci_connect_to_nonblock(ci_connection_t *connection, const char *servername, 
 
     if (!(connection->flags & CI_CONNECTION_CONNECTED)) {
         if ((errcode = ci_socket_connected_ok(connection->fd)) != 0) {
-            ci_debug_printf(1, "Error while connecting to host '%s': %s\n",
-                            servername,
+            ci_debug_printf(1, "Error while connecting to '%s:%d': %s\n",
+                            ci_sockaddr_t_to_ip(&(connection->srvaddr), server, sizeof(server)), port,
                             ci_strerror(errcode,  errBuf, sizeof(errBuf)));
             return -1;
         }
 
         if (!ci_connection_init(connection, ci_connection_client_side)) {
-            ci_debug_printf(1, "Error initializing connection to '%s': %s\n",
-                            servername,
+            ci_debug_printf(1, "Error initializing connection to '%s:%d': %s\n",
+                            ci_sockaddr_t_to_ip(&(connection->srvaddr), server, sizeof(server)), port,
                             ci_strerror(errno,  errBuf, sizeof(errBuf)));
             return -1;
         }
@@ -307,14 +350,31 @@ int ci_connect_to_nonblock(ci_connection_t *connection, const char *servername, 
 
 ci_connection_t *ci_connect_to(const char *servername, int port, int proto, int timeout)
 {
+    ci_sockaddr_t dest;
+    if (!ci_host_to_sockaddr_t(servername, &dest, proto)) {
+        ci_debug_printf(1, "Error getting address info for host '%s'\n", servername);
+        return NULL;
+    }
+    return ci_connect_to_address(&dest, port, timeout);
+}
+
+ci_connection_t *ci_connect_to_address(const ci_sockaddr_t *addr, int port, int secs)
+{
+    const int msecs = secs * 1000;
+    return ci_connect_ms_to_address(addr, port, msecs);
+}
+
+ci_connection_t *ci_connect_ms_to_address(const ci_sockaddr_t *addr, int port, int msecs)
+{
     int ret;
+    char server[256];
     ci_connection_t *connection = ci_connection_create();
     if (!connection) {
         ci_debug_printf(1, "Failed to allocate memory for ci_connection_t object\n");
         return NULL;
     }
 
-    ret = ci_connect_to_nonblock(connection, servername, port, proto);
+    ret = ci_connect_to_address_nonblock(connection, addr, port);
     if (ret < 0) {
         ci_debug_printf(1, "Failed to initialize ci_connection_t object\n");
         ci_connection_destroy(connection);
@@ -322,15 +382,18 @@ ci_connection_t *ci_connect_to(const char *servername, int port, int proto, int 
     }
 
     do {
-        ret = ci_wait_for_data(connection->fd, timeout, ci_wait_for_write);
+        ret = ci_wait_ms_for_data(connection->fd, msecs, ci_wait_for_write);
     } while (ret > 0 && (ret & ci_wait_should_retry)); //while iterrupted by signal
-
-    if (ret > 0)
-        ret = ci_connect_to_nonblock(connection, servername, port, proto);
 
     if (ret <= 0) {
         ci_debug_printf(1, "Connection to '%s:%d' failed/timedout\n",
-                        servername, port);
+                        ci_sockaddr_t_to_ip(&(connection->srvaddr), server, sizeof(server)), port);
+    }
+
+    if (ret > 0)
+        ret = ci_connect_to_address_nonblock(connection, addr, port);
+
+    if (ret <= 0) {
         ci_connection_destroy(connection);
         return NULL;
     }

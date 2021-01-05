@@ -295,6 +295,56 @@ int ci_cfg_set_octal(const char *directive, const char **argv, void *setdata)
     return 1;
 }
 
+int ci_cfg_set_float(const char *directive,const char **argv,void *setdata)
+{
+    float val = 0;
+    char *end;
+
+    if (setdata == NULL)
+        return 0;
+
+    if (argv == NULL || argv[0] == NULL) {
+        ci_debug_printf(1, "Missing arguments in directive: %s\n", directive);
+        return 0;
+    }
+
+    errno = 0;
+    val = strtof(argv[0], &end);
+
+    if ((val == 0 && errno != 0) || val < 0)
+        return 0;
+
+    *((float *) setdata) = val;
+    ci_debug_printf(2, "Setting parameter: %s=%f\n", directive, (double)val);
+    return 1;
+
+}
+
+int ci_cfg_set_double(const char *directive,const char **argv,void *setdata)
+{
+    double val = 0;
+    char *end;
+
+    if (setdata == NULL)
+        return 0;
+
+    if (argv == NULL || argv[0] == NULL) {
+        ci_debug_printf(1, "Missing arguments in directive: %s\n", directive);
+        return 0;
+    }
+
+    errno = 0;
+    val = strtod(argv[0], &end);
+
+    if ((val == 0 && errno != 0) || val < 0)
+        return 0;
+
+    *((double *) setdata) = val;
+    ci_debug_printf(2, "Setting parameter: %s=%f\n", directive, val);
+    return 1;
+
+}
+
 int ci_cfg_set_int_range(const char *directive, const char **argv, void *setdata)
 {
     if (!setdata)

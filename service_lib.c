@@ -36,9 +36,7 @@ void ci_service_data_read_unlock(ci_service_xdata_t * srv_xdata)
 void ci_service_set_istag(ci_service_xdata_t * srv_xdata, const char *istag)
 {
     ci_thread_rwlock_wrlock(&srv_xdata->lock);
-    strncpy(srv_xdata->ISTag + SRV_ISTAG_POS, istag,
-            SRV_ISTAG_SIZE - SRV_ISTAG_POS);
-    srv_xdata->ISTag[SRV_ISTAG_SIZE] = '\0';
+    snprintf(srv_xdata->ISTag, sizeof(srv_xdata->ISTag), "ISTag: \"%s%.*s\"", CI_ISTAG, CI_SERVICE_ISTAG_SIZE, istag);
     ci_thread_rwlock_unlock(&srv_xdata->lock);
 }
 

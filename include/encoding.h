@@ -103,6 +103,15 @@ CI_DECLARE_DATA extern int CI_BROTLI_WINDOW;
 CI_DECLARE_FUNC(int) ci_encoding_method(const char *content_encoding);
 
 /**
+ * Return the string representation of an encoding method.
+ \ingroup UTILITY
+ *
+ \param encoding The integer representation of content encoding method
+ \return the string method
+*/
+CI_DECLARE_FUNC(const char *) ci_encoding_method_str(int encoding);
+
+/**
  * Uncompress a zipped string.
  \ingroup UTILITY
  *

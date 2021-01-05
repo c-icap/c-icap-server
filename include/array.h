@@ -727,6 +727,19 @@ CI_DECLARE_FUNC(void *) ci_list_pop_back(ci_list_t *list, void *obj);
 CI_DECLARE_FUNC(int) ci_list_remove(ci_list_t *list, const void *obj);
 
 /**
+ * Remove the first found item equal to the obj using the
+ * cmp_func as comparison function.
+ * The cmp_func should return 0 if the objects are equal, non-zero
+ * otherwise.
+ \ingroup LISTS
+ \param list a pointer to the ci_list_t object
+ \param obj pointer to an object to remove
+ \param cmp_func the comparison function to use.
+ \return not 0 on success, 0 otherwise
+ */
+CI_DECLARE_FUNC(int) ci_list_remove2(ci_list_t *list, const void *obj, int (*cmp_func)(const void *obj, const void *user_data, size_t user_data_size));
+
+/**
  * Return the first found item equal to the obj.
  \ingroup LISTS
  \param list a pointer to the ci_list_t object
@@ -738,6 +751,8 @@ CI_DECLARE_FUNC(const void *) ci_list_search(ci_list_t *list, const void *data);
 /**
  * Return the first found item equal to the obj, using the cmp_func as
  * comparison function.
+ * The cmp_func should return 0 if the objects are equal, non-zero
+ * otherwise.
  \ingroup LISTS
  \param list a pointer to the ci_list_t object
  \param obj pointer to an object to remove

@@ -220,6 +220,18 @@ CI_DECLARE_FUNC(int) ci_cfg_size_long(const char *directive,const char **argv,vo
  */
 CI_DECLARE_FUNC(int) ci_cfg_set_octal(const char *directive, const char **argv, void *setdata);
 
+/**
+ * Sets a configuration parameter of type float.
+ \ingroup CONFIG
+ */
+CI_DECLARE_FUNC(int) ci_cfg_set_float(const char *directive,const char **argv,void *setdata);
+
+/**
+ * Sets a configuration parameter of type double.
+ \ingroup CONFIG
+ */
+CI_DECLARE_FUNC(int) ci_cfg_set_double(const char *directive,const char **argv,void *setdata);
+
 
 struct ci_cfg_int_range {
     int *data;

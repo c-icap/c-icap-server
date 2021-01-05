@@ -214,51 +214,16 @@ int ci_connection_set_nonblock(ci_connection_t *conn)
     return 1;
 }
 
-/*
-int ci_wait_for_data(ci_socket fd,int secs,int what_wait){
-     fd_set fds, *rfds,*wfds;
-     struct timeval tv;
-     int ret;
-
-     if(secs>=0){
-      tv.tv_sec=secs;
-      tv.tv_usec=0;
-     }
-
-     FD_ZERO(&fds);
-     FD_SET(fd,&fds);
-
-     if(what_wait == wait_for_read){
-      rfds=&fds;
-      wfds=NULL;
-     }
-     else{
-      wfds = &fds;
-      rfds = NULL;
-     }
-     if((ret = select(fd+1, rfds, wfds, NULL,(secs >=0 ? &tv:NULL))) > 0)
-      return 1;
-
-     if(ret < 0){
-      ci_debug_printf(1,"Fatal error while waiting for new data....\n");
-     }
-     return 0;
-}
-
-*/
-
 #if defined(USE_POLL)
-int ci_wait_for_data(int fd, int secs, int what_wait)
+int ci_wait_ms_for_data(int fd, int msecs, int what_wait)
 {
     int ret = 0;
     struct pollfd fds[1];
-    secs *= 1000; // Should be in milliseconds
-
     fds[0].fd = fd;
     fds[0].events = (what_wait & ci_wait_for_read ? POLLIN : 0) | (what_wait & ci_wait_for_write ? POLLOUT : 0);
 
     errno = 0;
-    if ((ret = poll(fds, 1, secs)) > 0) {
+    if ((ret = poll(fds, 1, msecs)) > 0) {
         if (fds[0].revents & (POLLERR | POLLHUP)) {
             ci_debug_printf(3, "ci_wait_for_data error: the connection is terminated\n");
             return -1;
@@ -288,15 +253,15 @@ int ci_wait_for_data(int fd, int secs, int what_wait)
 }
 
 #else
-int ci_wait_for_data(int fd, int secs, int what_wait)
+int ci_wait_ms_for_data(int fd, int msecs, int what_wait)
 {
     fd_set rfds, wfds, *preadfds, *pwritefds;
     struct timeval tv;
     int ret = 0;
 
     if (secs >= 0) {
-        tv.tv_sec = secs;
-        tv.tv_usec = 0;
+        tv.tv_sec = msecs / 1000;
+        tv.tv_usec = (msecs % 1000) * 1000;
     }
 
     preadfds = NULL;
