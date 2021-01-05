@@ -22,6 +22,7 @@
 #define __C_ICAP_NET_IO_H
 
 #include "c-icap.h"
+#include "array.h"
 #ifndef _WIN32
 #include <netinet/in.h>
 #include <sys/ioctl.h>
@@ -153,6 +154,7 @@ CI_DECLARE_FUNC(void) ci_sockaddr_set_port(ci_sockaddr_t *addr, int port);
 
 CI_DECLARE_FUNC(const char *) ci_sockaddr_t_to_host(ci_sockaddr_t *addr, char *hname, int maxhostlen);
 CI_DECLARE_FUNC(int) ci_host_to_sockaddr_t(const char *servername, ci_sockaddr_t * addr, int proto);
+CI_DECLARE_FUNC(ci_list_t *) ci_host_get_addresses(const char *servername);
 
 CI_DECLARE_FUNC(void) ci_copy_connection(ci_connection_t *dest, ci_connection_t *src);
 CI_DECLARE_FUNC(void) ci_connection_reset(ci_connection_t *conn);

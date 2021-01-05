@@ -261,6 +261,46 @@ int ci_host_to_sockaddr_t(const char *servername, ci_sockaddr_t * addr, int prot
     return 1;
 }
 
+static int list_copy_sockaddr(void *new, const void *old)
+{
+    ci_copy_sockaddr((ci_sockaddr_t *)new, (const ci_sockaddr_t *)old);
+    return 1;
+}
+
+ci_list_t *ci_host_get_addresses(const char *servername)
+{
+    ci_list_t *addresses = NULL;
+    struct addrinfo hints, *res, *r;
+    ci_sockaddr_t tmpaddr;
+    int ret;
+
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_protocol = 0;
+    hints.ai_flags = 0;
+    if ((ret = getaddrinfo(servername, NULL, &hints, &res)) != 0) {
+        ci_debug_printf(5, "Error getting addrinfo for '%s':%s\n", servername, gai_strerror(ret));
+        return NULL;
+    }
+    addresses = ci_list_create(1024, sizeof(ci_sockaddr_t));
+    ci_list_copy_handler(addresses, list_copy_sockaddr);
+
+    for (r = res; r != NULL; r = r->ai_next) {
+#ifndef USE_IPV6
+        if (res->ai_family != AF_INET) {
+            continue; // ignore
+        }
+#endif
+        memcpy(&(tmpaddr.sockaddr), r->ai_addr, r->ai_addrlen);
+        ci_fill_sockaddr(&tmpaddr);
+        ci_list_push_back(addresses, (const void *)&tmpaddr);
+    }
+
+    freeaddrinfo(res);
+    return addresses;
+}
+
 int ci_wait_for_data(int fd, int secs, int what_wait)
 {
     const int msecs = secs * 1000; // Should be in milliseconds
