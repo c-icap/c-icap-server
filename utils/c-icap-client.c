@@ -39,7 +39,8 @@ ci_str_vector_t *http_no_headers = NULL;
 ci_str_vector_t *http_no_resp_headers = NULL;
 
 /*Must declared ....*/
-int CONN_TIMEOUT = 300;
+int CONN_TIMEOUT = 10;
+int IO_TIMEOUT = 60;
 
 void printhead(void *d, const char *head, const char *value)
 {
@@ -303,7 +304,7 @@ int main(int argc, char **argv)
     int fd_in = 0, fd_out = 0;
     int ret;
     char ip[CI_IPLEN];
-    ci_connection_t *conn;
+    ci_connection_t *conn = NULL;
     ci_request_t *req;
     ci_headers_list_t *req_headers = NULL;
     ci_headers_list_t *resp_headers = NULL;
@@ -328,6 +329,7 @@ int main(int argc, char **argv)
 #endif
 
 #if defined(USE_OPENSSL)
+    ci_tls_pcontext_t ctx = NULL;
     if (use_tls) {
         ci_tls_client_options_t tlsOpts;
         ci_tls_init();
@@ -335,25 +337,42 @@ int main(int argc, char **argv)
         memset((void *)&tlsOpts, 0, sizeof(ci_tls_client_options_t));
         tlsOpts.method = tls_method;
         tlsOpts.verify = tls_verify;
-        ci_tls_pcontext_t ctx = ci_tls_create_context(&tlsOpts);
-
-        if (!(conn = ci_tls_connect(icap_server, port, 0, ctx, CONN_TIMEOUT))) {
-            ci_debug_printf(1, "Failed to establish SSL connection to the icap server.\n");
-            exit(-1);
-        }
-    } else
+        ctx = ci_tls_create_context(&tlsOpts);
+    }
 #endif
-        if (!(conn = ci_connect_to(icap_server, port, 0, CONN_TIMEOUT))) {
-            ci_debug_printf(1, "Failed to connect to icap server.....\n");
-            exit(-1);
-        }
+
+    ci_list_t *addresses = ci_host_get_addresses(icap_server);
+    if (!addresses) {
+        ci_debug_printf(1, "Failed to retrieve addresses for '%s'.\n", icap_server);
+        exit(-1);
+    }
+    ci_sockaddr_t *addr;
+    for (addr = ci_list_first(addresses); conn == NULL && addr != NULL; addr = ci_list_next(addresses)) {
+#if defined(USE_OPENSSL)
+        if (use_tls) {
+            if (!(conn = ci_tls_connect_to_address(addr, port, icap_server, ctx, CONN_TIMEOUT))) {
+                ci_debug_printf(2, "Failed to establish TLS connection to the address: %s:%d\n", ci_sockaddr_t_to_ip(addr, ip, sizeof(ip)), port);
+            }
+        } else
+#endif
+            if (!(conn = ci_connect_to_address(addr, port, CONN_TIMEOUT))) {
+                ci_debug_printf(2, "Failed to connect to address: '%s:%d'\n", ci_sockaddr_t_to_ip(addr, ip, sizeof(ip)), port);
+            }
+    }
+    ci_list_destroy(addresses);
+    addresses = NULL;
+
+    if (!conn) {
+        ci_debug_printf(1, "Failed to connect to icap server '%s:%d'\n", icap_server, port);
+        exit(-1);
+    }
 
     req = ci_client_request(conn, icap_server, service);
 
     if (xheaders)
         ci_icap_append_xheaders(req, xheaders);
 
-    ci_client_get_server_options(req, CONN_TIMEOUT);
+    ci_client_get_server_options(req, IO_TIMEOUT);
     ci_debug_printf(10, "OK done with options!\n");
     ci_conn_remote_ip(conn, ip);
     ci_debug_printf(1, "ICAP server:%s, ip:%s, port:%d\n\n", icap_server, ip,
@@ -431,7 +450,7 @@ int main(int argc, char **argv)
             ci_headers_addheaders(resp_headers, http_resp_xheaders);
 
         ret = ci_client_icapfilter(req,
-                                   CONN_TIMEOUT,
+                                   IO_TIMEOUT,
                                    req_headers,
                                    resp_headers,
                                    (fd_in > 0 ? (&fd_in): NULL),

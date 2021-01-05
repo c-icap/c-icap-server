@@ -37,7 +37,8 @@
 
 
 /*GLOBALS ........*/
-int CONN_TIMEOUT = 30;
+int CONN_TIMEOUT = 10;
+int IO_TIMEOUT = 30;
 char *servername = "localhost";
 int PORT = 1344;
 char *service = "echo";
@@ -76,6 +77,7 @@ ci_headers_list_t *http_resp_xheaders = NULL;
 
 ci_thread_mutex_t statsmtx;
 
+ci_list_t *addresses = NULL;
 
 
 static void print_stats()
@@ -173,6 +175,26 @@ static int load_urls(char *filename)
 
     fclose(f);
     return 1;
+}
+
+static ci_connection_t *connect_to_server()
+{
+    ci_connection_t *conn = NULL;
+    ci_list_item_t *li = NULL;
+    ci_sockaddr_t *addr = NULL;
+
+    /*The ci_list_first/ci_list_next are not thread safe, and "addresses"
+      list is shared among worker threads*/
+    for (li = addresses->items; conn == NULL && li != NULL; li = li->next) {
+        addr = (ci_sockaddr_t *)li->item;
+        if (!(conn = ci_connect_to_address(addr, PORT, CONN_TIMEOUT))) {
+            char ipStr[256];
+            ci_debug_printf(2, "Failed to connect to address: '%s:%d'\n", ci_sockaddr_t_to_ip(addr, ipStr, sizeof(ipStr)), PORT);
+        }
+
+    }
+
+    return conn;
 }
 
 static char *xclient_header()
@@ -301,7 +323,7 @@ static int do_req(ci_request_t *req, char *url, int *keepalive, int transparent)
     req->type = ICAP_REQMOD;
 
     ret = ci_client_icapfilter(req,
-                               CONN_TIMEOUT,
+                               IO_TIMEOUT,
                                headers,
                                NULL,
                                NULL,
@@ -343,7 +365,7 @@ static int threadjobreqmod()
     int arand = 0, p;
     while (!_THE_END) {
 
-        if (!(conn = ci_connect_to(servername, PORT, 0, CONN_TIMEOUT))) {
+        if (!(conn = connect_to_server())) {
             ci_debug_printf(1, "Failed to connect to icap server.....\n");
             exit(-1);
         }
@@ -445,7 +467,7 @@ static int do_file(ci_request_t *req, char *input_file, int *keepalive)
     }
 
     ret = ci_client_icapfilter(req,
-                               CONN_TIMEOUT,
+                               IO_TIMEOUT,
                                request_headers,
                                headers,
                                &fd_in,
@@ -489,7 +511,7 @@ static int threadjobsendfiles()
 
     while (1) {
 
-        if (!(conn = ci_connect_to(servername, PORT, 0, CONN_TIMEOUT))) {
+        if (!(conn = connect_to_server())) {
             ci_debug_printf(1, "Failed to connect to icap server.....\n");
             exit(-1);
         }
@@ -749,6 +771,12 @@ int main(int argc, char **argv)
     if (urls_file && !load_urls(urls_file)) {
         ci_debug_printf(1, "The file contains URL list %s does not exist\n", urls_file);
         exit(1);
+    }
+
+    addresses = ci_host_get_addresses(servername);
+    if (!addresses) {
+        ci_debug_printf(1, "Failed to retrieve ip addresses for '%s'.\n", servername);
+        exit(-1);
     }
 
     threads = malloc(sizeof(ci_thread_t) * threadsnum);
