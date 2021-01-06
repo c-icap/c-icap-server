@@ -626,43 +626,110 @@ typedef struct ci_list {
 CI_DECLARE_FUNC(ci_list_t *) ci_list_create(size_t init_size, size_t obj_size);
 
 /**
- \def ci_list_first(ci_list_t *list)
  * Gets the first item of the list and updates the list cursor to the next item.
- * WARNING: do not mix this macro with ci_list_iterate. Use the ci_list_head
- * and ci_list_tail macros instead
+ * \n WARNING: do not mix this macro with ci_list_iterate. Use the ci_list_head
+ *    and ci_list_tail macros instead
+ * \n WARNING: It is a non-reentrant function.
+ *
  \ingroup LISTS
  \param list  a pointer to the ci_list_t object
  \return The first item if exist, NULL otherwise
  */
-#define ci_list_first(list) (list && (list)->items && (((list)->cursor = (list)->items->next) != NULL || 1) ? (list)->items->item : NULL)
-
+static inline void *ci_list_first(ci_list_t *list) {
+    if (list && list->items) {
+        list->cursor = list->items->next;
+        return list->items->item;
+    }
+    return NULL;
+}
 
 /**
- \def ci_list_next()
  * Return the next item of the list and updates the list cursor to the next
  * item.
- * WARNING: It does not check for valid list object.
- * WARNING: do not mix this macro with ci_list_iterate!
+ * \n WARNING: It does not check for valid list object.
+ * \n WARNING: do not mix this macro with ci_list_iterate!
+ * \n WARNING: It is a non-reentrant function.
  \ingroup LISTS
  \param list  a pointer to the ci_list_t object
  \return The next item if exist, NULL otherwise
 */
-#define ci_list_next(list) (((list)->tmp = (list)->cursor) != NULL && (((list)->cursor = (list)->cursor->next) != NULL || 1) ? (list)->tmp->item : NULL)
+static inline void *ci_list_next(ci_list_t *list) {
+    if ((list->tmp = list->cursor) != NULL) {
+        list->cursor = list->cursor->next;
+        return list->tmp->item;
+    }
+    return NULL;
+}
+
+/**
+ \typedef ci_list_iterator_t
+ \ingroup LISTS
+ * An object which is used to iterate over static ci_list_t objects.
+ */
+typedef ci_list_item_t *  ci_list_iterator_t;
 
 
 /**
- \def ci_list_head(list)
+ * Updates the passed ci_list_iterator_t object to point to the first list item.
+ *
+ * The ci_list_iterator_* family functions can not be used to update
+ * (add/remove) list items, nor in cases where the list is updated while
+ * we are accessing it.
+ \ingroup LISTS
+ \param list  a pointer to the ci_list_t object
+ \param it an iterator object to use to iterate
+ \return The first item if exist, NULL otherwise
+ */
+static inline void *ci_list_iterator_first(const ci_list_t *list, ci_list_iterator_t *it) {
+    assert(list);
+    assert(it);
+    if ((*it = list->items))
+        return (*it)->item;
+    return NULL;
+}
+
+/**
+ * Updates the passed ci_list_iterator_t object to point to the next item.
+ *
+ * The ci_list_iterator_* family functions can not be used to update
+ * (add/remove) list items, nor in cases where the list is updated while
+ * we are accessing it.
+ \ingroup LISTS
+ \param it the iterator object
+ \return the current item if exist, NULL otherwise
+ */
+static inline void *ci_list_iterator_next(ci_list_iterator_t *it) {
+    assert(it);
+    if ((*it) && (*it = ((*it)->next)))
+        return (*it)->item;
+    return NULL;
+}
+
+/**
+ * Retrieves the list item where the given iterator points.
+ *
+ \ingroup LISTS
+ */
+static inline void *ci_list_iterator_value(const ci_list_iterator_t *it) {
+    assert(it);
+    return (*it) ? (*it)->item : NULL;
+}
+
+/**
  \ingroup LISTS
  * Return the head of the list
  */
-#define ci_list_head(list) (list && list->items != NULL ? list->items->item : NULL)
+static inline void *ci_list_head(const ci_list_t *list) {
+    return (list && list->items != NULL ? list->items->item : NULL);
+}
 
 /**
- \def ci_list_tail(list)
  \ingroup LISTS
  * Return last item of the list.
  */
-#define ci_list_tail(list) (list && list->last != NULL ? list->last->item : NULL)
+static inline void *ci_list_tail(const ci_list_t *list) {
+    return (list && list->last != NULL ? list->last->item : NULL);
+}
 
 /**
  * Destroy an ci_list_t object
@@ -673,6 +740,7 @@ CI_DECLARE_FUNC(void) ci_list_destroy(ci_list_t *list);
 
 /**
  * Run the given function for each list item
+ * \n WARNING: It is a non-reentrant function.
  \ingroup LISTS
  \param list a pointer to the ci_list_t object
  \param data a pointer to data which will be passed to the fn function
@@ -746,7 +814,7 @@ CI_DECLARE_FUNC(int) ci_list_remove2(ci_list_t *list, const void *obj, int (*cmp
  \param obj pointer to an object to remove
  \return the found item on success, NULL otherwise
  */
-CI_DECLARE_FUNC(const void *) ci_list_search(ci_list_t *list, const void *data);
+CI_DECLARE_FUNC(const void *) ci_list_search(const ci_list_t *list, const void *data);
 
 /**
  * Return the first found item equal to the obj, using the cmp_func as
@@ -759,7 +827,7 @@ CI_DECLARE_FUNC(const void *) ci_list_search(ci_list_t *list, const void *data);
  \param cmp_func the comparison function to use
  \return the found item on success, NULL otherwise
  */
-CI_DECLARE_FUNC(const void *) ci_list_search2(ci_list_t *list, const void *data, int (*cmp_func)(const void *obj, const void *user_data, size_t user_data_size));
+CI_DECLARE_FUNC(const void *) ci_list_search2(const ci_list_t *list, const void *data, int (*cmp_func)(const void *obj, const void *user_data, size_t user_data_size));
 
 /**
  * Sorts the list using as compare function the default.
