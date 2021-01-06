@@ -956,7 +956,7 @@ static struct ci_options_entry options[] = {
         opt_pre "D", NULL, NULL, cfg_set_debug_stdout,
         "Print debug info to stdout"
     },
-    {opt_pre "h", NULL, &HELP_MODE, ci_cfg_enable, "Do not run as daemon"},
+    {opt_pre "h", NULL, &HELP_MODE, ci_cfg_enable, "Show this help"},
     {NULL, NULL, NULL, NULL}
 };
 
