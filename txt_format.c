@@ -24,6 +24,8 @@
 #include "debug.h"
 #include "txt_format.h"
 
+#include <sys/time.h>
+
 #define MAX_VARIABLE_SIZE 256
 
 int fmt_none(ci_request_t *req_data, char *buf,int len, const char *param);
@@ -416,12 +418,24 @@ int fmt_icapstatus(ci_request_t *req, char *buf,int len, const char *param)
     return snprintf(buf, len, "%d", ci_error_code(req->return_code));
 }
 
-
 int fmt_seconds(ci_request_t *req, char *buf,int len, const char *param)
 {
-    time_t tm;
-    time(&tm);
-    return snprintf(buf, len, "%ld", tm);
+    struct timeval tv;
+    char pr = (param && *param) ? *param : 's';
+    gettimeofday(&tv, NULL);
+    switch(pr) {
+    case 's':
+    case 'S':
+        return  snprintf(buf, len, "%ld", tv.tv_sec);
+    case 'm':
+    case 'M':
+        return  snprintf(buf, len, "%ld.%ld", tv.tv_sec, (tv.tv_usec / 1000));
+    case 'u':
+    case 'U':
+        return  snprintf(buf, len, "%ld.%ld", tv.tv_sec, tv.tv_usec);
+    default:
+        return -1;
+    }
 }
 
 int fmt_httpclientip(ci_request_t *req, char *buf,int len, const char *param)
