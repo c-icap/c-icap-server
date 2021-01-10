@@ -189,13 +189,10 @@ static int load_urls(char *filename)
 static ci_connection_t *connect_to_server()
 {
     ci_connection_t *conn = NULL;
-    ci_list_item_t *li = NULL;
+    ci_list_iterator_t it;
     ci_sockaddr_t *addr = NULL;
 
-    /*The ci_list_first/ci_list_next are not thread safe, and "addresses"
-      list is shared among worker threads*/
-    for (li = addresses->items; conn == NULL && li != NULL; li = li->next) {
-        addr = (ci_sockaddr_t *)li->item;
+    for (addr = (ci_sockaddr_t *)ci_list_iterator_first(addresses, &it); conn == NULL && addr != NULL; addr = (ci_sockaddr_t *)ci_list_iterator_next(&it)) {
 #if defined(USE_OPENSSL)
         if (use_tls) {
             if (!(conn = ci_tls_connect_to_address(addr, PORT, servername, ctx, CONN_TIMEOUT))) {
