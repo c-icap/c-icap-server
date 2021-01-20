@@ -727,18 +727,19 @@ void *ldap_table_search(struct ci_lookup_table *table, void *key, void ***vals)
                     }
 
                     ci_debug_printf(8, "Retrieve attribute:%s. Values: ", attrname);
-                    attrs = ldap_get_values_len(ld, entry, attrname);
-                    for (i = 0; attrs[i] != NULL ; ++i) {
-                        //OpenLdap nowhere documents that the result is NULL terminated.
-                        // copy to an intermediate buffer and terminate it before store to vector
-                        v_size = sizeof(buf) <= attrs[i]->bv_len + 1 ? sizeof(buf) : attrs[i]->bv_len;
-                        memcpy(buf, attrs[i]->bv_val, v_size);
-                        buf[v_size] = '\0';
-                        (void)ci_str_vector_add(vect, buf);
-                        ci_debug_printf(8, "%s,", buf);
+                    if (attrs = ldap_get_values_len(ld, entry, attrname)) {
+                        for (i = 0; attrs[i] != NULL ; ++i) {
+                            //OpenLdap nowhere documents that the result is NULL terminated.
+                            // copy to an intermediate buffer and terminate it before store to vector
+                            v_size = sizeof(buf) <= attrs[i]->bv_len + 1 ? sizeof(buf) : attrs[i]->bv_len;
+                            memcpy(buf, attrs[i]->bv_val, v_size);
+                            buf[v_size] = '\0';
+                            (void)ci_str_vector_add(vect, buf);
+                            ci_debug_printf(8, "%s,", buf);
+                        }
+                        ci_debug_printf(8, "\n");
+                        ldap_value_free_len(attrs);
                     }
-                    ci_debug_printf(8, "\n");
-                    ldap_value_free_len(attrs);
                     attrname = ldap_next_attribute(ld, entry, aber);
                 }
                 if (aber)
