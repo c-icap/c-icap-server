@@ -886,6 +886,10 @@ Service echo srv_echo.so
 #		The cache ttl to use
 #	     cache-item-size=ItemSize[K|M]
 #		The maximum item size
+#	     max-connections=number
+#		The maximum allowed connections to the LDAP server
+#	     idle-ttl=seconds
+#		The TTL to use for idle LDAP connections
 #	
 #	Examples of supported ldap urls:
 #	     ldap://ldap.chtsanti.net?o=chtsanti?cn,uid?uid=%s{cache=memcached}

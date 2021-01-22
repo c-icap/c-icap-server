@@ -87,9 +87,17 @@ void release_ldap_module()
 /***********************************************************/
 /*  ldap_connections_pool inmplementation                  */
 
+typedef enum {
+    LDP_ERR_NONE = 0,
+    LDP_ERR_LOCKING,
+    LDP_ERR_MEM_ALLOC,
+    LDP_ERR_LDAP
+} ldap_connection_pool_error_t;
+
 struct ldap_connection {
     LDAP *ldap;
     int hits;
+    time_t last_use;
     struct ldap_connection *next;
 };
 
@@ -104,14 +112,14 @@ struct ldap_connections_pool {
     char user[LDUSERSZ];
     char password[LDPWDSZ];
     int connections;
-#ifdef LDAP_MAX_CONNECTIONS
+    int connections_ontheway;
+    int connections_used;
+    int64_t connections_opened;
     int max_connections;
-#endif
+    int ttl;
     const char *scheme;
     ci_thread_mutex_t mutex;
-#ifdef LDAP_MAX_CONNECTIONS
     ci_thread_cond_t pool_cond;
-#endif
     struct ldap_connection *inactive;
     struct ldap_connection *used;
 
@@ -174,7 +182,7 @@ static struct ldap_connections_pool * search_ldap_pools(char *server, int port, 
     return NULL;
 }
 
-static struct ldap_connections_pool *ldap_pool_create(char *server, int port, char *user, char *password, const char *scheme)
+static struct ldap_connections_pool *ldap_pool_create(char *server, int port, char *user, char *password, const char *scheme, int max_connections, int ttl)
 {
     struct ldap_connections_pool *pool;
     ci_thread_mutex_lock(&ldap_connections_pool_mtx);
@@ -182,14 +190,12 @@ static struct ldap_connections_pool *ldap_pool_create(char *server, int port, ch
     pool = search_ldap_pools(server, port,
                              (user != NULL? user : ""),
                              (password != NULL? password : ""));
-    if (pool) {
-        ci_thread_mutex_unlock(&ldap_connections_pool_mtx);
+    ci_thread_mutex_unlock(&ldap_connections_pool_mtx);
+    if (pool)
         return pool;
-    }
 
     pool = malloc(sizeof(struct ldap_connections_pool));
     if (!pool) {
-        ci_thread_mutex_unlock(&ldap_connections_pool_mtx);
         return NULL;
     }
     strncpy(pool->server, server, CI_MAXHOSTNAMELEN);
@@ -197,6 +203,7 @@ static struct ldap_connections_pool *ldap_pool_create(char *server, int port, ch
     pool->port = port;
     pool->ldapversion = LDAP_VERSION3;
     pool->scheme = scheme;
+    pool->ttl = ttl;
     pool->next = NULL;
 
     if (user) {
@@ -211,7 +218,11 @@ static struct ldap_connections_pool *ldap_pool_create(char *server, int port, ch
     } else
         pool->password[0] = '\0';
 
+    pool->max_connections = max_connections;
     pool->connections = 0;
+    pool->connections_ontheway = 0;
+    pool->connections_used = 0;
+    pool->connections_opened = 0;
     pool->inactive = NULL;
     pool->used = NULL;
 
@@ -220,95 +231,128 @@ static struct ldap_connections_pool *ldap_pool_create(char *server, int port, ch
     else
         snprintf(pool->ldap_uri, LDURISZ, "%s://%s", pool->scheme, pool->server);
     ci_thread_mutex_init(&pool->mutex);
-#ifdef LDAP_MAX_CONNECTIONS
-    pool->max_connections = 0;
     ci_thread_cond_init(&pool->pool_cond);
-#endif
+
+    ci_thread_mutex_lock(&ldap_connections_pool_mtx);
     add_ldap_pool(pool);
     ci_thread_mutex_unlock(&ldap_connections_pool_mtx);
+
     return pool;
+}
+
+static void free_ldap_connection_list(struct ldap_connection *list)
+{
+    struct ldap_connection *curr;
+    while (list) {
+        ldap_unbind_ext_s(list->ldap, NULL, NULL);
+        curr = list;
+        list = list->next;
+        free(curr);
+    }
 }
 
 /*The following function is not thread safe! Should called only when c-icap shutdown*/
 static void ldap_pool_destroy(struct ldap_connections_pool *pool)
 {
-    struct ldap_connection *conn,*prev;
     if (pool->used) {
-        ci_debug_printf(1,"Not released ldap connections for pool %s.This is BUG!\n",
+        ci_debug_printf(1,"WARNING: Still used ldap connections for pool %s\n",
                         pool->ldap_uri);
     }
-    conn = pool->inactive;
 
-    while (conn) {
-        ldap_unbind_ext_s(conn->ldap, NULL, NULL);
-        prev = conn;
-        conn = conn->next;
-        free(prev);
-    }
+    free_ldap_connection_list(pool->inactive);
     pool->inactive = NULL;
 
     ci_thread_mutex_destroy(&pool->mutex);
-#ifdef LDAP_MAX_CONNECTIONS
     ci_thread_cond_destroy(&pool->pool_cond);
-#endif
     free(pool);
 }
 
-static LDAP *ldap_connection_open(struct ldap_connections_pool *pool)
+static LDAP *ldap_connection_open(struct ldap_connections_pool *pool, int force_new, ldap_connection_pool_error_t *pool_error, int *ld_error)
 {
-    struct ldap_connection *conn;
+    struct ldap_connection *conn = NULL;
+    /*Use this to save expired ldap connection objects and free them just before exist.
+     The reason is that the ldap_unbind_ext_s locks/unlocks mutexs. It is better to
+     avoid nested mutex locks to avoid possible deadlocks. */
+    struct ldap_connection *expired = NULL;;
     struct berval ldap_passwd, *servercred;
     int ret;
     char *ldap_user;
-    if (ci_thread_mutex_lock(&pool->mutex) != 0)
-        return NULL;
-    do {
-        if (pool->inactive) {
-            conn = pool->inactive;
-            pool->inactive = pool->inactive->next;
-
-            conn->next = pool->used;
-            pool->used = conn;
-            conn->hits++;
-            ci_thread_mutex_unlock(&pool->mutex);
-            return conn->ldap;
+    *pool_error = LDP_ERR_NONE;
+    *ld_error = LDAP_SUCCESS;
+    time_t current_time;
+    time(&current_time);
+    if (!force_new) {
+        if (ci_thread_mutex_lock(&pool->mutex) != 0) {
+            *pool_error = LDP_ERR_LOCKING;
+            return NULL;
         }
-#ifdef LDAP_MAX_CONNECTIONS
-        if (pool->connections >= pool->max_connections) {
-            /*wait for an ldap connection to be released. The condwait will unlock
-              pool->mutex */
-            if (ci_thread_cond_wait(&(pool->pool_cond), &(pool->mutex)) != 0) {
-                ci_thread_mutex_unlock(&(pool->mutex));
-                return NULL;
+        do {
+            if (pool->inactive) {
+                conn = pool->inactive;
+                pool->inactive = pool->inactive->next;
+
+                /* TODO: maybe schedule a job (ci_command_schedule)
+                   to remove expired LDAP connections.
+                   However current implementation looks enough for now.
+                 */
+                if ((conn->last_use + pool->ttl) < current_time) {
+                    /*expired delete it*/
+                    conn->next = expired;
+                    expired = conn;
+                    conn = NULL;
+                    pool->connections--;
+                    continue; /* retry */
+                }
+                conn->next = pool->used;
+                pool->used = conn;
+                pool->connections_used++;
+                conn->hits++;
+                ci_thread_mutex_unlock(&pool->mutex);
+                if (expired) {
+                    free_ldap_connection_list(expired);
+                    expired = NULL;
+                }
+                return conn->ldap;
             }
-        }
-    } while (pool->connections >= pool->max_connections);
-#else
-    }
-    while (0);
-    ci_thread_mutex_unlock(&pool->mutex);
-#endif
 
+            if (pool->max_connections > 0 && ((pool->connections + pool->connections_ontheway) >= pool->max_connections)) {
+                /*wait for an ldap connection to be released. The condwait will unlock
+                  pool->mutex */
+                if (ci_thread_cond_wait(&(pool->pool_cond), &(pool->mutex)) != 0) {
+                    ci_thread_mutex_unlock(&(pool->mutex));
+                    *pool_error = LDP_ERR_LOCKING;
+                    return NULL;
+                }
+            }
+        } while (pool->max_connections > 0 && (pool->connections + pool->connections_ontheway) >= pool->max_connections);
 
-    conn = malloc(sizeof(struct ldap_connection));
-    if (!conn)
-    {
-#ifdef LDAP_MAX_CONNECTIONS
+        pool->connections_ontheway++;
         ci_thread_mutex_unlock(&pool->mutex);
-#endif
+        if (expired) {
+            free_ldap_connection_list(expired);
+            expired = NULL;
+        }
+    } else {
+        ci_thread_mutex_lock(&pool->mutex);
+        pool->connections_ontheway++;
+        ci_thread_mutex_unlock(&pool->mutex);
+    }
+
+    if (!(conn = malloc(sizeof(struct ldap_connection)))) {
+        ci_debug_printf(1, "Error allocating ldap_connection structure\n");
+        *pool_error = LDP_ERR_MEM_ALLOC;
         return NULL;
     }
     conn->hits = 1;
+    conn->last_use = 0;
 
     ret = ldap_initialize(&conn->ldap, pool->ldap_uri);
-    if (!conn->ldap)
-    {
-#ifdef LDAP_MAX_CONNECTIONS
-        ci_thread_mutex_unlock(&pool->mutex);
-#endif
+    if (!conn->ldap) {
         ci_debug_printf(1, "Error allocating memory for ldap connection: %s!\n",
                         ldap_err2string(ret));
         free(conn);
+        *pool_error = LDP_ERR_LDAP;
+        *ld_error = ret;
         return NULL;
     }
 
@@ -318,12 +362,10 @@ static LDAP *ldap_connection_open(struct ldap_connections_pool *pool)
     else
         ldap_user = NULL;
 
-    if (pool->password[0] != '\0')
-    {
+    if (pool->password[0] != '\0') {
         ldap_passwd.bv_val = pool->password;
         ldap_passwd.bv_len = strlen(pool->password);
-    } else
-    {
+    } else {
         ldap_passwd.bv_val = NULL;
         ldap_passwd.bv_len = 0;
     }
@@ -336,33 +378,29 @@ static LDAP *ldap_connection_open(struct ldap_connections_pool *pool)
                             NULL,
                             &servercred );
 
-    if (ret != LDAP_SUCCESS)
-    {
+    if (ret != LDAP_SUCCESS) {
         ci_debug_printf(1, "Error bind to ldap server: %s!\n",ldap_err2string(ret));
-#ifdef LDAP_MAX_CONNECTIONS
-        ci_thread_mutex_unlock(&pool->mutex);
-#endif
         ldap_unbind_ext_s(conn->ldap, NULL, NULL);
         free(conn);
+        *pool_error = LDP_ERR_LDAP;
+        *ld_error = ret;
         return NULL;
     }
-    if (servercred)
-    {
+    if (servercred) {
         ber_bvfree(servercred);
     }
 
-#ifdef LDAP_MAX_CONNECTIONS
-    /*we are already locked*/
-#else
-    if (ci_thread_mutex_lock(&pool->mutex)!= 0)
-    {
+    if (ci_thread_mutex_lock(&pool->mutex)!= 0) {
         ci_debug_printf(1, "Error locking mutex while opening ldap connection!\n");
         ldap_unbind_ext_s(conn->ldap, NULL, NULL);
         free(conn);
+        *pool_error = LDP_ERR_LOCKING;
         return NULL;
     }
-#endif
     pool->connections++;
+    pool->connections_used++;
+    pool->connections_ontheway--;
+    pool->connections_opened++;
     conn->next = pool->used;
     pool->used = conn;
     ci_thread_mutex_unlock(&pool->mutex);
@@ -374,6 +412,8 @@ static int ldap_connection_release(struct ldap_connections_pool *pool, LDAP *lda
     struct ldap_connection *cur,*prev;
     if (ci_thread_mutex_lock(&pool->mutex) != 0)
         return 0;
+
+    ci_debug_printf(7, "ldap_connection_release, pool current state: overal connections opened %" PRId64 ", current connections %d, new connections on the way %d, used %d in pool %d\n", pool->connections_opened, pool->connections, pool->connections_ontheway,  pool->connections_used, pool->connections - pool->connections_used);
 
     for (prev = NULL, cur = pool->used; cur != NULL;
             prev = cur, cur = cur->next) {
@@ -388,17 +428,23 @@ static int ldap_connection_release(struct ldap_connections_pool *pool, LDAP *lda
     if (!cur) {
         ci_debug_printf(0, "Not ldap connection in used list! THIS IS  A BUG! please contact authors\n!");
         close_connection = 1;
-    }
+    } else
+        pool->connections_used--;
     if (close_connection) {
         pool->connections--;
         ldap_unbind_ext_s(ldap, NULL, NULL);
         if (cur)
             free(cur);
     } else {
+        time(&(cur->last_use));
         cur->next = pool->inactive;
         pool->inactive = cur;
     }
     ci_thread_mutex_unlock(&pool->mutex);
+
+    if (pool->max_connections > 0)
+        ci_thread_cond_signal(&pool->pool_cond);
+
     return 1;
 }
 
@@ -525,6 +571,8 @@ static void *ldap_open(struct ci_lookup_table *table, const char *scheme)
     int cache_ttl = 60;
     size_t cache_size = 1*1024*1024;
     size_t cache_item_size = 2048;
+    int max_connections = 0;
+    int idle_ttl = 60;
     long int val;
 
     path = strdup(table->path);
@@ -592,13 +640,25 @@ static void *ldap_open(struct ci_lookup_table *table, const char *scheme)
                         cache_item_size = (size_t)val;
                     else
                         ci_debug_printf(1, "WARNING: wrong cache-item-size value: %ld, using default\n", val);
+                } else if (strcasecmp(arg->name, "max-connections") == 0) {
+                    val = strtol((char *)arg->value, NULL, 10);
+                    if (val > 0)
+                        max_connections = val;
+                    else
+                        ci_debug_printf(1, "WARNING: wrong max-connections value: %ld, using default\n", val);
+                } else if (strcasecmp(arg->name, "idle-ttl") == 0) {
+                    val = strtol((char *)arg->value, NULL, 10);
+                    if (val > 0)
+                        idle_ttl = val;
+                    else
+                        ci_debug_printf(1, "WARNING: wrong idle-ttl value: %ld, using default\n", val);
                 }
             }
         }
     }
 
     ldapdata->pool = ldap_pool_create(ldapdata->server, ldapdata->port,
-                                      ldapdata->user, ldapdata->password, ldapdata->scheme);
+                                      ldapdata->user, ldapdata->password, ldapdata->scheme, max_connections, idle_ttl);
     if (use_cache) {
         snprintf(tname, sizeof(tname), "ldap:%s", ldapdata->name ? ldapdata->name : ldapdata->str);
         ldapdata->cache = ci_cache_build(tname, use_cache,
@@ -666,7 +726,7 @@ int create_filter(char *filter,int size, char *frmt,char *key)
         i++;
     }
     filter[i] = '\0';
-    ci_debug_printf(5,"Table ldap search filterar  is \"%s\"\n", filter);
+    ci_debug_printf(5,"Table ldap search filter: \"%s\"\n", filter);
     return 1;
 }
 
@@ -679,7 +739,7 @@ void *ldap_table_search(struct ci_lookup_table *table, void *key, void ***vals)
     struct berval **attrs;
     void *return_value = NULL;
     char *attrname;
-    int ret = 0, failures, i;
+    int failures, i;
     ci_str_vector_t  *vect = NULL;
     size_t v_size;
     char filter[MAX_LDAP_FILTER_SIZE];
@@ -699,87 +759,100 @@ void *ldap_table_search(struct ci_lookup_table *table, void *key, void ***vals)
 
     create_filter(filter, MAX_LDAP_FILTER_SIZE, data->filter,key);
 
-    while ((ld = ldap_connection_open(data->pool)) && failures < 5) {
+    ld = NULL;
+    for (failures = 0; ld == NULL && failures < 5; failures++) {
+        ldap_connection_pool_error_t err = LDP_ERR_NONE;
+        int ld_err = LDAP_SUCCESS;
+        ld = ldap_connection_open(data->pool, failures > 1, &err, &ld_err);
 
-        ret = ldap_search_ext_s(ld,
-                                data->base, /*base*/
-                                LDAP_SCOPE_SUBTREE, /*scope*/
-                                filter, /*filter*/
-                                data->attrs,  /*attrs*/
-                                0,    /*attrsonly*/
-                                NULL, /*serverctrls*/
-                                NULL, /*clientctrls*/
-                                NULL, /*timeout*/
-                                -1,   /*sizelimit*/
-                                &msg /*res*/
-                               );
-
-        ci_debug_printf(4, "Contacting LDAP server: %s\n", ldap_err2string(ret));
-        if (ret == LDAP_SUCCESS) {
-            entry = ldap_first_entry(ld, msg);
-            while (entry != NULL) {
-                aber = NULL;
-                attrname = ldap_first_attribute(ld, entry, &aber);
-                while (attrname != NULL) {
-                    if (vect == NULL) {
-                        vect = ci_str_vector_create(MAX_DATA_SIZE);
-                        if (!vect)
-                            return NULL;
-                    }
-
-                    ci_debug_printf(8, "Retrieve attribute:%s. Values: ", attrname);
-                    if (attrs = ldap_get_values_len(ld, entry, attrname)) {
-                        for (i = 0; attrs[i] != NULL ; ++i) {
-                            //OpenLdap nowhere documents that the result is NULL terminated.
-                            // copy to an intermediate buffer and terminate it before store to vector
-                            v_size = sizeof(buf) <= attrs[i]->bv_len + 1 ? sizeof(buf) : attrs[i]->bv_len;
-                            memcpy(buf, attrs[i]->bv_val, v_size);
-                            buf[v_size] = '\0';
-                            (void)ci_str_vector_add(vect, buf);
-                            ci_debug_printf(8, "%s,", buf);
-                        }
-                        ci_debug_printf(8, "\n");
-                        ldap_value_free_len(attrs);
-                    }
-                    attrname = ldap_next_attribute(ld, entry, aber);
-                }
-                if (aber)
-                    ber_free(aber, 0);
-
-                if (!return_value)
-                    return_value = key;
-
-                entry = ldap_next_entry(ld, entry);
-            }
-            ldap_msgfree(msg);
-            ldap_connection_release(data->pool, ld, 0);
-
-            if (data->cache) {
-                v_size =  vect != NULL ? ci_cache_store_vector_size(vect) : 0;
-                ci_debug_printf(4, "adding to cache\n");
-                if (!ci_cache_update(data->cache, key, vect, v_size, ci_cache_store_vector_val))
-                    ci_debug_printf(4, "adding to cache failed!\n");
-            }
-
-            if (!vect)
-                return NULL;
-
-            *vals = (void **)ci_vector_cast_to_voidvoid(vect);
-            return return_value;
+        if (ld) {
+            ld_err = ldap_search_ext_s(ld,
+                                    data->base, /*base*/
+                                    LDAP_SCOPE_SUBTREE, /*scope*/
+                                    filter, /*filter*/
+                                    data->attrs,  /*attrs*/
+                                    0,    /*attrsonly*/
+                                    NULL, /*serverctrls*/
+                                    NULL, /*clientctrls*/
+                                    NULL, /*timeout*/
+                                    -1,   /*sizelimit*/
+                                    &msg /*res*/
+                );
+            ci_debug_printf(4, "Querying LDAP server result: %d %s\n", err, ldap_err2string(ld_err));
+            err = (ld_err != LDAP_SUCCESS || !msg) ? LDP_ERR_LDAP : LDP_ERR_NONE;
         }
 
-        ldap_connection_release(data->pool, ld, 1);
-
-        if (ret != LDAP_SERVER_DOWN) {
-            ci_debug_printf(1, "Error contacting LDAP server: %s\n", ldap_err2string(ret));
+        if (err) {
+            if (ld)
+                ldap_connection_release(data->pool, ld, 1);
+            switch(ld_err) {
+            case LDAP_SERVER_DOWN:
+            case LDAP_TIMEOUT:
+                usleep(10000 * failures);
+                continue;
+            }
+            ci_debug_printf(1, "Error contacting LDAP server: %s\n", ldap_err2string(ld_err));
             return NULL;
         }
-
-        failures++;
     }
 
-    ci_debug_printf(1, "Error LDAP server is down: %s\n", ldap_err2string(ret));
-    return NULL;
+    if (!ld) {
+        ci_debug_printf(1, "Stop trying to connect to %s:%d after %d tries\n", data->server, data->port, failures);
+        return NULL;
+    }
+
+    assert(msg);
+
+    entry = ldap_first_entry(ld, msg);
+    while (entry != NULL) {
+        aber = NULL;
+        attrname = ldap_first_attribute(ld, entry, &aber);
+        while (attrname != NULL) {
+            if (vect == NULL) {
+                vect = ci_str_vector_create(MAX_DATA_SIZE);
+                if (!vect)
+                    return NULL;
+            }
+
+            ci_debug_printf(8, "Retrieve attribute:%s. Values: ", attrname);
+            if ((attrs = ldap_get_values_len(ld, entry, attrname))) {
+                for (i = 0; attrs[i] != NULL ; ++i) {
+                    //OpenLdap nowhere documents that the result is NULL terminated.
+                    // copy to an intermediate buffer and terminate it before store to vector
+                    v_size = sizeof(buf) <= attrs[i]->bv_len + 1 ? sizeof(buf) : attrs[i]->bv_len;
+                    memcpy(buf, attrs[i]->bv_val, v_size);
+                    buf[v_size] = '\0';
+                    (void)ci_str_vector_add(vect, buf);
+                    ci_debug_printf(8, "%s,", buf);
+                }
+                ci_debug_printf(8, "\n");
+                ldap_value_free_len(attrs);
+            }
+            attrname = ldap_next_attribute(ld, entry, aber);
+        }
+        if (aber)
+            ber_free(aber, 0);
+
+        if (!return_value)
+            return_value = key;
+
+        entry = ldap_next_entry(ld, entry);
+    }
+    ldap_msgfree(msg);
+    ldap_connection_release(data->pool, ld, 0);
+
+    if (data->cache) {
+        v_size =  vect != NULL ? ci_cache_store_vector_size(vect) : 0;
+        ci_debug_printf(4, "adding to cache\n");
+        if (!ci_cache_update(data->cache, key, vect, v_size, ci_cache_store_vector_val))
+            ci_debug_printf(4, "adding to cache failed!\n");
+    }
+
+    if (!vect)
+        return NULL;
+
+    *vals = (void **)ci_vector_cast_to_voidvoid(vect);
+    return return_value;
 }
 
 void  ldap_table_release_result(struct ci_lookup_table *table,void **val)
