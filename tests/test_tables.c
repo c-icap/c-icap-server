@@ -9,13 +9,21 @@
 #include "lookup_table.h"
 #include "cache.h"
 #include "debug.h"
+#include "ci_threads.h"
 
 
 void init_internal_lookup_tables();
 
 char *path;
 char **keys = NULL;
+int threadsnum = 0;
+int queries_max_num = 0;
+char *keysfile;
 int USE_DEBUG_LEVEL = -1;
+struct ci_lookup_table *table = NULL;
+
+int queries_num;
+ci_thread_mutex_t mtx;
 
 void log_errors(void *unused, const char *format, ...)
 {
@@ -91,21 +99,56 @@ static struct ci_options_entry options[] = {
         "The path of the table"
     },
     {
-        "-k", "key", &keys, cfg_set_str_list,
-        "The key to search"
+        "-k", "key     ", &keys, cfg_set_str_list,
+        "The the key to search. It can used multiple times"
     },
+    {
+        "-K", "keys_file", &keysfile, ci_cfg_set_str,
+        "A file to load the keys"
+    },
+    {
+        "-t", "threads_num", &threadsnum, ci_cfg_set_int,
+        "The threads number to start"
+    },
+    {
+        "-n", "queries_num", &queries_max_num, ci_cfg_set_int,
+        "The number of queries to run"
+    },
+
     {NULL,NULL,NULL,NULL,NULL}
 };
 
+void run_test()
+{
+    void *e,*v,**vals;
+    char *key;
+    int i, k;
+    do {
+        for (k = 0; keys[k] != NULL && k < 1024 && queries_num < queries_max_num; ++k) {
+            ci_thread_mutex_lock(&mtx);
+            int reqId = ++queries_num;
+            ci_thread_mutex_unlock(&mtx);
+
+            key = keys[k];
+            e = table->search(table,key,&vals);
+            if (e) {
+                printf("Result %d :\n\t%s:",reqId, key);
+                if (vals) {
+                    for (v = vals[0], i = 0; v != NULL; v = vals[++i]) {
+                        printf("%s ",(char *)v);
+                    }
+                }
+                printf("\n\n");
+            } else {
+                printf("Result %d: Key '%s' not found\n\n", reqId, key);
+            }
+        }
+    } while (queries_num < queries_max_num);
+}
 
 int mem_init();
 int main(int argc,char *argv[])
 {
-    struct ci_lookup_table *table;
-    void *e,*v,**vals;
-    char *key;
-    int i, k;
-
     ci_cfg_lib_init();
     mem_init();
     init_internal_lookup_tables();
@@ -120,6 +163,11 @@ int main(int argc,char *argv[])
     if (USE_DEBUG_LEVEL >= 0)
         CI_DEBUG_LEVEL = USE_DEBUG_LEVEL;
 
+    if (queries_max_num <= 0)
+        while(keys[queries_max_num] !=0) queries_max_num++;
+
+    ci_thread_mutex_init(&mtx);
+
     table = ci_lookup_table_create(path);
     if (!table) {
         printf("Error creating table\n");
@@ -130,23 +178,32 @@ int main(int argc,char *argv[])
         printf("Error opening table\n");
         return -1;
     }
+    if (threadsnum <= 1) {
+        run_test();
+    } else {
+        int i;
+        ci_thread_t *threads;
+        threads = malloc(sizeof(ci_thread_t) * threadsnum);
+        for (i = 0; i < threadsnum; i++)  threads[i] = 0;
+        for(i = 0; i < threadsnum; i++) {
+            ci_debug_printf(8, "Thread %d started\n", i);
+            ci_thread_create(&(threads[i]),
+                             (void *(*)(void *)) run_test,
+                             (void *) NULL /*data*/);
 
-    for (k = 0; keys[k] != NULL && k < 1024; ++k) {
-        key = keys[k];
-        e = table->search(table,key,&vals);
-        if (e) {
-            printf("Result :\n\t%s:",key);
-            if (vals) {
-                for (v = vals[0], i = 0; v != NULL; v = vals[++i]) {
-                    printf("%s ",(char *)v);
-                }
-            }
-            printf("\n");
-        } else {
-            printf("Key '%s' not found\n", key);
         }
-    }
 
+        for (i = 0; i < threadsnum; i++) {
+            ci_thread_join(threads[i]);
+            ci_debug_printf(6, "Thread %d exited\n", i);
+        }
+        free(threads);
+    }
+    int i;
+    for (i = 0; keys[i] != NULL; ++i)
+        free(keys[i]);
+    free(keys);
     ci_lookup_table_destroy(table);
+    ci_thread_mutex_destroy(&mtx);
     return 0;
 }
