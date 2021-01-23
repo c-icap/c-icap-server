@@ -377,6 +377,46 @@ int ci_cfg_build_info(const char *directive, const char **argv, void *setdata)
 {
     if (setdata)
         *((int *) setdata) = 1;
-    printf("c-icap version: %s\nConfigure script options: %s\nConfigured for host: %s\n", VERSION, C_ICAP_CONFIGURE_OPTIONS, C_ICAP_CONFIG_HOST_TYPE);
+    printf("c-icap version: %s\n"
+           "Configure script options: %s\n"
+           "Configured for host: %s\n"
+#if defined(__clang__) /* Clang also reports gcc-4.2.1*/
+           "Compiled with: clang version %s\n"
+#define __SUBGCC
+#endif
+#if defined(__MINGW32__)
+           "Compiled with: mingw-w32-%d.%d\n"
+#define __SUBGCC
+#define
+#endif
+#if defined(__MINGW64__)
+           "Compiled with: mingw-w64-%d.%d\n"
+#define __SUBGCC
+#endif
+#if defined(__GNUC__)
+#if defined(__SUBGCC)
+           "With extensions for: "
+#else
+           "Compiled with: "
+#endif
+           "gcc-%d.%d.%d\n"
+#endif
+            "%s\n",
+            VERSION,
+            C_ICAP_CONFIGURE_OPTIONS,
+            C_ICAP_CONFIG_HOST_TYPE,
+#if defined(__clang__)
+            __clang_version__,
+#endif
+#if defined(__MINGW32__)
+            __MINGW32_MAJOR_VERSION, __MINGW32_VERSION_MINOR,
+#endif
+#if defined(__MINGW64__)
+            __MINGW64_MAJOR_VERSION, __MINGW64_VERSION_MINOR,
+#endif
+#if defined(__GNUC__)
+             __GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__,
+#endif
+            "");
     return 1;
 }
