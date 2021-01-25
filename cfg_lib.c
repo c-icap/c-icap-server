@@ -23,6 +23,9 @@
 #include "cfg_param.h"
 #include "mem.h"
 #include "debug.h"
+#if defined(__GLIBC__)
+#include <gnu/libc-version.h>
+#endif
 
 /*************************************************************************/
 /* Memory managment for config parameters definitions and implementation */
@@ -401,6 +404,11 @@ int ci_cfg_build_info(const char *directive, const char **argv, void *setdata)
 #endif
            "gcc-%d.%d.%d\n"
 #endif
+
+#if defined(__GLIBC__)
+            "Compiled with: glibc-%d.%d\n"
+            "Running with: glibc-%s %s\n"
+#endif
             "%s\n",
             VERSION,
             C_ICAP_CONFIGURE_OPTIONS,
@@ -416,6 +424,11 @@ int ci_cfg_build_info(const char *directive, const char **argv, void *setdata)
 #endif
 #if defined(__GNUC__)
              __GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__,
+#endif
+
+#if defined(__GLIBC__)
+            __GLIBC__, __GLIBC_MINOR__,
+            gnu_get_libc_version(), gnu_get_libc_release(),
 #endif
             "");
     return 1;
