@@ -23,7 +23,7 @@
 #include "cfg_param.h"
 #include "mem.h"
 #include "debug.h"
-#if defined(__GLIBC__)
+#if defined(HAVE_GNU_LIBC_VERSION_H)
 #include <gnu/libc-version.h>
 #endif
 
@@ -407,7 +407,9 @@ int ci_cfg_build_info(const char *directive, const char **argv, void *setdata)
 
 #if defined(__GLIBC__)
             "Compiled with: glibc-%d.%d\n"
+#if defined(HAVE_GNU_LIBC_VERSION_H)
             "Running with: glibc-%s %s\n"
+#endif
 #endif
             "%s\n",
             VERSION,
@@ -428,7 +430,9 @@ int ci_cfg_build_info(const char *directive, const char **argv, void *setdata)
 
 #if defined(__GLIBC__)
             __GLIBC__, __GLIBC_MINOR__,
+#if defined(HAVE_GNU_LIBC_VERSION_H)
             gnu_get_libc_version(), gnu_get_libc_release(),
+#endif
 #endif
             "");
     return 1;
