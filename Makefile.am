@@ -31,6 +31,8 @@ UTIL_LIB_SOURCES += regex.c
 endif
 UTIL_SOURCES=os/unix/proc_utils.c
 
+CICAP_CFG_SOURCES=_autoconf_table.c _c_icap_conf_table.c
+
 RPATH_FLAG=
 if USE_RPATH
 RPATH_FLAG+=-rpath @libdir@
@@ -50,7 +52,7 @@ c_icap_SOURCES = aserver.c request.c cfg_param.c \
                    proc_threads_queues.c http_auth.c \
                    access.c log.c service.c module.c \
 		   commands.c mpmt_server.c dlib.c info.c \
-		   default_acl.c port.c $(UTIL_SOURCES)
+		   default_acl.c port.c $(UTIL_SOURCES) $(CICAP_CFG_SOURCES)
 
 
 # libicapapi ......
@@ -108,6 +110,12 @@ do_subst=sed -e 's%[@]SYSCONFDIR[@]%$(CONFIGDIR)%g' \
              -e 's%[@]SOCKDIR[@]%$(SOCKDIR)%g'
 
 CLEANFILES = c-icap-config c-icap-libicapapi-config
+
+_autoconf_table.c: build/c_icap_autoconf.awk autoconf.h
+	awk -f build/c_icap_autoconf.awk -vinc=autoconf.h -vname=autoconf < autoconf.h > $@
+
+_c_icap_conf_table.c: build/c_icap_autoconf.awk include/c-icap-conf.h
+	awk -f build/c_icap_autoconf.awk -vinc=c-icap-conf.h -vname=c_icap_conf < include/c-icap-conf.h > $@
 
 # The c-icap.conf, c-icap-config, and c-icap-libicapapi-config must rebuild
 # on every new configure run. The include/c-icap-conf.h is rebuild when

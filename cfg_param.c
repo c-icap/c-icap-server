@@ -76,6 +76,7 @@ struct ci_server_conf CI_CONF = {
 
 #ifdef USE_OPENSSL
     ,
+    NULL ,                    /*TLS_PASSPHRASE*/
     0                         /*TLS_ENABLED, set by TLSPort*/
 #endif
 };
@@ -791,6 +792,26 @@ int cfg_set_template_membuf_size(const char *directive, const char **argv, void 
     return intl_cfg_set_int(directive, argv, &TEMPLATE_MEMBUF_SIZE);
 }
 
+struct keyval {const char *n; const char *v;};
+extern struct keyval _CI_CONF_AUTOCONF[];
+extern struct keyval _CI_CONF_C_ICAP_CONF[];
+int cfg_build_configuration(const char *directive, const char **argv, void *setdata)
+{
+    if (setdata)
+        *((int *) setdata) = 1;
+    printf("c-icap version: %s\n\n", VERSION);
+    int i;
+    printf("/*     autoconf.h      */\n");
+    for (i = 0; _CI_CONF_AUTOCONF[i].n != NULL; i++) {
+        printf("#define %s %s\n", _CI_CONF_AUTOCONF[i].n, _CI_CONF_AUTOCONF[i].v);
+    }
+    printf("\n/*     c-icap-conf.h      */\n");
+    for (i = 0; _CI_CONF_C_ICAP_CONF[i].n != NULL; i++) {
+        printf("#define %s %s\n", _CI_CONF_C_ICAP_CONF[i].n, _CI_CONF_C_ICAP_CONF[i].v);
+    }
+    return 1;
+}
+
 /**************************************************************************/
 /* Parse file functions                                                   */
 
@@ -982,6 +1003,7 @@ int parse_file(const char *conf_file)
 static struct ci_options_entry options[] = {
     {opt_pre "V", NULL, &VERSION_MODE, ci_cfg_version, "Print c-icap version and exits"},
     {opt_pre "VV", NULL, &VERSION_MODE, ci_cfg_build_info, "Print c-icap version and build informations and exits"},
+    {opt_pre "VA", NULL, &VERSION_MODE, cfg_build_configuration, "Print c-icap build configuration and exits"},
     {
         opt_pre "f", "filename", &CI_CONF.cfg_file, ci_cfg_set_str,
         "Specify the configuration file"
