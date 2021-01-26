@@ -25,10 +25,9 @@ static struct ci_options_entry options[] = {
     {NULL,NULL,NULL,NULL,NULL}
 };
 
-int print_str(void *data, const char *name, const void *value)
+int print_str(void *data, const char *name, const char *value)
 {
-    const char *v = (const char *)value;
-    ci_debug_printf(2, "\t%s: %s\n", name, v);
+    ci_debug_printf(2, "\t%s: %s\n", name, value);
     return 0;
 }
 
@@ -107,7 +106,7 @@ int main(int argc,char *argv[])
     }
     ci_debug_printf(1, "done  ...  test it ... ");
     ci_debug_printf(2, "Array of pointers:\n");
-    ci_ptr_array_iterate(arr_ptr, NULL, print_str);
+    ci_ptr_array_iterate(arr_ptr, NULL, (int (*)(void *, const char *, const void *))print_str);
     ci_debug_printf(1, "done\n");
     char buf[1024];
     ci_debug_printf(1, "Test pop on array of pointers...");
@@ -159,7 +158,7 @@ int main(int argc,char *argv[])
     ci_debug_printf(1, "Size of dynamic array: %d, of key/value pairs size: %d\n", ci_dyn_array_size(dyn_arr), j);
     for (i = 0, j = 0; i < ci_dyn_array_size(dyn_arr); ++i) {
         char *v = ci_dyn_array_value(dyn_arr, i);
-        char *n = ci_dyn_array_name(dyn_arr, i);
+        const char *n = ci_dyn_array_name(dyn_arr, i);
         j += strlen(n) + strlen(v) + 2;
         ci_debug_printf(5, "%i = %p:%s/%s\n", i, ci_dyn_array_get_item(dyn_arr, i), ci_dyn_array_name(dyn_arr, i), (char *)ci_dyn_array_value(dyn_arr, i));
     }
@@ -173,6 +172,8 @@ int main(int argc,char *argv[])
 
     ci_dyn_array_destroy(dyn_arr);
     ci_debug_printf(1, "\nEnd of dynamic arrays test\n");
+    dyn_arr = NULL;
+    ci_dyn_array_destroy(dyn_arr);
 
     return 0;
 }

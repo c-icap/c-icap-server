@@ -60,7 +60,7 @@ int bdb_table_do_real_open(struct ci_lookup_table *table)
     int ret, i;
     char *s,home[CI_MAX_PATH];
     ci_dyn_array_t *args = NULL;
-    ci_array_item_t *arg = NULL;
+    const ci_array_item_t *arg = NULL;
     uint32_t cache_size = 0;
     int caches_num = 0;
     long int val;

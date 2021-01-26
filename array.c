@@ -22,7 +22,6 @@
 #include "debug.h"
 #include "mem.h"
 #include "array.h"
-#include <assert.h>
 
 #define array_item_size(type) ( (size_t)&((type *)0)[1])
 
@@ -69,7 +68,7 @@ ci_array_t * ci_array_new2(size_t items, size_t item_size)
 void ci_array_destroy(ci_array_t *array)
 {
     void *buffer = array->mem;
-    assert(buffer);
+    _CI_ASSERT(buffer);
     if (array->alloc)
         ci_mem_allocator_destroy(array->alloc);
     ci_buffer_free(buffer);
@@ -79,7 +78,9 @@ const ci_array_item_t * ci_array_add(ci_array_t *array, const char *name, const 
 {
     ci_array_item_t *item;
     ci_mem_allocator_t *packer = array->alloc;
-    assert(packer);
+    _CI_ASSERT(array);
+    _CI_ASSERT(array->alloc);
+    packer = array->alloc;
     item = ci_pack_allocator_alloc_unaligned(packer, array_item_size(ci_array_item_t));
     size_t name_size = strlen(name) + 1;
     if (item) {
@@ -104,9 +105,10 @@ const ci_array_item_t * ci_array_add(ci_array_t *array, const char *name, const 
     return item;
 }
 
-const void * ci_array_search(ci_array_t *array, const char *name)
+const void * ci_array_search(const ci_array_t *array, const char *name)
 {
     int i;
+    _CI_ASSERT(array);
     for (i = 0; i < array->count; i++) {
         if (strcmp(array->items[i].name, name) == 0) {
             return array->items[i].value;
@@ -118,6 +120,7 @@ const void * ci_array_search(ci_array_t *array, const char *name)
 void ci_array_iterate(const ci_array_t *array, void *data, int (*fn)(void *data, const char *name, const void *))
 {
     int i, ret = 0;
+    _CI_ASSERT(array);
     for (i = 0; i < array->count && ret == 0; i++) {
         ret = (*fn)(data, array->items[i].name, array->items[i].value);
     }
@@ -127,6 +130,7 @@ void ci_array_iterate(const ci_array_t *array, void *data, int (*fn)(void *data,
 const ci_array_item_t *ci_array_pop(ci_array_t *array)
 {
     ci_array_item_t *item;
+    _CI_ASSERT(array);
     if (array->count == 0)
         return NULL;
     /*Delete the last element*/
@@ -143,11 +147,8 @@ const ci_array_item_t *ci_array_pop(ci_array_t *array)
     return item;
 }
 
-const ci_array_item_t *ci_array_get_item(ci_array_t *array, int pos)
-{
-    if (pos >= array->count)
-        return NULL;
-    return &(array->items[pos]);
+const ci_array_item_t *ci_str_array_add(ci_str_array_t *array, const char *name, const char *value) {
+    return ci_array_add((ci_array_t *)array, name, value, (strlen(value)+1));
 }
 
 ci_ptr_array_t * ci_ptr_array_new2(size_t items)
@@ -159,16 +160,19 @@ ci_ptr_array_t * ci_ptr_array_new2(size_t items)
     return ci_ptr_array_new(array_size);
 }
 
-void * ci_ptr_array_search(ci_ptr_array_t *array, const char *name)
+void * ci_ptr_array_search(const ci_ptr_array_t *array, const char *name)
 {
+    /*return a writable object*/
     return (void *)ci_array_search(array, name);
 }
 
 const ci_array_item_t * ci_ptr_array_add(ci_ptr_array_t *ptr_array, const char *name, void *value)
 {
     ci_array_item_t *item;
-    ci_mem_allocator_t *packer = ptr_array->alloc;
-    assert(packer);
+    ci_mem_allocator_t *packer;
+    _CI_ASSERT(ptr_array);
+    _CI_ASSERT(ptr_array->alloc);
+    packer = ptr_array->alloc;
     item = ci_pack_allocator_alloc_unaligned(packer, array_item_size(ci_array_item_t));
     size_t name_size = strlen(name) + 1;
     if (item)
@@ -193,6 +197,7 @@ const ci_array_item_t * ci_ptr_array_add(ci_ptr_array_t *ptr_array, const char *
 const ci_array_item_t *ci_ptr_array_pop(ci_ptr_array_t *ptr_array)
 {
     ci_array_item_t *item;
+    _CI_ASSERT(ptr_array);
     if (ptr_array->count == 0)
         return NULL;
     item = &ptr_array->items[ptr_array->count-1];
@@ -263,6 +268,7 @@ ci_dyn_array_t * ci_dyn_array_new2(size_t items, size_t item_size)
 
 void ci_dyn_array_destroy(ci_dyn_array_t *array)
 {
+    _CI_ASSERT(array);
     if (array->items)
         ci_buffer_free(array->items);
 
@@ -274,8 +280,9 @@ const ci_array_item_t * ci_dyn_array_add(ci_dyn_array_t *array, const char *name
 {
     ci_array_item_t *item;
     ci_array_item_t **items_space;
-    ci_mem_allocator_t *packer = array->alloc;
+    ci_mem_allocator_t *packer;
     int name_size;
+    _CI_ASSERT(array);
 
     if (array->count == array->max_items) {
         items_space = ci_buffer_realloc(array->items, (array->max_items + 32)*sizeof(ci_array_item_t *));
@@ -285,7 +292,8 @@ const ci_array_item_t * ci_dyn_array_add(ci_dyn_array_t *array, const char *name
         array->max_items += 32;
     }
 
-    assert(packer);
+    _CI_ASSERT(array->alloc);
+    packer = array->alloc;
     item = packer->alloc(packer, sizeof(ci_array_item_t));
     if (!item) {
         ci_debug_printf(2, "Not enough space to add the new item %s to array!\n", name);
@@ -318,9 +326,10 @@ const ci_array_item_t * ci_dyn_array_add(ci_dyn_array_t *array, const char *name
     return item;
 }
 
-const void * ci_dyn_array_search(ci_dyn_array_t *array, const char *name)
+const void * ci_dyn_array_search(const ci_dyn_array_t *array, const char *name)
 {
     int i;
+    _CI_ASSERT(array);
     for (i = 0; i < array->count; ++i)
         if (strcmp(array->items[i]->name, name) == 0)
             return array->items[i]->value;
@@ -332,6 +341,7 @@ const void * ci_dyn_array_search(ci_dyn_array_t *array, const char *name)
 void ci_dyn_array_iterate(const ci_dyn_array_t *array, void *data, int (*fn)(void *data, const char *name, const void *value))
 {
     int i, ret = 0;
+    _CI_ASSERT(array);
     for (i = 0; i < array->count && ret == 0; i++)
         ret = (*fn)(data, array->items[i]->name, array->items[i]->value);
 }
@@ -383,6 +393,7 @@ ci_vector_t * ci_vector_create(size_t max_size)
 
 const void **ci_vector_cast_to_voidvoid(ci_vector_t *vector)
 {
+    _CI_ASSERT(vector);
     return (const void **)vector->items;
 }
 
@@ -390,27 +401,32 @@ ci_vector_t *ci_vector_cast_from_voidvoid(const void **p)
 {
     const void *buf;
     ci_vector_t *v;
+    _CI_ASSERT(p);
     v = (ci_vector_t *)((void *)p - _CI_ALIGN(sizeof(ci_vector_t)));
     buf = (void *)v - ci_pack_allocator_required_size();
-    assert(v->mem == buf);
-    assert(ci_buffer_check(buf));
+    _CI_ASSERT(v->mem == buf);
+    _CI_ASSERT(ci_buffer_check(buf));
     return v;
 }
 
 void ci_vector_destroy(ci_vector_t *vector)
 {
-    void *buffer = vector->mem;
-    assert(buffer);
+    void *buffer;
+    _CI_ASSERT(vector);
+    _CI_ASSERT(vector->mem);
+    buffer = vector->mem;
     if (vector->alloc)
         ci_mem_allocator_destroy(vector->alloc);
     ci_buffer_free(buffer);
 }
 
-void * ci_vector_add(ci_vector_t *vector, const void *value, size_t size)
+const void * ci_vector_add(ci_vector_t *vector, const void *value, size_t size)
 {
     void *item, **indx;
     ci_mem_allocator_t *packer = vector->alloc;
-    assert(packer);
+    _CI_ASSERT(vector);
+    _CI_ASSERT(vector->alloc);
+    packer = vector->alloc;
     indx = ci_pack_allocator_alloc_unaligned(packer, array_item_size(void *));
     item = ci_pack_allocator_alloc_from_rear(packer, size);
     if (!item || !indx) {
@@ -429,6 +445,7 @@ void * ci_vector_add(ci_vector_t *vector, const void *value, size_t size)
 void * ci_vector_pop(ci_vector_t *vector)
 {
     void *p;
+    _CI_ASSERT(vector);
     if (vector->count == 0)
         return NULL;
 
@@ -454,12 +471,18 @@ void * ci_vector_pop(ci_vector_t *vector)
 void ci_vector_iterate(const ci_vector_t *vector, void *data, int (*fn)(void *data, const void *))
 {
     int i, ret = 0;
+    _CI_ASSERT(vector);
     for (i = 0; vector->items[i] != NULL && ret == 0; i++)
         ret = (*fn)(data, vector->items[i]);
 }
 
 
 /*ci_str_vector functions */
+const char *ci_str_vector_add(ci_str_vector_t *vect, const char *string)
+{
+    return (const char *)ci_vector_add((ci_vector_t *)vect, string, strlen(string) + 1);
+}
+
 void ci_str_vector_iterate(const ci_str_vector_t *vector, void *data, int (*fn)(void *data, const char *))
 {
     ci_vector_iterate(vector, data, (int(*)(void *, const void *))fn);
@@ -468,6 +491,7 @@ void ci_str_vector_iterate(const ci_str_vector_t *vector, void *data, int (*fn)(
 const char * ci_str_vector_search(ci_str_vector_t *vector, const char *item)
 {
     int i;
+    _CI_ASSERT(vector);
     for (i = 0; vector->items[i] != NULL; i++) {
         if (strcmp(vector->items[i], item) == 0)
             return vector->items[i];
@@ -481,8 +505,10 @@ const char * ci_str_vector_search(ci_str_vector_t *vector, const char *item)
 void * ci_ptr_vector_add(ci_vector_t *vector, void *value)
 {
     void **indx;
-    ci_mem_allocator_t *packer = vector->alloc;
-    assert(packer);
+    ci_mem_allocator_t *packer;
+    _CI_ASSERT(vector);
+    _CI_ASSERT(vector->alloc);
+    packer = vector->alloc;
 
     if (!value)
         return NULL;
@@ -531,28 +557,33 @@ ci_list_t * ci_list_create(size_t init_size, size_t obj_size)
 
 void ci_list_destroy(ci_list_t *list)
 {
+    _CI_ASSERT(list);
     ci_mem_allocator_t *alloc = list->alloc;
     ci_mem_allocator_destroy(alloc);
 }
 
 void ci_list_cmp_handler(ci_list_t *list, int (*cmp_func)(const void *obj, const void *user_data, size_t user_data_size))
 {
+    _CI_ASSERT(list);
     list->cmp_func = cmp_func;
 }
 
 void ci_list_free_handler(ci_list_t *list, void (*free_func)(void *obj))
 {
+    _CI_ASSERT(list);
     list->free_func = free_func;
 }
 
 void ci_list_copy_handler(ci_list_t *list, int (*copy_func)(void *newObj, const void *oldObj))
 {
+    _CI_ASSERT(list);
     list->copy_func = copy_func;
 }
 
 void ci_list_iterate(ci_list_t *list, void *data, int (*fn)(void *data, const void *obj))
 {
     ci_list_item_t *it;
+    _CI_ASSERT(list);
     for (list->cursor = list->items; list->cursor != NULL; ) {
         it = list->cursor;
         list->cursor = list->cursor->next;
@@ -564,6 +595,7 @@ void ci_list_iterate(ci_list_t *list, void *data, int (*fn)(void *data, const vo
 static ci_list_item_t *list_alloc_item(ci_list_t *list, const void *data)
 {
     ci_list_item_t *it;
+    _CI_ASSERT(list);
     if (list->trash) {
         it = list->trash;
         list->trash = list->trash->next;
@@ -590,6 +622,7 @@ static ci_list_item_t *list_alloc_item(ci_list_t *list, const void *data)
 
 const void * ci_list_push(ci_list_t *list, const void *data)
 {
+    _CI_ASSERT(list);
     ci_list_item_t *it = list_alloc_item(list, data);
     if (!it)
         return NULL;
@@ -604,6 +637,7 @@ const void * ci_list_push(ci_list_t *list, const void *data)
 
 const void * ci_list_push_back(ci_list_t *list, const void *data)
 {
+    _CI_ASSERT(list);
     ci_list_item_t *it = list_alloc_item(list, data);
     if (!it)
         return NULL;
@@ -618,6 +652,7 @@ const void * ci_list_push_back(ci_list_t *list, const void *data)
 
 void *ci_list_pop(ci_list_t *list, void *data)
 {
+    _CI_ASSERT(list);
     ci_list_item_t *it = list->items;
     if (list->items == NULL)
         return NULL;
@@ -648,6 +683,7 @@ void *ci_list_pop(ci_list_t *list, void *data)
 
 void *ci_list_pop_back(ci_list_t *list, void *data)
 {
+    _CI_ASSERT(list);
     ci_list_item_t *tmp, *it = list->last;
     if (list->items == NULL)
         return NULL;
@@ -660,7 +696,7 @@ void *ci_list_pop_back(ci_list_t *list, void *data)
         if (list->cursor == list->last)
             list->cursor = NULL;
         for (tmp = list->items; tmp != NULL && tmp->next != list->last; tmp = tmp->next);
-        assert(tmp != NULL);
+        _CI_ASSERT(tmp != NULL);
         list->last = tmp;
         list->last->next = NULL;
     }
@@ -692,6 +728,7 @@ static int pointers_cmp(const void *obj1, const void *obj2, size_t size)
 int ci_list_remove2(ci_list_t *list, const void *obj, int (*cmp_func)(const void *obj, const void *user_data, size_t user_data_size))
 {
     ci_list_item_t *it, *prev;
+    _CI_ASSERT(list);
     prev = NULL;
     for (it = list->items; it != NULL; prev = it,it = it->next) {
         if (cmp_func(it->item, obj, list->obj_size) == 0) {
@@ -716,7 +753,7 @@ int ci_list_remove2(ci_list_t *list, const void *obj, int (*cmp_func)(const void
 int ci_list_remove(ci_list_t *list, const void *obj)
 {
     int (*cmp_func)(const void *, const void *, size_t);
-
+    _CI_ASSERT(list);
     if (list->cmp_func)
         cmp_func = list->cmp_func;
     else if (list->obj_size)
@@ -730,7 +767,7 @@ int ci_list_remove(ci_list_t *list, const void *obj)
 const void * ci_list_search(const ci_list_t *list, const void *data)
 {
     int (*cmp_func)(const void *, const void *, size_t);
-
+    _CI_ASSERT(list);
     if (list->cmp_func)
         cmp_func = list->cmp_func;
     else if (list->obj_size)
@@ -744,6 +781,7 @@ const void * ci_list_search(const ci_list_t *list, const void *data)
 const void * ci_list_search2(const ci_list_t *list, const void *data, int (*cmp_func)(const void *obj, const void *user_data, size_t user_data_size))
 {
     ci_list_item_t *it;
+    _CI_ASSERT(list);
     for (it = list->items; it != NULL; it = it->next) {
         if (cmp_func(it->item, data, list->obj_size) == 0)
             return it->item;
@@ -754,7 +792,7 @@ const void * ci_list_search2(const ci_list_t *list, const void *data, int (*cmp_
 void ci_list_sort(ci_list_t *list)
 {
     int (*cmp_func)(const void *, const void *, size_t);
-
+    _CI_ASSERT(list);
     if (list->cmp_func)
         cmp_func = list->cmp_func;
     else if (list->obj_size)
@@ -770,6 +808,7 @@ void ci_list_sort2(ci_list_t *list, int (*cmp_func)(const void *obj1, const void
     ci_list_item_t *it;
     ci_list_item_t *sortedHead = NULL, *sortedTail = NULL;
     ci_list_item_t **currentSorted, *currentHead;
+    _CI_ASSERT(list);
     if (!list->items || ! list->items->next)
         return;
 

@@ -566,7 +566,7 @@ static void *ldap_open(struct ci_lookup_table *table, const char *scheme)
     char tname[1024];
     struct ldap_table_data *ldapdata;
     ci_dyn_array_t *args = NULL;
-    ci_array_item_t *arg = NULL;
+    const ci_array_item_t *arg = NULL;
     char *use_cache = "local";
     int cache_ttl = 60;
     size_t cache_size = 1*1024*1024;

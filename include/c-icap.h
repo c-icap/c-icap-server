@@ -36,6 +36,9 @@
 #include <inttypes.h>
 #endif
 
+/* Required for NULL declaration, used by inlined functions. */
+#include <stdlib.h>
+
 /*some defines */
 #ifdef _WIN32
 # define CI_FILENAME_LEN _MAX_PATH

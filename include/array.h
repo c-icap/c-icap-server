@@ -21,6 +21,7 @@
 #define __C_ICAP_ARRAY_H
 
 #include "c-icap.h"
+#include "debug.h"
 #include "mem.h"
 
 #ifdef __cplusplus
@@ -60,25 +61,34 @@ typedef struct ci_array {
 } ci_array_t;
 
 /**
- \def ci_array_value(array, pos)
+ *
  \ingroup SIMPLE_ARRAYS
- * Return the value of item on position 'pos'
+ \return the value of item on position 'pos'
  */
-#define ci_array_value(array, pos) (pos < (array)->count ?  (array)->items[pos].value : NULL)
+static inline void *ci_array_value(const ci_array_t *array, unsigned int pos)  {
+    _CI_ASSERT(array);
+    return (pos < array->count ?  array->items[pos].value : NULL);
+}
 
 /**
- \def ci_array_name(array, pos)
+ *
  \ingroup SIMPLE_ARRAYS
- * Return the name of item on position 'pos'
+ \return the name of item on position 'pos'
  */
-#define ci_array_name(array, pos) (pos < (array)->count ?  (array)->items[pos].name : NULL)
+static inline const char *ci_array_name(const ci_array_t *array, unsigned int pos) {
+    _CI_ASSERT(array);
+    return (pos < array->count ?  array->items[pos].name : NULL);
+}
 
 /**
- \def ci_array_size(array)
+ *
  \ingroup SIMPLE_ARRAYS
- * Return the size of array 'array'
+ \return the size of array 'array'
  */
-#define ci_array_size(array) ((array)->count)
+static inline unsigned int ci_array_size(const ci_array_t *array) {
+    _CI_ASSERT(array);
+    return array->count;
+}
 
 /**
  * Allocate the required memory and initialize an ci_array_t object
@@ -132,7 +142,7 @@ CI_DECLARE_FUNC(const ci_array_item_t *)ci_array_pop(ci_array_t *array);
  \param name the item to be search for.
  \return pointer to the value pair of the array item if found, NULL otherwise
  */
-CI_DECLARE_FUNC(const void *) ci_array_search(ci_array_t *array, const char *name);
+CI_DECLARE_FUNC(const void *) ci_array_search(const ci_array_t *array, const char *name);
 
 /**
  * Run the given function for each array item
@@ -141,7 +151,7 @@ CI_DECLARE_FUNC(const void *) ci_array_search(ci_array_t *array, const char *nam
  \param data a pointer to data which will be passed on fn function
  \param fn a pointer to the function which will be run for each array item. The iteration will stop if the fn function return non zero value
  */
-CI_DECLARE_FUNC(void) ci_array_iterate(const ci_array_t *array, void *data, int (*fn)(void *data, const char *name, const void *));
+CI_DECLARE_FUNC(void) ci_array_iterate(const ci_array_t *array, void *data, int (*fn)(void *data, const char *name, const void *value));
 
 /**
  * Get an item of the array.
@@ -150,7 +160,10 @@ CI_DECLARE_FUNC(void) ci_array_iterate(const ci_array_t *array, void *data, int 
  \param pos The position of the item in array
  \return a pointer to the array item on success, NULL otherwise
  */
-CI_DECLARE_FUNC(const ci_array_item_t *) ci_array_get_item(ci_array_t *array, int pos);
+static inline const ci_array_item_t *ci_array_get_item(const ci_array_t *array, unsigned int pos) {
+    _CI_ASSERT(array);
+    return (pos >= array->count) ? NULL : &(array->items[pos]);
+}
 
 /**
  \defgroup STR_ARRAYS   Arrays of strings related API
@@ -164,22 +177,48 @@ CI_DECLARE_FUNC(const ci_array_item_t *) ci_array_get_item(ci_array_t *array, in
  * An alias to the ci_array_t object. It is used to store items with string
  * values to an array.
  * The ci_str_array_new, ci_str_array_destroy, ci_str_array_add,
- * ci_str_array_search and ci_str_array_iterate defines are similar to
+ * ci_str_array_search and ci_str_array_iterate functions are similar to
  * the equivalent ci_array_* functions with the required typecasting to
  * work with strings.
  */
 typedef ci_array_t ci_str_array_t;
-#define ci_str_array_new ci_array_new
-#define ci_str_array_destroy ci_array_destroy
-#define ci_str_array_add(array, name, value) ci_array_add((ci_array_t *)(array), name, value, (strlen(value)+1))
-#define ci_str_array_pop(array) ci_array_pop((ci_array_t *)(array))
-#define ci_str_array_get_item(array, pos) ci_array_get_item((ci_array_t *)(array), pos)
-#define ci_str_array_search(array, name) (const char *)ci_array_search((ci_array_t *)(array), name)
-#define ci_str_array_iterate ci_array_iterate
-#define ci_str_array_value(array, pos) ci_array_value((ci_array_t *)(array), pos)
-#define ci_str_array_name(array, pos) ci_array_name((ci_array_t *)(array), pos)
-#define ci_str_array_size(array) ci_array_size((ci_array_t *)(array))
+static inline ci_str_array_t * ci_str_array_new(size_t max_mem_size) {
+    return (ci_str_array_t *)ci_array_new(max_mem_size);
+}
 
+static inline void ci_str_array_destroy(ci_str_array_t *array) {
+    ci_array_destroy(array);
+}
+
+CI_DECLARE_FUNC(const ci_array_item_t *)ci_str_array_add(ci_str_array_t *array, const char *name, const char *value);
+
+static inline const ci_array_item_t *ci_str_array_pop(ci_str_array_t *array) {
+    return ci_array_pop((ci_array_t *)array);
+}
+
+static inline const ci_array_item_t *ci_str_array_get_item(ci_str_array_t *array, unsigned int pos) {
+    return ci_array_get_item((ci_array_t *)array, pos);
+}
+
+static inline const char *ci_str_array_search(ci_str_array_t *array, const char *name) {
+    return (const char *)ci_array_search((ci_array_t *)array, name);
+}
+
+static inline void ci_str_array_iterate(const ci_array_t *array, void *data, int (*fn)(void *data, const char *name, const char *value)){
+    ci_array_iterate(array, data, (int (*)(void *, const char *, const void *))fn);
+}
+
+static inline const char *ci_str_array_value(const ci_array_t *array, unsigned int pos) {
+    return (const char *)ci_array_value((ci_array_t *)(array), pos);
+}
+
+static inline const char *ci_str_array_name(const ci_array_t *array, unsigned int pos) {
+    return ci_array_name((ci_array_t *)(array), pos);
+}
+
+static inline unsigned int ci_str_array_size(const ci_array_t *array) {
+    return ci_array_size((ci_array_t *)array);
+}
 
 /**
  \defgroup PTR_ARRAYS  Arrays of pointers
@@ -197,32 +236,36 @@ typedef ci_array_t ci_str_array_t;
 typedef ci_array_t ci_ptr_array_t;
 
 /**
- \def ci_ptr_array_value(ptr_array, pos)
  \ingroup PTR_ARRAYS
  * Return the value of item at position 'pos'
  */
-#define ci_ptr_array_value(array, pos) ci_array_value((ci_array_t *)(array), pos)
+static inline void *ci_ptr_array_value(const ci_ptr_array_t *array, unsigned int pos) {
+    return ci_array_value((ci_array_t *)array, pos);
+}
 
 /**
- \def ci_ptr_array_value(ptr_array, pos)
  \ingroup PTR_ARRAYS
  * Return the name of item at position 'pos'
  */
-#define ci_ptr_array_name(array, pos) ci_array_name((ci_array_t *)(array), pos)
+static inline const char *ci_ptr_array_name(const ci_ptr_array_t *array, unsigned int pos) {
+    return ci_array_name((ci_array_t *)array, pos);
+}
 
 /**
- \def ci_ptr_array_value(ptr_array)
  \ingroup PTR_ARRAYS
- * Return the size of ptr_array
+ * Return the size of array
  */
-#define ci_ptr_array_size(array) ci_array_size((ci_array_t *)(array))
+static inline unsigned int ci_ptr_array_size(const ci_ptr_array_t *array) {
+    return ci_array_size((ci_array_t *)array);
+}
 
 /**
- \def ci_ptr_array_new()
  \ingroup PTR_ARRAYS
  * Create a new ci_ptr_array_t object. Similar to the ci_array_new() function.
  */
-#define ci_ptr_array_new ci_array_new
+static inline ci_ptr_array_t *ci_ptr_array_new(size_t max_mem_size) {
+    return (ci_ptr_array_t *)ci_array_new(max_mem_size);
+}
 
 /**
  * Create and initialize an ci_ptr_array_t object for the given number of items
@@ -233,11 +276,12 @@ typedef ci_array_t ci_ptr_array_t;
 CI_DECLARE_FUNC(ci_ptr_array_t *) ci_ptr_array_new2(size_t items);
 
 /**
- \def ci_ptr_array_destroy(ptr_array)
  \ingroup PTR_ARRAYS
  * Destroy a ci_ptr_array_t object. Similar to the ci_array_destroy function
  */
-#define ci_ptr_array_destroy(ptr_array) ci_array_destroy((ci_array_t *)(ptr_array))
+static inline void ci_ptr_array_destroy(ci_ptr_array_t *ptr_array) {
+    ci_array_destroy((ci_array_t *)ptr_array);
+}
 
 /**
  * Search in an array for an item with the given name
@@ -246,16 +290,17 @@ CI_DECLARE_FUNC(ci_ptr_array_t *) ci_ptr_array_new2(size_t items);
  \param name the item to be search for.
  \return pointer to the value pair of the array item if found, NULL otherwise
  */
-CI_DECLARE_FUNC(void *) ci_ptr_array_search(ci_ptr_array_t *array, const char *name);
+CI_DECLARE_FUNC(void *) ci_ptr_array_search(const ci_ptr_array_t *array, const char *name);
 
 
 /**
- \def ci_ptr_array_iterate(ptr_array, data, fn)
  \ingroup PTR_ARRAYS
  * Run the function fn for each item of the ci_ptr_array_t object. Similar to
  * the ci_array_iterate function
  */
-#define ci_ptr_array_iterate(ptr_array, data, fn) ci_array_iterate((ci_array_t *)(ptr_array), data, fn)
+static inline void ci_ptr_array_iterate(const ci_ptr_array_t *ptr_array, void *data,  int (*fn)(void *data, const char *name, const void *value)) {
+    ci_array_iterate((ci_array_t *)(ptr_array), data, fn);
+}
 
 /**
  * Add an name/value pair item to the ci_ptr_array_t object.
@@ -289,11 +334,12 @@ CI_DECLARE_FUNC(const ci_array_item_t *) ci_ptr_array_pop(ci_ptr_array_t *ptr_ar
 CI_DECLARE_FUNC(void *) ci_ptr_array_pop_value(ci_ptr_array_t *ptr_array, char *name, size_t name_size);
 
 /**
- \def ci_ptr_array_get_item()
  \ingroup PTR_ARRAYS
  * Get an array item. Wrapper to the ci_array_get_item() function.
  */
-#define ci_ptr_array_get_item(array, pos) ci_array_get_item((ci_array_t *)(array), pos)
+static inline const ci_array_item_t *ci_ptr_array_get_item(const ci_ptr_array_t *array, unsigned int pos) {
+    return ci_array_get_item((ci_array_t *)array, pos);
+}
 
 /**
  \defgroup DYNAMIC_ARRAYS Dynamic arrays related API
@@ -317,32 +363,40 @@ typedef struct ci_dyn_array {
 } ci_dyn_array_t;
 
 /**
- \def ci_dyn_array_get_item(array, pos)
  \ingroup DYNAMIC_ARRAYS
  * Return the ci_array_item_t item on position 'pos'
  */
-#define ci_dyn_array_get_item(array, pos) (pos < (array)->count ? (array)->items[pos] : NULL)
+static inline const ci_array_item_t *ci_dyn_array_get_item(const ci_dyn_array_t *array, unsigned int pos) {
+    _CI_ASSERT(array);
+    return (pos < array->count ? array->items[pos] : NULL);
+}
 
 /**
- \def ci_dyn_array_value(array, pos)
  \ingroup DYNAMIC_ARRAYS
  * Return the value of item on position 'pos'
  */
-#define ci_dyn_array_value(array, pos) ((pos < (array)->count && (array)->items[pos] != NULL) ?  (array)->items[pos]->value : NULL)
+static inline void *ci_dyn_array_value(const ci_dyn_array_t *array, unsigned int pos) {
+    _CI_ASSERT(array);
+    return ((pos < array->count && array->items[pos] != NULL) ?  array->items[pos]->value : NULL);
+}
 
 /**
- \def ci_dyn_array_name(array, pos)
  \ingroup DYNAMIC_ARRAYS
  * Return the name of item on position 'pos'
  */
-#define ci_dyn_array_name(array, pos) ((pos < (array)->count && (array)->items[pos] != NULL) ?  (array)->items[pos]->name : NULL)
+static inline const char *ci_dyn_array_name(const ci_dyn_array_t *array, unsigned int pos) {
+    _CI_ASSERT(array);
+    return ((pos < array->count && array->items[pos] != NULL) ?  array->items[pos]->name : NULL);
+}
 
 /**
- \def ci_dyn_array_size(array)
  \ingroup DYNAMIC_ARRAYS
  * Return the size of array 'array'
  */
-#define ci_dyn_array_size(array) ((array)->count)
+static inline unsigned int ci_dyn_array_size(const ci_dyn_array_t *array) {
+    _CI_ASSERT(array);
+    return array->count;
+}
 
 /**
  * Allocate the required memory and initialize an ci_dyn_array_t object
@@ -387,7 +441,7 @@ CI_DECLARE_FUNC(const ci_array_item_t *) ci_dyn_array_add(ci_dyn_array_t *array,
  \param name the item to be search for.
  \return pointer to the value pair of the array item if found, NULL otherwise
  */
-CI_DECLARE_FUNC(const void *) ci_dyn_array_search(ci_dyn_array_t *array, const char *name);
+CI_DECLARE_FUNC(const void *) ci_dyn_array_search(const ci_dyn_array_t *array, const char *name);
 
 /**
  * Run the given function for each dynamic array item
@@ -415,16 +469,42 @@ CI_DECLARE_FUNC(void) ci_dyn_array_iterate(const ci_dyn_array_t *array, void *da
  * functions with the required typecasting.
  */
 typedef ci_dyn_array_t ci_ptr_dyn_array_t;
-#define ci_ptr_dyn_array_new(size) ci_dyn_array_new(size)
-#define ci_ptr_dyn_array_new2(items, item_size) ci_dyn_array_new2(items, item_size)
-#define ci_ptr_dyn_array_destroy(ptr_array) ci_dyn_array_destroy((ci_dyn_array_t *)(ptr_array))
-#define ci_ptr_dyn_array_search(ptr_array, name) ci_dyn_array_search((ci_dyn_array_t *)(ptr_array), name)
-#define ci_ptr_dyn_array_iterate(ptr_array, data, fn) ci_dyn_array_iterate((ci_dyn_array_t *)(ptr_array), data, fn)
+static inline ci_ptr_dyn_array_t *ci_ptr_dyn_array_new(size_t size) {
+    return ci_dyn_array_new(size);
+}
 
-#define ci_ptr_dyn_array_get_item(ptr_array, pos) ci_dyn_array_get_item((ci_dyn_array_t *)(ptr_array), pos)
-#define ci_ptr_dyn_array_value(ptr_array, pos) ci_dyn_array_value((ci_dyn_array_t *)(ptr_array), pos)
-#define ci_ptr_dyn_array_name(ptr_array, pos) ci_dyn_array_name((ci_dyn_array_t *)(ptr_array), pos)
-#define ci_ptr_dyn_array_size(ptr_array) ci_dyn_array_size((ci_dyn_array_t *)(ptr_array))
+static inline ci_ptr_dyn_array_t *ci_ptr_dyn_array_new2(size_t items, size_t item_size) {
+    return ci_dyn_array_new2(items, item_size);
+}
+
+static inline void ci_ptr_dyn_array_destroy(ci_ptr_dyn_array_t *ptr_array) {
+    ci_dyn_array_destroy((ci_dyn_array_t *)ptr_array);
+}
+
+static inline void *ci_ptr_dyn_array_search(const ci_ptr_dyn_array_t *ptr_array, const char *name) {
+    /* return a writable object */
+    return (void *)ci_dyn_array_search((const ci_dyn_array_t *)ptr_array, name);
+}
+
+static inline void ci_ptr_dyn_array_iterate(const ci_ptr_dyn_array_t *ptr_array, void *data, int (*fn)(void *data, const char *name, const void *)) {
+    return ci_dyn_array_iterate((const ci_dyn_array_t *)(ptr_array), data, fn);
+}
+
+static inline const ci_array_item_t *ci_ptr_dyn_array_get_item(const ci_ptr_dyn_array_t *ptr_array, unsigned int pos) {
+    return ci_dyn_array_get_item((const ci_dyn_array_t *)ptr_array, pos);
+}
+
+static inline void *ci_ptr_dyn_array_value(const ci_ptr_dyn_array_t *ptr_array, unsigned int pos) {
+    return ci_dyn_array_value((const ci_dyn_array_t *)ptr_array, pos);
+}
+
+static inline const char *ci_ptr_dyn_array_name(const ci_ptr_array_t *ptr_array, unsigned int pos) {
+    return ci_dyn_array_name((const ci_dyn_array_t *)ptr_array, pos);
+}
+
+static inline unsigned int ci_ptr_dyn_array_size(const ci_ptr_array_t *ptr_array) {
+    return ci_dyn_array_size((const ci_dyn_array_t *)ptr_array);
+}
 
 /**
  * Add an name/value pair item to the array.
@@ -481,7 +561,7 @@ CI_DECLARE_FUNC(void) ci_vector_destroy(ci_vector_t *vector);
  \param size the size of the new item.
  \return a pointer to the new  item on success, NULL otherwise
  */
-CI_DECLARE_FUNC(void *) ci_vector_add(ci_vector_t *vector, const void *obj, size_t size);
+CI_DECLARE_FUNC(const void *) ci_vector_add(ci_vector_t *vector, const void *obj, size_t size);
 
 /**
  * Run the given function for each vector item
@@ -502,11 +582,13 @@ CI_DECLARE_FUNC(void) ci_vector_iterate(const ci_vector_t *vector, void *data, i
 CI_DECLARE_FUNC(void *) ci_vector_pop(ci_vector_t *vector);
 
 /**
- \def ci_vector_get(vector, i)
  \ingroup VECTORS
  * Return a pointer to the i item of the vector
  */
-#define ci_vector_get(vector, i) (i < vector->count ? (const void *)vector->items[i]:  (const void *)NULL)
+static inline const void *ci_vector_get(const ci_vector_t *vector, unsigned int i){
+    _CI_ASSERT(vector);
+    return (i < vector->count ? (const void *)vector->items[i]:  (const void *)NULL);
+}
 
 
 CI_DECLARE_FUNC(const void **) ci_vector_cast_to_voidvoid(ci_vector_t *vector);
@@ -527,13 +609,31 @@ CI_DECLARE_FUNC(ci_vector_t *)ci_vector_cast_from_voidvoid(const void **p);
  * functions.
  */
 typedef ci_vector_t ci_str_vector_t;
-#define ci_str_vector_create ci_vector_create
-#define ci_str_vector_destroy ci_vector_destroy
-#define ci_str_vector_add(vect, string) ((const char *)ci_vector_add((ci_vector_t *)(vect), string, (strlen(string)+1)))
-#define ci_str_vector_get(vector, i) (i < vector->count ? (const char *)vector->items[i]:  (const char *)NULL)
-#define ci_str_vector_pop(vect)  ((const char *)ci_vector_pop((ci_vector_t *)(vect)))
-#define ci_str_vector_cast_to_charchar(vector) ((const char **)ci_vector_cast_to_voidvoid((ci_vector_t *)(vector)))
-#define ci_str_vector_cast_from_charchar(p) ((ci_str_vector_t *)ci_vector_cast_from_voidvoid((const void **)p))
+static inline ci_str_vector_t *ci_str_vector_create(size_t max_size) {
+    return ci_vector_create(max_size);
+}
+
+static inline void ci_str_vector_destroy(ci_str_vector_t *vector) {
+    ci_vector_destroy(vector);
+}
+
+CI_DECLARE_FUNC(const char *)ci_str_vector_add(ci_str_vector_t *vect, const char *string);
+
+static inline const char *ci_str_vector_get(ci_str_vector_t *vector, unsigned int i) {
+    return (i < vector->count ? (const char *)vector->items[i]:  (const char *)NULL);
+}
+
+static inline const char *ci_str_vector_pop(ci_str_vector_t *vect) {
+    return (const char *)ci_vector_pop((ci_vector_t *)(vect));
+}
+
+static inline const char **ci_str_vector_cast_to_charchar(const ci_str_vector_t *vector) {
+    return (const char **)ci_vector_cast_to_voidvoid((ci_vector_t *)(vector));
+}
+
+static inline ci_str_vector_t *ci_str_vector_cast_from_charchar(const char **p) {
+    return (ci_str_vector_t *)ci_vector_cast_from_voidvoid((const void **)p);
+}
 
 /**
  * Run the given function for each string vector item
@@ -567,10 +667,22 @@ CI_DECLARE_FUNC(const char *) ci_str_vector_search(ci_str_vector_t *vector, cons
  * and ci_ptr_vector_get defines are similar and equivalent to the ci_vector_* functions.
  */
 typedef ci_vector_t ci_ptr_vector_t;
-#define ci_ptr_vector_create ci_vector_create
-#define ci_ptr_vector_destroy ci_vector_destroy
-#define ci_ptr_vector_iterate ci_vector_iterate
-#define ci_ptr_vector_get ci_vector_get
+
+static inline ci_ptr_vector_t *ci_ptr_vector_create(size_t max_size){
+    return ci_vector_create(max_size);
+}
+
+static inline void ci_ptr_vector_destroy(ci_ptr_vector_t *vector){
+    ci_vector_destroy((ci_vector_t *)vector);
+}
+
+static inline void ci_ptr_vector_iterate(const ci_ptr_vector_t *vector, void *data, int (*fn)(void *data, const void *)){
+    return ci_vector_iterate((const ci_vector_t *)vector, data, fn);
+}
+
+static inline void *ci_ptr_vector_get(const ci_ptr_vector_t *vector, unsigned int pos) {
+    return (void *)ci_vector_get((const ci_vector_t *)vector, pos);
+}
 
 /**
  * Add an  item to the vector.
@@ -681,8 +793,8 @@ typedef ci_list_item_t *  ci_list_iterator_t;
  \return The first item if exist, NULL otherwise
  */
 static inline void *ci_list_iterator_first(const ci_list_t *list, ci_list_iterator_t *it) {
-    assert(list);
-    assert(it);
+    _CI_ASSERT(list);
+    _CI_ASSERT(it);
     if ((*it = list->items))
         return (*it)->item;
     return NULL;
@@ -699,7 +811,7 @@ static inline void *ci_list_iterator_first(const ci_list_t *list, ci_list_iterat
  \return the current item if exist, NULL otherwise
  */
 static inline void *ci_list_iterator_next(ci_list_iterator_t *it) {
-    assert(it);
+    _CI_ASSERT(it);
     if ((*it) && (*it = ((*it)->next)))
         return (*it)->item;
     return NULL;
@@ -711,7 +823,7 @@ static inline void *ci_list_iterator_next(ci_list_iterator_t *it) {
  \ingroup LISTS
  */
 static inline void *ci_list_iterator_value(const ci_list_iterator_t *it) {
-    assert(it);
+    _CI_ASSERT(it);
     return (*it) ? (*it)->item : NULL;
 }
 
