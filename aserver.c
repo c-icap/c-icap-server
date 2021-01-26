@@ -131,6 +131,8 @@ int main(int argc, char **argv)
     __vlog_error = vlog_server;        /*set c-icap library  log function */
 #endif
 
+    assert(strcmp(ci_lib_version_string(), VERSION) == 0);
+
     mem_init();
     init_internal_lookup_tables();
     ci_acl_init();

@@ -49,6 +49,9 @@ void *ci_cfg_alloc_mem(int size)
     return cfg_params_allocator->alloc(cfg_params_allocator, size);
 }
 
+const char *ci_lib_version_string() {
+    return VERSION;
+}
 
 /****************************************************************/
 /* Command line options implementation, function and structures */
