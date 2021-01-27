@@ -393,7 +393,6 @@ int ci_cfg_build_info(const char *directive, const char **argv, void *setdata)
 #if defined(__MINGW32__)
            "Compiled with: mingw-w32-%d.%d\n"
 #define __SUBGCC
-#define
 #endif
 #if defined(__MINGW64__)
            "Compiled with: mingw-w64-%d.%d\n"
@@ -422,10 +421,10 @@ int ci_cfg_build_info(const char *directive, const char **argv, void *setdata)
             __clang_version__,
 #endif
 #if defined(__MINGW32__)
-            __MINGW32_MAJOR_VERSION, __MINGW32_VERSION_MINOR,
+            __MINGW32_MAJOR_VERSION, __MINGW32_MINOR_VERSION,
 #endif
 #if defined(__MINGW64__)
-            __MINGW64_MAJOR_VERSION, __MINGW64_VERSION_MINOR,
+            __MINGW64_VERSION_MAJOR, __MINGW64_VERSION_MINOR,
 #endif
 #if defined(__GNUC__)
              __GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__,
