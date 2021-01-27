@@ -695,7 +695,7 @@ void *ci_list_pop_back(ci_list_t *list, void *data)
     } else {
         if (list->cursor == list->last)
             list->cursor = NULL;
-        for (tmp = list->items; tmp != NULL && tmp->next != list->last; tmp = tmp->next);
+        for (tmp = list->items; tmp != NULL && tmp->next != list->last; tmp = tmp->next){}
         _CI_ASSERT(tmp != NULL);
         list->last = tmp;
         list->last->next = NULL;
