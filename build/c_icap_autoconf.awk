@@ -29,8 +29,9 @@ BEGIN{
         }
         sub(/^[[:space:]]*/, "", key); # trim left
         sub(/[[:space:]]*$/, "", key); # trim right
-
-        printf("#if defined(%s)\n     {\"%s\", \"%s\"},\n#endif\n", key, key, value);
+        keynoargs=key;
+        sub(/\(.*\)/, "", keynoargs);
+        printf("#if defined(%s)\n     {\"%s\", \"%s\"},\n#endif\n", keynoargs, key, value);
    }
 }
 END{
