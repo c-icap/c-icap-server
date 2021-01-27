@@ -155,6 +155,7 @@ char * ci_strerror(int error, char *buf, size_t buflen)
     return buf;
 
 #endif
+   return NULL; /* not reached */
 }
 
 /*
