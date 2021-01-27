@@ -11,10 +11,26 @@ BEGIN{
      printf("struct {\n     const char *n;\n     const char *v;\n} _CI_CONF_%s[] = {\n", USE_NAME);
 }
 {
-   n = match($0, /^\s*#\s*define\s+([[:alnum:]_]+)\s*(.*)$/, def);
+   line = $0
+   n = match(line, /^[[:space:]]*#[[:space:]]*define[[:space:]]+([[:alnum:]_]+)[[:space:]]*(.*)$/);
    if (n != 0) {
-        escaped = gensub(/"/, "\\\\\"", "g", def[2]);
-        printf("#if defined(%s)\n     {\"%s\", \"%s\"},\n#endif\n", def[1], def[1], escaped);
+        sub(/^[[:space:]]*#[[:space:]]*define/, "", line);
+        sub(/^[[:space:]]*/, "", line); # trim left
+        len = index(line, " ");
+        if (len > 0) {
+            key = substr(line, 0 , len-1);
+            value = substr(line, len);
+            sub(/^[[:space:]]*/, "", value); # trim left
+            sub(/[[:space:]]*$/, "", value); # trim right
+            gsub(/"/, "\\\"", value); # escape quotes
+        } else {
+          key = line;
+          value = "";
+        }
+        sub(/^[[:space:]]*/, "", key); # trim left
+        sub(/[[:space:]]*$/, "", key); # trim right
+
+        printf("#if defined(%s)\n     {\"%s\", \"%s\"},\n#endif\n", key, key, value);
    }
 }
 END{
