@@ -111,11 +111,11 @@ do_subst=sed -e 's%[@]SYSCONFDIR[@]%$(CONFIGDIR)%g' \
 
 CLEANFILES = c-icap-config c-icap-libicapapi-config
 
-_autoconf_table.c: build/c_icap_autoconf.awk autoconf.h
-	awk -f build/c_icap_autoconf.awk -vinc=autoconf.h -vname=autoconf < autoconf.h > $@
+_autoconf_table.c: $(srcdir)/build/c_icap_autoconf.awk autoconf.h
+	awk -f $(srcdir)/build/c_icap_autoconf.awk -vinc=autoconf.h -vname=autoconf < autoconf.h > $@
 
-_c_icap_conf_table.c: build/c_icap_autoconf.awk include/c-icap-conf.h
-	awk -f build/c_icap_autoconf.awk -vinc=c-icap-conf.h -vname=c_icap_conf < include/c-icap-conf.h > $@
+_c_icap_conf_table.c: $(srcdir)/build/c_icap_autoconf.awk include/c-icap-conf.h
+	awk -f $(srcdir)/build/c_icap_autoconf.awk -vinc=c-icap-conf.h -vname=c_icap_conf < include/c-icap-conf.h > $@
 
 # The c-icap.conf, c-icap-config, and c-icap-libicapapi-config must rebuild
 # on every new configure run. The include/c-icap-conf.h is rebuild when
