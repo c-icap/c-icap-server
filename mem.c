@@ -344,8 +344,8 @@ void ci_buffer_free(void *data)
 /*Object pools                                                     */
 #define OBJ_SIGNATURE 0x55AA
 ci_mem_allocator_t **object_pools = NULL;
-int object_pools_size = 0;
-int object_pools_used = 0;
+unsigned long object_pools_size = 0;
+unsigned long object_pools_used = 0;
 
 int ci_object_pools_init()
 {
@@ -354,7 +354,7 @@ int ci_object_pools_init()
 
 void ci_object_pools_destroy()
 {
-    int i;
+    unsigned int i;
     for (i = 0; i < object_pools_used; i++) {
         if (object_pools[i] != NULL)
             ci_mem_allocator_destroy(object_pools[i]);
@@ -434,7 +434,7 @@ void ci_object_pool_free(void *ptr)
         ci_debug_printf(1,"ci_object_pool_free: ERROR, %p is not internal buffer. This is a bug!!!!\n", ptr);
         return;
     }
-    if (block->ID > object_pools_used || block->ID < 0 || !object_pools[block->ID]) {
+    if ((unsigned long)block->ID > object_pools_used || !object_pools[block->ID]) {
         ci_debug_printf(1,"ci_object_pool_free: ERROR, %p is pointing to corrupted mem? This is a bug!!!!\n", ptr);
         return;
     }
