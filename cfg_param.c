@@ -99,6 +99,16 @@ int ALLOW204_AS_200OK_ZERO_ENCAPS = 0;
 int FAKE_ALLOW204 = 1;
 int UMASK = 0;
 
+#ifdef HAVE_BROTLI
+int BROTLI_QUALITY = -1;
+int BROTLI_MAX_INPUT_BLOCK = -1;
+int BROTLI_WINDOW = -1;
+#endif
+#ifdef HAVE_ZLIB
+int ZLIB_WINDOW_SIZE = -1;
+int ZLIB_MEMLEVEL = -1;
+#endif
+
 extern char *SERVER_LOG_FILE;
 extern char *ACCESS_LOG_FILE;
 extern char *ACCESS_LOG_FORMAT;
@@ -222,8 +232,8 @@ static struct ci_conf_entry conf_variables[] = {
     {"BrotliWindowSize", CI_CFG_INT_RANGE(CI_BROTLI_WINDOW, 10, 24), intl_cfg_set_int_range, NULL},
 #endif
 #ifdef HAVE_ZLIB
-    {"ZlibWindowSize", CI_CFG_INT_RANGE(CI_ZLIB_WINDOW_SIZE, 1, 15), intl_cfg_set_int_range, NULL},
-    {"ZlibMemLevel", CI_CFG_INT_RANGE(CI_ZLIB_MEMLEVEL, 1, 9), intl_cfg_set_int_range, NULL},
+    {"ZlibWindowSize", CI_CFG_INT_RANGE(ZLIB_WINDOW_SIZE, 1, 15), intl_cfg_set_int_range, NULL},
+    {"ZlibMemLevel", CI_CFG_INT_RANGE(ZLIB_MEMLEVEL, 1, 9), intl_cfg_set_int_range, NULL},
 #endif
     {NULL, NULL, NULL, NULL}
 };
@@ -1043,6 +1053,31 @@ int config(int argc, char **argv)
         ci_debug_printf(1, "Error opening/parsing config file\n");
         exit(0);
     }
+
+    /*Compilers on windows platform report problems when someone try to
+      initialize static arrays or structures with references of variables
+      exists on external libraries. So we have to declare local variables
+      and set library variables on run-time code.
+     */
+#ifdef HAVE_BROTLI
+    cfg_default_value_store(&CI_BROTLI_QUALITY, &CI_BROTLI_QUALITY, sizeof(int));
+    cfg_default_value_store(&CI_BROTLI_MAX_INPUT_BLOCK, &CI_BROTLI_MAX_INPUT_BLOCK, sizeof(int));
+    cfg_default_value_store(&CI_BROTLI_WINDOW, &CI_BROTLI_WINDOW, sizeof(int));
+    if (BROTLI_QUALITY != -1)
+        CI_BROTLI_QUALITY = BROTLI_QUALITY;
+    if (BROTLI_MAX_INPUT_BLOCK != -1)
+        CI_BROTLI_MAX_INPUT_BLOCK = BROTLI_MAX_INPUT_BLOCK;
+    if (BROTLI_WINDOW != -1)
+        CI_BROTLI_WINDOW = BROTLI_WINDOW;
+#endif
+#ifdef HAVE_ZLIB
+    cfg_default_value_store(&CI_ZLIB_WINDOW_SIZE, &CI_ZLIB_WINDOW_SIZE, sizeof(int));
+    cfg_default_value_store(&CI_ZLIB_MEMLEVEL, &CI_ZLIB_MEMLEVEL, sizeof(int));
+    if (ZLIB_WINDOW_SIZE > 0)
+        CI_ZLIB_WINDOW_SIZE = ZLIB_WINDOW_SIZE;
+    if (ZLIB_MEMLEVEL > 0)
+        CI_ZLIB_MEMLEVEL = ZLIB_MEMLEVEL;
+#endif
     return 1;
 }
 
