@@ -301,7 +301,7 @@ ci_list_t *ci_host_get_addresses(const char *servername)
     return addresses;
 }
 
-int ci_wait_for_data(int fd, int secs, int what_wait)
+int ci_wait_for_data(ci_socket fd, int secs, int what_wait)
 {
     const int msecs = secs * 1000; // Should be in milliseconds
     return ci_wait_ms_for_data(fd, msecs, what_wait);
