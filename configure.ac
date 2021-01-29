@@ -894,7 +894,7 @@ AC_CACHE_CHECK([if posix 1003.1b interprocess semaphores works], ac_cv_10031b_ip
 )
 
 AS_IF(
-      [test $ac_cv_10031b_ipc_sem = yes],
+      [test "a$ac_cv_10031b_ipc_sem" = "ayes"],
       [AC_DEFINE(HAVE_POSIX_SEMAPHORES,1,[Define HAVE_POSIX_SEMAPHORES if posix 1003.1b semaphores works])
       POSIX_SEMAPHORES="1"
       ],[
@@ -937,7 +937,7 @@ AC_CACHE_CHECK([if fcntl file locking works], ac_cv_fcntl,
 )
 
 AS_IF(
-        [test $ac_cv_fcntl = yes],
+        [test "a$ac_cv_fcntl" = "ayes"],
         [AC_DEFINE(HAVE_POSIX_FILE_LOCK,1,[Define HAVE_POSIX_FILE_LOCK if posix fcntl file locking works])
         POSIX_FILE_LOCK="1"
         ],[
