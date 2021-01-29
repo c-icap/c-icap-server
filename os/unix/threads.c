@@ -155,36 +155,6 @@ int ci_thread_rwlock_destroy(ci_thread_rwlock_t *rwlock)
     del_mutex(rwlock);
     return pthread_rwlock_destroy(rwlock);
 }
-
-#else
-/*We can implement a better solution here using a mutex and a cond
-  object to simulate rwlocks (TODO)
-*/
-int ci_thread_rwlock_init(ci_thread_rwlock_t * rwlock)
-{
-    return ci_thread_mutex_init(rwlock);
-}
-
-int ci_thread_rwlock_destroy(ci_thread_rwlock_t * rwlock)
-{
-    return ci_thread_mutex_destroy(rwlock);
-}
-
-int ci_thread_rwlock_rdlock(ci_thread_rwlock_t * rwlock)
-{
-    return ci_thread_mutex_lock(rwlock);
-}
-
-int ci_thread_rwlock_wrlock(ci_thread_rwlock_t * rwlock)
-{
-    return ci_thread_mutex_lock(rwlock);
-}
-
-int ci_thread_rwlock_unlock(ci_thread_rwlock_t * rwlock)
-{
-    return ci_thread_mutex_unlock(rwlock);
-}
-
 #endif
 
 int ci_thread_cond_init(ci_thread_cond_t *pcond)
