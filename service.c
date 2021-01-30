@@ -207,10 +207,14 @@ int cfg_srv_allow206(const char *directive, const char **argv, void *setdata)
     }
     ci_debug_printf(1, "Setting parameter: %s=%s\n", directive, argv[0]);
 
-    if (strcasecmp(argv[0], "off")) {
+    if (strcasecmp(argv[0], "off") == 0) {
         ci_thread_rwlock_wrlock(&srv_xdata->lock);
         srv_xdata->disable_206 = 1;
+        srv_xdata->allow_206 = 0;
         ci_thread_rwlock_unlock(&srv_xdata->lock);
+    } else if (strcasecmp(argv[0], "on") != 0) {
+        ci_debug_printf(1, "Wrong argument '%s' for directive %s \n", argv[0], directive);
+        return 0;
     }
 
     return 1;

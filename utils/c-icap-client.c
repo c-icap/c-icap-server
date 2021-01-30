@@ -337,8 +337,10 @@ int main(int argc, char **argv)
     if (!input_file && !request_url && !resp_url) {
         ci_debug_printf(1, "OPTIONS:\n");
         ci_debug_printf(1,
-                        "\tAllow 204: %s\n\tPreview: %d\n\tKeep alive: %s\n",
-                        (req->allow204 ? "Yes" : "No"), req->preview,
+                        "\tAllow 204: %s\n\tAllow 206: %s\n\tPreview: %d\n\tKeep alive: %s\n",
+                        (req->allow204 ? "Yes" : "No"),
+                        (req->allow206 ? "Yes" : "No"),
+                        req->preview,
                         (req->keepalive ? "Yes" : "No")
                        );
         print_headers(req);
