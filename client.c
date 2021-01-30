@@ -168,9 +168,12 @@ static int get_request_options(ci_request_t * req, ci_headers_list_t * h)
 
 
     req->allow204 = 0;
+    req->allow206 = 0;
     if ((pstr = ci_headers_value(h, "Allow")) != NULL) {
-        if (strtol(pstr, NULL, 10) == 204)
-            req->allow204 = 1;
+         if (strstr(pstr, "204"))
+             req->allow204 = 1;
+         if (strstr(pstr, "206"))
+             req->allow206 = 1;
     }
 
     if ((pstr = ci_headers_value(h, "Connection")) != NULL
