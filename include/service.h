@@ -112,6 +112,7 @@ typedef struct ci_service_xdata {
     int stat_respmods;
     int stat_options;
     int stat_allow204;
+    int stat_allow206;
 } ci_service_xdata_t;
 
 /**

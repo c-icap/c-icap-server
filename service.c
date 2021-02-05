@@ -329,6 +329,9 @@ void init_extra_data(ci_service_xdata_t * srv_xdata, const char *service)
     snprintf(buf, sizeof(buf), "Service %s ALLOW 204", service);
     srv_xdata->stat_allow204 = ci_stat_entry_register(buf, CI_STAT_INT64_T, stat_group);
 
+    snprintf(buf, sizeof(buf), "Service %s ALLOW 206", service);
+    srv_xdata->stat_allow206 = ci_stat_entry_register(buf, CI_STAT_INT64_T, stat_group);
+
     snprintf(buf, sizeof(buf), "Service %s BYTES IN", service);
     srv_xdata->stat_bytes_in = ci_stat_entry_register(buf, CI_STAT_KBS_T, stat_group);
 

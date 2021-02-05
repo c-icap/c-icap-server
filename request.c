@@ -63,6 +63,7 @@ static int STAT_REQMODS = -1;
 static int STAT_RESPMODS = -1;
 static int STAT_OPTIONS = -1;
 static int STAT_ALLOW204 = -1;
+static int STAT_ALLOW206 = -1;
 
 void request_stats_init()
 {
@@ -72,6 +73,7 @@ void request_stats_init()
     STAT_OPTIONS = ci_stat_entry_register("OPTIONS", CI_STAT_INT64_T, "General");
     STAT_FAILED_REQUESTS = ci_stat_entry_register("FAILED REQUESTS", CI_STAT_INT64_T, "General");
     STAT_ALLOW204 = ci_stat_entry_register("ALLOW 204", CI_STAT_INT64_T, "General");
+    STAT_ALLOW206 = ci_stat_entry_register("ALLOW 206", CI_STAT_INT64_T, "General");
     STAT_BYTES_IN = ci_stat_entry_register("BYTES IN", CI_STAT_KBS_T, "General");
     STAT_BYTES_OUT = ci_stat_entry_register("BYTES OUT", CI_STAT_KBS_T, "General");
     STAT_HTTP_BYTES_IN = ci_stat_entry_register("HTTP BYTES IN", CI_STAT_KBS_T, "General");
@@ -1695,6 +1697,10 @@ int process_request(ci_request_t * req)
         stats[indx++] = (ci_stat_item_t){CI_STAT_INT64_T, STAT_ALLOW204, 1};
         if (srv_xdata)
             stats[indx++] = (ci_stat_item_t){CI_STAT_INT64_T, srv_xdata->stat_allow204, 1};
+    } else if (req->return_code == EC_206) {
+        stats[indx++] = (ci_stat_item_t){CI_STAT_INT64_T, STAT_ALLOW206, 1};
+        if (srv_xdata)
+            stats[indx++] = (ci_stat_item_t){CI_STAT_INT64_T, srv_xdata->stat_allow206, 1};
     }
 
     if (STAT_BYTES_IN >= 0)
