@@ -143,8 +143,6 @@ CI_DECLARE_DATA extern struct stat_entry_list STAT_INT64;
 CI_DECLARE_DATA extern struct stat_entry_list STAT_KBS;
 CI_DECLARE_DATA extern struct stat_groups_list STAT_GROUPS;
 
-CI_DECLARE_DATA extern struct stat_area *STATS;
-
 CI_DECLARE_FUNC(int) ci_stat_memblock_size(void);
 
 CI_DECLARE_FUNC(void) ci_stat_entry_release_lists();
@@ -165,12 +163,6 @@ CI_DECLARE_FUNC(void) ci_stat_memblock_reset(struct stat_memblock *block);
 /*DO NOT USE the folllowings are only for internal c-icap server use!*/
 CI_DECLARE_FUNC(void) stat_memblock_fix(struct stat_memblock *mem_block);
 CI_DECLARE_FUNC(void) stat_memblock_reconstruct(struct stat_memblock *mem_block);
-
-/*Private defines and functions*/
-#define STATS_LOCK() ci_thread_mutex_lock(&STATS->mtx)
-#define STATS_UNLOCK() ci_thread_mutex_unlock(&STATS->mtx)
-#define STATS_INT64_INC(ID, count) (STATS->mem_block->counters64[ID] += count)
-#define STATS_KBS_INC(ID, count) (STATS->mem_block->counterskbs[ID].bytes += count, STATS->mem_block->counterskbs[ID].kb += (STATS->mem_block->counterskbs[ID].bytes >> 10), STATS->mem_block->counterskbs[ID].bytes &= 0x3FF)
 
 #ifdef __cplusplus
 }

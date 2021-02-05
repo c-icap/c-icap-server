@@ -1665,61 +1665,66 @@ int process_request(ci_request_t * req)
     if (res<0 && req->request_header->bufused == 0) /*Did not read anything*/
         return CI_NO_STATUS;
 
-    if (STATS) {
-        if (req->return_code != EC_404 && req->current_service_mod)
-            srv_xdata = service_data(req->current_service_mod);
-        else
-            srv_xdata = NULL;
-
-        STATS_LOCK();
-        if (STAT_REQUESTS >= 0) STATS_INT64_INC(STAT_REQUESTS,1);
-
-        if (req->type == ICAP_REQMOD) {
-            STATS_INT64_INC(STAT_REQMODS, 1);
-            if (srv_xdata)
-                STATS_INT64_INC(srv_xdata->stat_reqmods, 1);
-        } else if (req->type == ICAP_RESPMOD) {
-            STATS_INT64_INC(STAT_RESPMODS, 1);
-            if (srv_xdata)
-                STATS_INT64_INC(srv_xdata->stat_respmods, 1);
-        } else if (req->type == ICAP_OPTIONS) {
-            STATS_INT64_INC(STAT_OPTIONS, 1);
-            if (srv_xdata)
-                STATS_INT64_INC(srv_xdata->stat_options, 1);
-        }
-
-        if (res <0 && STAT_FAILED_REQUESTS >= 0)
-            STATS_INT64_INC(STAT_FAILED_REQUESTS,1);
-        else if (req->return_code == EC_204) {
-            STATS_INT64_INC(STAT_ALLOW204, 1);
-            if (srv_xdata)
-                STATS_INT64_INC(srv_xdata->stat_allow204, 1);
-        }
+    if (req->return_code != EC_404 && req->current_service_mod)
+        srv_xdata = service_data(req->current_service_mod);
+    else
+        srv_xdata = NULL;
 
 
-        if (STAT_BYTES_IN >= 0) STATS_KBS_INC(STAT_BYTES_IN, req->bytes_in);
-        if (STAT_BYTES_OUT >= 0) STATS_KBS_INC(STAT_BYTES_OUT, req->bytes_out);
-        if (STAT_HTTP_BYTES_IN >= 0) STATS_KBS_INC(STAT_HTTP_BYTES_IN, req->http_bytes_in);
-        if (STAT_HTTP_BYTES_OUT >= 0) STATS_KBS_INC(STAT_HTTP_BYTES_OUT, req->http_bytes_out);
-        if (STAT_BODY_BYTES_IN >= 0) STATS_KBS_INC(STAT_BODY_BYTES_IN, req->body_bytes_in);
-        if (STAT_BODY_BYTES_OUT >= 0) STATS_KBS_INC(STAT_BODY_BYTES_OUT, req->body_bytes_out);
+    ci_stat_item_t stats[50]; /*50 should be enough*/
+    int indx = 0;
+    stats[indx++] = (ci_stat_item_t){CI_STAT_INT64_T, STAT_REQUESTS,1};
 
-        if (srv_xdata) {
-            if (srv_xdata->stat_bytes_in >= 0)
-                STATS_KBS_INC(srv_xdata->stat_bytes_in, req->bytes_in);
-            if (srv_xdata->stat_bytes_out >= 0)
-                STATS_KBS_INC(srv_xdata->stat_bytes_out, req->bytes_out);
-            if (srv_xdata->stat_http_bytes_in >= 0)
-                STATS_KBS_INC(srv_xdata->stat_http_bytes_in, req->http_bytes_in);
-            if (srv_xdata->stat_http_bytes_out >= 0)
-                STATS_KBS_INC(srv_xdata->stat_http_bytes_out, req->http_bytes_out);
-            if (srv_xdata->stat_body_bytes_in >= 0)
-                STATS_KBS_INC(srv_xdata->stat_body_bytes_in, req->body_bytes_in);
-            if (srv_xdata->stat_body_bytes_out >= 0)
-                STATS_KBS_INC(srv_xdata->stat_body_bytes_out, req->body_bytes_out);
-        }
-        STATS_UNLOCK();
+    if (req->type == ICAP_REQMOD) {
+        stats[indx++] = (ci_stat_item_t){CI_STAT_INT64_T, STAT_REQMODS, 1};
+        if (srv_xdata)
+            stats[indx++] = (ci_stat_item_t){CI_STAT_INT64_T, srv_xdata->stat_reqmods, 1};
+    } else if (req->type == ICAP_RESPMOD) {
+        stats[indx++] = (ci_stat_item_t){CI_STAT_INT64_T, STAT_RESPMODS, 1};
+        if (srv_xdata)
+            stats[indx++] = (ci_stat_item_t){CI_STAT_INT64_T, srv_xdata->stat_respmods, 1};
+    } else if (req->type == ICAP_OPTIONS) {
+        stats[indx++] = (ci_stat_item_t){CI_STAT_INT64_T, STAT_OPTIONS, 1};
+        if (srv_xdata)
+            stats[indx++] = (ci_stat_item_t){CI_STAT_INT64_T, srv_xdata->stat_options, 1};
     }
+
+    if (res <0 && STAT_FAILED_REQUESTS >= 0)
+        stats[indx++] = (ci_stat_item_t){CI_STAT_INT64_T, STAT_FAILED_REQUESTS, 1};
+    else if (req->return_code == EC_204) {
+        stats[indx++] = (ci_stat_item_t){CI_STAT_INT64_T, STAT_ALLOW204, 1};
+        if (srv_xdata)
+            stats[indx++] = (ci_stat_item_t){CI_STAT_INT64_T, srv_xdata->stat_allow204, 1};
+    }
+
+    if (STAT_BYTES_IN >= 0)
+        stats[indx++] = (ci_stat_item_t){CI_STAT_KBS_T, STAT_BYTES_IN, req->bytes_in};
+    if (STAT_BYTES_OUT >= 0)
+        stats[indx++] = (ci_stat_item_t){CI_STAT_KBS_T, STAT_BYTES_OUT, req->bytes_out};
+    if (STAT_HTTP_BYTES_IN >= 0)
+        stats[indx++] = (ci_stat_item_t){CI_STAT_KBS_T, STAT_HTTP_BYTES_IN, req->http_bytes_in};
+    if (STAT_HTTP_BYTES_OUT >= 0)
+        stats[indx++] = (ci_stat_item_t){CI_STAT_KBS_T, STAT_HTTP_BYTES_OUT, req->http_bytes_out};
+    if (STAT_BODY_BYTES_IN >= 0)
+        stats[indx++] = (ci_stat_item_t){CI_STAT_KBS_T, STAT_BODY_BYTES_IN, req->body_bytes_in};
+    if (STAT_BODY_BYTES_OUT >= 0)
+        stats[indx++] = (ci_stat_item_t){CI_STAT_KBS_T, STAT_BODY_BYTES_OUT, req->body_bytes_out};
+
+    if (srv_xdata) {
+        if (srv_xdata->stat_bytes_in >= 0)
+            stats[indx++] = (ci_stat_item_t){CI_STAT_KBS_T, srv_xdata->stat_bytes_in, req->bytes_in};
+        if (srv_xdata->stat_bytes_out >= 0)
+            stats[indx++] = (ci_stat_item_t){CI_STAT_KBS_T, srv_xdata->stat_bytes_out, req->bytes_out};
+        if (srv_xdata->stat_http_bytes_in >= 0)
+            stats[indx++] = (ci_stat_item_t){CI_STAT_KBS_T, srv_xdata->stat_http_bytes_in, req->http_bytes_in};
+        if (srv_xdata->stat_http_bytes_out >= 0)
+            stats[indx++] = (ci_stat_item_t){CI_STAT_KBS_T, srv_xdata->stat_http_bytes_out, req->http_bytes_out};
+        if (srv_xdata->stat_body_bytes_in >= 0)
+            stats[indx++] = (ci_stat_item_t){CI_STAT_KBS_T, srv_xdata->stat_body_bytes_in, req->body_bytes_in};
+        if (srv_xdata->stat_body_bytes_out >= 0)
+            stats[indx++] = (ci_stat_item_t){CI_STAT_KBS_T, srv_xdata->stat_body_bytes_out, req->body_bytes_out};
+    }
+    ci_stat_update(stats, indx);
 
     return res; /*Allow to log even the failed requests*/
 }
