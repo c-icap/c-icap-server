@@ -26,9 +26,19 @@ struct stat_entry_list STAT_INT64 = {NULL, 0, 0};
 struct stat_entry_list STAT_KBS = {NULL, 0, 0};
 struct stat_groups_list STAT_GROUPS = {NULL, 0, 0};;
 
+struct stat_area {
+    ci_thread_mutex_t mtx;
+    void (*release_mem)(void *);
+    struct stat_memblock *mem_block;
+};
 struct stat_area *STATS = NULL;
 
 #define STEP 128
+
+static struct stat_area * ci_stat_area_construct(void *mem_block, int size, void (*release_mem)(void *));
+static void ci_stat_area_destroy(struct stat_area  *area);
+static void ci_stat_area_reset(struct stat_area *area);
+static void ci_stat_area_merge(struct stat_area *dest, struct stat_area *src);
 
 int ci_stat_memblock_size(void)
 {
@@ -352,15 +362,5 @@ void ci_stat_memblock_merge(struct stat_memblock *dest_block, struct stat_memblo
         dest_block->counterskbs[i].kb += (dest_block->counterskbs[i].bytes >> 10);
         dest_block->counterskbs[i].bytes &= 0x3FF;
     }
-}
-
-
-
-void ci_stat_area_merge(struct stat_area *dest, struct stat_area *src)
-{
-    if (!dest->mem_block || !src->mem_block)
-        return;
-
-    ci_stat_memblock_merge(dest->mem_block, src->mem_block);
 }
 

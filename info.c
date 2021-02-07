@@ -408,7 +408,7 @@ int build_statistics(struct info_req_data *info_data)
             if (gid == STAT_KBS.entries[k].gid) {
                 sz = snprintf(buf, LOCAL_BUF_SIZE, tmpl->statline_tmpl_kbs,
                               STAT_KBS.entries[k].label,
-                              info_data->collect_stats->counterskbs[k]);
+                              info_data->collect_stats->counterskbs[k].kb);
                 if (sz > LOCAL_BUF_SIZE)
                     sz = LOCAL_BUF_SIZE;
                 ci_membuf_write(info_data->body,buf, sz, 0);

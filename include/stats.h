@@ -114,13 +114,6 @@ struct stat_memblock {
     kbs_t *counterskbs;
 };
 
-struct stat_area {
-    ci_thread_mutex_t mtx;
-    void (*release_mem)(void *);
-    struct stat_memblock *mem_block;
-};
-
-
 struct stat_entry {
     char *label;
     int type;
@@ -150,11 +143,6 @@ CI_DECLARE_FUNC(void) ci_stat_entry_release_lists();
 CI_DECLARE_FUNC(void) ci_stat_attach_mem(void *mem_block,
         int size,void (*release_mem)(void *));
 CI_DECLARE_FUNC(void) ci_stat_release();
-
-CI_DECLARE_FUNC(struct stat_area *) ci_stat_area_construct(void *mem_block, int size, void (*release_mem)(void *));
-CI_DECLARE_FUNC(void) ci_stat_area_destroy(struct stat_area  *area);
-CI_DECLARE_FUNC(void) ci_stat_area_reset(struct stat_area *area);
-CI_DECLARE_FUNC(void) ci_stat_area_merge(struct stat_area *dest, struct stat_area *src);
 
 /*Stats memblocks low level functions*/
 CI_DECLARE_FUNC(void) ci_stat_memblock_merge(struct stat_memblock *dest_block, struct stat_memblock *mem_block);
