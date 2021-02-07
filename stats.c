@@ -38,7 +38,6 @@ struct stat_area *STATS = NULL;
 static struct stat_area * ci_stat_area_construct(void *mem_block, int size, void (*release_mem)(void *));
 static void ci_stat_area_destroy(struct stat_area  *area);
 static void ci_stat_area_reset(struct stat_area *area);
-static void ci_stat_area_merge(struct stat_area *dest, struct stat_area *src);
 
 int ci_stat_memblock_size(void)
 {
