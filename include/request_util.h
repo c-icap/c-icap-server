@@ -372,6 +372,45 @@ CI_DECLARE_FUNC(const char *) ci_icap_add_xheader(ci_request_t *req, const char 
  */
 CI_DECLARE_FUNC(int) ci_icap_append_xheaders(ci_request_t *req, ci_headers_list_t *headers);
 
+/**
+ \ingroup REQUEST
+ \brief Returns the ICAP request headers.
+ \param req is a pointer to the current ICAP request object.
+ \return Pointer to the ICAP request headers.
+*/
+static inline ci_headers_list_t *ci_icap_request_headers(ci_request_t *req)
+{
+    return req ? req->request_header : NULL;
+}
+
+/**
+ \ingroup REQUEST
+ \brief Returns the ICAP response headers.
+ \param req is a pointer to the current ICAP request object.
+ \return Pointer to the ICAP response headers or NULL if thy are not build yet.
+*/
+static inline ci_headers_list_t *ci_icap_response_headers(ci_request_t *req)
+{
+    return req ? req->response_header : NULL;
+}
+
+/**
+ \ingroup REQUEST
+ \brief Get the value of the requested header from the ICAP request headers.
+ \param req is a pointer to the current ICAP request object.
+ \param head_name is a string contains the header name
+ \return A string with the header value on success NULL otherwise
+*/
+CI_DECLARE_FUNC(const char *) ci_icap_request_get_header(ci_request_t *req, const char *header);
+
+/**
+ \ingroup REQUEST
+ \brief Get the value of the requested header from the ICAP response headers.
+ \param req is a pointer to the current ICAP request object.
+ \param head_name is a string contains the header name
+ \return A string with the header value on success NULL otherwise
+*/
+CI_DECLARE_FUNC(const char *) ci_icap_response_get_header(ci_request_t *req, const char *header);
 
 #ifdef __CI_COMPAT
 #define ci_respmod_headers           ci_http_response_headers

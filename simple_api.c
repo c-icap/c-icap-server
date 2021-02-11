@@ -251,6 +251,20 @@ int ci_icap_append_xheaders(ci_request_t *req,ci_headers_list_t *headers)
     return ci_headers_addheaders(req->xheaders, headers);
 }
 
+CI_DECLARE_FUNC(const char *) ci_icap_request_get_header(ci_request_t *req, const char *header)
+{
+    if (req && req->request_header)
+        return ci_headers_value(req->request_header, header);
+    return NULL;
+}
+
+CI_DECLARE_FUNC(const char *) ci_icap_response_get_header(ci_request_t *req, const char *header)
+{
+    if (req && req->response_header)
+        return ci_headers_value(req->response_header, header);
+    return NULL;
+}
+
 #define header_end(e) (e == '\0' || e == '\n' || e == '\r')
 int ci_http_request_url(ci_request_t * req, char *buf, int buf_size)
 {
