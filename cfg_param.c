@@ -1127,6 +1127,7 @@ void system_shutdown()
     release_services();
     release_modules();
     ci_dlib_closeall();
+    release_body_system();
 
     /*
         Release other subsystems
