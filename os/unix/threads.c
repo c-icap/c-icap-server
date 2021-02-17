@@ -112,6 +112,8 @@ static void del_mutex(void *pmutex)
                 mutexes = mutexes->next;
             else
                 p->next = m->next;
+            if (m == last)
+                last = p;
             free(m);
             pthread_mutex_unlock(&mutexes_lock);
             return;
