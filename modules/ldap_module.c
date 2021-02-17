@@ -727,7 +727,7 @@ void *ldap_table_search(struct ci_lookup_table *table, void *key, void ***vals)
                     }
 
                     ci_debug_printf(8, "Retrieve attribute:%s. Values: ", attrname);
-                    if (attrs = ldap_get_values_len(ld, entry, attrname)) {
+                    if ((attrs = ldap_get_values_len(ld, entry, attrname))) {
                         for (i = 0; attrs[i] != NULL ; ++i) {
                             //OpenLdap nowhere documents that the result is NULL terminated.
                             // copy to an intermediate buffer and terminate it before store to vector
