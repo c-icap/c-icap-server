@@ -25,6 +25,7 @@
 #include "cfg_param.h"
 #include "debug.h"
 #include "access.h"
+#include "acl.h"
 #include "net_io.h"
 
 

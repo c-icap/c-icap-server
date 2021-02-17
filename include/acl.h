@@ -29,6 +29,12 @@ extern "C"
 {
 #endif
 
+#define CI_ACCESS_ALLOW        1
+#define CI_ACCESS_UNKNOWN      0
+#define CI_ACCESS_DENY        -1
+#define CI_ACCESS_PARTIAL     -2
+#define CI_ACCESS_HTTP_AUTH   -3
+
 /**
  \defgroup ACL Access lists API
  \ingroup API

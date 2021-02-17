@@ -474,6 +474,23 @@ void *get_time_data(ci_request_t *req, char *param)
 /********************************************************************************/
 /*   ci_access_entry api   functions                                            */
 
+static const char *ci_access_string(int type) {
+    switch (type) {
+    case CI_ACCESS_ALLOW:
+        return "allow";
+    case CI_ACCESS_UNKNOWN:
+        return "undecided";
+    case CI_ACCESS_DENY:
+        return "deny";
+    case CI_ACCESS_PARTIAL:
+        return "partial";
+    case CI_ACCESS_HTTP_AUTH:
+        return "[http authentication required]";
+    default:
+        return "unknown";
+    }
+}
+
 ci_access_entry_t *ci_access_entry_new(ci_access_entry_t **list, int type)
 {
     ci_access_entry_t *access_entry, *cur;
@@ -778,10 +795,10 @@ int request_match_specslist(ci_request_t *req, const struct ci_specs_list *spec_
         type = spec->type;
         test_data = type->get_test_data(req, spec->parameter);
         if (!test_data) {
-            ci_debug_printf(9,"No data to test for %s/%s, ignore\n", type->name, spec->parameter);
+            ci_debug_printf(3, "No data to test for %s/%s, ignore\n", type->name, spec->parameter);
             return 0;
         }
-
+        ci_debug_printf(9, "Will check spec_list:%p acl %s of type '%s{%s}', against data %p\n", spec_list, spec->name, type->name, spec->parameter, test_data);
         check_result = spec_data_check(spec, test_data);
         if (check_result == 0 && negate == 0)
             ret = 0;
@@ -807,10 +824,12 @@ int ci_access_entry_match_request(ci_access_entry_t *access_entry, ci_request_t 
         return CI_ACCESS_ALLOW;
 
     while (access_entry) {
-        ci_debug_printf(9,"Check request with an access entry\n");
+        ci_debug_printf(9, "Check request with the access entry %p/%s\n", access_entry, ci_access_string(access_entry->type));
         spec_list = access_entry->spec_list;
-        if (spec_list && spec_list->spec && request_match_specslist(req, spec_list))
+        if (spec_list && spec_list->spec && request_match_specslist(req, spec_list)) {
+            ci_debug_printf(9, "Check access entry %p, spec_list %p result: %s\n", access_entry, spec_list, ci_access_string(access_entry->type));
             return access_entry->type;
+        }
 
         access_entry = access_entry->next;
     }

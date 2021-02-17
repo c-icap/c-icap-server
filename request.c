@@ -24,6 +24,7 @@
 #include "request_util.h"
 #include "service.h"
 #include "access.h"
+#include "acl.h"
 #include "util.h"
 #include "cfg_param.h"
 #include "stats.h"
