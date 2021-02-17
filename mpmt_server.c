@@ -941,7 +941,7 @@ void child_main(int pipefd)
             child_data->to_be_killed = IMMEDIATELY;
         } else if (ret & ci_wait_for_read) { /*data input */
             bytes = ci_read_nonblock(pipefd, buf, 511);
-            if (bytes == 0) {
+            if (bytes <= 0) {
                 ci_debug_printf(1,
                                 "Parent closed the pipe connection! Going to term immediately!\n");
                 child_data->to_be_killed = IMMEDIATELY;
