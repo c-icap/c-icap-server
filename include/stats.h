@@ -140,16 +140,17 @@ CI_DECLARE_FUNC(int) ci_stat_memblock_size(void);
 
 CI_DECLARE_FUNC(void) ci_stat_entry_release_lists();
 
-CI_DECLARE_FUNC(void) ci_stat_attach_mem(void *mem_block,
-        int size,void (*release_mem)(void *));
+CI_DECLARE_FUNC(int) ci_stat_attach_mem(void *mem, int size,void (*release_mem)(void *));
+
 CI_DECLARE_FUNC(void) ci_stat_release();
 
 /*Stats memblocks low level functions*/
 CI_DECLARE_FUNC(void) ci_stat_memblock_merge(struct stat_memblock *dest_block, struct stat_memblock *mem_block);
 CI_DECLARE_FUNC(void) ci_stat_memblock_reset(struct stat_memblock *block);
 
+CI_DECLARE_FUNC(struct stat_memblock *) ci_stat_memblock_init(void *mem, size_t mem_size);
+
 /*DO NOT USE the folllowings are only for internal c-icap server use!*/
-CI_DECLARE_FUNC(void) stat_memblock_fix(struct stat_memblock *mem_block);
 CI_DECLARE_FUNC(void) stat_memblock_reconstruct(struct stat_memblock *mem_block);
 
 #ifdef __cplusplus

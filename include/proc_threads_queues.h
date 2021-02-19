@@ -63,7 +63,7 @@ typedef struct child_shared_data {
     int to_be_killed;
     int father_said;
     ci_pipe_t pipe;
-    struct stat_memblock *stats;
+    void *stats;
     int stats_size;
 } child_shared_data_t;
 

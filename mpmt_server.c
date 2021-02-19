@@ -887,7 +887,8 @@ void child_main(int pipefd)
     ci_thread_mutex_init(&counters_mtx);
     ci_thread_cond_init(&free_server_cond);
 
-    ci_stat_attach_mem(child_data->stats, child_data->stats_size, NULL);
+    ret = ci_stat_attach_mem(child_data->stats, child_data->stats_size, NULL);
+    assert(ret);
 
     threads_list =
         (server_decl_t **) malloc((CI_CONF.THREADS_PER_CHILD + 1) *
@@ -1245,8 +1246,7 @@ int start_server()
     child_data->idle = 1;
     child_data->stats_size = ci_stat_memblock_size();
     child_data->stats = malloc(child_data->stats_size);
-    child_data->stats->sig = MEMBLOCK_SIG;
-    ci_stat_attach_mem(child_data->stats, child_data->stats_size, NULL);
+    assert(child_data->stats != NULL);
     child_main(0);
     ci_proc_mutex_destroy(&accept_mutex);
     destroy_childs_queue(childs_queue);

@@ -119,7 +119,6 @@ int wait_for_queue(struct connections_queue *q)
 struct childs_queue *create_childs_queue(int size)
 {
     int ret, i;
-    struct stat_memblock *mem_block;
     struct childs_queue *q = malloc(sizeof(struct childs_queue));
     if (!q) {
         log_server(NULL, "Error allocation memory for children-queue data\n");
@@ -139,20 +138,44 @@ struct childs_queue *create_childs_queue(int size)
     }
 
     q->size = size;
+    /*
+      The memory area with statistics memory blocks where share statistics
+      for c-icap server are stored is located after the q->childs array of
+      child_shared_data_t objects.
+     */
     q->stats_area = (void *)(q->childs) + sizeof(child_shared_data_t) * q->size;
-    for (i = 0; i < q->size; i++) {
-        mem_block = q->stats_area + i * q->stats_block_size;
-        mem_block->sig = MEMBLOCK_SIG;
+    /*
+      Children statistics are located to the the following position:
+        (q->stats_area + i * q->stats_block_size)
+      Where 'i' is a number between 0 and (KidsNumber -1)
+      KidsNumber is the number of children equal to q->size.
+
+      To access each child statistics area you need something like the
+      following:
+      for (i = 0; i < q->size; i++) {
+          struct stat_memblock *mb = q->stats_area + i * q->stats_block_size;
+      }
+
+      The memory blocks for children statistics will be initialized by each
+      child uses the corresponding memory block.
+    */
+
+    /*
+      The memory for server history statistics, where the statistics from
+      exited children are accumulated, is located at:
+          (q->stats_area + q->size * q->stats_block_size)
+    */
+    q->stats_history = ci_stat_memblock_init((void *)(q->stats_area + q->size * q->stats_block_size), q->stats_block_size);
+    if (!q->stats_history) {
+        ci_shared_mem_destroy(&(q->shmid));
+        log_server(NULL, "Failed to initialize statistics area (statistics history area)");
+        free(q);
+        return NULL;
     }
-    q->stats_history = q->stats_area + q->size * q->stats_block_size;
-    q->stats_history->sig = MEMBLOCK_SIG;
 
     q->srv_stats = (struct server_statistics *)(q->stats_area + q->size * q->stats_block_size + q->stats_block_size);
     ci_debug_printf(2, "Create shared mem, qsize=%d stat_block_size=%d children shared data of size:%d\n",
                     q->size,  q->stats_block_size, (int)sizeof(child_shared_data_t) * q->size);
-
-    stat_memblock_fix(q->stats_history);
-    ci_stat_memblock_reset(q->stats_history);
 
     for (i = 0; i < q->size; i++) {
         q->childs[i].pid = 0;
@@ -273,7 +296,6 @@ child_shared_data_t *register_child(struct childs_queue * q,
             q->childs[i].stats = (void *)(q->childs) +
                                  sizeof(child_shared_data_t) * q->size +
                                  i * (q->stats_block_size);
-            assert(q->childs[i].stats->sig == MEMBLOCK_SIG);
             q->childs[i].stats_size = q->stats_block_size;
             ci_proc_mutex_unlock(&(q->queue_mtx));
             return &(q->childs[i]);

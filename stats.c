@@ -37,7 +37,9 @@ struct stat_area *STATS = NULL;
 
 static struct stat_area * ci_stat_area_construct(void *mem_block, int size, void (*release_mem)(void *));
 static void ci_stat_area_destroy(struct stat_area  *area);
+#if 0
 static void ci_stat_area_reset(struct stat_area *area);
+#endif
 
 int ci_stat_memblock_size(void)
 {
@@ -155,12 +157,13 @@ void ci_stat_entry_release_lists()
     stat_entry_release_list(&STAT_KBS);
 }
 
-void ci_stat_attach_mem(void *mem_block,int size,void (*release_mem)(void *))
+int ci_stat_attach_mem(void *mem_block, int size, void (*release_mem)(void *))
 {
     if (STATS)
-        return;
+        return 1;
 
     STATS = ci_stat_area_construct(mem_block, size, release_mem);
+    return (STATS != NULL);
 }
 
 void ci_stat_release()
@@ -251,32 +254,20 @@ struct stat_area *ci_stat_area_construct(void *mem_block, int size, void (*relea
     if (!area)
         return NULL;
 
-    assert(((struct stat_memblock *)mem_block)->sig == MEMBLOCK_SIG);
-
     ci_thread_mutex_init(&(area->mtx));
-    area->mem_block = mem_block;
+    area->mem_block = ci_stat_memblock_init(mem_block, size);
     area->release_mem = release_mem;
-    area->mem_block->counters64 = mem_block + _CI_ALIGN(sizeof(struct stat_memblock));
-    area->mem_block->counterskbs = mem_block + _CI_ALIGN(sizeof(struct stat_memblock)) + STAT_INT64.entries_num*sizeof(uint64_t);
-    area->mem_block->counters64_size =  STAT_INT64.entries_num;
-    area->mem_block->counterskbs_size = STAT_KBS.entries_num;
-    ci_stat_area_reset(area);
     return area;
 }
 
+#if 0
 void ci_stat_area_reset(struct stat_area *area)
 {
-    int i;
-
     ci_thread_mutex_lock(&(area->mtx));
-    for (i = 0; i < area->mem_block->counters64_size; i++)
-        area->mem_block->counters64[i] = 0;
-    for (i = 0; i < area->mem_block->counterskbs_size; i++) {
-        area->mem_block->counterskbs[i].kb = 0;
-        area->mem_block->counterskbs[i].bytes = 0;
-    }
+    ci_stat_memblock_reset(area->mem_block);
     ci_thread_mutex_unlock(&(area->mtx));
 }
+#endif
 
 
 void ci_stat_area_destroy(struct stat_area  *area)
@@ -316,14 +307,21 @@ void ci_stat_area_kbs_inc(struct stat_area *area,int ID, int count)
 }
 
 /*Make a memblock area from continues memory block*/
-void stat_memblock_fix(struct stat_memblock *mem_block)
+struct stat_memblock * ci_stat_memblock_init(void *mem, size_t mem_size)
 {
-    assert(mem_block->sig == MEMBLOCK_SIG);
+    struct stat_memblock *mem_block = mem;
+
+    if (mem_size < ci_stat_memblock_size())
+        return NULL;
+
+    mem_block->sig = MEMBLOCK_SIG;
     mem_block->counters64_size =  STAT_INT64.entries_num;
     mem_block->counterskbs_size = STAT_KBS.entries_num;
     mem_block->counters64 = (void *)mem_block + _CI_ALIGN(sizeof(struct stat_memblock));
     mem_block->counterskbs = (void *)mem_block + _CI_ALIGN(sizeof(struct stat_memblock))
                              + mem_block->counters64_size*sizeof(uint64_t);
+    ci_stat_memblock_reset(mem_block);
+    return mem_block;
 }
 
 /*Reconstruct a memblock which is located to a continues memory block*/

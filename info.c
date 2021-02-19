@@ -109,10 +109,12 @@ void *info_init_request_data(ci_request_t * req)
             info_data->txt_mode = 1;
     }
 
-    info_data->collect_stats = malloc(ci_stat_memblock_size());
-    info_data->collect_stats->sig = 0xFAFA;
-    stat_memblock_fix(info_data->collect_stats);
-    ci_stat_memblock_reset(info_data->collect_stats);
+    void *mem = malloc(ci_stat_memblock_size());
+    info_data->collect_stats = mem ? ci_stat_memblock_init(mem, ci_stat_memblock_size()) : NULL;
+    if (!info_data->collect_stats) {
+        info_release_request_data((void *)info_data);
+        info_data = NULL;
+    }
 
     return info_data;
 }
