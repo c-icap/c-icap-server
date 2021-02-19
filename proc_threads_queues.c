@@ -328,8 +328,6 @@ int remove_child(struct childs_queue *q, process_pid_t pid, int status)
                 q->childs[i].pipe = -1;
             }
             child_stats = q->stats_area + i * (q->stats_block_size);
-            /*re-arange pointers in childs memblock*/
-            stat_memblock_reconstruct(child_stats);
             ci_stat_memblock_merge(q->stats_history, child_stats);
             q->srv_stats->closed_childs++;
             if (status)

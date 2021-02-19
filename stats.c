@@ -324,15 +324,6 @@ struct stat_memblock * ci_stat_memblock_init(void *mem, size_t mem_size)
     return mem_block;
 }
 
-/*Reconstruct a memblock which is located to a continues memory block*/
-void stat_memblock_reconstruct(struct stat_memblock *mem_block)
-{
-    assert(mem_block->sig == MEMBLOCK_SIG);
-    mem_block->counters64 = (void *)mem_block + _CI_ALIGN(sizeof(struct stat_memblock));
-    mem_block->counterskbs = (void *)mem_block + _CI_ALIGN(sizeof(struct stat_memblock))
-                             + mem_block->counters64_size*sizeof(uint64_t);
-}
-
 void ci_stat_memblock_reset(struct stat_memblock *block)
 {
     int i;
@@ -344,19 +335,40 @@ void ci_stat_memblock_reset(struct stat_memblock *block)
     }
 }
 
-void ci_stat_memblock_merge(struct stat_memblock *dest_block, struct stat_memblock *mem_block)
+void ci_stat_memblock_merge(struct stat_memblock *dest_block, struct stat_memblock *stats)
 {
     int i;
-    if (!dest_block || !mem_block)
+    if (!dest_block || !stats)
         return;
 
-    for (i = 0; i < dest_block->counters64_size && i < mem_block->counters64_size; i++)
-        dest_block->counters64[i] += mem_block->counters64[i];
+    /* After a reconfigure we may have more counters. */
+    assert(dest_block->counters64_size >= stats->counters64_size);
+    assert(dest_block->counterskbs_size >= stats->counterskbs_size);
+    assert(dest_block->sig == MEMBLOCK_SIG);
+    assert(stats->sig == MEMBLOCK_SIG);
 
-    for (i = 0; i < dest_block->counterskbs_size && i < mem_block->counterskbs_size; i++) {
-        dest_block->counterskbs[i].kb += mem_block->counterskbs[i].kb;
-        dest_block->counterskbs[i].bytes += mem_block->counterskbs[i].bytes;
-        dest_block->counterskbs[i].kb += (dest_block->counterskbs[i].bytes >> 10);
+    /*
+      We may merge statistics from an area which is stored in a shared memory
+      and controlled by a different process. We can not just access a statistic
+      item using 'stats' arrays.
+      Use a local struct stat_memblock object with adjusted pointers to
+      statistics arrays.
+    */
+    struct stat_memblock copy_stats;
+    copy_stats.sig = MEMBLOCK_SIG;
+    copy_stats.counters64_size = stats->counters64_size;
+    copy_stats.counterskbs_size = stats->counterskbs_size;
+    copy_stats.counters64 = (void *)stats + _CI_ALIGN(sizeof(struct stat_memblock));
+    copy_stats.counterskbs = (void *)stats + _CI_ALIGN(sizeof(struct stat_memblock))
+                             + stats->counters64_size*sizeof(uint64_t);
+
+    for (i = 0; i < copy_stats.counters64_size; i++)
+        dest_block->counters64[i] += copy_stats.counters64[i];
+
+    for (i = 0; i < copy_stats.counterskbs_size; i++) {
+        dest_block->counterskbs[i].kb += copy_stats.counterskbs[i].kb;
+        dest_block->counterskbs[i].bytes += copy_stats.counterskbs[i].bytes;
+        dest_block->counterskbs[i].kb += (copy_stats.counterskbs[i].bytes >> 10);
         dest_block->counterskbs[i].bytes &= 0x3FF;
     }
 }

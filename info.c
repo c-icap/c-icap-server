@@ -192,7 +192,7 @@ void fill_queue_statistics(struct childs_queue *q, struct info_req_data *info_da
 
     int i;
     int requests = 0;
-    struct stat_memblock *stats, copy_stats;
+    struct stat_memblock *stats;
     struct server_statistics *srv_stats;
     if (!q->childs)
         return;
@@ -208,13 +208,7 @@ void fill_queue_statistics(struct childs_queue *q, struct info_req_data *info_da
             requests += q->childs[i].requests;
 
             stats = q->stats_area + i * (q->stats_block_size);
-            copy_stats.counters64_size = stats->counters64_size;
-            copy_stats.counterskbs_size = stats->counterskbs_size;
-            copy_stats.counters64 = (void *)stats + _CI_ALIGN(sizeof(struct stat_memblock));
-            copy_stats.counterskbs = (void *)stats + _CI_ALIGN(sizeof(struct stat_memblock))
-                                     + stats->counters64_size*sizeof(uint64_t);
-
-            ci_stat_memblock_merge(info_data->collect_stats, &copy_stats);
+            ci_stat_memblock_merge(info_data->collect_stats, stats);
         } else if (q->childs[i].pid != 0 && q->childs[i].to_be_killed) {
             if (info_data->closing_child_pids)
                 info_data->closing_child_pids[info_data->closing_childs] = q->childs[i].pid;
@@ -223,13 +217,7 @@ void fill_queue_statistics(struct childs_queue *q, struct info_req_data *info_da
     }
     /*Merge history data*/
     stats = q->stats_area + q->size * q->stats_block_size;
-    copy_stats.counters64_size = stats->counters64_size;
-    copy_stats.counterskbs_size = stats->counterskbs_size;
-    copy_stats.counters64 = (void *)stats + _CI_ALIGN(sizeof(struct stat_memblock));
-    copy_stats.counterskbs = (void *)stats + _CI_ALIGN(sizeof(struct stat_memblock))
-                             + stats->counters64_size*sizeof(uint64_t);
-
-    ci_stat_memblock_merge(info_data->collect_stats, &copy_stats);
+    ci_stat_memblock_merge(info_data->collect_stats, stats);
 
     srv_stats =
         (struct server_statistics *)(q->stats_area + q->size * q->stats_block_size + q->stats_block_size);
