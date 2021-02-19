@@ -257,8 +257,8 @@ struct stats_tmpl txt_tmpl = {
     "%s\n",
     "\t %s\n",
     "\n\n",
-    "%s : %lld\n",
-    "%s : %lld Kbs %d bytes\n"
+    "%s : %llu\n",
+    "%s : %llu Kbs %u bytes\n"
 };
 
 struct stats_tmpl html_tmpl = {
@@ -281,8 +281,8 @@ struct stats_tmpl html_tmpl = {
     "<TABLE> <TR><TH>%s</TH></TR>\n",
     "<TR><TD>%s</TD></TR>\n",
     "</TABLE>\n",
-    "<TR><TH>%s:</TH><TD>  %lld</TD>\n",
-    "<TR><TH>%s:</TH><TD>  %lld Kbs %d bytes</TD>\n"
+    "<TR><TH>%s:</TH><TD>  %llu</TD>\n",
+    "<TR><TH>%s:</TH><TD>  %llu Kbs %u bytes</TD>\n"
 };
 
 #define LOCAL_BUF_SIZE 1024
@@ -398,7 +398,8 @@ int build_statistics(struct info_req_data *info_data)
             if (gid == STAT_KBS.entries[k].gid) {
                 sz = snprintf(buf, LOCAL_BUF_SIZE, tmpl->statline_tmpl_kbs,
                               STAT_KBS.entries[k].label,
-                              info_data->collect_stats->counterskbs[k].kb);
+                              info_data->collect_stats->counterskbs[k].kb,
+                              info_data->collect_stats->counterskbs[k].bytes);
                 if (sz > LOCAL_BUF_SIZE)
                     sz = LOCAL_BUF_SIZE;
                 ci_membuf_write(info_data->body,buf, sz, 0);
