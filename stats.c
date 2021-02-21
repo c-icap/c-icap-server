@@ -22,6 +22,24 @@
 #include "stats.h"
 #include <assert.h>
 
+struct stat_entry {
+    char *label;
+    int type;
+    int gid;
+};
+
+struct stat_entry_list {
+    struct stat_entry *entries;
+    int size;
+    int entries_num;
+};
+
+struct stat_groups_list {
+    char **groups;
+    int size;
+    int entries_num;
+};
+
 struct stat_entry_list STAT_INT64 = {NULL, 0, 0};
 struct stat_entry_list STAT_KBS = {NULL, 0, 0};
 struct stat_groups_list STAT_GROUPS = {NULL, 0, 0};;

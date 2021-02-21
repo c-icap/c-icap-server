@@ -123,24 +123,6 @@ struct stat_memblock {
     kbs_t *counterskbs;
 };
 
-struct stat_entry {
-    char *label;
-    int type;
-    int gid;
-};
-
-struct stat_entry_list {
-    struct stat_entry *entries;
-    int size;
-    int entries_num;
-};
-
-struct stat_groups_list {
-    char **groups;
-    int size;
-    int entries_num;
-};
-
 CI_DECLARE_FUNC(int) ci_stat_memblock_size(void);
 
 CI_DECLARE_FUNC(void) ci_stat_entry_release_lists();
