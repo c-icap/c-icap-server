@@ -40,8 +40,7 @@ struct stat_groups_list {
     int entries_num;
 };
 
-struct stat_entry_list STAT_INT64 = {NULL, 0, 0};
-struct stat_entry_list STAT_KBS = {NULL, 0, 0};
+struct stat_entry_list STAT_STATS = {NULL, 0, 0};
 struct stat_groups_list STAT_GROUPS = {NULL, 0, 0};;
 
 struct stat_area {
@@ -61,7 +60,7 @@ static void ci_stat_area_reset(struct stat_area *area);
 
 int ci_stat_memblock_size(void)
 {
-    return _CI_ALIGN(sizeof(struct stat_memblock))+STAT_INT64.entries_num*sizeof(uint64_t)+STAT_KBS.entries_num*sizeof(kbs_t);
+    return _CI_ALIGN(sizeof(struct stat_memblock)) + STAT_STATS.entries_num * sizeof(ci_stat_value_t);
 }
 
 int stat_entry_by_name(struct stat_entry_list *list, const char *label);
@@ -161,18 +160,15 @@ int ci_stat_entry_register(const char *label, ci_stat_type_t type, const char *g
     if (gid < 0)
         return -1;
 
-    if (type == CI_STAT_INT64_T) {
-        return stat_entry_add(&STAT_INT64, label, type, gid);
-    } else if (type == CI_STAT_KBS_T) {
-        return stat_entry_add(&STAT_KBS, label, type, gid);
-    }
+    if (type == CI_STAT_INT64_T || type == CI_STAT_KBS_T)
+        return stat_entry_add(&STAT_STATS, label, type, gid);
+
     return -1;
 }
 
 void ci_stat_entry_release_lists()
 {
-    stat_entry_release_list(&STAT_INT64);
-    stat_entry_release_list(&STAT_KBS);
+    stat_entry_release_list(&STAT_STATS);
 }
 
 int ci_stat_attach_mem(void *mem_block, int size, void (*release_mem)(void *))
@@ -194,8 +190,8 @@ void ci_stat_release()
 
 static inline void do_update_uint64(int ID, int count)
 {
-    if (ID >= 0 && ID < STATS->mem_block->counters64_size)
-        STATS->mem_block->counters64[ID] += count;
+    if (ID >= 0 && ID < STATS->mem_block->stats_count)
+        STATS->mem_block->stats[ID].counter += count;
 }
 
 void ci_stat_uint64_inc(int ID, int count)
@@ -209,10 +205,10 @@ void ci_stat_uint64_inc(int ID, int count)
 
 static inline void do_update_kbs(int ID, int count)
 {
-    if (ID >= 0 && ID < STATS->mem_block->counterskbs_size) {
-        STATS->mem_block->counterskbs[ID].bytes += count;
-        STATS->mem_block->counterskbs[ID].kb += (STATS->mem_block->counterskbs[ID].bytes >> 10);
-        STATS->mem_block->counterskbs[ID].bytes &= 0x3FF;
+    if (ID >= 0 && ID < STATS->mem_block->stats_count) {
+        STATS->mem_block->stats[ID].kbs.bytes += count;
+        STATS->mem_block->stats[ID].kbs.kb += (STATS->mem_block->stats[ID].kbs.bytes >> 10);
+        STATS->mem_block->stats[ID].kbs.bytes &= 0x3FF;
     }
 }
 
@@ -253,8 +249,8 @@ uint64_t *ci_stat_uint64_ptr(int ID)
     if (!STATS || !STATS->mem_block)
         return NULL;
 
-    if (ID >= 0 && ID < STATS->mem_block->counters64_size)
-        return &(STATS->mem_block->counters64[ID]);
+    if (ID >= 0 && ID < STATS->mem_block->stats_count)
+        return &(STATS->mem_block->stats[ID].counter);
 
     return NULL;
 }
@@ -268,27 +264,19 @@ void ci_stat_groups_iterate(void *data, int (*group_call)(void *data, const char
     }
 }
 
+static ci_stat_value_t stat_value_zero = {.kbs = {0, 0}};
+
 void ci_stat_statistics_iterate(void *data, int groupId, int (*stat_call)(void *data, const char *label, int ID, int gId, const ci_stat_t *stat))
 {
     int ret = 0;
     int sid;
-    for (sid = 0; sid < STAT_INT64.entries_num && !ret; sid++) {
-        if (groupId < 0 || groupId == STAT_INT64.entries[sid].gid) {
+    for (sid = 0; sid < STAT_STATS.entries_num && !ret; sid++) {
+        if (groupId < 0 || groupId == STAT_STATS.entries[sid].gid) {
             ci_stat_t stat = {
-                .type = STAT_INT64.entries[sid].type,
-                .counter = (STATS && STATS->mem_block ? STATS->mem_block->counters64[sid] : 0)
+                .type = STAT_STATS.entries[sid].type,
+                .value = (STATS && STATS->mem_block ? STATS->mem_block->stats[sid] : stat_value_zero)
             };
-            ret = stat_call(data, STAT_INT64.entries[sid].label, sid, STAT_INT64.entries[sid].gid, &stat);
-        }
-    }
-    for (sid = 0; sid < STAT_KBS.entries_num && !ret; sid++) {
-        if (groupId < 0 || groupId == STAT_KBS.entries[sid].gid) {
-            static const ci_kbs_t ZeroKbs = {0, 0};
-            ci_stat_t stat = {
-                .type = STAT_KBS.entries[sid].type,
-                .kbs = (STATS && STATS->mem_block ? STATS->mem_block->counterskbs[sid] : ZeroKbs)
-            };
-            ret = stat_call(data, STAT_KBS.entries[sid].label, sid, STAT_KBS.entries[sid].gid, &stat);
+            ret = stat_call(data, STAT_STATS.entries[sid].label, sid, STAT_STATS.entries[sid].gid, &stat);
         }
     }
 }
@@ -335,10 +323,10 @@ void ci_stat_area_uint64_inc(struct stat_area *area,int ID, int count)
 {
     if (!area->mem_block)
         return;
-    if (ID < 0 || ID >= area->mem_block->counters64_size)
+    if (ID < 0 || ID >= area->mem_block->stats_count)
         return;
     ci_thread_mutex_lock(&area->mtx);
-    area->mem_block->counters64[ID] += count;
+    area->mem_block->stats[ID].counter += count;
     ci_thread_mutex_unlock(&area->mtx);
 }
 
@@ -348,13 +336,13 @@ void ci_stat_area_kbs_inc(struct stat_area *area,int ID, int count)
     if (!area->mem_block)
         return;
 
-    if (ID < 0 || ID >= area->mem_block->counterskbs_size)
+    if (ID < 0 || ID >= area->mem_block->stats_count)
         return;
 
     ci_thread_mutex_lock(&area->mtx);
-    area->mem_block->counterskbs[ID].bytes += count;
-    area->mem_block->counterskbs[ID].kb += (area->mem_block->counterskbs[ID].bytes >> 10);
-    area->mem_block->counterskbs[ID].bytes &= 0x3FF;
+    area->mem_block->stats[ID].kbs.bytes += count;
+    area->mem_block->stats[ID].kbs.kb += (area->mem_block->stats[ID].kbs.bytes >> 10);
+    area->mem_block->stats[ID].kbs.bytes &= 0x3FF;
     ci_thread_mutex_unlock(&area->mtx);
 }
 
@@ -367,24 +355,14 @@ struct stat_memblock * ci_stat_memblock_init(void *mem, size_t mem_size)
         return NULL;
 
     mem_block->sig = MEMBLOCK_SIG;
-    mem_block->counters64_size =  STAT_INT64.entries_num;
-    mem_block->counterskbs_size = STAT_KBS.entries_num;
-    mem_block->counters64 = (void *)mem_block + _CI_ALIGN(sizeof(struct stat_memblock));
-    mem_block->counterskbs = (void *)mem_block + _CI_ALIGN(sizeof(struct stat_memblock))
-                             + mem_block->counters64_size*sizeof(uint64_t);
+    mem_block->stats_count =  STAT_STATS.entries_num;
     ci_stat_memblock_reset(mem_block);
     return mem_block;
 }
 
 void ci_stat_memblock_reset(struct stat_memblock *block)
 {
-    int i;
-    for (i = 0; i < block->counters64_size; i++)
-        block->counters64[i] = 0;
-    for (i = 0; i < block->counterskbs_size; i++) {
-        block->counterskbs[i].kb = 0;
-        block->counterskbs[i].bytes = 0;
-    }
+    memset(block->stats, 0, block->stats_count * sizeof(ci_stat_value_t));
 }
 
 void ci_stat_memblock_merge(struct stat_memblock *dest_block, struct stat_memblock *stats)
@@ -394,34 +372,26 @@ void ci_stat_memblock_merge(struct stat_memblock *dest_block, struct stat_memblo
         return;
 
     /* After a reconfigure we may have more counters. */
-    assert(dest_block->counters64_size >= stats->counters64_size);
-    assert(dest_block->counterskbs_size >= stats->counterskbs_size);
+    assert(dest_block->stats_count >= stats->stats_count);
+    assert(dest_block->stats_count == STAT_STATS.entries_num);
     assert(dest_block->sig == MEMBLOCK_SIG);
     assert(stats->sig == MEMBLOCK_SIG);
 
-    /*
-      We may merge statistics from an area which is stored in a shared memory
-      and controlled by a different process. We can not just access a statistic
-      item using 'stats' arrays.
-      Use a local struct stat_memblock object with adjusted pointers to
-      statistics arrays.
-    */
-    struct stat_memblock copy_stats;
-    copy_stats.sig = MEMBLOCK_SIG;
-    copy_stats.counters64_size = stats->counters64_size;
-    copy_stats.counterskbs_size = stats->counterskbs_size;
-    copy_stats.counters64 = (void *)stats + _CI_ALIGN(sizeof(struct stat_memblock));
-    copy_stats.counterskbs = (void *)stats + _CI_ALIGN(sizeof(struct stat_memblock))
-                             + stats->counters64_size*sizeof(uint64_t);
-
-    for (i = 0; i < copy_stats.counters64_size; i++)
-        dest_block->counters64[i] += copy_stats.counters64[i];
-
-    for (i = 0; i < copy_stats.counterskbs_size; i++) {
-        dest_block->counterskbs[i].kb += copy_stats.counterskbs[i].kb;
-        dest_block->counterskbs[i].bytes += copy_stats.counterskbs[i].bytes;
-        dest_block->counterskbs[i].kb += (copy_stats.counterskbs[i].bytes >> 10);
-        dest_block->counterskbs[i].bytes &= 0x3FF;
+    for (i = 0; i < stats->stats_count; i++) {
+        switch (STAT_STATS.entries[i].type) {
+        case CI_STAT_INT64_T:
+            dest_block->stats[i].counter += stats->stats[i].counter;
+            break;
+        case CI_STAT_KBS_T:
+            dest_block->stats[i].kbs.kb += stats->stats[i].kbs.kb;
+            dest_block->stats[i].kbs.bytes += stats->stats[i].kbs.bytes;
+            dest_block->stats[i].kbs.kb += (stats->stats[i].kbs.bytes >> 10);
+            dest_block->stats[i].kbs.bytes &= 0x3FF;
+            break;
+        default:
+            /*print error?*/
+            break;
+        }
     }
 }
 

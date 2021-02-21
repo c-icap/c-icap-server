@@ -460,7 +460,7 @@ void dump_queue_statistics(struct childs_queue *q)
     int freeservers = 0;
     int used = 0;
     int requests = 0;
-    struct stat_memblock *child_stats, copy_stats;
+    struct stat_memblock *child_stats;
 
     if (!q->childs)
         return;
@@ -477,13 +477,7 @@ void dump_queue_statistics(struct childs_queue *q)
                            );
 
             child_stats = q->stats_area + i * (q->stats_block_size);
-            copy_stats.counters64_size = child_stats->counters64_size;
-            copy_stats.counterskbs_size = child_stats->counterskbs_size;
-            copy_stats.counters64 = (void *)child_stats + sizeof(struct stat_memblock);
-            copy_stats.counterskbs = (void *)child_stats + sizeof(struct stat_memblock)
-                                     + child_stats->counters64_size*sizeof(uint64_t);
-
-            ci_stat_statistics_iterate(&copy_stats, -1, print_statistics);
+            ci_stat_statistics_iterate(child_stats, -1, print_statistics);
         }
     }
     ci_debug_printf(1, "\nChildren:%d\tFree Servers:%d\tUsed Servers:%d\tRequests:%d\n",

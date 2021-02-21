@@ -106,21 +106,23 @@ typedef struct kbs {
 } kbs_t;
 typedef struct kbs ci_kbs_t;
 
-typedef struct ci_stat {
-    ci_stat_type_t type;
+typedef struct ci_stat_value {
     union {
         uint64_t counter;
         ci_kbs_t kbs;
     };
+} ci_stat_value_t;
+
+typedef struct ci_stat {
+    ci_stat_type_t type;
+    ci_stat_value_t value;
 } ci_stat_t;
 
 #define MEMBLOCK_SIG 0xFAFA
 struct stat_memblock {
     unsigned int sig;
-    int counters64_size;
-    int counterskbs_size;
-    uint64_t *counters64;
-    kbs_t *counterskbs;
+    int stats_count;
+    ci_stat_value_t stats[];
 };
 
 CI_DECLARE_FUNC(int) ci_stat_memblock_size(void);
@@ -142,15 +144,15 @@ CI_DECLARE_FUNC(struct stat_memblock *) ci_stat_memblock_init(void *mem, size_t 
 
 static inline uint64_t ci_stat_memblock_get_counter(struct stat_memblock *block, int id) {
     assert(block);
-    if (id < block->counters64_size)
-        return block->counters64[id];
+    if (id < block->stats_count)
+        return block->stats[id].counter;
     return 0;
 }
 
 static inline ci_kbs_t ci_stat_memblock_get_kbs(struct stat_memblock *block, int id) {
     assert(block);
-    if (id < block->counterskbs_size)
-        return block->counterskbs[id];
+    if (id < block->stats_count)
+        return block->stats[id].kbs;
     const ci_kbs_t zero = {0, 0};
     return zero;
 }
