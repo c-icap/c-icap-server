@@ -241,6 +241,40 @@ uint64_t *ci_stat_uint64_ptr(int ID)
     return NULL;
 }
 
+void ci_stat_groups_iterate(void *data, int (*group_call)(void *data, const char *name, int groupId))
+{
+    int ret = 0;
+    int gid;
+    for (gid = 0; gid < STAT_GROUPS.entries_num && !ret; gid++) {
+        ret = group_call(data, STAT_GROUPS.groups[gid], gid);
+    }
+}
+
+void ci_stat_statistics_iterate(void *data, int groupId, int (*stat_call)(void *data, const char *label, int ID, int gId, const ci_stat_t *stat))
+{
+    int ret = 0;
+    int sid;
+    for (sid = 0; sid < STAT_INT64.entries_num && !ret; sid++) {
+        if (groupId < 0 || groupId == STAT_INT64.entries[sid].gid) {
+            ci_stat_t stat = {
+                .type = STAT_INT64.entries[sid].type,
+                .counter = (STATS && STATS->mem_block ? STATS->mem_block->counters64[sid] : 0)
+            };
+            ret = stat_call(data, STAT_INT64.entries[sid].label, sid, STAT_INT64.entries[sid].gid, &stat);
+        }
+    }
+    for (sid = 0; sid < STAT_KBS.entries_num && !ret; sid++) {
+        if (groupId < 0 || groupId == STAT_KBS.entries[sid].gid) {
+            static const ci_kbs_t ZeroKbs = {0, 0};
+            ci_stat_t stat = {
+                .type = STAT_KBS.entries[sid].type,
+                .kbs = (STATS && STATS->mem_block ? STATS->mem_block->counterskbs[sid] : ZeroKbs)
+            };
+            ret = stat_call(data, STAT_KBS.entries[sid].label, sid, STAT_KBS.entries[sid].gid, &stat);
+        }
+    }
+}
+
 /***********************************************
    Low level functions
 */

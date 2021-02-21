@@ -104,6 +104,15 @@ typedef struct kbs {
     uint64_t kb;
     unsigned int bytes;
 } kbs_t;
+typedef struct kbs ci_kbs_t;
+
+typedef struct ci_stat {
+    ci_stat_type_t type;
+    union {
+        uint64_t counter;
+        ci_kbs_t kbs;
+    };
+} ci_stat_t;
 
 #define MEMBLOCK_SIG 0xFAFA
 struct stat_memblock {
@@ -132,10 +141,6 @@ struct stat_groups_list {
     int entries_num;
 };
 
-CI_DECLARE_DATA extern struct stat_entry_list STAT_INT64;
-CI_DECLARE_DATA extern struct stat_entry_list STAT_KBS;
-CI_DECLARE_DATA extern struct stat_groups_list STAT_GROUPS;
-
 CI_DECLARE_FUNC(int) ci_stat_memblock_size(void);
 
 CI_DECLARE_FUNC(void) ci_stat_entry_release_lists();
@@ -144,11 +149,29 @@ CI_DECLARE_FUNC(int) ci_stat_attach_mem(void *mem, int size,void (*release_mem)(
 
 CI_DECLARE_FUNC(void) ci_stat_release();
 
+CI_DECLARE_FUNC(void) ci_stat_groups_iterate(void *data, int (*group_call)(void *data, const char *name, int groupId));
+CI_DECLARE_FUNC(void) ci_stat_statistics_iterate(void *data, int groupID, int (*stat_call)(void *data, const char *label, int ID, int gId, const ci_stat_t *stat));
+
 /*Stats memblocks low level functions*/
 CI_DECLARE_FUNC(void) ci_stat_memblock_merge(struct stat_memblock *dest_block, struct stat_memblock *mem_block);
 CI_DECLARE_FUNC(void) ci_stat_memblock_reset(struct stat_memblock *block);
 
 CI_DECLARE_FUNC(struct stat_memblock *) ci_stat_memblock_init(void *mem, size_t mem_size);
+
+static inline uint64_t ci_stat_memblock_get_counter(struct stat_memblock *block, int id) {
+    assert(block);
+    if (id < block->counters64_size)
+        return block->counters64[id];
+    return 0;
+}
+
+static inline ci_kbs_t ci_stat_memblock_get_kbs(struct stat_memblock *block, int id) {
+    assert(block);
+    if (id < block->counterskbs_size)
+        return block->counterskbs[id];
+    const ci_kbs_t zero = {0, 0};
+    return zero;
+}
 
 #ifdef __cplusplus
 }

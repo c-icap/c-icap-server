@@ -285,13 +285,63 @@ struct stats_tmpl html_tmpl = {
     "<TR><TH>%s:</TH><TD>  %llu Kbs %u bytes</TD>\n"
 };
 
+static int print_statistics(void *data, const char *label, int id, int gId, const ci_stat_t *stat)
+{
+    char buf[1024];
+    int sz;
+    ci_kbs_t kbs;
+    assert(stat);
+    assert(label);
+    assert(data);
+    struct info_req_data *info_data = (struct info_req_data *)data;
+    struct stats_tmpl *tmpl = info_data->txt_mode ? &txt_tmpl : &html_tmpl;
+    switch (stat->type) {
+    case CI_STAT_INT64_T:
+        sz = snprintf(buf, sizeof(buf),
+                      tmpl->statline_tmpl_int,
+                      label,
+                      ci_stat_memblock_get_counter(info_data->collect_stats, id));
+        if (sz >= sizeof(buf))
+            sz = sizeof(buf) - 1;
+        ci_membuf_write(info_data->body, buf, sz, 0);
+        break;
+    case CI_STAT_KBS_T:
+        kbs = ci_stat_memblock_get_kbs(info_data->collect_stats, id);
+        sz = snprintf(buf, sizeof(buf), tmpl->statline_tmpl_kbs,
+                      label,
+                      kbs.kb,
+                      kbs.bytes);
+        if (sz >= sizeof(buf))
+            sz = sizeof(buf) - 1;
+        ci_membuf_write(info_data->body, buf, sz, 0);
+        break;
+    default:
+        break;
+    }
+    return 0;
+}
+
+static int print_group_statistics(void *data, const char *grp_name, int group_id)
+{
+    char buf[1024];
+    int sz;
+    struct info_req_data *info_data = (struct info_req_data *)data;
+    struct stats_tmpl *tmpl = info_data->txt_mode ? &txt_tmpl : &html_tmpl;
+    sz = snprintf(buf, sizeof(buf), tmpl->statsHeader, grp_name);
+    if (sz >= sizeof(buf))
+        sz = sizeof(buf) - 1;
+    ci_membuf_write(info_data->body, buf, sz, 0);
+
+    ci_stat_statistics_iterate(data, group_id, print_statistics);
+    return 0;
+}
+
 #define LOCAL_BUF_SIZE 1024
 int build_statistics(struct info_req_data *info_data)
 {
     char buf[LOCAL_BUF_SIZE];
     char buf2[LOCAL_BUF_SIZE];
-    int sz, gid, k;
-    char *stat_group;
+    int sz, k;
     struct stats_tmpl *tmpl;
 
     if (info_data->txt_mode)
@@ -375,38 +425,7 @@ int build_statistics(struct info_req_data *info_data)
     }
     ci_membuf_write(info_data->body, tmpl->d1TableEnd_tmpl, strlen(tmpl->d1TableEnd_tmpl), 0);
 
-
-    for (gid = 0; gid < STAT_GROUPS.entries_num; gid++) {
-        stat_group = STAT_GROUPS.groups[gid];
-
-        sz = snprintf(buf, LOCAL_BUF_SIZE, tmpl->statsHeader, stat_group);
-        if (sz > LOCAL_BUF_SIZE)
-            sz = LOCAL_BUF_SIZE;
-        ci_membuf_write(info_data->body, buf, sz, 0);
-        for (k = 0; k < info_data->collect_stats->counters64_size && k < STAT_INT64.entries_num; k++) {
-            if (gid == STAT_INT64.entries[k].gid) {
-                sz = snprintf(buf, LOCAL_BUF_SIZE, tmpl->statline_tmpl_int,
-                              STAT_INT64.entries[k].label,
-                              info_data->collect_stats->counters64[k]);
-                if (sz > LOCAL_BUF_SIZE)
-                    sz = LOCAL_BUF_SIZE;
-                ci_membuf_write(info_data->body,buf, sz, 0);
-            }
-        }
-
-        for (k = 0; k < info_data->collect_stats->counterskbs_size && k < STAT_KBS.entries_num; k++) {
-            if (gid == STAT_KBS.entries[k].gid) {
-                sz = snprintf(buf, LOCAL_BUF_SIZE, tmpl->statline_tmpl_kbs,
-                              STAT_KBS.entries[k].label,
-                              info_data->collect_stats->counterskbs[k].kb,
-                              info_data->collect_stats->counterskbs[k].bytes);
-                if (sz > LOCAL_BUF_SIZE)
-                    sz = LOCAL_BUF_SIZE;
-                ci_membuf_write(info_data->body,buf, sz, 0);
-            }
-        }
-        ci_membuf_write(info_data->body,tmpl->statsEnd, strlen(tmpl->statsEnd), 0);
-    }
+    ci_stat_groups_iterate(info_data, print_group_statistics);
     ci_membuf_write(info_data->body, NULL, 0, 1);
 
     return 1;

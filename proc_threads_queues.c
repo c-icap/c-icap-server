@@ -426,11 +426,36 @@ int childs_queue_stats(struct childs_queue *q, int *childs, int *freeservers,
     return 1;
 }
 
+static int print_statistics(void *data, const char *label, int id, int gId, const ci_stat_t *astat)
+{
+    ci_kbs_t kbs;
+    assert(astat);
+    assert(label);
+    assert(data);
+    struct stat_memblock *stats = (struct stat_memblock *)data;
+    switch (astat->type) {
+    case CI_STAT_INT64_T:
+        ci_debug_printf(1,"\t%s:%llu\n",
+                        label,
+                        (long long unsigned) ci_stat_memblock_get_counter(stats, id));
+        break;
+    case CI_STAT_KBS_T:
+        kbs = ci_stat_memblock_get_kbs(stats, id);
+        ci_debug_printf(1,"\t%s:%llu kbytes and %d bytes\n",
+                        label,
+                        (long long unsigned) kbs.kb,
+                        kbs.bytes);
+        break;
+    default:
+        break;
+    }
+    return 0;
+}
 
 void dump_queue_statistics(struct childs_queue *q)
 {
 
-    int i, k;
+    int i;
     int childs = 0;
     int freeservers = 0;
     int used = 0;
@@ -458,27 +483,11 @@ void dump_queue_statistics(struct childs_queue *q)
             copy_stats.counterskbs = (void *)child_stats + sizeof(struct stat_memblock)
                                      + child_stats->counters64_size*sizeof(uint64_t);
 
-            for (k=0; k < copy_stats.counters64_size && k < STAT_INT64.entries_num; k++)
-                ci_debug_printf(1,"\t%s:%llu\n", STAT_INT64.entries[k].label,
-                                (long long unsigned) copy_stats.counters64[k]);
-
-            for (k=0; k < copy_stats.counterskbs_size && k < STAT_KBS.entries_num; k++)
-                ci_debug_printf(1,"\t%s:%llu kbytes and %d bytes\n",
-                                STAT_KBS.entries[k].label,
-                                (long long unsigned) copy_stats.counterskbs[k].kb,
-                                copy_stats.counterskbs[k].bytes);
+            ci_stat_statistics_iterate(&copy_stats, -1, print_statistics);
         }
     }
     ci_debug_printf(1, "\nChildren:%d\tFree Servers:%d\tUsed Servers:%d\tRequests:%d\n",
                     childs, freeservers, used, requests);
     ci_debug_printf(1,"\nHistory\n");
-    for (k=0; k < q->stats_history->counters64_size && k < STAT_INT64.entries_num; k++)
-        ci_debug_printf(1,"\t%s:%llu\n", STAT_INT64.entries[k].label,
-                        (long long unsigned) q->stats_history->counters64[k]);
-
-    for (k=0; k < q->stats_history->counterskbs_size && k < STAT_KBS.entries_num; k++)
-        ci_debug_printf(1,"\t%s:%llu kbytes  and %d bytes\n",STAT_KBS.entries[k].label,
-                        (long long unsigned) q->stats_history->counterskbs[k].kb,
-                        q->stats_history->counterskbs[k].bytes);
-
+    ci_stat_statistics_iterate(q->stats_history, -1, print_statistics);
 }
