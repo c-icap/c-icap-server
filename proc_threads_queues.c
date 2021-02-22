@@ -487,3 +487,52 @@ void dump_queue_statistics(struct childs_queue *q)
     ci_debug_printf(1,"\nHistory\n");
     ci_stat_statistics_iterate(q->stats_history, -1, print_statistics);
 }
+
+extern struct childs_queue *childs_queue;
+ci_kbs_t ci_server_stat_kbs_get_running(int id)
+{
+    const ci_stat_memblock_t *block;
+    ci_kbs_t value = {0 , 0}, local;
+    int i;
+    assert(childs_queue);
+    for (i = 0; i < childs_queue->size; i++) {
+        if (childs_queue->childs[i].pid == 0 || childs_queue->childs[i].to_be_killed != 0)
+            continue;
+        block = (const ci_stat_memblock_t *) (childs_queue->stats_area + i * (childs_queue->stats_block_size));
+        local = ci_stat_memblock_get_kbs(block, id);
+        ci_kbs_add_to(&value, &local);
+    }
+
+    return value;
+}
+
+uint64_t ci_server_stat_uint64_get_running(int id)
+{
+    const ci_stat_memblock_t *block;
+    uint64_t value = 0;
+    int i;
+    assert(childs_queue);
+    for (i = 0; i < childs_queue->size; i++) {
+        if (childs_queue->childs[i].pid == 0 || childs_queue->childs[i].to_be_killed != 0)
+            continue;
+        block = (const ci_stat_memblock_t *) (childs_queue->stats_area + i * (childs_queue->stats_block_size));
+        value +=  ci_stat_memblock_get_counter(block, id);
+    }
+
+    return value;
+}
+
+ci_kbs_t ci_server_stat_kbs_get_global(int id)
+{
+    ci_kbs_t value = ci_server_stat_kbs_get_running(id);
+    ci_kbs_t hist = ci_stat_memblock_get_kbs(childs_queue->stats_history, id);
+    ci_kbs_add_to(&value, &hist);
+    return value;
+}
+
+uint64_t ci_server_stat_uint64_get_global(int id)
+{
+    uint64_t value = ci_server_stat_uint64_get_running(id);
+    value +=  ci_stat_memblock_get_counter(childs_queue->stats_history, id);
+    return value;
+}
