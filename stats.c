@@ -185,25 +185,17 @@ void ci_stat_release()
     STATS = NULL;
 }
 
-static inline void do_update_uint64(int ID, int count)
-{
-    if (ID >= 0 && ID < STATS->mem_block->stats_count)
-        STATS->mem_block->stats[ID].counter += count;
-}
-
 void ci_stat_uint64_inc(int ID, int count)
 {
     if (!STATS || !STATS->mem_block)
         return;
-    ci_thread_mutex_lock(&STATS->mtx);
-    do_update_uint64(ID, count);
-    ci_thread_mutex_unlock(&STATS->mtx);
-}
 
-static inline void do_update_kbs(int ID, int count)
-{
-    if (ID >= 0 && ID < STATS->mem_block->stats_count)
-        ci_kbs_update(&(STATS->mem_block->stats[ID].kbs), count);
+    if (ID < 0 || ID > STATS->mem_block->stats_count)
+        return;
+
+    ci_thread_mutex_lock(&STATS->mtx);
+    STATS->mem_block->stats[ID].counter += count;
+    ci_thread_mutex_unlock(&STATS->mtx);
 }
 
 void ci_stat_kbs_inc(int ID, int count)
@@ -211,24 +203,30 @@ void ci_stat_kbs_inc(int ID, int count)
     if (!STATS || !STATS->mem_block)
         return;
 
+    if (ID < 0 || ID > STATS->mem_block->stats_count)
+        return;
+
     ci_thread_mutex_lock(&STATS->mtx);
-    do_update_kbs(ID, count);
+    ci_kbs_update(&(STATS->mem_block->stats[ID].kbs), count);
     ci_thread_mutex_unlock(&STATS->mtx);
 }
 
-void ci_stat_update(const ci_stat_item_t *stats, int count)
+void ci_stat_update(const ci_stat_item_t *stats, int num)
 {
     int i;
     if (!STATS || !STATS->mem_block)
         return;
     ci_thread_mutex_lock(&STATS->mtx);
-    for (i = 0; i < count; ++i) {
+    for (i = 0; i < num; ++i) {
+        int id = stats[i].Id;
+        if ( id < 0 || id > STATS->mem_block->stats_count)
+            continue; /*May print a warning?*/
         switch (stats[i].type) {
         case CI_STAT_INT64_T:
-            do_update_uint64(stats[i].Id, stats[i].count);
+            STATS->mem_block->stats[id].counter += stats[i].count;
             break;
         case CI_STAT_KBS_T:
-            do_update_kbs(stats[i].Id, stats[i].count);
+            ci_kbs_update(&(STATS->mem_block->stats[id].kbs), stats[i].count);
             break;
         default:
             /*Wrong type id, ignore for now*/
