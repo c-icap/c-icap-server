@@ -159,6 +159,22 @@ static inline ci_kbs_t ci_stat_memblock_get_kbs(const struct stat_memblock *bloc
     return zero;
 }
 
+static inline void ci_kbs_update(ci_kbs_t *kbs, int bytes)
+{
+    assert(kbs);
+    kbs->bytes += bytes;
+    kbs->kb += (kbs->bytes >> 10);
+    kbs->bytes &= 0x3FF;
+}
+
+static inline void ci_kbs_add_to(ci_kbs_t *add_to, const ci_kbs_t *kbs)
+{
+    assert(kbs);
+    assert(add_to);
+    add_to->kb += kbs->kb;
+    ci_kbs_update(add_to, kbs->bytes);
+}
+
 #ifdef __cplusplus
 }
 #endif

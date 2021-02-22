@@ -205,11 +205,8 @@ void ci_stat_uint64_inc(int ID, int count)
 
 static inline void do_update_kbs(int ID, int count)
 {
-    if (ID >= 0 && ID < STATS->mem_block->stats_count) {
-        STATS->mem_block->stats[ID].kbs.bytes += count;
-        STATS->mem_block->stats[ID].kbs.kb += (STATS->mem_block->stats[ID].kbs.bytes >> 10);
-        STATS->mem_block->stats[ID].kbs.bytes &= 0x3FF;
-    }
+    if (ID >= 0 && ID < STATS->mem_block->stats_count)
+        ci_kbs_update(&(STATS->mem_block->stats[ID].kbs), count);
 }
 
 void ci_stat_kbs_inc(int ID, int count)
@@ -340,9 +337,7 @@ void ci_stat_area_kbs_inc(struct stat_area *area,int ID, int count)
         return;
 
     ci_thread_mutex_lock(&area->mtx);
-    area->mem_block->stats[ID].kbs.bytes += count;
-    area->mem_block->stats[ID].kbs.kb += (area->mem_block->stats[ID].kbs.bytes >> 10);
-    area->mem_block->stats[ID].kbs.bytes &= 0x3FF;
+    ci_kbs_update(&(area->mem_block->stats[ID].kbs), count);
     ci_thread_mutex_unlock(&area->mtx);
 }
 
@@ -388,10 +383,7 @@ void ci_stat_memblock_merge(struct stat_memblock *to_block, const struct stat_me
             to_block->stats[i].counter += from_block->stats[i].counter;
             break;
         case CI_STAT_KBS_T:
-            to_block->stats[i].kbs.kb += from_block->stats[i].kbs.kb;
-            to_block->stats[i].kbs.bytes += from_block->stats[i].kbs.bytes;
-            to_block->stats[i].kbs.kb += (from_block->stats[i].kbs.bytes >> 10);
-            to_block->stats[i].kbs.bytes &= 0x3FF;
+            ci_kbs_add_to(&to_block->stats[i].kbs, &from_block->stats[i].kbs);
             break;
         default:
             /*print error?*/
