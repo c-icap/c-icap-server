@@ -60,6 +60,11 @@ int ci_stat_memblock_size(void)
     return _CI_ALIGN(sizeof(ci_stat_memblock_t)) + STAT_STATS.entries_num * sizeof(ci_stat_value_t);
 }
 
+ci_stat_memblock_t * ci_stat_memblock_get()
+{
+    return STATS ? STATS->mem_block : NULL;
+}
+
 int stat_entry_by_name(struct stat_entry_list *list, const char *label);
 
 int stat_entry_add(struct stat_entry_list *list,const char *label, int type, int gid)

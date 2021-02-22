@@ -127,6 +127,8 @@ typedef struct ci_stat_memblock {
 
 CI_DECLARE_FUNC(int) ci_stat_memblock_size(void);
 
+CI_DECLARE_FUNC(ci_stat_memblock_t *) ci_stat_memblock_get(void);
+
 CI_DECLARE_FUNC(void) ci_stat_entry_release_lists();
 
 CI_DECLARE_FUNC(int) ci_stat_attach_mem(void *mem, int size,void (*release_mem)(void *));
