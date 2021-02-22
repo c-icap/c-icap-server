@@ -67,7 +67,7 @@ struct info_req_data {
     unsigned int started_childs;
     unsigned int closed_childs;
     unsigned int crashed_childs;
-    struct stat_memblock *collect_stats;
+    ci_stat_memblock_t *collect_stats;
 };
 
 extern struct childs_queue *childs_queue;
@@ -192,7 +192,7 @@ void fill_queue_statistics(struct childs_queue *q, struct info_req_data *info_da
 
     int i;
     int requests = 0;
-    struct stat_memblock *stats;
+    ci_stat_memblock_t *stats;
     struct server_statistics *srv_stats;
     if (!q->childs)
         return;

@@ -46,7 +46,7 @@ struct stat_groups_list STAT_GROUPS = {NULL, 0, 0};;
 struct stat_area {
     ci_thread_mutex_t mtx;
     void (*release_mem)(void *);
-    struct stat_memblock *mem_block;
+    ci_stat_memblock_t *mem_block;
 };
 struct stat_area *STATS = NULL;
 
@@ -60,7 +60,7 @@ static void ci_stat_area_reset(struct stat_area *area);
 
 int ci_stat_memblock_size(void)
 {
-    return _CI_ALIGN(sizeof(struct stat_memblock)) + STAT_STATS.entries_num * sizeof(ci_stat_value_t);
+    return _CI_ALIGN(sizeof(ci_stat_memblock_t)) + STAT_STATS.entries_num * sizeof(ci_stat_value_t);
 }
 
 int stat_entry_by_name(struct stat_entry_list *list, const char *label);
@@ -342,9 +342,9 @@ void ci_stat_area_kbs_inc(struct stat_area *area,int ID, int count)
 }
 
 /*Make a memblock area from continues memory block*/
-struct stat_memblock * ci_stat_memblock_init(void *mem, size_t mem_size)
+ci_stat_memblock_t * ci_stat_memblock_init(void *mem, size_t mem_size)
 {
-    struct stat_memblock *mem_block = mem;
+    ci_stat_memblock_t *mem_block = mem;
 
     if (mem_size < ci_stat_memblock_size())
         return NULL;
@@ -355,17 +355,17 @@ struct stat_memblock * ci_stat_memblock_init(void *mem, size_t mem_size)
     return mem_block;
 }
 
-int ci_stat_memblock_check(const struct stat_memblock *block)
+int ci_stat_memblock_check(const ci_stat_memblock_t *block)
 {
     return (block->sig == MEMBLOCK_SIG) && (block->stats_count <= STAT_STATS.entries_num);
 }
 
-void ci_stat_memblock_reset(struct stat_memblock *block)
+void ci_stat_memblock_reset(ci_stat_memblock_t *block)
 {
     memset(block->stats, 0, block->stats_count * sizeof(ci_stat_value_t));
 }
 
-void ci_stat_memblock_merge(struct stat_memblock *to_block, const struct stat_memblock *from_block)
+void ci_stat_memblock_merge(ci_stat_memblock_t *to_block, const ci_stat_memblock_t *from_block)
 {
     int i;
     if (!to_block || !from_block)

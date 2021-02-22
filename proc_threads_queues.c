@@ -153,7 +153,7 @@ struct childs_queue *create_childs_queue(int size)
       To access each child statistics area you need something like the
       following:
       for (i = 0; i < q->size; i++) {
-          struct stat_memblock *mb = q->stats_area + i * q->stats_block_size;
+          ci_stat_memblock_t *mb = q->stats_area + i * q->stats_block_size;
       }
 
       The memory blocks for children statistics will be initialized by each
@@ -314,7 +314,7 @@ void announce_child(struct childs_queue *q, process_pid_t pid)
 int remove_child(struct childs_queue *q, process_pid_t pid, int status)
 {
     int i;
-    struct stat_memblock *child_stats;
+    ci_stat_memblock_t *child_stats;
     if (!q->childs)
         return 0;
 
@@ -433,7 +433,7 @@ static int print_statistics(void *data, const char *label, int id, int gId, cons
     assert(astat);
     assert(label);
     assert(data);
-    struct stat_memblock *stats = (struct stat_memblock *)data;
+    ci_stat_memblock_t *stats = (ci_stat_memblock_t *)data;
     assert(ci_stat_memblock_check(stats));
     switch (astat->type) {
     case CI_STAT_INT64_T:
@@ -462,7 +462,7 @@ void dump_queue_statistics(struct childs_queue *q)
     int freeservers = 0;
     int used = 0;
     int requests = 0;
-    struct stat_memblock *child_stats;
+    ci_stat_memblock_t *child_stats;
 
     if (!q->childs)
         return;
