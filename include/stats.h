@@ -137,21 +137,21 @@ CI_DECLARE_FUNC(void) ci_stat_groups_iterate(void *data, int (*group_call)(void 
 CI_DECLARE_FUNC(void) ci_stat_statistics_iterate(void *data, int groupID, int (*stat_call)(void *data, const char *label, int ID, int gId, const ci_stat_t *stat));
 
 /*Stats memblocks low level functions*/
-CI_DECLARE_FUNC(void) ci_stat_memblock_merge(struct stat_memblock *dest_block, struct stat_memblock *mem_block);
+CI_DECLARE_FUNC(void) ci_stat_memblock_merge(struct stat_memblock *to_block, const struct stat_memblock *from_block);
 CI_DECLARE_FUNC(void) ci_stat_memblock_reset(struct stat_memblock *block);
 
 CI_DECLARE_FUNC(struct stat_memblock *) ci_stat_memblock_init(void *mem, size_t mem_size);
 
 CI_DECLARE_FUNC(int) ci_stat_memblock_check(const struct stat_memblock *block);
 
-static inline uint64_t ci_stat_memblock_get_counter(struct stat_memblock *block, int id) {
+static inline uint64_t ci_stat_memblock_get_counter(const struct stat_memblock *block, int id) {
     assert(block);
     if (id < block->stats_count)
         return block->stats[id].counter;
     return 0;
 }
 
-static inline ci_kbs_t ci_stat_memblock_get_kbs(struct stat_memblock *block, int id) {
+static inline ci_kbs_t ci_stat_memblock_get_kbs(const struct stat_memblock *block, int id) {
     assert(block);
     if (id < block->stats_count)
         return block->stats[id].kbs;

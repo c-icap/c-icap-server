@@ -370,28 +370,28 @@ void ci_stat_memblock_reset(struct stat_memblock *block)
     memset(block->stats, 0, block->stats_count * sizeof(ci_stat_value_t));
 }
 
-void ci_stat_memblock_merge(struct stat_memblock *dest_block, struct stat_memblock *stats)
+void ci_stat_memblock_merge(struct stat_memblock *to_block, const struct stat_memblock *from_block)
 {
     int i;
-    if (!dest_block || !stats)
+    if (!to_block || !from_block)
         return;
 
     /* After a reconfigure we may have more counters. */
-    assert(dest_block->stats_count >= stats->stats_count);
-    assert(dest_block->stats_count == STAT_STATS.entries_num);
-    assert(dest_block->sig == MEMBLOCK_SIG);
-    assert(stats->sig == MEMBLOCK_SIG);
+    assert(to_block->stats_count >= from_block->stats_count);
+    assert(to_block->stats_count == STAT_STATS.entries_num);
+    assert(to_block->sig == MEMBLOCK_SIG);
+    assert(from_block->sig == MEMBLOCK_SIG);
 
-    for (i = 0; i < stats->stats_count; i++) {
+    for (i = 0; i < from_block->stats_count; i++) {
         switch (STAT_STATS.entries[i].type) {
         case CI_STAT_INT64_T:
-            dest_block->stats[i].counter += stats->stats[i].counter;
+            to_block->stats[i].counter += from_block->stats[i].counter;
             break;
         case CI_STAT_KBS_T:
-            dest_block->stats[i].kbs.kb += stats->stats[i].kbs.kb;
-            dest_block->stats[i].kbs.bytes += stats->stats[i].kbs.bytes;
-            dest_block->stats[i].kbs.kb += (stats->stats[i].kbs.bytes >> 10);
-            dest_block->stats[i].kbs.bytes &= 0x3FF;
+            to_block->stats[i].kbs.kb += from_block->stats[i].kbs.kb;
+            to_block->stats[i].kbs.bytes += from_block->stats[i].kbs.bytes;
+            to_block->stats[i].kbs.kb += (from_block->stats[i].kbs.bytes >> 10);
+            to_block->stats[i].kbs.bytes &= 0x3FF;
             break;
         default:
             /*print error?*/
