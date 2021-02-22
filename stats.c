@@ -360,6 +360,11 @@ struct stat_memblock * ci_stat_memblock_init(void *mem, size_t mem_size)
     return mem_block;
 }
 
+int ci_stat_memblock_check(const struct stat_memblock *block)
+{
+    return (block->sig == MEMBLOCK_SIG) && (block->stats_count <= STAT_STATS.entries_num);
+}
+
 void ci_stat_memblock_reset(struct stat_memblock *block)
 {
     memset(block->stats, 0, block->stats_count * sizeof(ci_stat_value_t));

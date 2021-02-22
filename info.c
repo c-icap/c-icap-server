@@ -208,6 +208,7 @@ void fill_queue_statistics(struct childs_queue *q, struct info_req_data *info_da
             requests += q->childs[i].requests;
 
             stats = q->stats_area + i * (q->stats_block_size);
+            assert(ci_stat_memblock_check(stats));
             ci_stat_memblock_merge(info_data->collect_stats, stats);
         } else if (q->childs[i].pid != 0 && q->childs[i].to_be_killed) {
             if (info_data->closing_child_pids)
@@ -217,6 +218,7 @@ void fill_queue_statistics(struct childs_queue *q, struct info_req_data *info_da
     }
     /*Merge history data*/
     stats = q->stats_area + q->size * q->stats_block_size;
+    assert(ci_stat_memblock_check(stats));
     ci_stat_memblock_merge(info_data->collect_stats, stats);
 
     srv_stats =
