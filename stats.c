@@ -54,9 +54,6 @@ struct stat_area *STATS = NULL;
 
 static struct stat_area * ci_stat_area_construct(void *mem_block, int size, void (*release_mem)(void *));
 static void ci_stat_area_destroy(struct stat_area  *area);
-#if 0
-static void ci_stat_area_reset(struct stat_area *area);
-#endif
 
 int ci_stat_memblock_size(void)
 {
@@ -297,48 +294,12 @@ struct stat_area *ci_stat_area_construct(void *mem_block, int size, void (*relea
     return area;
 }
 
-#if 0
-void ci_stat_area_reset(struct stat_area *area)
-{
-    ci_thread_mutex_lock(&(area->mtx));
-    ci_stat_memblock_reset(area->mem_block);
-    ci_thread_mutex_unlock(&(area->mtx));
-}
-#endif
-
-
 void ci_stat_area_destroy(struct stat_area  *area)
 {
     ci_thread_mutex_destroy(&(area->mtx));
     if (area->release_mem)
         area->release_mem(area->mem_block);
     free(area);
-}
-
-/*Does not realy needed*/
-void ci_stat_area_uint64_inc(struct stat_area *area,int ID, int count)
-{
-    if (!area->mem_block)
-        return;
-    if (ID < 0 || ID >= area->mem_block->stats_count)
-        return;
-    ci_thread_mutex_lock(&area->mtx);
-    area->mem_block->stats[ID].counter += count;
-    ci_thread_mutex_unlock(&area->mtx);
-}
-
-/*Does not realy needed*/
-void ci_stat_area_kbs_inc(struct stat_area *area,int ID, int count)
-{
-    if (!area->mem_block)
-        return;
-
-    if (ID < 0 || ID >= area->mem_block->stats_count)
-        return;
-
-    ci_thread_mutex_lock(&area->mtx);
-    ci_kbs_update(&(area->mem_block->stats[ID].kbs), count);
-    ci_thread_mutex_unlock(&area->mtx);
 }
 
 /*Make a memblock area from continues memory block*/
