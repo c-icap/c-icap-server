@@ -19,13 +19,15 @@
 
 #include "common.h"
 #include "c-icap.h"
+#include "array.h"
 #include "debug.h"
 #include "log.h"
 #include "proc_threads_queues.h"
 #include "shared_mem.h"
 #include <assert.h>
 
-
+static ci_dyn_array_t *MemBlobs = NULL;
+static int MemBlobsCount = 0;
 static int old_requests = 0;
 
 struct connections_queue *init_queue(int size)
@@ -129,7 +131,8 @@ struct childs_queue *create_childs_queue(int size)
     q->shared_mem_size = sizeof(child_shared_data_t) * size /*child shared data*/
                          + q->stats_block_size * size /*child stats area*/
                          + q->stats_block_size /*Server history  stats area*/
-                         + sizeof(struct server_statistics); /*Server general statistics*/
+                         + sizeof(struct server_statistics) /*Server general statistics*/
+                         + MemBlobsCount * sizeof(ci_server_shared_blob_t); /*Register blobs size*/
     if ((q->childs =
                 ci_shared_mem_create(&(q->shmid), "kids-queue", q->shared_mem_size)) == NULL) {
         log_server(NULL, "can't get shared memory!");
@@ -186,6 +189,7 @@ struct childs_queue *create_childs_queue(int size)
     q->srv_stats->started_childs = 0;
     q->srv_stats->closed_childs = 0;
     q->srv_stats->crashed_childs = 0;
+    q->srv_stats->blob_count = MemBlobsCount;
 
     if ((ret = ci_proc_mutex_init(&(q->queue_mtx), "children-queue")) == 0) {
         /*Release shared mem which is allocated */
@@ -535,4 +539,52 @@ uint64_t ci_server_stat_uint64_get_global(int id)
     uint64_t value = ci_server_stat_uint64_get_running(id);
     value +=  ci_stat_memblock_get_counter(childs_queue->stats_history, id);
     return value;
+}
+
+struct shared_blob_data{
+    int id;
+    int items;
+};
+
+int ci_server_shared_memblob_register(const char *name, size_t size)
+{
+    if (childs_queue) {
+        /*Shared mem created, we can not add request more shared memory
+          any more*/
+        return -1;
+    }
+
+    /*
+      No need for locking, it runs on single thread mode before kids and
+      threads are started.
+    */
+
+    if (!MemBlobs) {
+         MemBlobs = ci_dyn_array_new2(32, sizeof(int));
+    }
+    int blobs_number =  size / sizeof(ci_server_shared_blob_t) + ((size % sizeof(ci_server_shared_blob_t)) != 0 ? 1 : 0);
+    int id = MemBlobsCount;
+    struct shared_blob_data data = {id, blobs_number};
+    assert(ci_dyn_array_add(MemBlobs, name, &data, sizeof(struct shared_blob_data)));
+    MemBlobsCount += blobs_number;
+    return id;
+}
+
+ci_server_shared_blob_t * ci_server_shared_memblob(int id)
+{
+    if (id < 0 || id >= childs_queue->srv_stats->blob_count)
+        return NULL;
+    return &(childs_queue->srv_stats->blobs[id]);
+}
+
+ci_server_shared_blob_t * ci_server_shared_memblob_byname(const char *name)
+{
+    if (!MemBlobs)
+        return NULL;
+
+    const int *id = ci_dyn_array_search(MemBlobs, name);
+    if (!id)
+        return NULL;
+
+    return ci_server_shared_memblob(*id);
 }

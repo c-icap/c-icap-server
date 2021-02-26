@@ -67,10 +67,26 @@ typedef struct child_shared_data {
     int stats_size;
 } child_shared_data_t;
 
+
+typedef struct ci_server_shared_blob {
+    union {
+        char *ptr;
+        struct c64bit {
+            uint64_t c1;
+            uint64_t c2;
+            uint64_t c3;
+            uint64_t c4;
+        } c64;
+        unsigned char c8[32];
+    };
+} ci_server_shared_blob_t;
+
 struct server_statistics {
     unsigned int started_childs;
     unsigned int closed_childs;
     unsigned int crashed_childs;
+    int blob_count;
+    ci_server_shared_blob_t blobs[];
 };
 
 struct childs_queue {
@@ -168,6 +184,10 @@ CI_DECLARE_FUNC(ci_kbs_t) ci_server_stat_kbs_get_global(int id);
  \ingroup SERVER
  */
 CI_DECLARE_FUNC(uint64_t) ci_server_stat_uint64_get_global(int id);
+
+CI_DECLARE_FUNC(int) ci_server_shared_memblob_register(const char *name, size_t size);
+CI_DECLARE_FUNC(ci_server_shared_blob_t *) ci_server_shared_memblob(int ID);
+CI_DECLARE_FUNC(ci_server_shared_blob_t *) ci_server_shared_memblob_byname(const char *name);
 
 #ifdef __cplusplus
 }

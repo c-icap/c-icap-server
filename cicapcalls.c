@@ -89,3 +89,39 @@ void ci_command_register_child_cleanup(const char *name, void *data, void (*chil
     else
         fprintf(stderr, "Can not execute ci_command_register_child_cleanup\n");
 }
+
+int ci_server_shared_memblob_register(const char *name, size_t size)
+{
+    typedef void (*CS)(const char *, size_t);
+    CS fn;
+    fn = (CS)GetProcAddress(GetModuleHandle(NULL), "ci_server_shared_memblob_register");
+    if (fn)
+        return (*fn)(name, size);
+
+    fprintf(stderr, "Can not execute ci_server_shared_memblob_register\n");
+    return -1;
+}
+
+ci_server_shared_blob_t *ci_server_shared_memblob(int ID)
+{
+    typedef void (*CS)(int ID);
+    CS fn;
+    fn = (CS)GetProcAddress(GetModuleHandle(NULL), "ci_server_shared_memblob");
+    if (fn)
+        return (*fn)(ID);
+
+    fprintf(stderr, "Can not execute ci_server_shared_memblob\n");
+    return NULL;
+}
+
+ci_server_shared_blob_t * ci_server_shared_memblob_byname(const char *name)
+{
+    typedef void (*CS)(const char *);
+    CS fn;
+    fn = (CS)GetProcAddress(GetModuleHandle(NULL), "ci_server_shared_memblob_byname");
+    if (fn)
+        return (*fn)(name);
+
+    fprintf(stderr, "Can not execute ci_server_shared_memblob_byname\n");
+    return NULL;
+}
