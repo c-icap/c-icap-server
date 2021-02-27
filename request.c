@@ -931,7 +931,7 @@ static int get_send_body(ci_request_t * req, int parse_only)
     int ret, parse_chunk_ret, has_formated_data = 0;
     int (*service_io) (char *rbuf, int *rlen, char *wbuf, int *wlen, int iseof,
                        ci_request_t *);
-    int action = 0, rchunkisfull = 0, service_eof = 0, wbytes, rbytes;
+    int action = 0, rchunk_has_space = 0, service_eof = 0, wbytes, rbytes;
     int lock_status;
     int no_io;
 
@@ -996,6 +996,7 @@ static int get_send_body(ci_request_t * req, int parse_only)
         else
             has_formated_data = 0;
         parse_chunk_ret = 0;
+        int repeat_module_io = 0;
         do {
             if (req->pstrblock_read_len != 0
                     && req->write_to_module_pending == 0) {
@@ -1018,36 +1019,46 @@ static int get_send_body(ci_request_t * req, int parse_only)
                     /*Leave space for chunk spec.. */
                     rchunkdata = req->wbuf + EXTRA_CHUNK_SIZE;
                     req->pstrblock_responce = rchunkdata;  /*does not needed! */
-                    rchunkisfull = 0;
                 }
                 if ((MAX_CHUNK_SIZE - req->remain_send_block_bytes) > 0
                         && has_formated_data == 0) {
                     rbytes = MAX_CHUNK_SIZE - req->remain_send_block_bytes;
                 } else {
-                    rchunkisfull = 1;
                     rbytes = 0;
                 }
             } else
                 rbytes = 0;
-
-            ci_debug_printf(9, "get send body: going to write/read: %d/%d bytes\n", wbytes, rbytes);
-            if ((*service_io)
-                    (rchunkdata, &rbytes, wchunkdata, &wbytes, req->eof_received,
-                     req) == CI_ERROR)
-                return CI_ERROR;
-            ci_debug_printf(9, "get send body: written/read: %d/%d bytes (eof: %d)\n", wbytes, rbytes, req->eof_received);
-            no_io = (rbytes==0 && wbytes==0);
-            if (wbytes) {
+            rchunk_has_space = (rbytes > 0);
+            if (wbytes > 0 || rbytes > 0 || parse_chunk_ret == CI_EOF) {
+                ci_debug_printf(9, "get send body: going to write/read: %d/%d bytes\n", wbytes, rbytes);
+                if ((*service_io)(rchunkdata, &rbytes, wchunkdata, &wbytes, req->eof_received, req) == CI_ERROR)
+                    return CI_ERROR;
+                ci_debug_printf(9, "get send body: written/read: %d/%d bytes (eof: %d)\n", wbytes, rbytes, req->eof_received);
+            }
+            no_io = (rbytes <= 0 && wbytes <= 0);
+            if (wbytes > 0) {
                 wchunkdata += wbytes;
                 req->write_to_module_pending -= wbytes;
+            } else if (wbytes < 0){
+                ci_debug_printf(2, "Unexpected write error %d returned by service '%s' io function\n", wbytes, req->service);
+                return CI_ERROR;
             }
+
             if (rbytes > 0) {
                 rchunkdata += rbytes;
                 req->remain_send_block_bytes += rbytes;
-            } else if (rbytes == CI_EOF)
+            } else if (rbytes == CI_EOF) {
                 service_eof = 1;
-        } while (no_io == 0 && req->pstrblock_read_len != 0
-                 && parse_chunk_ret != CI_NEEDS_MORE && parse_chunk_ret != CI_EOF && !rchunkisfull);
+            } else if (rbytes < 0) {
+                ci_debug_printf(2, "Unexpected read error %d returned by service '%s' io function\n", wbytes, req->service);
+                return CI_ERROR;
+            }
+
+            const int may_have_client_data = req->pstrblock_read_len != 0 /*has client data to parse*/
+                                             && parse_chunk_ret != CI_NEEDS_MORE
+                                             && parse_chunk_ret != CI_EOF;
+            repeat_module_io = (no_io == 0) && (may_have_client_data || rchunk_has_space);
+        } while (repeat_module_io);
 
         action = 0;
         if (!req->write_to_module_pending) {
@@ -1075,8 +1086,8 @@ static int get_send_body(ci_request_t * req, int parse_only)
 
     if (!action) {
         ci_debug_printf(1,
-                        "Bug in the service '%s'. "
-                        "Please report to the service author!!!!\n"
+                        "Bug: service '%s'. "
+                        "can not accept or sent body data.\n"
                         "request status: %d\n"
                         "request data locked?: %d\n"
                         "Write to module pending: %d\n"
