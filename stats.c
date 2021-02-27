@@ -65,7 +65,7 @@ ci_stat_memblock_t * ci_stat_memblock_get()
     return STATS ? STATS->mem_block : NULL;
 }
 
-int stat_entry_by_name(struct stat_entry_list *list, const char *label);
+int stat_entry_by_name(struct stat_entry_list *list, const char *label, int gid);
 
 int stat_entry_add(struct stat_entry_list *list,const char *label, int type, int gid)
 {
@@ -75,9 +75,9 @@ int stat_entry_add(struct stat_entry_list *list,const char *label, int type, int
     if (!list)
         return -1;
 
-    indx = stat_entry_by_name(list, label);
+    indx = stat_entry_by_name(list, label, gid);
     if (indx >= 0 )
-        return indx;
+        return (list->entries[indx].type == type) ? indx : -1;
 
     if (list->size == list->entries_num) {
 
@@ -114,14 +114,14 @@ void stat_entry_release_list(struct stat_entry_list *list)
     list->entries_num = 0;
 }
 
-int stat_entry_by_name(struct stat_entry_list *list, const char *label)
+int stat_entry_by_name(struct stat_entry_list *list, const char *label, int gid)
 {
     int i;
     if (!list->entries)
         return -1;
 
     for (i = 0; i < list->entries_num; i++)
-        if (strcmp(label, list->entries[i].label) == 0) return i;
+        if (strcmp(label, list->entries[i].label) == 0 && list->entries[i].gid == gid) return i;
 
     return -1;
 }
