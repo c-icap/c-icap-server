@@ -172,7 +172,7 @@ const char *ci_headers_add(ci_headers_list_t * h, const char *line)
             h->headers[i] = h->headers[i - 1] + strlen(h->headers[i - 1]) + 2;
     }
     newhead = h->buf + h->bufused;
-    strncpy(newhead, line, linelen);
+    memmove(newhead, line, linelen);
     newhead[linelen] = '\0';
     h->bufused += linelen + 2; //2 char size for \r\n at the end of each header
     *(newhead + linelen + 1) = '\n';
