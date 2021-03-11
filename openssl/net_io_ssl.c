@@ -30,9 +30,6 @@
 #include <openssl/x509v3.h>
 
 #include <errno.h>
-#include <netinet/tcp.h>
-#include <arpa/inet.h>
-#include <netdb.h>
 #include <sys/time.h>
 #include <assert.h>
 
