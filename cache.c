@@ -432,17 +432,17 @@ struct ci_cache *ci_cache_build( const char *name,
 size_t ci_cache_store_vector_size(ci_vector_t *v)
 {
     int  vector_data_size, vector_indx_size;
-    void *vector_data_start;
-    void *vector_data_end;
+    const char *vector_data_start;
+    const char *vector_data_end;
     if (!v)
         return 0;
     /*The vector data stored in a continue memory block which filled from
       bottom to up. So the last elements stored at the beggining of the
       memory block. */
-    vector_data_start = (void *)(v->items[v->count -1]);
-    vector_data_end = v->mem +v->max_size;
+    vector_data_start = (const char *)(v->items[v->count - 1]);
+    vector_data_end = v->mem + v->max_size;
     /*Assert that the vector stored in one memory block (eg it is not a ci_ptr_vector_t object)*/
-    assert(vector_data_start < vector_data_end && vector_data_start > (void *)v->mem);
+    assert(vector_data_start < vector_data_end && vector_data_start > v->mem);
 
     /*compute the required memory for storing the vector*/
     vector_data_size = vector_data_end - vector_data_start;
@@ -453,8 +453,8 @@ size_t ci_cache_store_vector_size(ci_vector_t *v)
 void *ci_cache_store_vector_val(void *buf, const void *val, size_t buf_size)
 {
     int  vector_data_size, vector_indx_size, i;
-    const void *vector_data_start;
-    const void *vector_data_end;
+    const char *vector_data_start;
+    const char *vector_data_end;
     void *data, **data_indx;
     ci_vector_t *v = (ci_vector_t *)val;
 
@@ -464,10 +464,10 @@ void *ci_cache_store_vector_val(void *buf, const void *val, size_t buf_size)
     /*The vector data stored in a continue memory block which filled from
       bottom to up. So the last elements stored at the beggining of the
       memory block. */
-    vector_data_start = (void *)(v->items[v->count -1]);
-    vector_data_end = v->mem +v->max_size;
+    vector_data_start = (const char *)(v->items[v->count -1]);
+    vector_data_end = v->mem + v->max_size;
     /*Assert that the vector stored in one memory block (eg it is not a ci_ptr_vector_t object)*/
-    assert(vector_data_start < vector_data_end && vector_data_start > (void *)v->mem);
+    assert(vector_data_start < vector_data_end && vector_data_start > v->mem);
 
     /*compute the required memory for storing the vector*/
     vector_data_size = vector_data_end - vector_data_start;
@@ -478,12 +478,12 @@ void *ci_cache_store_vector_val(void *buf, const void *val, size_t buf_size)
 
     /*store the size of vector*/
     memcpy(data, &(v->max_size), sizeof(size_t));
-    data_indx = data + sizeof(size_t);
-    memcpy((void *)data_indx+vector_indx_size, vector_data_start, vector_data_size);
+    data_indx = (void **)((char *)data + sizeof(size_t));
+    memcpy(data_indx + vector_indx_size, vector_data_start, vector_data_size);
 
     /*Store the relative position of the vector item to the index part*/
     for (i = 0; v->items[i]!= NULL; i++)
-        data_indx[i] = (void *)(v->items[i] - vector_data_start + vector_indx_size);
+        data_indx[i] = (void *)((char *)v->items[i] - vector_data_start + vector_indx_size);
     data_indx[i] = NULL;
 
     return data;
@@ -499,7 +499,7 @@ void *ci_cache_read_vector_val(const void *val, size_t val_size, void *o)
     if (!val)
         return NULL;
 
-    data_indx = (const void **)(val + sizeof(size_t));
+    data_indx = (const void **)((const char *)val + sizeof(size_t));
     vector_size = *((size_t *)val);
     v= ci_vector_create(vector_size);
 
@@ -507,9 +507,9 @@ void *ci_cache_read_vector_val(const void *val, size_t val_size, void *o)
       Compute the size of first item, which stored at the end of *val*/
     item_size = val_size - sizeof(size_t) - (size_t)data_indx[0];
     for (i = 0; data_indx[i] != NULL; i++) {
-        ci_vector_add(v, (const void *)((const void *)data_indx+(size_t)data_indx[i]), item_size);
+        ci_vector_add(v, (const void *)((const char *)data_indx + (size_t)data_indx[i]), item_size);
         /*compute the item size of the next item*/
-        item_size = data_indx[i] - data_indx[i+1];
+        item_size = (const char *)data_indx[i] - (const char *)data_indx[i+1];
     }
 
     return v;

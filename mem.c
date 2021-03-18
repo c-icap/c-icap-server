@@ -228,7 +228,7 @@ void *ci_buffer_alloc(size_t block_size)
 static struct mem_buffer_block *to_block(const void *data)
 {
     struct mem_buffer_block *block;
-    block = (struct mem_buffer_block *)(data-PTR_OFFSET);
+    block = (struct mem_buffer_block *)(((char *)data) - PTR_OFFSET);
     if (block->sig != BUF_SIGNATURE) {
         ci_debug_printf(1,"ci_buffer internal check: ERROR, %p is not a ci_buffer object. This is a bug!!!!\n", data);
         return NULL;
@@ -429,7 +429,7 @@ void *ci_object_pool_alloc(int id)
 
 void ci_object_pool_free(void *ptr)
 {
-    struct mem_buffer_block *block = (struct mem_buffer_block *)(ptr-PTR_OFFSET);
+    struct mem_buffer_block *block = (struct mem_buffer_block *)((char *)ptr - PTR_OFFSET);
     if (block->sig != OBJ_SIGNATURE) {
         ci_debug_printf(1,"ci_object_pool_free: ERROR, %p is not internal buffer. This is a bug!!!!\n", ptr);
         return;
@@ -480,16 +480,12 @@ ci_mem_allocator_t *ci_create_os_allocator()
     return allocator;
 }
 
-
-
 /************************************************************/
 /* The serial allocator implementation                      */
-
-
 typedef struct serial_allocator {
-    void *memchunk;
-    void *curpos;
-    void *endpos;
+    char *memchunk;
+    char *curpos;
+    char *endpos;
     struct serial_allocator *next;
 } serial_allocator_t;
 
@@ -497,7 +493,7 @@ typedef struct serial_allocator {
 static serial_allocator_t *serial_allocator_build(size_t size)
 {
     serial_allocator_t *serial_alloc;
-    void *buffer;
+    char *buffer;
     size = _CI_ALIGN(size);
     /*The serial_allocator and mem_allocator structures will be
      allocated in the buffer */
@@ -506,8 +502,8 @@ static serial_allocator_t *serial_allocator_build(size_t size)
 
     /*The allocated block size maybe is larger, than the requested.
       Fix size to actual block size */
-    buffer = ci_buffer_alloc2(size, &size);
-    serial_alloc = buffer;
+    buffer = (char *)ci_buffer_alloc2(size, &size);
+    serial_alloc = (serial_allocator_t *)buffer;
 
     serial_alloc->memchunk = buffer + sizeof(serial_allocator_t);
     size -= sizeof(serial_allocator_t);
@@ -520,7 +516,7 @@ static serial_allocator_t *serial_allocator_build(size_t size)
 static void *serial_allocation(serial_allocator_t *serial_alloc, size_t size)
 {
     size_t max_size;
-    void *mem;
+    char *mem;
     size = _CI_ALIGN(size); /*round size to a correct alignment size*/
     max_size = serial_alloc->endpos - serial_alloc->memchunk;
     if (size > max_size)
@@ -537,7 +533,7 @@ static void *serial_allocation(serial_allocator_t *serial_alloc, size_t size)
 
     mem = serial_alloc->curpos;
     serial_alloc->curpos += size;
-    return mem;
+    return (void *)mem;
 }
 
 static void *serial_allocator_alloc(ci_mem_allocator_t *allocator,size_t size)
@@ -615,10 +611,10 @@ ci_mem_allocator_t *ci_create_serial_allocator(size_t size)
 
 
 typedef struct pack_allocator {
-    void *memchunk;
-    void *curpos;
-    void *endpos;
-    void *end;
+    char *memchunk;
+    char *curpos;
+    char *endpos;
+    char *end;
     int must_free;
 } pack_allocator_t;
 
@@ -626,7 +622,7 @@ typedef struct pack_allocator {
 void *ci_pack_allocator_alloc_unaligned(ci_mem_allocator_t *allocator, size_t size)
 {
     int max_size;
-    void *mem;
+    char *mem;
     pack_allocator_t *pack_alloc;
 
     assert(allocator->type == PACK_ALLOC);
@@ -642,7 +638,7 @@ void *ci_pack_allocator_alloc_unaligned(ci_mem_allocator_t *allocator, size_t si
 
     mem = pack_alloc->curpos;
     pack_alloc->curpos += size;
-    return mem;
+    return (void *)mem;
 }
 
 void *ci_pack_allocator_alloc(ci_mem_allocator_t *allocator,size_t size)
@@ -654,7 +650,7 @@ void *ci_pack_allocator_alloc(ci_mem_allocator_t *allocator,size_t size)
 void  *ci_pack_allocator_alloc_from_rear(ci_mem_allocator_t *allocator, int size)
 {
     int max_size;
-    void *mem;
+    char *mem;
     pack_allocator_t *pack_alloc;
 
     assert(allocator->type == PACK_ALLOC);
@@ -671,7 +667,7 @@ void  *ci_pack_allocator_alloc_from_rear(ci_mem_allocator_t *allocator, int size
 
     pack_alloc->endpos -= size; /*Allocate block from the end of memory block*/
     mem = pack_alloc->endpos;
-    return mem;
+    return (void *)mem;
 }
 
 void ci_pack_allocator_free(ci_mem_allocator_t *allocator,void *p)
@@ -783,8 +779,8 @@ void ci_pack_allocator_set_start_pos(ci_mem_allocator_t *allocator, void *p)
     pack_allocator_t *pack_alloc;
     assert(allocator->type == PACK_ALLOC);
     pack_alloc = (pack_allocator_t *)allocator->data;
-    assert(p >= pack_alloc->memchunk);
-    pack_alloc->curpos = p;
+    assert((char *)p >= pack_alloc->memchunk);
+    pack_alloc->curpos = (char *)p;
 }
 
 void ci_pack_allocator_set_end_pos(ci_mem_allocator_t *allocator, void *p)
@@ -792,11 +788,11 @@ void ci_pack_allocator_set_end_pos(ci_mem_allocator_t *allocator, void *p)
     pack_allocator_t *pack_alloc;
     assert(allocator->type == PACK_ALLOC);
     pack_alloc = (pack_allocator_t *)allocator->data;
-    assert(p <= pack_alloc->end);
+    assert((char *)p <= pack_alloc->end);
     if (p == NULL)
         pack_alloc->endpos = pack_alloc->end;
     else
-        pack_alloc->endpos = p;
+        pack_alloc->endpos = (char *)p;
 }
 
 /****************************************************************/

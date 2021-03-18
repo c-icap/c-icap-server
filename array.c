@@ -402,8 +402,8 @@ ci_vector_t *ci_vector_cast_from_voidvoid(const void **p)
     const void *buf;
     ci_vector_t *v;
     _CI_ASSERT(p);
-    v = (ci_vector_t *)((void *)p - _CI_ALIGN(sizeof(ci_vector_t)));
-    buf = (void *)v - ci_pack_allocator_required_size();
+    v = (ci_vector_t *)((char *)p - _CI_ALIGN(sizeof(ci_vector_t)));
+    buf = (const void *)((char *)v - ci_pack_allocator_required_size());
     _CI_ASSERT(v->mem == buf);
     _CI_ASSERT(ci_buffer_check(buf));
     return v;

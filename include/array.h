@@ -357,8 +357,8 @@ static inline const ci_array_item_t *ci_ptr_array_get_item(const ci_ptr_array_t 
  */
 typedef struct ci_dyn_array {
     ci_array_item_t **items;
-    int count;
-    int max_items;
+    unsigned int count;
+    unsigned int max_items;
     ci_mem_allocator_t *alloc;
 } ci_dyn_array_t;
 
@@ -487,7 +487,7 @@ static inline void *ci_ptr_dyn_array_search(const ci_ptr_dyn_array_t *ptr_array,
 }
 
 static inline void ci_ptr_dyn_array_iterate(const ci_ptr_dyn_array_t *ptr_array, void *data, int (*fn)(void *data, const char *name, const void *)) {
-    return ci_dyn_array_iterate((const ci_dyn_array_t *)(ptr_array), data, fn);
+    ci_dyn_array_iterate((const ci_dyn_array_t *)(ptr_array), data, fn);
 }
 
 static inline const ci_array_item_t *ci_ptr_dyn_array_get_item(const ci_ptr_dyn_array_t *ptr_array, unsigned int pos) {
@@ -534,7 +534,7 @@ typedef struct ci_vector {
     void **last;
     char *mem;
     size_t max_size;
-    int count;
+    unsigned int count;
     ci_mem_allocator_t *alloc;
 } ci_vector_t;
 
@@ -677,7 +677,7 @@ static inline void ci_ptr_vector_destroy(ci_ptr_vector_t *vector){
 }
 
 static inline void ci_ptr_vector_iterate(const ci_ptr_vector_t *vector, void *data, int (*fn)(void *data, const void *)){
-    return ci_vector_iterate((const ci_vector_t *)vector, data, fn);
+    ci_vector_iterate((const ci_vector_t *)vector, data, fn);
 }
 
 static inline void *ci_ptr_vector_get(const ci_ptr_vector_t *vector, unsigned int pos) {
