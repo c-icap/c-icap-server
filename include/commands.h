@@ -38,6 +38,15 @@ extern "C"
 #define CHILD_START_CMD       8
 #define CHILD_STOP_CMD       16
 #define ONDEMAND_CMD         32
+
+#define CI_CMD_NULL              0
+#define CI_CMD_MONITOR_PROC      1
+#define CI_CMD_CHILDS_PROC       2
+#define CI_CMD_MONITOR_PROC_POST 4
+#define CI_CMD_ALL_PROC          7
+#define CI_CMD_CHILD_START       8
+#define CI_CMD_CHILD_STOP       16
+#define CI_CMD_ONDEMAND         32
 #define CI_CMD_CHILD_CLEANUP  64 /* On master process after a child exit */
 
 #define CMD_NM_SIZE 128
