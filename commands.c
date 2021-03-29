@@ -140,7 +140,9 @@ ci_command_t *find_command(const char *cmd_line)
         strncpy(tmpCmd.name, cmd_line, len);
         tmpCmd.name[len] = '\0';
         cmd = &tmpCmd;
+        ci_thread_mutex_lock(&COMMANDS_MTX);
         ci_list_iterate(COMMANDS_LIST, &cmd, cb_check_command);
+        ci_thread_mutex_unlock(&COMMANDS_MTX);
         if (cmd != &tmpCmd)
             /*We found an cmd stored in list. Return it*/
             return cmd;
@@ -181,7 +183,9 @@ static int execute_child_commands (int cmd_type)
         ci_debug_printf(5, "None command registered\n");
         return 0;
     }
+    ci_thread_mutex_lock(&COMMANDS_MTX);
     ci_list_iterate(COMMANDS_LIST, &cmd_type, exec_cmd_step);
+    ci_thread_mutex_unlock(&COMMANDS_MTX);
     return 1;
 }
 
@@ -261,7 +265,9 @@ void commands_exec_scheduled()
         return;
 
     time(&tm);
+    ci_thread_mutex_lock(&COMMANDS_MTX);
     ci_list_iterate(COMMANDS_QUEUE, &tm, cb_check_queue);
+    ci_thread_mutex_unlock(&COMMANDS_MTX);
 }
 
 void ci_command_register_child_cleanup(const char *name, void *data, void (*child_cleanup_handler) (const char *name, process_pid_t pid, int reason, void *data))
