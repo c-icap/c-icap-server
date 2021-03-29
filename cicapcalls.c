@@ -79,3 +79,13 @@ void ci_command_schedule(const char *name, void *data, time_t time)
      fprintf(stderr, "Can not execute ci_command_schedule\n");
 }
 
+void ci_command_register_child_cleanup(const char *name, void *data, void (*child_cleanup_handler) (const char *name, process_pid_t pid, int reason, void *data))
+{
+    typedef void (*RC)(const char *, void *, void(*)(const char *, process_pid_t, int, void *));
+    RC fn;
+    fn = (RC)GetProcAddress(GetModuleHandle(NULL), "ci_command_register_child_cleanup");
+    if (fn)
+        (*fn)(name, data, child_cleanup_handler);
+    else
+        fprintf(stderr, "Can not execute ci_command_register_child_cleanup\n");
+}

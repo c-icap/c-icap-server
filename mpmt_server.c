@@ -372,6 +372,7 @@ static void check_for_exited_childs()
                 old_childs_queue = NULL;
             }
         }
+        commands_exec_child_cleanup((process_pid_t)pid, exit_status);
     }
     if (pid < 0)
         ci_debug_printf(1, "Fatal error waiting for a child to exit .....\n");
