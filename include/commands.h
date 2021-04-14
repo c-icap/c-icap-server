@@ -89,7 +89,7 @@ enum {CI_PROC_TERMINATED = 0, CI_PROC_CRASHED};
    as reason parameter if child process terminated abnormally and the
    user data as data parameter.
    The handler will be executed immediately after the master process
-   informed and before any new process started to replace killed process.
+   informed, maybe after a new child-process started to replace the killed one.
 */
 CI_DECLARE_FUNC(void) ci_command_register_child_cleanup(const char *name,
                                                         void *data,
