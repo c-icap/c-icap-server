@@ -248,3 +248,17 @@ static void MD5Transform(uint32_t buf[4], uint32_t in[16])
     buf[3] += d;
 }
 
+/*
+  To fully dump md5 string needs a buffer of size at least
+  32+1 bytes.
+*/
+int ci_MD5_to_str(unsigned char digest[16], char *out, size_t size)
+{
+    return snprintf(out, size,
+                    "%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
+                    digest[0], digest[1], digest[2], digest[3],
+                    digest[4], digest[5], digest[6], digest[7],
+                    digest[8], digest[9], digest[10], digest[11],
+                    digest[12], digest[13], digest[14], digest[15]
+        );
+}
