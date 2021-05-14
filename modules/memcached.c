@@ -245,14 +245,16 @@ int mc_cache_cmp(const void *obj, const void *user_data, size_t user_data_size)
 int mc_cache_init(struct ci_cache *cache, const char *domain)
 {
     int i;
-    char useDomain[MC_DOMAINLEN + 1];
+#define USE_EXCESS_BYTES 3 // Just to avoid gcc warnings
+    char useDomain[MC_DOMAINLEN + 1 + USE_EXCESS_BYTES];
     strncpy(useDomain, domain, MC_DOMAINLEN);
     useDomain[MC_DOMAINLEN] = '\0';
     i = 0;
     ci_thread_mutex_lock(&mc_mtx);
     while (i < 1000 && ci_list_search2(mc_caches_list, useDomain, mc_cache_cmp)) {
-        snprintf(useDomain, MC_DOMAINLEN, "%.*s~%d",
-                 MC_DOMAINLEN - 2 - (i < 10 ? 1 : (i < 100 ? 2 : 3)),
+        const int istrSize = i < 10 ? 1 : (i < 100 ? 2 : 3);
+        snprintf(useDomain, sizeof(useDomain), "%.*s~%d",
+                 (int)(MC_DOMAINLEN - 1 - istrSize),
                  domain,
                  i);
         i++;

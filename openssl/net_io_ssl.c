@@ -865,7 +865,7 @@ int ci_tls_connect_nonblock(ci_connection_t *connection, const char *servername,
 int ci_tls_connect_to_address_nonblock(ci_connection_t *connection, const ci_sockaddr_t *address, int port, const char *sni, ci_tls_pcontext_t use_ctx)
 {
     char buf[512];
-    char strIP[512];
+    char strIP[256];
     SSL *ssl = NULL;
 
     assert(connection);
@@ -930,7 +930,7 @@ int ci_tls_connect_to_address_nonblock(ci_connection_t *connection, const ci_soc
         BIO_set_conn_port(connection_bio, buf);
         if (address->ci_sin_family == AF_INET6) {
             // IPv6 addresses must be written in square brackets
-            snprintf(buf, sizeof(buf), "[%s]", strIP);
+	    snprintf(buf, sizeof(buf), "[%s]", strIP);
             BIO_set_conn_hostname(connection_bio, buf);
         } else {
             BIO_set_conn_hostname(connection_bio, strIP);
