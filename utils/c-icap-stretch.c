@@ -224,7 +224,7 @@ static void build_response_headers(int fd, ci_headers_list_t *headers)
 
 static void build_request_headers(const char *url, const char *method, ci_headers_list_t *headers)
 {
-    char lbuf[1024];
+    char lbuf[8192];
     time_t ltimet;
 
     snprintf(lbuf, sizeof(lbuf), "%s %s HTTP/1.1", method, url);
