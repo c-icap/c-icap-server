@@ -288,6 +288,34 @@ int ci_proc_mutex_init(ci_proc_mutex_t *mutex, const char *name)
     return 0;
 }
 
+CI_DECLARE_FUNC(int) ci_proc_mutex_init2(ci_proc_mutex_t *mutex, const char *name, const char *scheme)
+{
+    const ci_proc_mutex_scheme_t *use_scheme = NULL;
+#if defined(USE_SYSV_IPC_MUTEX)
+    if (strcasecmp(scheme, "sysv") == 0)
+        use_scheme = &sysv_mutex_scheme;
+    else
+#endif
+#if defined(USE_POSIX_SEMAPHORES)
+        if (strcasecmp(scheme, "posix") == 0)
+            use_scheme = &posix_mutex_scheme;
+        else
+#endif
+#if  defined(USE_POSIX_FILE_LOCK)
+            if (strcasecmp(scheme, "file") == 0)
+                use_scheme = &file_mutex_scheme;
+            else
+#endif
+
+                use_scheme = NULL;
+
+    if (use_scheme) {
+        mutex->scheme = use_scheme;
+        return use_scheme->proc_mutex_init(mutex, name);
+    }
+    return 0;
+}
+
 int ci_proc_mutex_destroy(ci_proc_mutex_t *mutex)
 {
     if (mutex->scheme)

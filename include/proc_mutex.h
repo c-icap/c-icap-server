@@ -86,6 +86,7 @@ struct ci_proc_mutex {
 };
 
 CI_DECLARE_FUNC(int) ci_proc_mutex_init(ci_proc_mutex_t *mutex, const char *name);
+CI_DECLARE_FUNC(int) ci_proc_mutex_init2(ci_proc_mutex_t *mutex, const char *name, const char *scheme);
 CI_DECLARE_FUNC(int) ci_proc_mutex_lock(ci_proc_mutex_t *mutex);
 CI_DECLARE_FUNC(int) ci_proc_mutex_unlock(ci_proc_mutex_t *mutex);
 CI_DECLARE_FUNC(int) ci_proc_mutex_destroy(ci_proc_mutex_t *mutex);
