@@ -25,6 +25,7 @@
 #include "request.h"
 #include "simple_api.h"
 #include "util.h"
+#include "atomic.h"
 #include <assert.h>
 
 const char *CI_DEFAULT_USER_AGENT = "C-ICAP-Client-Library/" VERSION;

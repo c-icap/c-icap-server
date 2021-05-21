@@ -29,6 +29,7 @@
 #include "acl.h"
 #include "txtTemplate.h"
 #include "commands.h"
+#include "atomic.h"
 
 /*
 extern char *PIDFILE;
