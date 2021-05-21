@@ -26,6 +26,7 @@ AC_USE_SYSTEM_EXTENSIONS
 AC_PROG_AWK
 AC_PROG_CC
 AM_PROG_CC_C_O
+AC_PROG_CXX
 AC_C_BIGENDIAN
 
 AC_DISABLE_STATIC
@@ -768,6 +769,12 @@ DEFINE_INT64="0"
 AC_CHECK_TYPE(int64_t,,[DEFINE_INT64="1"])
 AC_SUBST(DEFINE_INT64)
 
+have_int128="no"
+AC_CHECK_TYPE(__int128,
+[have_int128="yes"]
+[AC_DEFINE(HAVE_INT128,1,[Define HAVE_INT128 if compiler supports 128bit integers])]
+)
+
 #some type size (currently they are not used)
 AC_CHECK_SIZEOF(short)
 DEFINE_SIZE_SHORT=$ac_cv_sizeof_short
@@ -993,6 +1000,65 @@ AC_MSG_RESULT(no),
 )
 AC_SUBST(PTHREADS_RWLOCK)
 
+C11_ATOMICS="0"
+AC_MSG_CHECKING([if have c11 atomics])
+AC_TRY_COMPILE(
+[#include <stdatomic.h>],
+[
+   long long d = 0;
+   atomic_fetch_add(&d, 1);
+],
+AC_DEFINE(HAVE_C11_ATOMICS,1,[Define HAVE_C11_ATOMICS if c11 atomics supported])
+C11_ATOMICS="1"
+AC_MSG_RESULT(yes),
+AC_MSG_RESULT(no)
+)
+
+AC_MSG_CHECKING([if have 128bit atomics])
+AC_TRY_COMPILE(
+[#include <stdatomic.h>],
+[
+   __int128 d = 0;
+   atomic_fetch_add(&d, 1);
+],
+AC_DEFINE(HAVE_128BIT_ATOMICS,1,[Define HAVE_128BIT_ATOMICS if 128bit atomics supported])
+AC_MSG_RESULT(yes),
+AC_MSG_RESULT(no)
+)
+
+if test a"$C11_ATOMICS" = "a1"; then
+   # We can not safely use AC_CHECK_LIB for libatomic:
+   # This library may implement zero or all of the
+   # atomic_* operators/functions depending the
+   # architecture and the AC_CHECK_LIB requires one
+   # function exist in checking library.
+   # For now try to check if the libatomic exist,
+   # and if yes use it,  without checking if really
+   # needed by c-icap libraries and executables
+   AC_MSG_CHECKING([if needs linking with libatomic])
+   ICFG_STATE_SAVE(ATOMIS)
+   LIBS="-latomic"
+   AC_LINK_IFELSE(
+   [
+   AC_LANG_SOURCE(
+        [#include <stdatomic.h>
+        int main(int argc, char *argv[])
+        {
+           long long d;
+           atomic_fetch_add(&d, 1);
+        }]
+   )],
+   NEEDS_ATOMIC_LIB="1"
+   AC_MSG_RESULT(yes),
+   AC_MSG_RESULT(no))
+fi
+
+if test a"$NEEDS_ATOMIC_LIB" = "a1"; then
+  EXTRALIBS="$EXTRALIBS -latomic"
+fi
+
+ICFG_STATE_ROLLBACK
+
 #We are pouting back real LIBS variable
 LIBS=$OLD_LIBS
 LIBS="$LIBS $EXTRALIBS"
@@ -1012,6 +1078,7 @@ AM_CONDITIONAL(ISCYGWIN,[test a"$iscygwin" != a])
 
 # Now determine which modules will going to build .....
 
+AM_CONDITIONAL(USE_CPLUSPLUS, [test "a$CXX" != "a"])
 AM_CONDITIONAL(USE_OPENSSL, [test a"$openssl" != "ano"])
 AM_CONDITIONAL(USE_REGEX, [test a"$pcre" = "ayes" -o a"$posix_regex" = "ayes"])
 AM_CONDITIONAL(USEPERL,[test a"$perlcore" != a])

@@ -72,4 +72,11 @@
 #define strcasestr(str, find) ci_strcasestr(str, find)
 #endif
 
+#ifdef HAVE_C11_ATOMICS
+#define CI_ATOMICS_INLINE
+#if defined(HAVE_INT128) && defined(HAVE_128BIT_ATOMICS)
+#define CI_ATOMICS_USE_128BIT
+#endif
+#endif
+
 #endif

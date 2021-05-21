@@ -966,6 +966,7 @@ void ci_client_set_user_agent(const char *agent)
 void ci_client_library_init()
 {
     ci_buffers_init();
+    ci_atomics_init();
     ci_cfg_lib_init();
 }
 

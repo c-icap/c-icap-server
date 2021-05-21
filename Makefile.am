@@ -46,7 +46,8 @@ libicapapi_la_SOURCES=  header.c body.c decode.c encode.c simple_api.c request_c
                         filetype.c debug.c cfg_lib.c mem.c  service_lib.c \
                         cache.c lookup_table.c lookup_file_table.c hash.c \
 			txt_format.c stats.c types_ops.c acl.c txtTemplate.c \
-			array.c registry.c md5.c client.c $(UTIL_LIB_SOURCES)
+			array.c registry.c md5.c client.c atomic.c \
+			$(UTIL_LIB_SOURCES)
 
 c_icap_SOURCES = aserver.c request.c cfg_param.c \
                    proc_threads_queues.c http_auth.c \
