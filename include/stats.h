@@ -101,10 +101,21 @@ CI_DECLARE_FUNC(void) ci_stat_update(const ci_stat_item_t *stats, int count);
 
 /*Low level structures and functions*/
 typedef struct kbs {
-    uint64_t kb;
-    unsigned int bytes;
+    uint64_t bytes;
 } kbs_t;
 typedef struct kbs ci_kbs_t;
+
+static inline ci_kbs_t ci_kbs_zero() {ci_kbs_t zero = {0}; return zero;}
+
+static inline uint64_t ci_kbs_kilobytes(ci_kbs_t *kbs)
+{
+    return (kbs->bytes >> 10);
+}
+
+static inline uint64_t ci_kbs_remainder_bytes(ci_kbs_t *kbs)
+{
+    return (kbs->bytes & 0x3FF);
+}
 
 typedef struct ci_stat_value {
     union {
@@ -157,7 +168,7 @@ static inline ci_kbs_t ci_stat_memblock_get_kbs(const ci_stat_memblock_t *block,
     assert(block);
     if (id < block->stats_count)
         return block->stats[id].kbs;
-    const ci_kbs_t zero = {0, 0};
+    const ci_kbs_t zero = {0};
     return zero;
 }
 
@@ -165,16 +176,13 @@ static inline void ci_kbs_update(ci_kbs_t *kbs, int bytes)
 {
     assert(kbs);
     kbs->bytes += bytes;
-    kbs->kb += (kbs->bytes >> 10);
-    kbs->bytes &= 0x3FF;
 }
 
 static inline void ci_kbs_add_to(ci_kbs_t *add_to, const ci_kbs_t *kbs)
 {
     assert(kbs);
     assert(add_to);
-    add_to->kb += kbs->kb;
-    ci_kbs_update(add_to, kbs->bytes);
+    add_to->bytes += kbs->bytes;
 }
 
 #ifdef __cplusplus

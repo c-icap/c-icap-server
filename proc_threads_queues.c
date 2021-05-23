@@ -449,8 +449,8 @@ static int print_statistics(void *data, const char *label, int id, int gId, cons
         kbs = ci_stat_memblock_get_kbs(stats, id);
         ci_debug_printf(1,"\t%s:%" PRIu64 "kbytes and %" PRIu64 " bytes\n",
                         label,
-                        kbs.kb,
-                        kbs.bytes);
+                        ci_kbs_kilobytes(&kbs),
+                        ci_kbs_remainder_bytes(&kbs));
         break;
     default:
         break;
@@ -496,7 +496,7 @@ extern struct childs_queue *childs_queue;
 ci_kbs_t ci_server_stat_kbs_get_running(int id)
 {
     const ci_stat_memblock_t *block;
-    ci_kbs_t value = {0 , 0}, local;
+    ci_kbs_t value = {0}, local;
     int i;
     assert(childs_queue);
     for (i = 0; i < childs_queue->size; i++) {

@@ -311,8 +311,8 @@ static int print_statistics(void *data, const char *label, int id, int gId, cons
         kbs = ci_stat_memblock_get_kbs(info_data->collect_stats, id);
         sz = snprintf(buf, sizeof(buf), tmpl->statline_tmpl_kbs,
                       label,
-                      kbs.kb,
-                      kbs.bytes);
+                      ci_kbs_kilobytes(&kbs),
+                      ci_kbs_remainder_bytes(&kbs));
         if (sz >= sizeof(buf))
             sz = sizeof(buf) - 1;
         ci_membuf_write(info_data->body, buf, sz, 0);

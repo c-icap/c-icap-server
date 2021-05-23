@@ -261,7 +261,7 @@ void ci_stat_groups_iterate(void *data, int (*group_call)(void *data, const char
     }
 }
 
-static ci_stat_value_t stat_value_zero = {.kbs = {0, 0}};
+static ci_stat_value_t stat_value_zero = {.kbs = {0}};
 
 void ci_stat_statistics_iterate(void *data, int groupId, int (*stat_call)(void *data, const char *label, int ID, int gId, const ci_stat_t *stat))
 {
