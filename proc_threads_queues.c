@@ -441,15 +441,15 @@ static int print_statistics(void *data, const char *label, int id, int gId, cons
     assert(ci_stat_memblock_check(stats));
     switch (astat->type) {
     case CI_STAT_INT64_T:
-        ci_debug_printf(1,"\t%s:%llu\n",
+        ci_debug_printf(1,"\t%s:%" PRIu64 "\n",
                         label,
-                        (long long unsigned) ci_stat_memblock_get_counter(stats, id));
+                        ci_stat_memblock_get_counter(stats, id));
         break;
     case CI_STAT_KBS_T:
         kbs = ci_stat_memblock_get_kbs(stats, id);
-        ci_debug_printf(1,"\t%s:%llu kbytes and %d bytes\n",
+        ci_debug_printf(1,"\t%s:%" PRIu64 "kbytes and %" PRIu64 " bytes\n",
                         label,
-                        (long long unsigned) kbs.kb,
+                        kbs.kb,
                         kbs.bytes);
         break;
     default:
