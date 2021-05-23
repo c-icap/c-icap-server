@@ -125,6 +125,12 @@ typedef unsigned long long uint64_t;
 typedef long long int64_t;
 #endif
 
+#if @WORDS_BIGENDIAN@
+#define __USE_BIG_ENDIAN
+#else
+#define __USE_LITTLE_ENDIAN
+#endif
+
 #if @VISIBILITY_ATTR@
 #define USE_VISIBILITY_ATTRIBUTE
 #endif

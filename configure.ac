@@ -27,7 +27,22 @@ AC_PROG_AWK
 AC_PROG_CC
 AM_PROG_CC_C_O
 AC_PROG_CXX
-AC_C_BIGENDIAN
+
+WORDS_BIGENDIAN="0"
+WORDS_LITTLEENDIAN="0"
+AC_C_BIGENDIAN(
+[AC_DEFINE(WORDS_BIGENDIAN, 1,
+          [Define WORDS_BIGENDIAN to 1 if your processor stores words with the most significant byte first (like Motorola and SPARC, unlike Intel).])]
+[WORDS_BIGENDIAN="1"]
+[WORDS_LITTLEENDIAN="0"]
+          ,
+[AC_DEFINE(WORDS_LITTLEENDIAN, 1,
+          [Define WORDS_LITTLEENDIAN to 1 if your processor stores words with the least significant byte first (like Intel).])]
+[WORDS_BIGENDIAN="0"]
+[WORDS_LITTLEENDIAN="1"]
+)
+AC_SUBST(WORDS_BIGENDIAN)
+
 
 AC_DISABLE_STATIC
 AC_LIBTOOL_DLOPEN
