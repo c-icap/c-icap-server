@@ -117,6 +117,12 @@ static inline uint64_t ci_kbs_remainder_bytes(ci_kbs_t *kbs)
     return (kbs->bytes & 0x3FF);
 }
 
+/**
+ * Similar to ci_stat_uint64_ptr but for ci_kbs_t statistic type
+ \ingroup STAT
+*/
+CI_DECLARE_FUNC(ci_kbs_t *) ci_stat_kbs_ptr(int ID);
+
 typedef struct ci_stat_value {
     union {
         uint64_t counter;

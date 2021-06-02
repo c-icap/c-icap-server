@@ -252,6 +252,17 @@ uint64_t *ci_stat_uint64_ptr(int ID)
     return NULL;
 }
 
+ci_kbs_t * ci_stat_kbs_ptr(int ID)
+{
+    if (!STATS || !STATS->mem_block)
+        return NULL;
+
+    if (ID >= 0 && ID < STATS->mem_block->stats_count)
+        return &(STATS->mem_block->stats[ID].kbs);
+
+    return NULL;
+}
+
 void ci_stat_groups_iterate(void *data, int (*group_call)(void *data, const char *name, int groupId))
 {
     int ret = 0;
