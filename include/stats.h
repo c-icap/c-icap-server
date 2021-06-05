@@ -21,6 +21,7 @@
 #define __C_ICAP_STATS_H
 
 #include "c-icap.h"
+#include "atomic.h"
 #include "ci_threads.h"
 
 #ifdef __cplusplus
@@ -60,14 +61,14 @@ CI_DECLARE_FUNC(int) ci_stat_entry_register(const char *label, ci_stat_type_t ty
  * Increases by 'count' the counter 'ID', which must be of type CI_STAT_INT64_T
  \ingroup STAT
  */
-CI_DECLARE_FUNC(void) ci_stat_uint64_inc(int ID, int count);
+CI_DECLARE_FUNC(void) ci_stat_uint64_inc(int ID, uint64_t count);
 
 /**
  * Increases by 'count' bytes the counter 'ID', which must be of type
  * CI_STAT_KBS_T.
  \ingroup STAT
  */
-CI_DECLARE_FUNC(void) ci_stat_kbs_inc(int ID, int count);
+CI_DECLARE_FUNC(void) ci_stat_kbs_inc(int ID, uint64_t count);
 
 /**
  * Return the memory address where the CI_STAT_INT64_T counter is stored
@@ -88,7 +89,7 @@ CI_DECLARE_FUNC(uint64_t *) ci_stat_uint64_ptr(int ID);
 typedef struct ci_stat_item {
     ci_stat_type_t type;
     int Id;
-    int count;
+    uint64_t count;
 } ci_stat_item_t;
 
 /**
@@ -99,7 +100,6 @@ typedef struct ci_stat_item {
 */
 CI_DECLARE_FUNC(void) ci_stat_update(const ci_stat_item_t *stats, int count);
 
-/*Low level structures and functions*/
 typedef struct kbs {
     uint64_t bytes;
 } kbs_t;
@@ -117,12 +117,32 @@ static inline uint64_t ci_kbs_remainder_bytes(ci_kbs_t *kbs)
     return (kbs->bytes & 0x3FF);
 }
 
+static inline void ci_kbs_update(ci_kbs_t *kbs, uint64_t bytes)
+{
+    assert(kbs);
+    kbs->bytes += bytes;
+}
+
+static inline void ci_kbs_lock_and_update(ci_kbs_t *kbs, uint64_t bytes)
+{
+    assert(kbs);
+    ci_atomic_add_u64(&(kbs->bytes), bytes);
+}
+
+static inline void ci_kbs_add_to(ci_kbs_t *add_to, const ci_kbs_t *kbs)
+{
+    assert(kbs);
+    assert(add_to);
+    add_to->bytes += kbs->bytes;
+}
+
 /**
  * Similar to ci_stat_uint64_ptr but for ci_kbs_t statistic type
  \ingroup STAT
 */
 CI_DECLARE_FUNC(ci_kbs_t *) ci_stat_kbs_ptr(int ID);
 
+/*Low level structures and functions*/
 typedef struct ci_stat_value {
     union {
         uint64_t counter;
@@ -178,17 +198,23 @@ static inline ci_kbs_t ci_stat_memblock_get_kbs(const ci_stat_memblock_t *block,
     return zero;
 }
 
-static inline void ci_kbs_update(ci_kbs_t *kbs, int bytes)
+#define STAT_INT64_INC(memblock, id, count) ci_atomic_add_u64(&(memblock->stats[id].counter), count);
+#define STAT_KBS_INC(memblock, id, count) ci_kbs_lock_and_update(&(memblock->stats[ID].kbs), count);
+
+static inline void ci_stat_membock_uint64_inc(ci_stat_memblock_t *mem_block, int ID, uint64_t count)
 {
-    assert(kbs);
-    kbs->bytes += bytes;
+    assert(mem_block);
+    if (ID < 0 || ID > mem_block->stats_count)
+        return;
+    STAT_INT64_INC(mem_block, ID, count);
 }
 
-static inline void ci_kbs_add_to(ci_kbs_t *add_to, const ci_kbs_t *kbs)
+static inline void ci_stat_memblock_kbs_inc(ci_stat_memblock_t *mem_block, int ID, uint64_t count)
 {
-    assert(kbs);
-    assert(add_to);
-    add_to->bytes += kbs->bytes;
+    assert(mem_block);
+    if (ID < 0 || ID > mem_block->stats_count)
+        return;
+    STAT_INT64_INC(mem_block, ID, count);
 }
 
 #ifdef __cplusplus

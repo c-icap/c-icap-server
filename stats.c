@@ -44,7 +44,6 @@ struct stat_entry_list STAT_STATS = {NULL, 0, 0};
 struct stat_groups_list STAT_GROUPS = {NULL, 0, 0};;
 
 struct stat_area {
-    ci_thread_mutex_t mtx;
     void (*release_mem)(void *);
     ci_stat_memblock_t *mem_block;
 };
@@ -190,7 +189,7 @@ void ci_stat_release()
     STATS = NULL;
 }
 
-void ci_stat_uint64_inc(int ID, int count)
+void ci_stat_uint64_inc(int ID, uint64_t count)
 {
     if (!STATS || !STATS->mem_block)
         return;
@@ -198,12 +197,10 @@ void ci_stat_uint64_inc(int ID, int count)
     if (ID < 0 || ID > STATS->mem_block->stats_count)
         return;
 
-    ci_thread_mutex_lock(&STATS->mtx);
-    STATS->mem_block->stats[ID].counter += count;
-    ci_thread_mutex_unlock(&STATS->mtx);
+    ci_atomic_add_u64(&(STATS->mem_block->stats[ID].counter), (uint64_t)count);
 }
 
-void ci_stat_kbs_inc(int ID, int count)
+void ci_stat_kbs_inc(int ID, uint64_t count)
 {
     if (!STATS || !STATS->mem_block)
         return;
@@ -211,9 +208,7 @@ void ci_stat_kbs_inc(int ID, int count)
     if (ID < 0 || ID > STATS->mem_block->stats_count)
         return;
 
-    ci_thread_mutex_lock(&STATS->mtx);
-    ci_kbs_update(&(STATS->mem_block->stats[ID].kbs), count);
-    ci_thread_mutex_unlock(&STATS->mtx);
+    ci_kbs_lock_and_update(&(STATS->mem_block->stats[ID].kbs), count);
 }
 
 void ci_stat_update(const ci_stat_item_t *stats, int num)
@@ -221,24 +216,22 @@ void ci_stat_update(const ci_stat_item_t *stats, int num)
     int i;
     if (!STATS || !STATS->mem_block)
         return;
-    ci_thread_mutex_lock(&STATS->mtx);
     for (i = 0; i < num; ++i) {
         int id = stats[i].Id;
         if ( id < 0 || id > STATS->mem_block->stats_count)
             continue; /*May print a warning?*/
         switch (stats[i].type) {
         case CI_STAT_INT64_T:
-            STATS->mem_block->stats[id].counter += stats[i].count;
+            ci_atomic_add_u64(&(STATS->mem_block->stats[id].counter), (uint64_t)stats[i].count);
             break;
         case CI_STAT_KBS_T:
-            ci_kbs_update(&(STATS->mem_block->stats[id].kbs), stats[i].count);
+            ci_kbs_lock_and_update(&(STATS->mem_block->stats[id].kbs), stats[i].count);
             break;
         default:
             /*Wrong type id, ignore for now*/
             break;
         }
     }
-    ci_thread_mutex_unlock(&STATS->mtx);
 }
 
 uint64_t *ci_stat_uint64_ptr(int ID)
@@ -302,7 +295,6 @@ struct stat_area *ci_stat_area_construct(void *mem_block, int size, void (*relea
     if (!area)
         return NULL;
 
-    ci_thread_mutex_init(&(area->mtx));
     area->mem_block = ci_stat_memblock_init(mem_block, size);
     area->release_mem = release_mem;
     return area;
@@ -310,7 +302,6 @@ struct stat_area *ci_stat_area_construct(void *mem_block, int size, void (*relea
 
 void ci_stat_area_destroy(struct stat_area  *area)
 {
-    ci_thread_mutex_destroy(&(area->mtx));
     if (area->release_mem)
         area->release_mem(area->mem_block);
     free(area);
