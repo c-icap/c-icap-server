@@ -198,8 +198,10 @@ static inline ci_kbs_t ci_stat_memblock_get_kbs(const ci_stat_memblock_t *block,
     return zero;
 }
 
-#define STAT_INT64_INC(memblock, id, count) ci_atomic_add_u64(&(memblock->stats[id].counter), count);
-#define STAT_KBS_INC(memblock, id, count) ci_kbs_lock_and_update(&(memblock->stats[ID].kbs), count);
+#define STAT_INT64_INC(memblock, id, count) ci_atomic_add_u64(&(memblock->stats[id].counter), count)
+#define STAT_KBS_INC(memblock, id, count) ci_kbs_lock_and_update(&(memblock->stats[id].kbs), count)
+#define STAT_INT64_INC_NL(memblock, id, count) memblock->stats[id].counter += count
+#define STAT_KBS_INC_NL(memblock, id, count) ci_kbs_update(&(memblock->stats[id].kbs), count)
 
 static inline void ci_stat_membock_uint64_inc(ci_stat_memblock_t *mem_block, int ID, uint64_t count)
 {

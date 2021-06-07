@@ -51,6 +51,8 @@ extern int CHILD_HALT;
 
 #define ci_method_supported(METHOD, METHOD_DEF) (METHOD & METHOD_DEF)
 
+static ci_thread_mutex_t STAT_MTX;
+static ci_stat_memblock_t *STATS = NULL;
 static int STAT_REQUESTS = -1;
 static int STAT_FAILED_REQUESTS = -1;
 static int STAT_BYTES_IN = -1;
@@ -80,6 +82,12 @@ void request_stats_init()
     STAT_HTTP_BYTES_OUT = ci_stat_entry_register("HTTP BYTES OUT", CI_STAT_KBS_T, "General");
     STAT_BODY_BYTES_IN = ci_stat_entry_register("BODY BYTES IN", CI_STAT_KBS_T, "General");
     STAT_BODY_BYTES_OUT = ci_stat_entry_register("BODY BYTES OUT", CI_STAT_KBS_T, "General");
+    /*
+      Use a threads mutex lock to update request statistics. They are updated
+      only in one place in this file (function do_request), so this is should
+      work well.
+     */
+    ci_thread_mutex_init(&STAT_MTX);
 }
 
 static int wait_for_data(ci_connection_t *conn, int secs, int what_wait)
@@ -1672,65 +1680,76 @@ int process_request(ci_request_t * req)
     else
         srv_xdata = NULL;
 
+/*
+  The c-icap statistics interface uses atomics to update statistic
+  counters. But here we are going to update more than 20 counters.
+  Atomic operations are fast when updating a counter but because they
+  lock the bus, may not perform very well when updating on the same time
+  many counters. At the same time c-icap may have more than 500-1000
+  running threads, is not bad to put a thread in a wait-state (mutex-lock)
+  to give to the other threads the opportunity to make some job.
+ */
+    ci_thread_mutex_lock(&STAT_MTX);
+    if (!STATS)
+        STATS = ci_stat_memblock_get();
 
-    ci_stat_item_t stats[50]; /*50 should be enough*/
-    int indx = 0;
-    stats[indx++] = (ci_stat_item_t){CI_STAT_INT64_T, STAT_REQUESTS,1};
+    assert(STATS);
+    STAT_INT64_INC_NL(STATS, STAT_REQUESTS, 1);
 
     if (req->type == ICAP_REQMOD) {
-        stats[indx++] = (ci_stat_item_t){CI_STAT_INT64_T, STAT_REQMODS, 1};
+        STAT_INT64_INC_NL(STATS, STAT_REQMODS, 1);
         if (srv_xdata)
-            stats[indx++] = (ci_stat_item_t){CI_STAT_INT64_T, srv_xdata->stat_reqmods, 1};
+            STAT_INT64_INC_NL(STATS, srv_xdata->stat_reqmods, 1);
     } else if (req->type == ICAP_RESPMOD) {
-        stats[indx++] = (ci_stat_item_t){CI_STAT_INT64_T, STAT_RESPMODS, 1};
+        STAT_INT64_INC_NL(STATS, STAT_RESPMODS, 1);
         if (srv_xdata)
-            stats[indx++] = (ci_stat_item_t){CI_STAT_INT64_T, srv_xdata->stat_respmods, 1};
+            STAT_INT64_INC_NL(STATS, srv_xdata->stat_respmods, 1);
     } else if (req->type == ICAP_OPTIONS) {
-        stats[indx++] = (ci_stat_item_t){CI_STAT_INT64_T, STAT_OPTIONS, 1};
+        STAT_INT64_INC_NL(STATS, STAT_OPTIONS, 1);
         if (srv_xdata)
-            stats[indx++] = (ci_stat_item_t){CI_STAT_INT64_T, srv_xdata->stat_options, 1};
+            STAT_INT64_INC_NL(STATS, srv_xdata->stat_options, 1);
     }
 
     if (res <0 && STAT_FAILED_REQUESTS >= 0)
-        stats[indx++] = (ci_stat_item_t){CI_STAT_INT64_T, STAT_FAILED_REQUESTS, 1};
+        STAT_INT64_INC_NL(STATS, STAT_FAILED_REQUESTS, 1);
     else if (req->return_code == EC_204) {
-        stats[indx++] = (ci_stat_item_t){CI_STAT_INT64_T, STAT_ALLOW204, 1};
+        STAT_INT64_INC_NL(STATS, STAT_ALLOW204, 1);
         if (srv_xdata)
-            stats[indx++] = (ci_stat_item_t){CI_STAT_INT64_T, srv_xdata->stat_allow204, 1};
+            STAT_INT64_INC_NL(STATS, srv_xdata->stat_allow204, 1);
     } else if (req->return_code == EC_206) {
-        stats[indx++] = (ci_stat_item_t){CI_STAT_INT64_T, STAT_ALLOW206, 1};
+        STAT_INT64_INC_NL(STATS, STAT_ALLOW206, 1);
         if (srv_xdata)
-            stats[indx++] = (ci_stat_item_t){CI_STAT_INT64_T, srv_xdata->stat_allow206, 1};
+            STAT_INT64_INC_NL(STATS, srv_xdata->stat_allow206, 1);
     }
 
     if (STAT_BYTES_IN >= 0)
-        stats[indx++] = (ci_stat_item_t){CI_STAT_KBS_T, STAT_BYTES_IN, req->bytes_in};
+        STAT_KBS_INC_NL(STATS, STAT_BYTES_IN, req->bytes_in);
     if (STAT_BYTES_OUT >= 0)
-        stats[indx++] = (ci_stat_item_t){CI_STAT_KBS_T, STAT_BYTES_OUT, req->bytes_out};
+        STAT_KBS_INC_NL(STATS, STAT_BYTES_OUT, req->bytes_out);
     if (STAT_HTTP_BYTES_IN >= 0)
-        stats[indx++] = (ci_stat_item_t){CI_STAT_KBS_T, STAT_HTTP_BYTES_IN, req->http_bytes_in};
+        STAT_KBS_INC_NL(STATS, STAT_HTTP_BYTES_IN, req->http_bytes_in);
     if (STAT_HTTP_BYTES_OUT >= 0)
-        stats[indx++] = (ci_stat_item_t){CI_STAT_KBS_T, STAT_HTTP_BYTES_OUT, req->http_bytes_out};
+        STAT_KBS_INC_NL(STATS, STAT_HTTP_BYTES_OUT, req->http_bytes_out);
     if (STAT_BODY_BYTES_IN >= 0)
-        stats[indx++] = (ci_stat_item_t){CI_STAT_KBS_T, STAT_BODY_BYTES_IN, req->body_bytes_in};
+        STAT_KBS_INC_NL(STATS, STAT_BODY_BYTES_IN, req->body_bytes_in);
     if (STAT_BODY_BYTES_OUT >= 0)
-        stats[indx++] = (ci_stat_item_t){CI_STAT_KBS_T, STAT_BODY_BYTES_OUT, req->body_bytes_out};
+        STAT_KBS_INC_NL(STATS, STAT_BODY_BYTES_OUT, req->body_bytes_out);
 
     if (srv_xdata) {
         if (srv_xdata->stat_bytes_in >= 0)
-            stats[indx++] = (ci_stat_item_t){CI_STAT_KBS_T, srv_xdata->stat_bytes_in, req->bytes_in};
+            STAT_KBS_INC_NL(STATS, srv_xdata->stat_bytes_in, req->bytes_in);
         if (srv_xdata->stat_bytes_out >= 0)
-            stats[indx++] = (ci_stat_item_t){CI_STAT_KBS_T, srv_xdata->stat_bytes_out, req->bytes_out};
+            STAT_KBS_INC_NL(STATS, srv_xdata->stat_bytes_out, req->bytes_out);
         if (srv_xdata->stat_http_bytes_in >= 0)
-            stats[indx++] = (ci_stat_item_t){CI_STAT_KBS_T, srv_xdata->stat_http_bytes_in, req->http_bytes_in};
+            STAT_KBS_INC_NL(STATS, srv_xdata->stat_http_bytes_in, req->http_bytes_in);
         if (srv_xdata->stat_http_bytes_out >= 0)
-            stats[indx++] = (ci_stat_item_t){CI_STAT_KBS_T, srv_xdata->stat_http_bytes_out, req->http_bytes_out};
+            STAT_KBS_INC_NL(STATS, srv_xdata->stat_http_bytes_out, req->http_bytes_out);
         if (srv_xdata->stat_body_bytes_in >= 0)
-            stats[indx++] = (ci_stat_item_t){CI_STAT_KBS_T, srv_xdata->stat_body_bytes_in, req->body_bytes_in};
+            STAT_KBS_INC_NL(STATS, srv_xdata->stat_body_bytes_in, req->body_bytes_in);
         if (srv_xdata->stat_body_bytes_out >= 0)
-            stats[indx++] = (ci_stat_item_t){CI_STAT_KBS_T, srv_xdata->stat_body_bytes_out, req->body_bytes_out};
+            STAT_KBS_INC_NL(STATS, srv_xdata->stat_body_bytes_out, req->body_bytes_out);
     }
-    ci_stat_update(stats, indx);
+    ci_thread_mutex_unlock(&STAT_MTX);
 
     return res; /*Allow to log even the failed requests*/
 }
