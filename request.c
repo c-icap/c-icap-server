@@ -67,21 +67,28 @@ static int STAT_OPTIONS = -1;
 static int STAT_ALLOW204 = -1;
 static int STAT_ALLOW206 = -1;
 
+static int request_stat_entry_register(const char *name, int type, const char *gname)
+{
+    int stat = ci_stat_entry_register(name, type, gname);
+    assert(stat >= 0);
+    return stat;
+}
+
 void request_stats_init()
 {
-    STAT_REQUESTS = ci_stat_entry_register("REQUESTS", CI_STAT_INT64_T, "General");
-    STAT_REQMODS = ci_stat_entry_register("REQMODS", CI_STAT_INT64_T, "General");
-    STAT_RESPMODS = ci_stat_entry_register("RESPMODS", CI_STAT_INT64_T, "General");
-    STAT_OPTIONS = ci_stat_entry_register("OPTIONS", CI_STAT_INT64_T, "General");
-    STAT_FAILED_REQUESTS = ci_stat_entry_register("FAILED REQUESTS", CI_STAT_INT64_T, "General");
-    STAT_ALLOW204 = ci_stat_entry_register("ALLOW 204", CI_STAT_INT64_T, "General");
-    STAT_ALLOW206 = ci_stat_entry_register("ALLOW 206", CI_STAT_INT64_T, "General");
-    STAT_BYTES_IN = ci_stat_entry_register("BYTES IN", CI_STAT_KBS_T, "General");
-    STAT_BYTES_OUT = ci_stat_entry_register("BYTES OUT", CI_STAT_KBS_T, "General");
-    STAT_HTTP_BYTES_IN = ci_stat_entry_register("HTTP BYTES IN", CI_STAT_KBS_T, "General");
-    STAT_HTTP_BYTES_OUT = ci_stat_entry_register("HTTP BYTES OUT", CI_STAT_KBS_T, "General");
-    STAT_BODY_BYTES_IN = ci_stat_entry_register("BODY BYTES IN", CI_STAT_KBS_T, "General");
-    STAT_BODY_BYTES_OUT = ci_stat_entry_register("BODY BYTES OUT", CI_STAT_KBS_T, "General");
+    STAT_REQUESTS = request_stat_entry_register("REQUESTS", CI_STAT_INT64_T, "General");
+    STAT_REQMODS = request_stat_entry_register("REQMODS", CI_STAT_INT64_T, "General");
+    STAT_RESPMODS = request_stat_entry_register("RESPMODS", CI_STAT_INT64_T, "General");
+    STAT_OPTIONS = request_stat_entry_register("OPTIONS", CI_STAT_INT64_T, "General");
+    STAT_FAILED_REQUESTS = request_stat_entry_register("FAILED REQUESTS", CI_STAT_INT64_T, "General");
+    STAT_ALLOW204 = request_stat_entry_register("ALLOW 204", CI_STAT_INT64_T, "General");
+    STAT_ALLOW206 = request_stat_entry_register("ALLOW 206", CI_STAT_INT64_T, "General");
+    STAT_BYTES_IN = request_stat_entry_register("BYTES IN", CI_STAT_KBS_T, "General");
+    STAT_BYTES_OUT = request_stat_entry_register("BYTES OUT", CI_STAT_KBS_T, "General");
+    STAT_HTTP_BYTES_IN = request_stat_entry_register("HTTP BYTES IN", CI_STAT_KBS_T, "General");
+    STAT_HTTP_BYTES_OUT = request_stat_entry_register("HTTP BYTES OUT", CI_STAT_KBS_T, "General");
+    STAT_BODY_BYTES_IN = request_stat_entry_register("BODY BYTES IN", CI_STAT_KBS_T, "General");
+    STAT_BODY_BYTES_OUT = request_stat_entry_register("BODY BYTES OUT", CI_STAT_KBS_T, "General");
     /*
       Use a threads mutex lock to update request statistics. They are updated
       only in one place in this file (function do_request), so this is should
@@ -1722,32 +1729,20 @@ int process_request(ci_request_t * req)
             STAT_INT64_INC_NL(STATS, srv_xdata->stat_allow206, 1);
     }
 
-    if (STAT_BYTES_IN >= 0)
-        STAT_KBS_INC_NL(STATS, STAT_BYTES_IN, req->bytes_in);
-    if (STAT_BYTES_OUT >= 0)
-        STAT_KBS_INC_NL(STATS, STAT_BYTES_OUT, req->bytes_out);
-    if (STAT_HTTP_BYTES_IN >= 0)
-        STAT_KBS_INC_NL(STATS, STAT_HTTP_BYTES_IN, req->http_bytes_in);
-    if (STAT_HTTP_BYTES_OUT >= 0)
-        STAT_KBS_INC_NL(STATS, STAT_HTTP_BYTES_OUT, req->http_bytes_out);
-    if (STAT_BODY_BYTES_IN >= 0)
-        STAT_KBS_INC_NL(STATS, STAT_BODY_BYTES_IN, req->body_bytes_in);
-    if (STAT_BODY_BYTES_OUT >= 0)
-        STAT_KBS_INC_NL(STATS, STAT_BODY_BYTES_OUT, req->body_bytes_out);
+    STAT_KBS_INC_NL(STATS, STAT_BYTES_IN, req->bytes_in);
+    STAT_KBS_INC_NL(STATS, STAT_BYTES_OUT, req->bytes_out);
+    STAT_KBS_INC_NL(STATS, STAT_HTTP_BYTES_IN, req->http_bytes_in);
+    STAT_KBS_INC_NL(STATS, STAT_HTTP_BYTES_OUT, req->http_bytes_out);
+    STAT_KBS_INC_NL(STATS, STAT_BODY_BYTES_IN, req->body_bytes_in);
+    STAT_KBS_INC_NL(STATS, STAT_BODY_BYTES_OUT, req->body_bytes_out);
 
     if (srv_xdata) {
-        if (srv_xdata->stat_bytes_in >= 0)
-            STAT_KBS_INC_NL(STATS, srv_xdata->stat_bytes_in, req->bytes_in);
-        if (srv_xdata->stat_bytes_out >= 0)
-            STAT_KBS_INC_NL(STATS, srv_xdata->stat_bytes_out, req->bytes_out);
-        if (srv_xdata->stat_http_bytes_in >= 0)
-            STAT_KBS_INC_NL(STATS, srv_xdata->stat_http_bytes_in, req->http_bytes_in);
-        if (srv_xdata->stat_http_bytes_out >= 0)
-            STAT_KBS_INC_NL(STATS, srv_xdata->stat_http_bytes_out, req->http_bytes_out);
-        if (srv_xdata->stat_body_bytes_in >= 0)
-            STAT_KBS_INC_NL(STATS, srv_xdata->stat_body_bytes_in, req->body_bytes_in);
-        if (srv_xdata->stat_body_bytes_out >= 0)
-            STAT_KBS_INC_NL(STATS, srv_xdata->stat_body_bytes_out, req->body_bytes_out);
+        STAT_KBS_INC_NL(STATS, srv_xdata->stat_bytes_in, req->bytes_in);
+        STAT_KBS_INC_NL(STATS, srv_xdata->stat_bytes_out, req->bytes_out);
+        STAT_KBS_INC_NL(STATS, srv_xdata->stat_http_bytes_in, req->http_bytes_in);
+        STAT_KBS_INC_NL(STATS, srv_xdata->stat_http_bytes_out, req->http_bytes_out);
+        STAT_KBS_INC_NL(STATS, srv_xdata->stat_body_bytes_in, req->body_bytes_in);
+        STAT_KBS_INC_NL(STATS, srv_xdata->stat_body_bytes_out, req->body_bytes_out);
     }
     ci_thread_mutex_unlock(&STAT_MTX);
 

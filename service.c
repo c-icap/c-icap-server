@@ -293,6 +293,13 @@ ci_service_module_t *create_service(const char *service_file, const char *argv[]
     return service_handler->create_service(service_file, argv);
 }
 
+static int service_stat_entry_register(const char *name, int type, const char *gname)
+{
+    int stat = ci_stat_entry_register(name, type, gname);
+    assert(stat >= 0);
+    return stat;
+}
+
 void init_extra_data(ci_service_xdata_t * srv_xdata, const char *service)
 {
     char buf[1024];
@@ -318,37 +325,37 @@ void init_extra_data(ci_service_xdata_t * srv_xdata, const char *service)
     snprintf(stat_group, sizeof(stat_group), "Service %s", service);
 
     snprintf(buf, sizeof(buf), "Service %s REQMODS", service);
-    srv_xdata->stat_reqmods = ci_stat_entry_register(buf, CI_STAT_INT64_T, stat_group);
+    srv_xdata->stat_reqmods = service_stat_entry_register(buf, CI_STAT_INT64_T, stat_group);
 
     snprintf(buf, sizeof(buf), "Service %s RESPMODS", service);
-    srv_xdata->stat_respmods = ci_stat_entry_register(buf, CI_STAT_INT64_T, stat_group);
+    srv_xdata->stat_respmods = service_stat_entry_register(buf, CI_STAT_INT64_T, stat_group);
 
     snprintf(buf, sizeof(buf), "Service %s OPTIONS", service);
-    srv_xdata->stat_options = ci_stat_entry_register(buf, CI_STAT_INT64_T, stat_group);
+    srv_xdata->stat_options = service_stat_entry_register(buf, CI_STAT_INT64_T, stat_group);
 
     snprintf(buf, sizeof(buf), "Service %s ALLOW 204", service);
-    srv_xdata->stat_allow204 = ci_stat_entry_register(buf, CI_STAT_INT64_T, stat_group);
+    srv_xdata->stat_allow204 = service_stat_entry_register(buf, CI_STAT_INT64_T, stat_group);
 
     snprintf(buf, sizeof(buf), "Service %s ALLOW 206", service);
-    srv_xdata->stat_allow206 = ci_stat_entry_register(buf, CI_STAT_INT64_T, stat_group);
+    srv_xdata->stat_allow206 = service_stat_entry_register(buf, CI_STAT_INT64_T, stat_group);
 
     snprintf(buf, sizeof(buf), "Service %s BYTES IN", service);
-    srv_xdata->stat_bytes_in = ci_stat_entry_register(buf, CI_STAT_KBS_T, stat_group);
+    srv_xdata->stat_bytes_in = service_stat_entry_register(buf, CI_STAT_KBS_T, stat_group);
 
     snprintf(buf, sizeof(buf), "Service %s BYTES OUT", service);
-    srv_xdata->stat_bytes_out = ci_stat_entry_register(buf, CI_STAT_KBS_T, stat_group);
+    srv_xdata->stat_bytes_out = service_stat_entry_register(buf, CI_STAT_KBS_T, stat_group);
 
     snprintf(buf, sizeof(buf), "Service %s HTTP BYTES IN", service);
-    srv_xdata->stat_http_bytes_in = ci_stat_entry_register(buf, CI_STAT_KBS_T, stat_group);
+    srv_xdata->stat_http_bytes_in = service_stat_entry_register(buf, CI_STAT_KBS_T, stat_group);
 
     snprintf(buf, sizeof(buf), "Service %s HTTP BYTES OUT", service);
-    srv_xdata->stat_http_bytes_out = ci_stat_entry_register(buf, CI_STAT_KBS_T, stat_group);
+    srv_xdata->stat_http_bytes_out = service_stat_entry_register(buf, CI_STAT_KBS_T, stat_group);
 
     snprintf(buf, sizeof(buf), "Service %s BODY BYTES IN", service);
-    srv_xdata->stat_body_bytes_in = ci_stat_entry_register(buf, CI_STAT_KBS_T, stat_group);
+    srv_xdata->stat_body_bytes_in = service_stat_entry_register(buf, CI_STAT_KBS_T, stat_group);
 
     snprintf(buf, sizeof(buf), "Service %s BODY BYTES OUT", service);
-    srv_xdata->stat_body_bytes_out = ci_stat_entry_register(buf, CI_STAT_KBS_T, stat_group);
+    srv_xdata->stat_body_bytes_out = service_stat_entry_register(buf, CI_STAT_KBS_T, stat_group);
 }
 
 /*Must called only in initialization procedure.
