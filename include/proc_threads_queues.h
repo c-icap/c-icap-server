@@ -67,10 +67,8 @@ typedef struct child_shared_data {
     int stats_size;
 } child_shared_data_t;
 
-
 typedef struct ci_server_shared_blob {
     union {
-        char *ptr;
         struct c64bit {
             uint64_t c1;
             uint64_t c2;
@@ -131,63 +129,6 @@ int find_an_idle_child(struct childs_queue *q);
 int childs_queue_stats(struct childs_queue *q, int *childs,
                        int *freeservers, int *used, int *maxrequests);
 void dump_queue_statistics(struct childs_queue *q);
-
-/*c-icap server statistics functions*/
-/**
- * Retrieves the value of a counter of type CI_STAT_KBS_T for the
- * current child.
- \ingroup SERVER
- */
-static inline ci_kbs_t ci_server_stat_kbs_get(int id)
-{
-    ci_stat_memblock_t *block = ci_stat_memblock_get();
-    assert(block);
-    return  ci_stat_memblock_get_kbs(block, id);
-}
-
-/**
- * Retrieves the value of a counter of type CI_STAT_INT64_T for the
- * current child.
- \ingroup SERVER
- */
-static inline uint64_t ci_server_stat_uint64_get(int id)
-{
-    ci_stat_memblock_t *block = ci_stat_memblock_get();
-    assert(block);
-    return  ci_stat_memblock_get_counter(block, id);
-}
-
-/**
- * Retrieves the value of a counter of type CI_STAT_KBS_T for the
- * running children.
- \ingroup SERVER
- */
-CI_DECLARE_FUNC(ci_kbs_t) ci_server_stat_kbs_get_running(int id);
-
-/**
- * Retrieves the value of a counter of type CI_STAT_INT64_T for the
- * running children.
- \ingroup SERVER
- */
-CI_DECLARE_FUNC(uint64_t) ci_server_stat_uint64_get_running(int id);
-
-/**
- * Retrieves the value of a counter of type CI_STAT_KBS_T for the
- * c-icap server. This is include history data.
- \ingroup SERVER
- */
-CI_DECLARE_FUNC(ci_kbs_t) ci_server_stat_kbs_get_global(int id);
-
-/**
- * Retrieves the value of a counter of type CI_STAT_INT64_T for the
- * c-icap server. This is include history data.
- \ingroup SERVER
- */
-CI_DECLARE_FUNC(uint64_t) ci_server_stat_uint64_get_global(int id);
-
-CI_DECLARE_FUNC(int) ci_server_shared_memblob_register(const char *name, size_t size);
-CI_DECLARE_FUNC(ci_server_shared_blob_t *) ci_server_shared_memblob(int ID);
-CI_DECLARE_FUNC(ci_server_shared_blob_t *) ci_server_shared_memblob_byname(const char *name);
 
 #ifdef __cplusplus
 }

@@ -88,7 +88,7 @@ INCS = access.h body.h cfg_param.h c-icap-conf.h c-icap.h ci_threads.h \
 	shared_mem.h simple_api.h util.h lookup_table.h hash.h stats.h acl.h \
         cache.h txt_format.h types_ops.h txtTemplate.h array.h registry.h \
 	md5.h ci_regex.h net_io_ssl.h openssl_support.h port.h encoding.h \
-	request_util.h client.h
+	request_util.h client.h server.h
 
 ALL_INCS=$(INCS:%.h=include/%.h)
 

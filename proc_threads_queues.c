@@ -23,6 +23,7 @@
 #include "debug.h"
 #include "log.h"
 #include "proc_threads_queues.h"
+#include "server.h"
 #include "shared_mem.h"
 #include <assert.h>
 
@@ -570,14 +571,14 @@ int ci_server_shared_memblob_register(const char *name, size_t size)
     return id;
 }
 
-ci_server_shared_blob_t * ci_server_shared_memblob(int id)
+void *ci_server_shared_memblob(int id)
 {
     if (id < 0 || id >= childs_queue->srv_stats->blob_count)
         return NULL;
-    return &(childs_queue->srv_stats->blobs[id]);
+    return (void *)(childs_queue->srv_stats->blobs[id].c8);
 }
 
-ci_server_shared_blob_t * ci_server_shared_memblob_byname(const char *name)
+void *ci_server_shared_memblob_byname(const char *name)
 {
     if (!MemBlobs)
         return NULL;
