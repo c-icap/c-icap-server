@@ -30,6 +30,7 @@
 #include "cfg_param.h"
 #include "debug.h"
 #include "util.h"
+#include "stats.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -61,7 +62,12 @@ char *BASE_URL = NULL;
 time_t START_TIME = 0;
 int FILES_NUMBER = 0;
 char **FILES = NULL;
-ci_thread_t *threads;
+
+struct thread_data {
+    ci_thread_t id;
+    unsigned int rand_seed;
+} *threads;
+
 ci_thread_mutex_t filemtx;
 int file_indx = 0;
 int requests_stats = 0;
@@ -69,8 +75,12 @@ int failed_requests_stats = 0;
 int soft_failed_requests_stats = 0;
 int in_bytes_stats = 0;
 int out_bytes_stats = 0;
-int req_errors_rw = 0;
-int req_errors_r = 0;
+int in_http_bytes_stats = 0;
+int out_http_bytes_stats = 0;
+int in_body_bytes_stats = 0;
+int out_body_bytes_stats = 0;
+int allow204_stats = 0;
+int allow206_stats = 0;
 int _THE_END = 0;
 char **xclient_headers = NULL;
 int xclient_headers_num =0;
@@ -84,26 +94,30 @@ const char *tls_method = NULL;
 ci_tls_pcontext_t ctx = NULL;
 #endif
 
-ci_thread_mutex_t statsmtx;
-
 ci_list_t *addresses = NULL;
 
+int print_stat(void *data, const char *label, int id, int gid, const ci_stat_t *stat)
+{
+    switch (stat->type) {
+    case CI_STAT_INT64_T:
+        printf("\t\%s: %" PRIu64 "\n", label, stat->value.counter);
+        break;
+    case CI_STAT_KBS_T:
+        printf("\t\%s: %" PRIu64 "Kbs and %" PRIu64 "bytes\n", label, ci_kbs_kilobytes(&stat->value.kbs), ci_kbs_remainder_bytes(&stat->value.kbs));
+        break;
+    }
+    return 0;
+}
 
 static void print_stats()
 {
     time_t rtime;
     time(&rtime);
-    printf("Statistics:\n\t Files used :%d\n\t Number of threads :%d\n\t"
-           " Requests served :%d\n\t Requests failed :%d\n\t Requests soft failed :%d\n\t"
-           " Incoming bytes :%d\n\t Outgoing bytes :%d\n"
-           " \t Write Errors :%d\n",
-           FILES_NUMBER,
-           threadsnum, requests_stats,
-           failed_requests_stats, soft_failed_requests_stats,
-           in_bytes_stats, out_bytes_stats,
-           req_errors_rw);
+    printf("Statistics:\n\tFiles used :%d\n\t Number of threads :%d\n",
+           FILES_NUMBER, threadsnum);
     rtime = rtime - START_TIME;
-    printf("Running for %u seconds\n", (unsigned int) rtime);
+    printf("\tRunning for %u seconds\n", (unsigned int) rtime);
+    ci_stat_statistics_iterate(NULL, -1, print_stat);
 }
 
 static void sigint_handler(int sig)
@@ -126,8 +140,8 @@ static void sigint_handler(int sig)
     }
     _THE_END = 1;
     for (i = 0; i < threadsnum; i++) {
-        if (threads[i])
-            ci_thread_join(threads[i]);      //What if a child is blocked??????
+        if (threads[i].id)
+            ci_thread_join(threads[i].id);      //What if a child is blocked??????
     }
 
     ci_thread_mutex_destroy(&filemtx);
@@ -212,12 +226,13 @@ static ci_connection_t *connect_to_server()
     return conn;
 }
 
-static char *xclient_header()
+static char *xclient_header(struct thread_data *data)
 {
     if (!xclient_headers_num)
         return NULL;
 
-    int indx = (int) ((((double) rand()) / (double) RAND_MAX) * (double)xclient_headers_num);
+    int arand = rand_r(&(data->rand_seed));
+    int indx = (int) ((((double) arand) / (double) RAND_MAX) * (double)xclient_headers_num);
     return xclient_headers[indx];
 }
 
@@ -363,21 +378,32 @@ static int do_req(ci_request_t *req, char *url, int *keepalive, int transparent)
 
     ci_headers_destroy(headers);
 
-    ci_thread_mutex_lock(&statsmtx);
-    in_bytes_stats += req->bytes_in;
-    out_bytes_stats += req->bytes_out;
-    ci_thread_mutex_unlock(&statsmtx);
+    ci_stat_kbs_inc(in_bytes_stats, req->bytes_in);
+    ci_stat_kbs_inc(out_bytes_stats, req->bytes_out);
+    ci_stat_kbs_inc(in_http_bytes_stats, req->http_bytes_in);
+    ci_stat_kbs_inc(out_http_bytes_stats, req->http_bytes_out);
+    ci_stat_kbs_inc(in_body_bytes_stats, req->body_bytes_in);
+    ci_stat_kbs_inc(out_body_bytes_stats, req->body_bytes_out);
+    if (req->return_code == 204)
+        ci_stat_uint64_inc(allow204_stats, 1);
+    else if (req->return_code == 206)
+        ci_stat_uint64_inc(allow206_stats, 1);
 
     return 1;
 }
 
-static int threadjobreqmod()
+static int threadjobreqmod(void *data)
 {
     ci_request_t *req;
     ci_connection_t *conn;
     char *xh;
     int indx, keepalive, ret;
     int arand = 0, p;
+    struct thread_data *thread_data = (struct thread_data *)data;
+    time_t start;
+    time(&start);
+    thread_data->rand_seed = start + thread_data->id;
+
     while (!_THE_END) {
 
         if (!(conn = connect_to_server())) {
@@ -391,7 +417,7 @@ static int threadjobreqmod()
         req->allow204 = 1;
 
         for (;;) {
-            xh = xclient_header();
+            xh = xclient_header(thread_data);
             if (xh)
                 ci_icap_add_xheader(req, xh);
 
@@ -399,24 +425,19 @@ static int threadjobreqmod()
                 ci_icap_append_xheaders(req, xheaders);
 
             keepalive = 0;
+            arand = rand_r(&(thread_data->rand_seed));
             indx = (int) ((((double) arand) / (double) RAND_MAX) * (double)URLS_COUNT);
             if ((ret = do_req(req, URLS[indx], &keepalive, DoTransparent)) <= 0) {
-                ci_thread_mutex_lock(&statsmtx);
                 if (ret == 0)
-                    soft_failed_requests_stats++;
+                    ci_stat_uint64_inc(soft_failed_requests_stats, 1);
                 else
-                    failed_requests_stats++;
-                requests_stats++;
-                arand = rand();  /*rand is not thread safe .... */
-                ci_thread_mutex_unlock(&statsmtx);
+                    ci_stat_uint64_inc(failed_requests_stats, 1);
+                ci_stat_uint64_inc(requests_stats, 1);
                 printf("Request failed...\n");
                 break;
             }
 
-            ci_thread_mutex_lock(&statsmtx);
-            requests_stats++;
-            arand = rand();  /*rand is not thread safe .... */
-            ci_thread_mutex_unlock(&statsmtx);
+            ci_stat_uint64_inc(requests_stats, 1);
 
             if (_THE_END) {
                 printf("The end: thread dying\n");
@@ -427,6 +448,7 @@ static int threadjobreqmod()
             if (keepalive == 0)
                 break;
 
+            arand = rand_r(&(thread_data->rand_seed));
             p = (int) ((((double) arand) / (double) RAND_MAX) * 10.0);
             if (p == 5 || p == 7 || p == 3) {    // 30% possibility ....
                 //                  printf("OK, closing the connection......\n");
@@ -444,7 +466,7 @@ static int threadjobreqmod()
     return 1;
 }
 
-static int do_file(ci_request_t *req, char *input_file, int *keepalive)
+static int do_file(struct thread_data *data, ci_request_t *req, char *input_file, int *keepalive)
 {
     int fd_in,fd_out;
     int ret, arand;
@@ -457,9 +479,7 @@ static int do_file(ci_request_t *req, char *input_file, int *keepalive)
         snprintf(buf, sizeof(buf), "%s%s%s", BASE_URL, input_file[0] != '/' ? "/" : "" ,input_file);
         useUrl = buf;
     } else if (URLS_COUNT > 0) {
-        ci_thread_mutex_lock(&statsmtx);
-        arand = rand();  /*rand is not thread safe .... */
-        ci_thread_mutex_unlock(&statsmtx);
+        arand = rand_r(&(data->rand_seed));
 
         indx = (int) ((((double) arand) / (double) RAND_MAX) * (double)URLS_COUNT);
         useUrl = URLS[indx];
@@ -507,22 +527,32 @@ static int do_file(ci_request_t *req, char *input_file, int *keepalive)
 
     ci_headers_destroy(headers);
     // printf("Done(%d bytes).\n",totalbytes);
-    ci_thread_mutex_lock(&statsmtx);
-    in_bytes_stats += req->bytes_in;
-    out_bytes_stats += req->bytes_out;
-    ci_thread_mutex_unlock(&statsmtx);
-
+    ci_stat_kbs_inc(in_bytes_stats, req->bytes_in);
+    ci_stat_kbs_inc(out_bytes_stats, req->bytes_out);
+    ci_stat_kbs_inc(in_http_bytes_stats, req->http_bytes_in);
+    ci_stat_kbs_inc(out_http_bytes_stats, req->http_bytes_out);
+    ci_stat_kbs_inc(in_body_bytes_stats, req->body_bytes_in);
+    ci_stat_kbs_inc(out_body_bytes_stats, req->body_bytes_out);
+    if (req->return_code == 204)
+        ci_stat_uint64_inc(allow204_stats, 1);
+    else if (req->return_code == 206)
+        ci_stat_uint64_inc(allow206_stats, 1);
     return 1;
 }
 
 
-static int threadjobsendfiles()
+static int threadjobsendfiles(void *data)
 {
     ci_request_t *req;
     ci_connection_t *conn;
     char *xh;
     int indx, keepalive, ret;
     int arand;
+
+    struct thread_data *thread_data = (struct thread_data *)data;
+    time_t start;
+    time(&start);
+    thread_data->rand_seed = start + thread_data->id;
 
     while (1) {
 
@@ -541,7 +571,7 @@ static int threadjobsendfiles()
                 file_indx++;
             ci_thread_mutex_unlock(&filemtx);
 
-            xh = xclient_header();
+            xh = xclient_header(thread_data);
             if (xh)
                 ci_icap_add_xheader(req, xh);
             if (xheaders)
@@ -552,22 +582,16 @@ static int threadjobsendfiles()
             req->preview = 512;
             req->allow206 = 1;
             req->allow204 = 1;
-            if ((ret = do_file(req, FILES[indx], &keepalive)) <= 0) {
-                ci_thread_mutex_lock(&statsmtx);
+            if ((ret = do_file(thread_data, req, FILES[indx], &keepalive)) <= 0) {
                 if (ret == 0)
-                    soft_failed_requests_stats++;
+                    ci_stat_uint64_inc(soft_failed_requests_stats, 1);
                 else
-                    failed_requests_stats++;
-                ci_thread_mutex_unlock(&statsmtx);
+                    ci_stat_uint64_inc(failed_requests_stats, 1);
                 printf("Request failed...\n");
                 break;
             }
 
-            ci_thread_mutex_lock(&statsmtx);
-            requests_stats++;
-            arand = rand();  /*rand is not thread safe .... */
-            ci_thread_mutex_unlock(&statsmtx);
-
+            ci_stat_uint64_inc(requests_stats, 1);
             if (_THE_END) {
                 printf("The end: thread dying\n");
                 ci_request_destroy(req);
@@ -577,6 +601,7 @@ static int threadjobsendfiles()
             if (keepalive == 0)
                 break;
 
+            arand = rand_r(&(thread_data->rand_seed));
             arand = (int) ((((double) arand) / (double) RAND_MAX) * 10.0);
             if (arand == 5 || arand == 7 || arand == 3) {    // 30% possibility ....
 //                  printf("OK, closing the connection......\n");
@@ -800,7 +825,6 @@ int main(int argc, char **argv)
     signal(SIGINT, sigint_handler);
 
     time(&START_TIME);
-    srand((int) START_TIME);
 
     if (urls_file && !load_urls(urls_file)) {
         ci_debug_printf(1, "The file contains URL list %s does not exist\n", urls_file);
@@ -813,38 +837,52 @@ int main(int argc, char **argv)
         exit(-1);
     }
 
-    threads = malloc(sizeof(ci_thread_t) * threadsnum);
+    requests_stats = ci_stat_entry_register("Requests", CI_STAT_INT64_T, "c-icap-stretch");
+    failed_requests_stats = ci_stat_entry_register("Failed Requests", CI_STAT_INT64_T, "c-icap-stretch");
+    soft_failed_requests_stats = ci_stat_entry_register("Soft Failed Requests", CI_STAT_INT64_T, "c-icap-stretch");
+    in_bytes_stats = ci_stat_entry_register("Incoming bytes", CI_STAT_KBS_T, "c-icap-stretch");
+    out_bytes_stats = ci_stat_entry_register("Outgoing bytes", CI_STAT_KBS_T, "c-icap-stretch");
+    in_http_bytes_stats = ci_stat_entry_register("Incoming HTTP bytes", CI_STAT_KBS_T, "c-icap-stretch");
+    out_http_bytes_stats = ci_stat_entry_register("Outgoing HTTP bytes", CI_STAT_KBS_T, "c-icap-stretch");
+    in_body_bytes_stats = ci_stat_entry_register("Incoming Body bytes", CI_STAT_KBS_T, "c-icap-stretch");
+    out_body_bytes_stats = ci_stat_entry_register("Outgoing Body bytes", CI_STAT_KBS_T, "c-icap-stretch");
+    allow204_stats = ci_stat_entry_register("Allow 204 responses", CI_STAT_INT64_T, "c-icap-stretch");
+    allow206_stats = ci_stat_entry_register("Allow 206 responses", CI_STAT_INT64_T, "c-icap-stretch");
+    ci_stat_allocate_mem();
+
+    threads = malloc(sizeof(struct thread_data) * threadsnum);
     if (!threads) {
         ci_debug_printf(1, "Error allocation memory for threads array\n");
         exit(-1);
     }
     for (i = 0; i < threadsnum; i++)
-        threads[i] = 0;
+        threads[i].id = 0;
 
     if (DoReqmod) {
         for (i = 0; i < threadsnum; i++) {
             printf("Create thread %d\n", i);
-            ci_thread_create(&(threads[i]),
+            ci_thread_create(&(threads[i].id),
                              (void *(*)(void *)) threadjobreqmod,
-                             (void *) NULL /*data*/);
+                             (void *) &(threads[i].id) /*data*/);
             sleep(1);
         }
     } else {
         ci_thread_mutex_init(&filemtx);
-        ci_thread_mutex_init(&statsmtx);
 
         printf("Files to send:%d\n", FILES_NUMBER);
         for (i = 0; i < threadsnum; i++) {
             printf("Create thread %d\n", i);
-            ci_thread_create(&(threads[i]),
-                             (void *(*)(void *)) threadjobsendfiles, NULL);
+            ci_thread_create(&(threads[i].id),
+                             (void *(*)(void *)) threadjobsendfiles, &(threads[i]));
 //             sleep(1);
         }
     }
 
+    uint64_t *requests_finished = ci_stat_uint64_ptr(requests_stats);
+    assert(requests_finished);
     while (1) {
         sleep(1);
-        if (MAX_REQUESTS && requests_stats >= MAX_REQUESTS) {
+        if (MAX_REQUESTS && *requests_finished >= MAX_REQUESTS) {
             printf("Oops max requests reached. Exiting .....\n");
             _THE_END = 1;
             break;
@@ -855,13 +893,12 @@ int main(int argc, char **argv)
 
 
     for (i = 0; i < threadsnum; i++) {
-        ci_thread_join(threads[i]);
+        ci_thread_join(threads[i].id);
         printf("Thread %d exited\n", i);
     }
 
     print_stats();
     ci_thread_mutex_destroy(&filemtx);
-    ci_thread_mutex_destroy(&statsmtx);
     ci_client_library_release();
     return 0;
 }

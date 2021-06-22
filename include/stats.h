@@ -107,12 +107,12 @@ typedef struct kbs ci_kbs_t;
 
 static inline ci_kbs_t ci_kbs_zero() {ci_kbs_t zero = {0}; return zero;}
 
-static inline uint64_t ci_kbs_kilobytes(ci_kbs_t *kbs)
+static inline uint64_t ci_kbs_kilobytes(const ci_kbs_t *kbs)
 {
     return (kbs->bytes >> 10);
 }
 
-static inline uint64_t ci_kbs_remainder_bytes(ci_kbs_t *kbs)
+static inline uint64_t ci_kbs_remainder_bytes(const ci_kbs_t *kbs)
 {
     return (kbs->bytes & 0x3FF);
 }
@@ -169,6 +169,8 @@ CI_DECLARE_FUNC(ci_stat_memblock_t *) ci_stat_memblock_get(void);
 CI_DECLARE_FUNC(void) ci_stat_entry_release_lists();
 
 CI_DECLARE_FUNC(int) ci_stat_attach_mem(void *mem, int size,void (*release_mem)(void *));
+
+CI_DECLARE_FUNC(void) ci_stat_allocate_mem();
 
 CI_DECLARE_FUNC(void) ci_stat_release();
 

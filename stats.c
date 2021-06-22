@@ -181,6 +181,14 @@ int ci_stat_attach_mem(void *mem_block, int size, void (*release_mem)(void *))
     return (STATS != NULL);
 }
 
+void ci_stat_allocate_mem()
+{
+    size_t mem_size = ci_stat_memblock_size();
+    void *mem = malloc(mem_size);
+    assert(mem);
+    ci_stat_attach_mem(mem, mem_size, free);
+}
+
 void ci_stat_release()
 {
     if (!STATS)
