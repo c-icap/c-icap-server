@@ -47,10 +47,8 @@ static int ci_port_compare_config(ci_port_t *src, ci_port_t *dst)
 
     /*fd, configured, protocol_family and secs_to_linger are filled by c-icap while port configured*/
 
-#ifdef USE_OPENSSL
     if (dst->tls_enabled != src->tls_enabled)
         return 0;
-#endif
     return 1;
 }
 
@@ -58,11 +56,13 @@ static void ci_port_move_configured(ci_port_t *dst, ci_port_t *src)
 {
     dst->configured = src->configured;
     dst->accept_socket = src->accept_socket;
+    dst->stat_connections = src->stat_connections;
     src->configured = 0;
     src->accept_socket = CI_SOCKET_INVALID;
+    src->stat_connections = -1;
 
-#ifdef USE_OPENSSL
     dst->tls_enabled = src->tls_enabled;
+#ifdef USE_OPENSSL
     dst->tls_accept_details = src->tls_accept_details;
     src->tls_accept_details = NULL;
     if (src->tls_enabled)

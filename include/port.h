@@ -38,8 +38,8 @@ typedef struct ci_port {
     int protocol_family;
     char *address;
     int secs_to_linger;
-#ifdef USE_OPENSSL
     int tls_enabled;
+#ifdef USE_OPENSSL
     char *tls_server_cert;
     char *tls_server_key;
     char *tls_client_ca_certs;
@@ -57,6 +57,7 @@ typedef struct ci_port {
 #ifdef USE_OPENSSL
     struct ci_tls_server_accept_details *tls_accept_details;
 #endif
+    int stat_connections;
 } ci_port_t;
 
 /*For internal c-icap use*/

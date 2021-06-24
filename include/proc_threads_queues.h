@@ -57,7 +57,6 @@ typedef struct child_shared_data {
     int freeservers;
     int usedservers;
     int requests;
-    int connections;
     process_pid_t pid;
     int idle;
     int to_be_killed;

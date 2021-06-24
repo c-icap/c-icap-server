@@ -293,7 +293,6 @@ child_shared_data_t *register_child(struct childs_queue * q,
             q->childs[i].freeservers = maxservers;
             q->childs[i].usedservers = 0;
             q->childs[i].requests = 0;
-            q->childs[i].connections = 0;
             q->childs[i].to_be_killed = 0;
             q->childs[i].father_said = 0;
             q->childs[i].idle = 1;

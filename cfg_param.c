@@ -465,8 +465,9 @@ int cfg_set_port(const char *directive, const char **argv, void *setdata)
 
 #ifdef USE_OPENSSL
     int isTls = (strcmp(directive, "TlsPort") == 0 || strcmp(directive, "SslPort") == 0) ? 1 : 0;
-    CI_CONF.TLS_ENABLED = 1;
-    pcfg->tls_enabled = 1;
+    if (isTls)
+        CI_CONF.TLS_ENABLED = 1;
+    pcfg->tls_enabled = isTls;
 #endif
 
     for (i = 1; argv[i] != NULL; ++i) {

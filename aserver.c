@@ -152,6 +152,7 @@ int main(int argc, char **argv)
                         CI_CONF.magics_file);
     }
     init_conf_tables();
+    ci_stat_group_add("Server"); /* Add it first to show it first at info page */
     request_stats_init();
     init_modules();
     init_services();

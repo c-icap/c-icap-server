@@ -86,6 +86,7 @@ struct childs_queue *old_childs_queue = NULL;
 child_shared_data_t *child_data = NULL;
 struct connections_queue *con_queue;
 process_pid_t MY_PROC_PID = 0;
+static ci_stat_memblock_t *STATS = NULL;
 /*Child shutdown timeout is 10 seconds:*/
 const int CHILD_SHUTDOWN_TIMEOUT = 10;
 int CHILD_HALT = 0;
@@ -814,7 +815,7 @@ void listener_thread(void *unused)
                                     child_data->requests);
                     goto LISTENER_FAILS;
                 }
-                (child_data->connections)++;     //NUM of Requests....
+                STAT_INT64_INC(STATS, port->stat_connections, 1);
             } /*for (Listen_SOCKETS[i]...*/
 
             if (child_data->to_be_killed) {
@@ -889,6 +890,7 @@ void child_main(int pipefd)
 
     ret = ci_stat_attach_mem(child_data->stats, child_data->stats_size, NULL);
     assert(ret);
+    STATS = ci_stat_memblock_get();
 
     threads_list =
         (server_decl_t **) malloc((CI_CONF.THREADS_PER_CHILD + 1) *
@@ -1061,6 +1063,7 @@ int init_server()
 {
     int i;
     ci_port_t *p;
+    char buf[256];
 
     if (!CI_CONF.PORTS) {
         ci_debug_printf(1, "No ports configured!\n");
@@ -1086,6 +1089,9 @@ int init_server()
 #endif
             if (CI_SOCKET_INVALID == icap_init_server(p))
                 return 0;
+
+        snprintf(buf, sizeof(buf), "%s:%d%s connections", (p->address ? p->address : "localhost"), p->port, (p->tls_enabled ? ", TLS": ""));
+        p->stat_connections = ci_stat_entry_register(buf, CI_STAT_INT64_T, "Server");
         p->configured = 1;
     }
 
@@ -1240,7 +1246,6 @@ int start_server()
     child_data->freeservers = CI_CONF.THREADS_PER_CHILD;
     child_data->usedservers = 0;
     child_data->requests = 0;
-    child_data->connections = 0;
     child_data->to_be_killed = 0;
     child_data->father_said = 0;
     child_data->idle = 1;

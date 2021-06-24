@@ -297,7 +297,6 @@ int worker_main(ci_socket sockfd)
             ci_thread_mutex_lock(&counters_mtx);
             haschild = (child_data->freeservers ? 1 : 0);
             ci_thread_mutex_unlock(&counters_mtx);
-            (child_data->connections)++;     //NUM of Requests....
         } while (haschild);
 
         child_data->idle = 1;
@@ -805,7 +804,6 @@ int start_server()
     child_data->freeservers = CI_CONF.THREADS_PER_CHILD;
     child_data->usedservers = 0;
     child_data->requests = 0;
-    child_data->connections = 0;
     child_data->to_be_killed = 0;
     child_data->idle = 1;
     child_main(LISTEN_SOCKET);

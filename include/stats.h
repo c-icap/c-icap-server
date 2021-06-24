@@ -174,6 +174,8 @@ CI_DECLARE_FUNC(void) ci_stat_allocate_mem();
 
 CI_DECLARE_FUNC(void) ci_stat_release();
 
+CI_DECLARE_FUNC(int) ci_stat_group_add(const char *group);
+
 CI_DECLARE_FUNC(void) ci_stat_groups_iterate(void *data, int (*group_call)(void *data, const char *name, int groupId));
 CI_DECLARE_FUNC(void) ci_stat_statistics_iterate(void *data, int groupID, int (*stat_call)(void *data, const char *label, int ID, int gId, const ci_stat_t *stat));
 
