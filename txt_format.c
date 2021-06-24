@@ -57,6 +57,11 @@ int fmt_req_preview_hex(ci_request_t *req_data, char *buf,int len, const char *p
 int fmt_req_preview_len(ci_request_t *req_data, char *buf,int len, const char *param);
 int fmt_logstr(ci_request_t *req_data, char *buf,int len, const char *param);
 int fmt_req_attribute(ci_request_t *req_data, char *buf,int len, const char *param);
+int fmt_req_response_time(ci_request_t *req, char *buf,int len, const char *param);
+int fmt_req_total_time(ci_request_t *req, char *buf,int len, const char *param);
+int fmt_req_latency_time(ci_request_t *req, char *buf,int len, const char *param);
+int fmt_req_latency2_time(ci_request_t *req, char *buf,int len, const char *param);
+int fmt_req_processing_time(ci_request_t *req, char *buf,int len, const char *param);
 
 /**
    \brief Internal formating directives table.
@@ -90,9 +95,13 @@ int fmt_req_attribute(ci_request_t *req_data, char *buf,int len, const char *par
    * \em "%un": Username \n
    * \em "%Sl": Log string set by service\n
    * \em "%Sa": Attribute value set by service\n
+   * \em "%Tr": Response time, last request headers byte received to last byte sent \n
+   * \em "%Tt": Total time, request accepted to last byte sent \n
+   * \em "%Tl": Latency (time), first byte received, to first byte sent\n
+   * \em "%TL": Latency (time), last byte received, to last byte sent\n
+   * \em "%Tp": Service processing time\n
    *
    * Not yet implemented:\n
-   * \em "%tr": Response time \n
    * \em "%hu": Http request url \n
    * \em "%>hi": Http request header \n
    * \em "%<hi": Http reply header \n
@@ -137,6 +146,13 @@ struct ci_fmt_entry GlobalTable [] = {
     {"%un", "Username", fmt_username},
     {"%Sl", "Service log string", fmt_logstr},
     {"%Sa", "Attribute set by service", fmt_req_attribute},
+
+    {"%Tr", "Response time", fmt_req_response_time},
+    {"%Tt", "Total time", fmt_req_total_time},
+    {"%Tl", "Latency (first read/first write)", fmt_req_latency_time},
+    {"%TL", "Latency (last read/last write)", fmt_req_latency2_time},
+    {"%Tp", "Service processing time", fmt_req_processing_time},
+
     {"%%", "% sign", fmt_percent},
     { NULL, NULL, NULL}
 };
@@ -683,4 +699,66 @@ int fmt_req_attribute(ci_request_t *req, char *buf,int len, const char *param)
     for (i = 0; i < len && *s; i++, s++)
         buf[i] = *s;
     return i;
+}
+
+static int64_t convert_nanosec(int64_t ns, char conv)
+{
+    int64_t div = 1;
+    switch(conv) {
+    case 'n':
+        div =1;
+        break;
+    case 'u':
+        div = 1000;
+        break;
+    case 'm':
+        div = 1000000;
+        break;
+    case 's':
+        div = 1000000000;
+        break;
+    default:
+        div =1;
+    }
+    return ns / div;
+}
+
+int fmt_req_response_time(ci_request_t *req, char *buf,int len, const char *param)
+{
+    char div = 'm';
+    if (param && param[0])
+        div = param[0];
+    return snprintf(buf, len, "%" PRIi64, convert_nanosec(ci_clock_time_diff_nano(&req->stop_w_t, &req->headers_r_t), div));
+}
+
+int fmt_req_total_time(ci_request_t *req, char *buf,int len, const char *param)
+{
+    char div = 'm';
+    if (param && param[0])
+        div = param[0];
+    return snprintf(buf, len, "%" PRIi64, convert_nanosec(ci_clock_time_diff_nano(&req->stop_w_t, &req->start_r_t), div));
+}
+
+int fmt_req_latency_time(ci_request_t *req, char *buf,int len, const char *param)
+{
+    char div = 'm';
+    if (param && param[0])
+        div = param[0];
+    return snprintf(buf, len, "%" PRIi64, convert_nanosec(ci_clock_time_diff_nano(&req->start_w_t, &req->start_r_t), div));
+}
+
+int fmt_req_latency2_time(ci_request_t *req, char *buf,int len, const char *param)
+{
+    char div = 'm';
+    if (param && param[0])
+        div = param[0];
+    return snprintf(buf, len, "%" PRIi64, convert_nanosec(ci_clock_time_diff_nano(&req->stop_w_t, &req->stop_r_t), div));
+}
+
+int fmt_req_processing_time(ci_request_t *req, char *buf,int len, const char *param)
+{
+    char div = 'm';
+    if (param && param[0])
+        div = param[0];
+    return snprintf(buf, len, "%" PRIi64, convert_nanosec(req->processing_time, div));
 }

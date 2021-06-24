@@ -133,7 +133,9 @@ ci_request_t *newrequest(ci_connection_t * connection)
 
     if ((access = access_check_client(req)) == CI_ACCESS_DENY) { /*Check for client access */
         len = strlen(FORBITTEN_STR);
+        ci_clock_time_get(&req->start_w_t);
         ci_connection_write(connection, FORBITTEN_STR, len, TIMEOUT);
+        ci_clock_time_get(&req->stop_w_t);
         ci_request_destroy(req);
         return NULL;          /*Or something that means authentication error */
     }
@@ -154,7 +156,9 @@ int recycle_request(ci_request_t * req, ci_connection_t * connection)
 
     if ((access = access_check_client(req)) == CI_ACCESS_DENY) { /*Check for client access */
         len = strlen(FORBITTEN_STR);
+        ci_clock_time_get(&req->start_w_t);
         ci_connection_write(connection, FORBITTEN_STR, len, TIMEOUT);
+        ci_clock_time_get(&req->stop_w_t);
         return 0;             /*Or something that means authentication error */
     }
     req->access_type = access;
@@ -635,7 +639,9 @@ static void ec_responce_simple(ci_request_t * req, int ec)
     snprintf(buf, sizeof(buf), "ICAP/1.0 %d %s\r\n\r\n",
              ci_error_code(ec), ci_error_code_string(ec));
     len = strlen(buf);
+    ci_clock_time_get(&req->start_w_t);
     ci_connection_write(req->connection, buf, len, TIMEOUT);
+    ci_clock_time_get(&req->stop_w_t);
     req->bytes_out += len;
     req->return_code = ec;
 }
@@ -682,10 +688,11 @@ static int ec_responce(ci_request_t * req, int ec)
     ci_headers_pack(req->response_header);
     req->return_code = ec;
 
+    ci_clock_time_get(&req->start_w_t);
     len = ci_connection_write(req->connection,
                               req->response_header->buf, req->response_header->bufused,
                               TIMEOUT);
-
+    ci_clock_time_get(&req->stop_w_t);
     /*We are finishing sending*/
     req->status = SEND_EOF;
 
@@ -767,7 +774,7 @@ static int send_current_block_data(ci_request_t * req)
         ci_debug_printf(5, "Error writing to socket (errno:%d, bytes:%d. string:\"%s\")", errno, req->remain_send_block_bytes, req->pstrblock_responce);
         return CI_ERROR;
     }
-
+    ci_clock_time_get(&req->stop_w_t);
     /*
          if (bytes == 0) {
              ci_debug_printf(5, "Can not write to the client. Is the connection closed?");
@@ -865,6 +872,7 @@ static int update_send_status(ci_request_t * req)
         req->pstrblock_responce = req->response_header->buf;
         req->remain_send_block_bytes = req->response_header->bufused;
         req->status = SEND_RESPHEAD;
+        ci_clock_time_get(&req->start_w_t);
         ci_debug_printf(9, "Going to send response headers\n");
         return CI_OK;
     }
@@ -946,7 +954,7 @@ static int mod_echo_io(char *wbuf, int *wlen, char *rbuf, int *rlen, int iseof,
 static int get_send_body(ci_request_t * req, int parse_only)
 {
     char *wchunkdata = NULL, *rchunkdata = NULL;
-    int ret, parse_chunk_ret, has_formated_data = 0;
+    int parse_chunk_ret, has_formated_data = 0;
     int (*service_io) (char *rbuf, int *rlen, char *wbuf, int *wlen, int iseof,
                        ci_request_t *);
     int action = 0, rchunk_has_space = 0, service_eof = 0, wbytes, rbytes;
@@ -971,6 +979,7 @@ static int get_send_body(ci_request_t * req, int parse_only)
         action = ci_wait_for_read;
     do {
         if (action) {
+            int ret;
             ci_debug_printf(9, "Going to %s/%s data\n",
                             (action & ci_wait_for_read ? "Read" : "-"),
                             (action & ci_wait_for_write ? "Write" : "-")
@@ -1048,8 +1057,16 @@ static int get_send_body(ci_request_t * req, int parse_only)
                 rbytes = 0;
             rchunk_has_space = (rbytes > 0);
             if (wbytes > 0 || rbytes > 0 || parse_chunk_ret == CI_EOF) {
+                int res;
+                ci_clock_time_t start_t, end_t;
                 ci_debug_printf(9, "get send body: going to write/read: %d/%d bytes\n", wbytes, rbytes);
-                if ((*service_io)(rchunkdata, &rbytes, wchunkdata, &wbytes, req->eof_received, req) == CI_ERROR)
+                ci_clock_time_get(&start_t);
+                res = (*service_io)(rchunkdata, &rbytes, wchunkdata, &wbytes, req->eof_received, req);
+                ci_clock_time_get(&end_t);
+                if (service_io != mod_echo_io)
+                    req->processing_time += ci_clock_time_diff_nano(&end_t, &start_t);
+
+                if (res == CI_ERROR)
                     return CI_ERROR;
                 ci_debug_printf(9, "get send body: written/read: %d/%d bytes (eof: %d)\n", wbytes, rbytes, req->eof_received);
             }
@@ -1161,11 +1178,20 @@ static int send_remaining_response(ci_request_t * req)
             req->pstrblock_responce = req->wbuf + EXTRA_CHUNK_SIZE;  /*Leave space for chunk spec.. */
             req->remain_send_block_bytes = MAX_CHUNK_SIZE;
             ci_debug_printf(9, "rest response: going to read: %d bytes\n", req->remain_send_block_bytes);
-            service_io(req->pstrblock_responce,
-                       &(req->remain_send_block_bytes), NULL, NULL, 1, req);
+            ci_clock_time_t start_t, end_t;
+            int res;
+            ci_clock_time_get(&start_t);
+            res = service_io(req->pstrblock_responce,
+                             &(req->remain_send_block_bytes), NULL, NULL, 1, req);
+            ci_clock_time_get(&end_t);
+            if (service_io != mod_echo_io)
+                req->processing_time += ci_clock_time_diff_nano(&end_t, &start_t);
+
             ci_debug_printf(9, "rest response: read: %d bytes\n", req->remain_send_block_bytes);
-            if (req->remain_send_block_bytes == CI_ERROR)    /*CI_EOF of CI_ERROR, stop sending.... */
+
+            if (res == CI_ERROR)    /*CI_EOF of CI_ERROR, stop sending.... */
                 return CI_ERROR;
+
             if (req->remain_send_block_bytes == 0)
                 break;
 
@@ -1318,6 +1344,7 @@ static void options_responce(ci_request_t * req)
     req->pstrblock_responce = head->buf;
     req->remain_send_block_bytes = head->bufused;
 
+    ci_clock_time_get(&req->start_w_t);
     do {
         if ((wait_for_data(req->connection, TIMEOUT, ci_wait_for_write))
                 < 0) {
@@ -1332,7 +1359,7 @@ static void options_responce(ci_request_t * req)
 
 //     if(responce_body)
 //        send_body_responce(req,responce_body);
-
+    ci_clock_time_get(&req->stop_w_t);
 }
 
 /*Read preview data, call preview handler and respond with error,  "204" or
@@ -1370,8 +1397,12 @@ static int do_request_preview(ci_request_t *req)
         res =  CI_MOD_CONTINUE;
     } else {
         /*We have a preview handler and we are going to call it*/
+        ci_clock_time_t start_t, end_t;
+        ci_clock_time_get(&start_t);
         res = req->current_service_mod->mod_check_preview_handler(
                   req->preview_data.buf, req->preview_data.used, req);
+        ci_clock_time_get(&end_t);
+        req->processing_time += ci_clock_time_diff_nano(&end_t, &start_t);
     }
 
     if (res == CI_MOD_ALLOW204) {
@@ -1433,7 +1464,11 @@ static int do_fake_preview(ci_request_t * req)
     }
 
     ci_debug_printf(8,"Preview does not supported. Call the preview handler with no preview data.\n");
+    ci_clock_time_t start_t, end_t;
+    ci_clock_time_get(&start_t);
     res = req->current_service_mod->mod_check_preview_handler(NULL, 0, req);
+    ci_clock_time_get(&end_t);
+    req->processing_time += ci_clock_time_diff_nano(&end_t, &start_t);
 
     /*We are outside preview. The client should support allow204 outside preview
       to support it.
@@ -1498,11 +1533,15 @@ static int do_fake_preview(ci_request_t * req)
 static int do_end_of_data(ci_request_t * req)
 {
     int res;
+    ci_clock_time_t start_t, end_t;
 
     if (!req->current_service_mod->mod_end_of_data_handler)
         return CI_OK; /*Nothing to do*/
 
+    ci_clock_time_get(&start_t);
     res = req->current_service_mod->mod_end_of_data_handler(req);
+    ci_clock_time_get(&end_t);
+    req->processing_time += ci_clock_time_diff_nano(&end_t, &start_t);
     /*
          while( req->current_service_mod->mod_end_of_data_handler(req)== CI_MOD_NOT_READY){
          //can send some data here .........
@@ -1543,7 +1582,10 @@ static int do_request(ci_request_t * req)
     ci_service_xdata_t *srv_xdata = NULL;
     int res, preview_status = 0, auth_status;
     int ret_status = CI_OK; /*By default ret_status is CI_OK, on error must set to CI_ERROR*/
+
+    ci_clock_time_get(&req->start_r_t);
     res = parse_header(req);
+    ci_clock_time_get(&req->stop_r_t);
     if (res != EC_100) {
         /*if read some data, bad request or Service not found or Server error or what else,
           else connection timeout, or client closes the connection*/
@@ -1577,6 +1619,8 @@ static int do_request(ci_request_t * req)
 
     if (res == EC_100) {
         res = parse_encaps_headers(req);
+        ci_clock_time_get(&req->stop_r_t);
+        req->headers_r_t = req->stop_r_t;
         if (res != EC_100) {
             req->keepalive = 0;
             ec_responce(req, EC_400);
@@ -1584,10 +1628,14 @@ static int do_request(ci_request_t * req)
         }
     }
 
-    if (req->current_service_mod->mod_init_request_data)
+    if (req->current_service_mod->mod_init_request_data) {
+        ci_clock_time_t start_t, end_t;
+        ci_clock_time_get(&start_t);
         req->service_data =
             req->current_service_mod->mod_init_request_data(req);
-    else
+        ci_clock_time_get(&end_t);
+        req->processing_time += ci_clock_time_diff_nano(&end_t, &start_t);
+    } else
         req->service_data = NULL;
 
     ci_debug_printf(8, "Requested service: %s\n",
@@ -1661,10 +1709,13 @@ static int do_request(ci_request_t * req)
         break;
     }
 
-    if (req->current_service_mod->mod_release_request_data
-            && req->service_data)
+    if (req->current_service_mod->mod_release_request_data && req->service_data) {
+        ci_clock_time_t start_t, end_t;
+        ci_clock_time_get(&start_t);
         req->current_service_mod->mod_release_request_data(req->service_data);
-
+        ci_clock_time_get(&end_t);
+        req->processing_time += ci_clock_time_diff_nano(&end_t, &start_t);
+    }
 //     debug_print_request(req);
     return ret_status;
 }

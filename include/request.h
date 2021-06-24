@@ -31,6 +31,7 @@
 #include "service.h"
 #include "net_io.h"
 #include "array.h"
+#include "ci_time.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -151,6 +152,14 @@ typedef struct ci_request {
     uint64_t http_bytes_out;
     uint64_t body_bytes_in;
     uint64_t body_bytes_out;
+
+    /* time info*/
+    ci_clock_time_t start_r_t; /* start reading time */
+    ci_clock_time_t headers_r_t;  /* last headers byte read time */
+    ci_clock_time_t stop_r_t;  /* last read time */
+    ci_clock_time_t start_w_t; /* First write time */
+    ci_clock_time_t stop_w_t; /*last write time */
+    uint64_t processing_time; /*service processing time*/
 
     /* added flags/variables*/
     int allow206;

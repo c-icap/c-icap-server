@@ -645,6 +645,26 @@ RemoteProxyUserHeaderEncoded on
 #	       %Sl: Service log string
 #              %Sa: Attribute value set by service. The attribute name must
 #                   given as argument.
+#              %Tr: Response time, from the last received byte  of request
+#                   headers to the last byte sent. Accepts as arguments the
+#                   values 's', 'm', 'u' or 'n' to define seconds, milliseconds
+#                   (the default), microseconds or nanoseconds precision.
+#              %Tt: Total time, from the first received byte to the last byte
+#                   sent. Accepts as arguments the values 's', 'm', 'u' or 'n'
+#                   to define seconds, milliseconds (the default),
+#                   microseconds or nanoseconds precision.
+#              %Tl: Latency time, from the first received byte, to the first
+#                   byte sent. Accepts as arguments the values 's', 'm', 'u'
+#                   or 'n' to define seconds, milliseconds (the default),
+#                   microseconds or nanoseconds precision.
+#              %TL: Latency time, from the last received byte, to the last
+#                   byte sent. Accepts as arguments the values 's', 'm', 'u'
+#                   or 'n' to define seconds, milliseconds (the default),
+#                   microseconds or nanoseconds precision.
+#              %Tp: Service processing time, the time spent inside service
+#                   module. Accepts as arguments the values 's', 'm', 'u'
+#                   or 'n' to define seconds, milliseconds (the default),
+#                   microseconds or nanoseconds precision.
 # Default:
 #	None set
 # Example:

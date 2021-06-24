@@ -286,6 +286,12 @@ ci_request_t *ci_request_alloc(ci_connection_t * connection)
     req->body_bytes_in = 0;
     req->body_bytes_out = 0;
 
+    ci_clock_time_reset(&req->start_r_t);
+    ci_clock_time_reset(&req->stop_r_t);
+    ci_clock_time_reset(&req->start_w_t);
+    ci_clock_time_reset(&req->stop_w_t);
+    req->processing_time = 0;
+
     for (i = 0; i < 5; i++)    //
         req->entities[i] = NULL;
     for (i = 0; i < 7; i++)    //
@@ -361,6 +367,12 @@ void ci_request_reset(ci_request_t * req)
     req->http_bytes_out = 0;
     req->body_bytes_in = 0;
     req->body_bytes_out = 0;
+
+    ci_clock_time_reset(&req->start_r_t);
+    ci_clock_time_reset(&req->stop_r_t);
+    ci_clock_time_reset(&req->start_w_t);
+    ci_clock_time_reset(&req->stop_w_t);
+    req->processing_time = 0;
 
     for (i = 0; req->entities[i] != NULL; i++) {
         ci_request_release_entity(req, i);
@@ -651,6 +663,7 @@ int net_data_read(ci_request_t * req)
         ci_debug_printf(5, "Error reading data (read return=%d, errno=%d) \n", bytes, errno);
         return CI_ERROR;
     }
+    ci_clock_time_get(&req->stop_r_t);
     req->pstrblock_read_len += bytes;  /* ... (size of data is readed plus old)... */
     req->bytes_in += bytes;
     return CI_OK;
