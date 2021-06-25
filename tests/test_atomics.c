@@ -11,13 +11,16 @@ ci_thread_mutex_t statsMTX;
 ci_thread_mutex_t counterMTX;
 int waitingForTest2 = 0;
 int waitingForTest3 = 0;
+int waitingForTest4 = 0;
 
 uint64_t simple_c = 0;
 uint64_t at_c = 0;
 uint64_t ni_at_c = 0;
+uint64_t ni_at_c_gl = 0;
 uint64_t simple_spent_time = 0;
 uint64_t spent_time = 0;
 uint64_t ni_spent_time = 0;
+uint64_t ni_spent_time_gl = 0;
 
 int LOOPS = 10000;
 int THREADS = 100;
@@ -61,6 +64,21 @@ int run_thread()
 
     ci_thread_mutex_lock(&CNDMTX);
     waitingForTest3++;
+    ci_thread_cond_wait(&CND, &CNDMTX);
+    ci_thread_mutex_unlock(&CNDMTX);
+
+    clock_gettime (CLOCK_REALTIME, &start);
+    for(int i = 0; i < LOOPS; i++) {
+        ci_atomic_add_u64_non_inline_gl(&ni_at_c_gl, 1);
+    }
+    clock_gettime (CLOCK_REALTIME, &stop);
+    tt = CLOCK_TIME_DIFF_micro(stop, start);
+    ci_thread_mutex_lock(&statsMTX);
+    ni_spent_time_gl += tt;
+    ci_thread_mutex_unlock(&statsMTX);
+
+    ci_thread_mutex_lock(&CNDMTX);
+    waitingForTest4++;
     ci_thread_cond_wait(&CND, &CNDMTX);
     ci_thread_mutex_unlock(&CNDMTX);
 
@@ -145,6 +163,11 @@ int main(int argc, char *argv[])
     }
     ci_thread_cond_broadcast(&CND);
 
+    while(waitingForTest4 < THREADS) {
+        sleep(1);
+    }
+    ci_thread_cond_broadcast(&CND);
+
     for (i = 0; i < THREADS; i++) {
         ci_thread_join(threads[i]);
         ci_debug_printf(6, "Thread %d exited\n", i);
@@ -156,6 +179,8 @@ int main(int argc, char *argv[])
     ci_debug_printf(1, "Time spent: %" PRIu64" microseconds\n", spent_time);
     ci_debug_printf(1, "Noninline atomic add result : %lu, expect %lu\n", ni_at_c, (long unsigned)(LOOPS * THREADS));
     ci_debug_printf(1, "Noninline time spent: %" PRIu64" microseconds\n", ni_spent_time);
+    ci_debug_printf(1, "Noninline inter-process atomic add result : %lu, expect %lu\n", ni_at_c_gl, (long unsigned)(LOOPS * THREADS));
+    ci_debug_printf(1, "Noninline inter-process time spent: %" PRIu64" microseconds\n", ni_spent_time_gl);
     ci_debug_printf(1, "Mutex add result : %lu, expect %lu\n", simple_c, (long unsigned)(LOOPS * THREADS));
     ci_debug_printf(1, "Mutex time spent: %" PRIu64" microseconds\n", simple_spent_time);
     ci_thread_mutex_destroy(&CNDMTX);

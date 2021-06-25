@@ -88,18 +88,31 @@ CI_DECLARE_FUNC(int) ci_atomics_init();
 CI_DECLARE_FUNC(void) ci_atomic_load_u64_non_inline(uint64_t *counter, uint64_t *value);
 CI_DECLARE_FUNC(void) ci_atomic_add_u64_non_inline(uint64_t *counter, uint64_t add);
 CI_DECLARE_FUNC(void) ci_atomic_sub_u64_non_inline(uint64_t *counter, uint64_t sub);
+CI_DECLARE_FUNC(void) ci_atomic_load_u64_non_inline_gl(uint64_t *counter, uint64_t *value);
+CI_DECLARE_FUNC(void) ci_atomic_add_u64_non_inline_gl(uint64_t *counter, uint64_t add);
+CI_DECLARE_FUNC(void) ci_atomic_sub_u64_non_inline_gl(uint64_t *counter, uint64_t sub);
 
 CI_DECLARE_FUNC(void) ci_atomic_load_i64_non_inline(int64_t *counter, int64_t *value);
 CI_DECLARE_FUNC(void) ci_atomic_add_i64_non_inline(int64_t *counter, int64_t add);
 CI_DECLARE_FUNC(void) ci_atomic_sub_i64_non_inline(int64_t *counter, int64_t sub);
+CI_DECLARE_FUNC(void) ci_atomic_load_i64_non_inline_gl(int64_t *counter, int64_t *value);
+CI_DECLARE_FUNC(void) ci_atomic_add_i64_non_inline_gl(int64_t *counter, int64_t add);
+CI_DECLARE_FUNC(void) ci_atomic_sub_i64_non_inline_gl(int64_t *counter, int64_t sub);
 
 #if defined(CI_ATOMICS_USE_128BIT)
 CI_DECLARE_FUNC(void) ci_atomic_load_u128_non_inline(unsigned __int128 *counter, unsigned __int128 *value);
 CI_DECLARE_FUNC(void) ci_atomic_add_u128_non_inline(unsigned __int128 *counter, unsigned __int128 add);
 CI_DECLARE_FUNC(void) ci_atomic_sub_u128_non_inline(unsigned __int128 *counter, unsigned __int128 sub);
+CI_DECLARE_FUNC(void) ci_atomic_load_u128_non_inline_gl(unsigned __int128 *counter, unsigned __int128 *value);
+CI_DECLARE_FUNC(void) ci_atomic_add_u128_non_inline_gl(unsigned __int128 *counter, unsigned __int128 add);
+CI_DECLARE_FUNC(void) ci_atomic_sub_u128_non_inline_gl(unsigned __int128 *counter, unsigned __int128 sub);
+
 CI_DECLARE_FUNC(void) ci_atomic_load_i128_non_inline(__int128 *counter, __int128 *value);
 CI_DECLARE_FUNC(void) ci_atomic_add_i128_non_inline(__int128 *counter, __int128 add);
 CI_DECLARE_FUNC(void) ci_atomic_sub_i128_non_inline(__int128 *counter, __int128 sub);
+CI_DECLARE_FUNC(void) ci_atomic_load_i128_non_inline_gl(__int128 *counter, __int128 *value);
+CI_DECLARE_FUNC(void) ci_atomic_add_i128_non_inline_gl(__int128 *counter, __int128 add);
+CI_DECLARE_FUNC(void) ci_atomic_sub_i128_non_inline_gl(__int128 *counter, __int128 sub);
 #endif
 
 #ifdef __cplusplus
@@ -115,6 +128,15 @@ CI_DECLARE_FUNC(void) ci_atomic_sub_i128_non_inline(__int128 *counter, __int128 
     }                                                                   \
     spec void ci_atomic_sub_##name(type *counter, type sub) {           \
         atomic_fetch_sub_explicit(counter, sub, memory_order_relaxed);  \
+    }                                                                   \
+    spec void ci_atomic_load_##name ## _gl(type *counter, type *store) { \
+        *store = atomic_load_explicit(counter, memory_order_relaxed);   \
+    }                                                                   \
+    spec void ci_atomic_add_##name ## _gl(type *counter, type add) {     \
+        atomic_fetch_add_explicit(counter, add, memory_order_seq_cst);  \
+    }                                                                   \
+    spec void ci_atomic_sub_##name ## _gl(type *counter, type sub) {     \
+        atomic_fetch_sub_explicit(counter, sub, memory_order_relaxed);  \
     }
 
 #define __ci_implement_atomic_ops_non_inline(spec, name, type)          \
@@ -126,6 +148,15 @@ CI_DECLARE_FUNC(void) ci_atomic_sub_i128_non_inline(__int128 *counter, __int128 
     }                                                                   \
     spec void ci_atomic_sub_##name(type *counter, type sub) {           \
         ci_atomic_sub_ ## name ## _non_inline(counter, sub);            \
+    }                                                                   \
+    spec void ci_atomic_load_##name ## _gl(type *counter, type *store) { \
+        ci_atomic_load_ ## name ## _gl_non_inline(counter, store);      \
+    }                                                                   \
+    spec void ci_atomic_add_##name ## _gl(type *counter, type add) {     \
+        ci_atomic_add_ ## name ## _gl_non_inline(counter, add);         \
+    }                                                                   \
+    spec void ci_atomic_sub_##name ## _gl(type *counter, type sub) {     \
+        ci_atomic_sub_ ## name ## _gl_non_inline(counter, sub);         \
     }
 
 
