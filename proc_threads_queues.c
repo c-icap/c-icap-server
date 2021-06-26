@@ -29,7 +29,7 @@
 
 static ci_dyn_array_t *MemBlobs = NULL;
 static int MemBlobsCount = 0;
-static int old_requests = 0;
+static int64_t old_requests = 0;
 
 struct connections_queue *init_queue(int size)
 {
@@ -290,7 +290,7 @@ child_shared_data_t *register_child(struct childs_queue * q,
     for (i = 0; i < q->size; i++) {
         if (q->childs[i].pid == 0) {
             q->childs[i].pid = pid;
-            q->childs[i].freeservers = maxservers;
+            q->childs[i].servers = maxservers;
             q->childs[i].usedservers = 0;
             q->childs[i].requests = 0;
             q->childs[i].to_be_killed = 0;
@@ -345,21 +345,23 @@ int remove_child(struct childs_queue *q, process_pid_t pid, int status)
     return 0;
 }
 
+/*
 int find_a_child_to_be_killed(struct childs_queue *q)
 {
-    int i, which, freeservers;
+    int i, which, lessUsedServers;
     ci_proc_mutex_lock(&(q->queue_mtx));
-    freeservers = q->childs[0].freeservers;
+    lessUsedServers = q->childs[0].usedservers;
     which = 0;
     for (i = 1; i < q->size; i++) {
-        if (q->childs[i].pid != 0 && freeservers > q->childs[i].freeservers) {
-            freeservers = q->childs[i].freeservers;
+        if (q->childs[i].pid != 0 && lessUsedServers > q->childs[i].usedservers) {
+            lessUsedServers = q->childs[i].usedservers;
             which = i;
         }
     }
     ci_proc_mutex_unlock(&(q->queue_mtx));
     return which;
 }
+*/
 
 int find_a_child_nrequests(struct childs_queue *q, int max_requests)
 {
@@ -407,9 +409,10 @@ int find_an_idle_child(struct childs_queue *q)
 }
 
 int childs_queue_stats(struct childs_queue *q, int *childs, int *freeservers,
-                       int *used, int *maxrequests)
+                       int *used, int64_t *maxrequests)
 {
     int i;
+    int max_servers = 0;
 
     *childs = 0;
     *freeservers = 0;
@@ -422,12 +425,13 @@ int childs_queue_stats(struct childs_queue *q, int *childs, int *freeservers,
     for (i = 0; i < q->size; i++) {
         if (q->childs[i].pid != 0 && q->childs[i].to_be_killed == 0) {
             (*childs)++;
-            (*freeservers) += q->childs[i].freeservers;
+            max_servers += q->childs[i].servers;
             (*used) += q->childs[i].usedservers;
             (*maxrequests) += q->childs[i].requests;
         }
     }
     (*maxrequests) += old_requests;
+    (*freeservers) = max_servers - (*used);
     return 1;
 }
 
@@ -463,7 +467,7 @@ void dump_queue_statistics(struct childs_queue *q)
 
     int i;
     int childs = 0;
-    int freeservers = 0;
+    int maxservers = 0;
     int used = 0;
     int requests = 0;
     ci_stat_memblock_t *child_stats;
@@ -474,11 +478,11 @@ void dump_queue_statistics(struct childs_queue *q)
     for (i = 0; i < q->size; i++) {
         if (q->childs[i].pid != 0 && q->childs[i].to_be_killed == 0) {
             childs++;
-            freeservers += q->childs[i].freeservers;
+            maxservers += q->childs[i].servers;
             used += q->childs[i].usedservers;
             requests += q->childs[i].requests;
-            ci_debug_printf(1, "\nChild pid:%d\tFree Servers:%d\tUsed Servers:%d\tRequests:%d\n",
-                            q->childs[i].pid, q->childs[i].freeservers,
+            ci_debug_printf(1, "\nChild pid:%d\tFree Servers:%d\tUsed Servers:%d\tRequests:% " PRIi64 "\n",
+                            q->childs[i].pid, (q->childs[i].servers - q->childs[i].usedservers),
                             q->childs[i].usedservers, q->childs[i].requests
                            );
 
@@ -487,7 +491,7 @@ void dump_queue_statistics(struct childs_queue *q)
         }
     }
     ci_debug_printf(1, "\nChildren:%d\tFree Servers:%d\tUsed Servers:%d\tRequests:%d\n",
-                    childs, freeservers, used, requests);
+                    childs, maxservers - used, used, requests);
     ci_debug_printf(1,"\nHistory\n");
     ci_stat_statistics_iterate(q->stats_history, -1, print_statistics);
 }

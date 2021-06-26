@@ -54,9 +54,9 @@ struct connections_queue {
 
 
 typedef struct child_shared_data {
-    int freeservers;
-    int usedservers;
-    int requests;
+    int servers;
+    int32_t usedservers;
+    int64_t requests;
     process_pid_t pid;
     int idle;
     int to_be_killed;
@@ -126,7 +126,7 @@ int find_a_child_to_be_killed(struct childs_queue *q);
 int find_a_child_nrequests(struct childs_queue *q,int max_requests);
 int find_an_idle_child(struct childs_queue *q);
 int childs_queue_stats(struct childs_queue *q, int *childs,
-                       int *freeservers, int *used, int *maxrequests);
+                       int *freeservers, int *used, int64_t *maxrequests);
 void dump_queue_statistics(struct childs_queue *q);
 
 #ifdef __cplusplus

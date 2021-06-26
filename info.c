@@ -192,6 +192,7 @@ void fill_queue_statistics(struct childs_queue *q, struct info_req_data *info_da
 
     int i;
     int requests = 0;
+    int32_t used_servers;
     ci_stat_memblock_t *stats;
     struct server_statistics *srv_stats;
     if (!q->childs)
@@ -203,8 +204,9 @@ void fill_queue_statistics(struct childs_queue *q, struct info_req_data *info_da
             if (info_data->child_pids)
                 info_data->child_pids[info_data->childs] = q->childs[i].pid;
             info_data->childs++;
-            info_data->free_servers += q->childs[i].freeservers;
-            info_data->used_servers += q->childs[i].usedservers;
+            ci_atomic_load_i32(&q->childs[i].usedservers, &used_servers);
+            info_data->free_servers += (q->childs[i].servers - used_servers);
+            info_data->used_servers += used_servers;
             requests += q->childs[i].requests;
 
             stats = q->stats_area + i * (q->stats_block_size);

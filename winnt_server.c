@@ -168,10 +168,7 @@ int thread_main(server_decl_t * srv)
         }
 
 
-        ci_thread_mutex_lock(&counters_mtx);
-        (child_data->freeservers)--;
-        (child_data->usedservers)++;
-        ci_thread_mutex_unlock(&counters_mtx);
+        ci_atomic_add_i32(&(child_data->usedservers), 1);
 
         do {
             if ((request_status = process_request(srv->current_req)) < 0) {
@@ -183,12 +180,7 @@ int thread_main(server_decl_t * srv)
             srv->served_requests++;
             srv->served_requests_no_reallocation++;
 
-            /*Increase served requests. I dont like this. The delay is small but I don't like... */
-            ci_thread_mutex_lock(&counters_mtx);
-            (child_data->requests)++;
-            ci_thread_mutex_unlock(&counters_mtx);
-
-
+            ci_atomic_add_i64(&child_data->requests, 1);
 
             log_access(srv->current_req, request_status);
 //             break; //No keep-alive ......
@@ -224,10 +216,7 @@ int thread_main(server_decl_t * srv)
             srv->served_requests_no_reallocation = 0;
         }
 
-        ci_thread_mutex_lock(&counters_mtx);
-        (child_data->freeservers)++;
-        (child_data->usedservers)--;
-        ci_thread_mutex_unlock(&counters_mtx);
+        ci_atomic_sub_i32(&child_data->usedservers, 1);
         ci_thread_cond_signal(&free_server_cond);
 
     }
@@ -246,6 +235,7 @@ int worker_main(ci_socket sockfd)
     int claddrlen = sizeof(struct sockaddr_in);
 //     char clientname[300];
     int haschild = 1, jobs_in_queue = 0;
+    int32_t child_usedservers;
     int pid = 0, error;
 
 
@@ -290,26 +280,27 @@ int worker_main(ci_socket sockfd)
 //                  child_data->to_be_killed = GRACEFULLY;
                 ci_debug_printf(1,
                                 "Jobs in Queue: %d, Free servers: %d, Used Servers: %d, Requests: %d\n",
-                                jobs_in_queue, child_data->freeservers,
+                                jobs_in_queue, child_data->servers - child_data->usedservers,
                                 child_data->usedservers,
                                 child_data->requests);
             }
-            ci_thread_mutex_lock(&counters_mtx);
-            haschild = (child_data->freeservers ? 1 : 0);
-            ci_thread_mutex_unlock(&counters_mtx);
+            ci_atomic_load_i32(&child_data->usedservers, &child_usedservers);
+            haschild = ((child_data->servers - child_usedservers) > 0 ? 1 : 0);
         } while (haschild);
 
         child_data->idle = 1;
         ci_proc_mutex_unlock(&accept_mutex);
 
-        ci_thread_mutex_lock(&counters_mtx);
-        if (child_data->freeservers == 0) {
+        ci_atomic_load_i32(&child_data->usedservers, &child_usedservers);
+
+        if (child_data->servers - child_usedservers == 0) {
             ci_debug_printf(1,
                             "Child %d waiting for a thread to accept more connections ...\n",
                             pid);
+            ci_thread_mutex_lock(&counters_mtx);
             ci_thread_cond_wait(&free_server_cond, &counters_mtx);
+            ci_thread_mutex_unlock(&counters_mtx);
         }
-        ci_thread_mutex_unlock(&counters_mtx);
 
     }
 
@@ -744,7 +735,8 @@ int start_server()
     int child_indx, i;
     HANDLE child_handle;
     ci_thread_t mon_thread;
-    int childs, freeservers, used, maxrequests;
+    int childs, freeservers, used;
+    int64_t maxrequests;
 
     ci_proc_mutex_init(&accept_mutex);
     ci_thread_mutex_init(&control_process_mtx);

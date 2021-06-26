@@ -85,6 +85,20 @@ extern "C"
 CI_DECLARE_FUNC(int) ci_atomics_init();
 
 /* Non-inline function calls implementation */
+CI_DECLARE_FUNC(void) ci_atomic_load_u32_non_inline(uint32_t *counter, uint32_t *value);
+CI_DECLARE_FUNC(void) ci_atomic_add_u32_non_inline(uint32_t *counter, uint32_t add);
+CI_DECLARE_FUNC(void) ci_atomic_sub_u32_non_inline(uint32_t *counter, uint32_t sub);
+CI_DECLARE_FUNC(void) ci_atomic_load_u32_non_inline_gl(uint32_t *counter, uint32_t *value);
+CI_DECLARE_FUNC(void) ci_atomic_add_u32_non_inline_gl(uint32_t *counter, uint32_t add);
+CI_DECLARE_FUNC(void) ci_atomic_sub_u32_non_inline_gl(uint32_t *counter, uint32_t sub);
+
+CI_DECLARE_FUNC(void) ci_atomic_load_i32_non_inline(int32_t *counter, int32_t *value);
+CI_DECLARE_FUNC(void) ci_atomic_add_i32_non_inline(int32_t *counter, int32_t add);
+CI_DECLARE_FUNC(void) ci_atomic_sub_i32_non_inline(int32_t *counter, int32_t sub);
+CI_DECLARE_FUNC(void) ci_atomic_load_i32_non_inline_gl(int32_t *counter, int32_t *value);
+CI_DECLARE_FUNC(void) ci_atomic_add_i32_non_inline_gl(int32_t *counter, int32_t add);
+CI_DECLARE_FUNC(void) ci_atomic_sub_i32_non_inline_gl(int32_t *counter, int32_t sub);
+
 CI_DECLARE_FUNC(void) ci_atomic_load_u64_non_inline(uint64_t *counter, uint64_t *value);
 CI_DECLARE_FUNC(void) ci_atomic_add_u64_non_inline(uint64_t *counter, uint64_t add);
 CI_DECLARE_FUNC(void) ci_atomic_sub_u64_non_inline(uint64_t *counter, uint64_t sub);
@@ -163,9 +177,18 @@ CI_DECLARE_FUNC(void) ci_atomic_sub_i128_non_inline_gl(__int128 *counter, __int1
 #if defined(__CI_INLINE_POSIX_ATOMICS)
 /*
   The above lines implement the following inlined functions:
+  void  ci_atomic_load_u32(uint32_t *counter, uint32_t *value);
+  void ci_atomic_add_u32(uint32_t *counter, uint32_t add);
+  void ci_atomic_sub_u32(uint32_t *counter, uint32_t sub);
+
+  void  ci_atomic_load_i32(int32_t *counter, int32_t *value);
+  void ci_atomic_add_i32(int32_t *counter, int32_t add);
+  void ci_atomic_sub_i32(int32_t *counter, int32_t sub);
+
   void  ci_atomic_load_u64(uint64_t *counter, uint64_t *value);
   void ci_atomic_add_u64(uint64_t *counter, uint64_t add);
   void ci_atomic_sub_u64(uint64_t *counter, uint64_t sub);
+
   void  ci_atomic_load_i64(int64_t *counter, int64_t *value);
   void ci_atomic_add_i64(int64_t *counter, int64_t add);
   void ci_atomic_sub_i64(int64_t *counter, int64_t sub);
@@ -174,11 +197,14 @@ CI_DECLARE_FUNC(void) ci_atomic_sub_i128_non_inline_gl(__int128 *counter, __int1
   void  ci_atomic_load_u128(unsigned __int128 *counter, unsigned __int128 *value);
   void  ci_atomic_add_u128(unsigned __int128 *counter, unsigned __int128 add);
   void  ci_atomic_sub_u128(unsigned __int128 *counter, unsigned __int128 sub);
+
   void  ci_atomic_load_i128(__int128 *counter, __int128 *value);
   void  ci_atomic_add_i128(__int128 *counter, __int128 add);
   void  ci_atomic_sub_i128(__int128 *counter, __int128 sub);
   #endif
 */
+__ci_implement_atomic_ops(static inline, u32, uint32_t);
+__ci_implement_atomic_ops(static inline, i32, int32_t);
 __ci_implement_atomic_ops(static inline, u64, uint64_t);
 __ci_implement_atomic_ops(static inline, i64, int64_t);
 #if defined(CI_ATOMICS_USE_128BIT)
@@ -199,6 +225,8 @@ __ci_implement_atomic_ops(static inline, i128, __int128);
         std::atomic_fetch_sub_explicit(reinterpret_cast<std::atomic<type> *>(counter), sub, std::memory_order_relaxed); \
     }
 
+__ci_implement_atomic_ops_cplusplus(inline, u32, uint32_t);
+__ci_implement_atomic_ops_cplusplus(inline, i32, int32_t);
 __ci_implement_atomic_ops_cplusplus(inline, u64, uint64_t);
 __ci_implement_atomic_ops_cplusplus(inline, i64, int64_t);
 
@@ -209,6 +237,8 @@ __ci_implement_atomic_ops_non_inline(static inline, i128, __int128);
 
 #else //defined(__CI_INLINE_CPLUSPLUS_ATOMICS)
 
+__ci_implement_atomic_ops_non_inline(static inline, u32, uint32_t);
+__ci_implement_atomic_ops_non_inline(static inline, i32, int32_t);
 __ci_implement_atomic_ops_non_inline(static inline, u64, uint64_t);
 __ci_implement_atomic_ops_non_inline(static inline, i64, int64_t);
 #if defined(CI_ATOMICS_USE_128BIT)

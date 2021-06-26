@@ -24,6 +24,8 @@
 #include "proc_mutex.h"
 
 #if defined(__CI_INLINE_POSIX_ATOMICS)
+__ci_implement_atomic_ops(,i32_non_inline, int32_t);
+__ci_implement_atomic_ops(,u32_non_inline, uint32_t);
 __ci_implement_atomic_ops(,u64_non_inline, uint64_t);
 __ci_implement_atomic_ops(,i64_non_inline, int64_t);
 #if defined(CI_ATOMICS_USE_128BIT)
@@ -82,6 +84,8 @@ static ci_proc_mutex_t proc_mtx[MTX_SIZE];
         ci_proc_mutex_unlock(mtx);                                      \
     }
 
+_implement_atomic_ops(i32_non_inline, int32_t);
+_implement_atomic_ops(u32_non_inline, uint32_t);
 _implement_atomic_ops(u64_non_inline, uint64_t);
 _implement_atomic_ops(i64_non_inline, int64_t);
 #if defined(CI_ATOMICS_USE_128BIT)

@@ -38,6 +38,7 @@
 #endif
 #include <assert.h>
 #include "acl.h"
+#include "atomic.h"
 #include "net_io.h"
 #if defined(USE_OPENSSL)
 #include "net_io_ssl.h"
@@ -73,13 +74,12 @@ typedef struct server_decl {
     int running;
 } server_decl_t;
 
-ci_thread_mutex_t threads_list_mtx;
 server_decl_t **threads_list = NULL;
 ci_thread_t listener_thread_id;
 int listener_running = 0;
 
 ci_thread_cond_t free_server_cond;
-ci_thread_mutex_t counters_mtx;
+ci_thread_mutex_t free_server_mtx;
 
 struct childs_queue *childs_queue = NULL;
 struct childs_queue *old_childs_queue = NULL;
@@ -600,10 +600,7 @@ int thread_main(server_decl_t * srv)
             break;
         }
 
-        ci_thread_mutex_lock(&counters_mtx);  /*Update counters as soon as possible */
-        (child_data->freeservers)--;
-        (child_data->usedservers)++;
-        ci_thread_mutex_unlock(&counters_mtx);
+        ci_atomic_add_i32(&(child_data->usedservers), 1);
 
         ret = 1;
         if (srv->current_req == NULL)
@@ -637,10 +634,7 @@ int thread_main(server_decl_t * srv)
             srv->served_requests_no_reallocation++;
             keepalive_reqs++;
 
-            /*Increase served requests. I dont like this. The delay is small but I don't like... */
-            ci_thread_mutex_lock(&counters_mtx);
-            (child_data->requests)++;
-            ci_thread_mutex_unlock(&counters_mtx);
+            ci_atomic_add_i64(&child_data->requests, 1);
 
             log_access(srv->current_req, request_status);
 //             break; //No keep-alive ......
@@ -683,10 +677,7 @@ int thread_main(server_decl_t * srv)
 
 
 end_of_main_loop_thread:
-        ci_thread_mutex_lock(&counters_mtx);
-        (child_data->freeservers)++;
-        (child_data->usedservers)--;
-        ci_thread_mutex_unlock(&counters_mtx);
+        ci_atomic_sub_i32(&child_data->usedservers, 1);
         ci_thread_cond_signal(&free_server_cond);
 
     }
@@ -699,13 +690,14 @@ void listener_thread(void *unused)
     ci_connection_t conn;
     ci_port_t *port;
     int haschild = 1, jobs_in_queue = 0;
+    int32_t child_usedservers;
     int pid;
     thread_signals(1);
     /*Wait main process to signal us to start accepting requests*/
-    ci_thread_mutex_lock(&counters_mtx);
+    ci_thread_mutex_lock(&free_server_mtx);
     listener_running = 1;
-    ci_thread_cond_wait(&free_server_cond, &counters_mtx);
-    ci_thread_mutex_unlock(&counters_mtx);
+    ci_thread_cond_wait(&free_server_cond, &free_server_mtx);
+    ci_thread_mutex_unlock(&free_server_mtx);
     pid = getpid();
     for (;;) {                 //Global for
         if (child_data->to_be_killed) {
@@ -809,8 +801,8 @@ void listener_thread(void *unused)
                     ci_debug_printf(1,
                                     "ERROR!!!!!! NO AVAILABLE SERVERS! THIS IS A BUG!!!!!!!!\n");
                     ci_debug_printf(1,
-                                    "Jobs in Queue: %d, Free servers: %d, Used Servers: %d, Requests: %d\n",
-                                    jobs_in_queue, child_data->freeservers,
+                                    "Jobs in Queue: %d, Free servers: %d, Used Servers: %d, Requests: %" PRIi64 "\n",
+                                    jobs_in_queue, child_data->servers - child_data->usedservers,
                                     child_data->usedservers,
                                     child_data->requests);
                     goto LISTENER_FAILS;
@@ -822,10 +814,8 @@ void listener_thread(void *unused)
                 ci_debug_printf(5, "Listener server must exit!\n");
                 goto LISTENER_FAILS;
             }
-            ci_thread_mutex_lock(&counters_mtx);
-            haschild =
-                ((child_data->freeservers - jobs_in_queue) > 0 ? 1 : 0);
-            ci_thread_mutex_unlock(&counters_mtx);
+            ci_atomic_load_i32(&child_data->usedservers, &child_usedservers);
+            haschild = ((child_data->servers - child_usedservers  - jobs_in_queue) > 0 ? 1 : 0);
         } while (haschild);
         ci_debug_printf(7, "Child %d STOPS getting requests now ...\n", pid);
         child_data->idle = 1;
@@ -841,14 +831,15 @@ void listener_thread(void *unused)
                             pid);
         }
 
-        ci_thread_mutex_lock(&counters_mtx);
-        if ((child_data->freeservers - connections_pending(con_queue)) <= 0) {
+        ci_atomic_load_i32(&child_data->usedservers, &child_usedservers);
+        if ((child_data->servers - child_usedservers - connections_pending(con_queue)) <= 0) {
             ci_debug_printf(7,
                             "Child %d waiting for a thread to accept more connections ...\n",
                             pid);
-            ci_thread_cond_wait(&free_server_cond, &counters_mtx);
+            ci_thread_mutex_lock(&free_server_mtx);
+            ci_thread_cond_wait(&free_server_cond, &free_server_mtx);
+            ci_thread_mutex_unlock(&free_server_mtx);
         }
-        ci_thread_mutex_unlock(&counters_mtx);
     }
 LISTENER_FAILS_UNLOCKED:
     /* The code commented out, because causes closing TLS listening ports
@@ -884,8 +875,7 @@ void child_main(int pipefd)
     int i, ret;
 
     signal(SIGTERM, SIG_IGN);  /*Ignore parent requests to kill us untill we are up and running */
-    ci_thread_mutex_init(&threads_list_mtx);
-    ci_thread_mutex_init(&counters_mtx);
+    ci_thread_mutex_init(&free_server_mtx);
     ci_thread_cond_init(&free_server_cond);
 
     ret = ci_stat_attach_mem(child_data->stats, child_data->stats_size, NULL);
@@ -933,9 +923,9 @@ void child_main(int pipefd)
     /*Signal listener to start accepting requests.*/
     int doStart = 0;
     do {
-        ci_thread_mutex_lock(&counters_mtx);
+        ci_thread_mutex_lock(&free_server_mtx);
         doStart = listener_running;
-        ci_thread_mutex_unlock(&counters_mtx);
+        ci_thread_mutex_unlock(&free_server_mtx);
         if (!doStart)
             ci_usleep(5);
     } while (!doStart);
@@ -986,7 +976,8 @@ int start_child()
 {
     int pid;
     int pfd[2];
-    int children_num, free_servers, used_servers, max_requests;
+    int children_num, free_servers, used_servers;
+    int64_t max_requests;
 
     if (pipe(pfd) < 0) {
         ci_debug_printf(1,
@@ -1109,7 +1100,8 @@ void init_commands()
 int start_server()
 {
     int child_indx, pid, i, ctl_socket;
-    int childs, freeservers, used, maxrequests, ret;
+    int childs, freeservers, used, ret;
+    int64_t maxrequests;
     char command_buffer[COMMANDS_BUFFER_SIZE];
     int user_informed = 0;
 
@@ -1170,7 +1162,7 @@ int start_server()
                                &maxrequests);
             ci_debug_printf(10,
                             "Server stats: \n\t Children: %d\n\t Free servers: %d\n"
-                            "\tUsed servers:%d\n\tRequests served:%d\n",
+                            "\tUsed servers:%d\n\tRequests served:%" PRIi64 "\n",
                             childs, freeservers, used, maxrequests);
             if (MAX_REQUESTS_PER_CHILD > 0 && (child_indx =
                                                    find_a_child_nrequests
@@ -1243,7 +1235,7 @@ int start_server()
 #else
     child_data = (child_shared_data_t *) malloc(sizeof(child_shared_data_t));
     child_data->pid = 0;
-    child_data->freeservers = CI_CONF.THREADS_PER_CHILD;
+    child_data->servers = CI_CONF.THREADS_PER_CHILD;
     child_data->usedservers = 0;
     child_data->requests = 0;
     child_data->to_be_killed = 0;
