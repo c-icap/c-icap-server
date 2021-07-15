@@ -162,6 +162,7 @@ int intl_cfg_set_int_range(const char *directive, const char **argv, void *setda
 
 CI_DECLARE_FUNC(void)   ci_cfg_lib_init();
 CI_DECLARE_FUNC(void)   ci_cfg_lib_reset();
+CI_DECLARE_FUNC(void)   ci_cfg_lib_destroy();
 CI_DECLARE_FUNC(void *) ci_cfg_alloc_mem(int size);
 CI_DECLARE_FUNC(const char *) ci_lib_version_string();
 
