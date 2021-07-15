@@ -189,6 +189,7 @@ static void exit_normaly()
 #ifdef MULTICHILD
     child_data = NULL;
     dettach_childs_queue(childs_queue);
+    config_destroy();
 #endif
 }
 
