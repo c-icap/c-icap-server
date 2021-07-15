@@ -474,6 +474,50 @@ int post_init_services()
     return 1;
 }
 
+void init_services_in_server_process()
+{
+    int i;
+    ci_service_xdata_t *xdata;
+    for (i = 0; i < services_num; i++) {
+        if (service_list[i]->mod_init_server_process != NULL) {
+            service_list[i]->mod_init_server_process();
+        }
+    }
+}
+
+void close_services_in_server_process()
+{
+    int i;
+    ci_service_xdata_t *xdata;
+    for (i = 0; i < services_num; i++) {
+        if (service_list[i]->mod_close_server_process != NULL) {
+            service_list[i]->mod_close_server_process();
+        }
+    }
+}
+
+void init_services_in_server_thread()
+{
+    int i;
+    ci_service_xdata_t *xdata;
+    for (i = 0; i < services_num; i++) {
+        if (service_list[i]->mod_init_server_thread != NULL) {
+            service_list[i]->mod_init_server_thread();
+        }
+    }
+}
+
+void close_services_in_server_thread()
+{
+    int i;
+    ci_service_xdata_t *xdata;
+    for (i = 0; i < services_num; i++) {
+        if (service_list[i]->mod_close_server_thread != NULL) {
+            service_list[i]->mod_close_server_thread();
+        }
+    }
+}
+
 int release_services()
 {
     int i;

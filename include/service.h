@@ -204,6 +204,31 @@ struct  ci_service_module {
     void (*mod_close_service)();
 
     /**
+       \brief Pointer to the function which called after the c-icap child
+     * process is initialized, but before it spawns worker threads.
+     */
+    void (*mod_init_server_process)();
+
+    /**
+       \brief Pointer to the function which called on c-icap child
+     * process shutdown.
+     */
+    void (*mod_close_server_process)();
+
+    /**
+       \brief Pointer to the function which called after the c-icap child
+     * process has spawn a thread, but before the threads starts to serve
+     * requests.
+     */
+    void (*mod_init_server_thread)();
+
+    /**
+       \brief Pointer to the function which called on c-icap child
+     * process thread shutdown.
+     */
+    void (*mod_close_server_thread)();
+
+    /**
      \brief Pointer to the function called when a new request for this services
      * arrives to c-icap server.
      *
