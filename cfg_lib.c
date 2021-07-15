@@ -44,6 +44,11 @@ void ci_cfg_lib_reset()
     cfg_params_allocator->reset(cfg_params_allocator);
 }
 
+void ci_cfg_lib_destroy()
+{
+    ci_mem_allocator_destroy(cfg_params_allocator);
+}
+
 void *ci_cfg_alloc_mem(int size)
 {
     return cfg_params_allocator->alloc(cfg_params_allocator, size);
