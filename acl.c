@@ -700,7 +700,7 @@ void ci_acl_spec_list_release(ci_acl_spec_t *spec)
 
 int ci_acl_typelist_init(struct ci_acl_type_list *list)
 {
-    list->acl_type_list = malloc(STEP*sizeof(ci_acl_type_t));
+    list->acl_type_list = calloc(STEP, sizeof(ci_acl_type_t));
     list->acl_type_list_size = STEP;
     list->acl_type_list_num = 0;
     return 1;
