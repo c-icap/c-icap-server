@@ -98,6 +98,7 @@ CI_DECLARE_FUNC(void) ci_command_register_child_cleanup(const char *name,
 /*For internal use only*/
 void commands_init();
 void commands_reset();
+void commands_destroy();
 int execute_command(ci_command_t *command, char *cmdline, int exec_type);
 ci_command_t *find_command(const char *cmd_line);
 int commands_execute_start_child();
