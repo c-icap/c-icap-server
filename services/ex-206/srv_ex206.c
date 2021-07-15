@@ -45,11 +45,16 @@ CI_DECLARE_MOD_DATA ci_service_module_t service = {
     NULL,                           /* post_init_service. Service initialization after c-icap
                     configured. Not used here */
     ex206_close_service,           /* mod_close_service. Called when service shutdowns. */
+    NULL,                            /* mod_init_server_process */
+    NULL,                            /* mod_close_server_process */
+    NULL,                            /* mod_init_server_thread */
+    NULL,                            /* mod_close_server_thread */
     ex206_init_request_data,         /* mod_init_request_data */
     ex206_release_request_data,      /* mod_release_request_data */
     ex206_check_preview_handler,     /* mod_check_preview_handler */
     ex206_end_of_data_handler,       /* mod_end_of_data_handler */
     ex206_io,                        /* mod_service_io */
+    NULL,                            /* mod_siguser_received_handler */
     NULL,
     NULL
 };

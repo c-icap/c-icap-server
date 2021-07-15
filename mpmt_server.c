@@ -115,6 +115,10 @@ static void term_handler_child(int sig)
         child_data->to_be_killed = child_data->father_said;
 }
 
+static void sigusr1_handler_child(int sig) {
+    notify_services_of_siguser_received(sig);
+}
+
 static void sigpipe_handler(int sig)
 {
 }
@@ -149,6 +153,7 @@ void child_signals()
     signal(SIGINT, SIG_IGN);
     signal(SIGTERM, term_handler_child);
     signal(SIGHUP, empty);
+    signal(SIGUSR1, sigusr1_handler_child);
 
     /*Maybe the SIGCHLD must not ignored but better
        a signal handler must be developed with an
@@ -164,6 +169,7 @@ void main_signals()
     signal(SIGINT, sigint_handler_main);
     signal(SIGCHLD, sigchld_handler_main);
     signal(SIGHUP, sighup_handler_main);
+    signal(SIGUSR1, SIG_IGN);
 }
 
 
@@ -351,6 +357,11 @@ static void check_for_exited_childs()
     int status, pid, ret, exit_status;
     exit_status = 0;
     while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
+        if (!WIFEXITED(status) && WIFSIGNALED(status) && (WTERMSIG(status) == SIGUSR1)) {
+            ci_debug_printf(5, "Child %d received user-signal %d\n", pid,
+                            WTERMSIG(status));
+            continue;
+        }
         ci_debug_printf(5, "Child %d died ...\n", pid);
         if (!WIFEXITED(status)) {
             ci_debug_printf(1, "Child %d did not exit normally.", pid);
@@ -566,6 +577,8 @@ int thread_main(server_decl_t * srv)
 //*************************
     srv->srv_id = getpid();    //Setting my pid ...
 
+    init_services_in_server_thread();
+
     for (;;) {
         /*
            If we must shutdown IMEDIATELLY it is time to leave the server
@@ -676,6 +689,7 @@ int thread_main(server_decl_t * srv)
 
 
 end_of_main_loop_thread:
+        close_services_in_server_thread();
         ci_thread_mutex_lock(&counters_mtx);
         (child_data->freeservers)++;
         (child_data->usedservers)--;
@@ -888,6 +902,8 @@ void child_main(int pipefd)
                                   sizeof(server_decl_t *));
     con_queue = init_queue(CI_CONF.THREADS_PER_CHILD);
 
+    init_services_in_server_process();
+
     for (i = 0; i < CI_CONF.THREADS_PER_CHILD; i++) {
         if ((threads_list[i] = newthread(con_queue)) == NULL) {
             exit(-1);        // FATAL error.....
@@ -966,6 +982,7 @@ void child_main(int pipefd)
 
     cancel_all_threads();
     commands_execute_stop_child();
+    close_services_in_server_process();
     exit_normaly();
 }
 
