@@ -99,6 +99,18 @@ void commands_reset()
     }
 }
 
+void commands_destroy()
+{
+    if (COMMANDS_QUEUE) {
+        ci_list_destroy(COMMANDS_QUEUE);
+        COMMANDS_QUEUE = NULL;
+    }
+    if (COMMANDS_LIST) {
+        ci_list_destroy(COMMANDS_LIST);
+        COMMANDS_LIST = NULL;
+    }
+}
+
 /*
 Currently we are using the following functions which defined in cfg_param.c file
 These functions must moved to a utils.c file ...
