@@ -308,6 +308,12 @@ struct  ci_service_module {
     int (*mod_service_io)(char *wbuf,int *wlen,char *rbuf,int *rlen,int iseof, struct ci_request *req);
 
     /**
+       \brief Pointer to the function which is called whenever icap receives
+     *        SIGUSR1
+     */
+    void (*mod_siguser_received_handler)(int sig);
+
+    /**
      \brief Pointer to the config table of the service
      *
      * Is an array which contains the definitions of configuration parameters

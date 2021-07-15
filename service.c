@@ -518,6 +518,17 @@ void close_services_in_server_thread()
     }
 }
 
+void notify_services_of_siguser_received(int sig)
+{
+    int i;
+    ci_service_xdata_t *xdata;
+    for (i = 0; i < services_num; i++) {
+        if (service_list[i]->mod_siguser_received_handler != NULL) {
+            service_list[i]->mod_siguser_received_handler(sig);
+        }
+    }
+}
+
 int release_services()
 {
     int i;

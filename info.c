@@ -55,6 +55,7 @@ CI_DECLARE_MOD_DATA ci_service_module_t info_service = {
     info_check_preview_handler,     /* mod_check_preview_handler */
     info_end_of_data_handler,       /* mod_end_of_data_handler */
     info_io,                        /* mod_service_io */
+    NULL,                           /* mod_siguser_received_handler */
     NULL,
     NULL
 };

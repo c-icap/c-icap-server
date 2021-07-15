@@ -96,6 +96,7 @@ ci_service_module_t *load_perl_module(char *service_file)
     service->mod_check_preview_handler = perl_check_preview_handler;
     service->mod_end_of_data_handler = perl_end_of_data_handler;
     service->mod_service_io = perl_service_io;
+    service->mod_siguser_received_handler = NULL;
 
 
     service->mod_name = strdup("perl_test");

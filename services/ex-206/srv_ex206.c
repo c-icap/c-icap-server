@@ -54,6 +54,7 @@ CI_DECLARE_MOD_DATA ci_service_module_t service = {
     ex206_check_preview_handler,     /* mod_check_preview_handler */
     ex206_end_of_data_handler,       /* mod_end_of_data_handler */
     ex206_io,                        /* mod_service_io */
+    NULL,                            /* mod_siguser_received_handler */
     NULL,
     NULL
 };

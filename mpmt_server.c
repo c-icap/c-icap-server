@@ -115,6 +115,10 @@ static void term_handler_child(int sig)
         child_data->to_be_killed = child_data->father_said;
 }
 
+static void sigusr1_handler_child(int sig) {
+    notify_services_of_siguser_received(sig);
+}
+
 static void sigpipe_handler(int sig)
 {
 }
@@ -149,6 +153,7 @@ void child_signals()
     signal(SIGINT, SIG_IGN);
     signal(SIGTERM, term_handler_child);
     signal(SIGHUP, empty);
+    signal(SIGUSR1, sigusr1_handler_child);
 
     /*Maybe the SIGCHLD must not ignored but better
        a signal handler must be developed with an
@@ -164,6 +169,7 @@ void main_signals()
     signal(SIGINT, sigint_handler_main);
     signal(SIGCHLD, sigchld_handler_main);
     signal(SIGHUP, sighup_handler_main);
+    signal(SIGUSR1, SIG_IGN);
 }
 
 
@@ -351,6 +357,11 @@ static void check_for_exited_childs()
     int status, pid, ret, exit_status;
     exit_status = 0;
     while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
+        if (!WIFEXITED(status) && WIFSIGNALED(status) && (WTERMSIG(status) == SIGUSR1)) {
+            ci_debug_printf(5, "Child %d received user-signal %d\n", pid,
+                            WTERMSIG(status));
+            continue;
+        }
         ci_debug_printf(5, "Child %d died ...\n", pid);
         if (!WIFEXITED(status)) {
             ci_debug_printf(1, "Child %d did not exit normally.", pid);
