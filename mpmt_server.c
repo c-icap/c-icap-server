@@ -566,6 +566,8 @@ int thread_main(server_decl_t * srv)
 //*************************
     srv->srv_id = getpid();    //Setting my pid ...
 
+    init_services_in_server_thread();
+
     for (;;) {
         /*
            If we must shutdown IMEDIATELLY it is time to leave the server
@@ -573,12 +575,14 @@ int thread_main(server_decl_t * srv)
            only if there are not any accepted connections
          */
         if (child_data->to_be_killed == IMMEDIATELY) {
+            close_services_in_server_thread();
             srv->running = 0;
             return 1;
         }
 
         if ((ret = get_from_queue(con_queue, &con)) == 0) {
             if (child_data->to_be_killed) {
+                close_services_in_server_thread();
                 srv->running = 0;
                 return 1;
             }
@@ -683,6 +687,7 @@ end_of_main_loop_thread:
         ci_thread_cond_signal(&free_server_cond);
 
     }
+    close_services_in_server_thread();
     srv->running = 0;
     return 0;
 }
@@ -888,6 +893,8 @@ void child_main(int pipefd)
                                   sizeof(server_decl_t *));
     con_queue = init_queue(CI_CONF.THREADS_PER_CHILD);
 
+    init_services_in_server_process();
+
     for (i = 0; i < CI_CONF.THREADS_PER_CHILD; i++) {
         if ((threads_list[i] = newthread(con_queue)) == NULL) {
             exit(-1);        // FATAL error.....
@@ -966,6 +973,7 @@ void child_main(int pipefd)
 
     cancel_all_threads();
     commands_execute_stop_child();
+    close_services_in_server_process();
     exit_normaly();
 }
 
