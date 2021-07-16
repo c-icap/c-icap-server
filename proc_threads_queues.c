@@ -29,7 +29,6 @@
 
 static ci_dyn_array_t *MemBlobs = NULL;
 static int MemBlobsCount = 0;
-static int64_t old_requests = 0;
 
 struct connections_queue *init_queue(int size)
 {
@@ -326,7 +325,6 @@ int remove_child(struct childs_queue *q, process_pid_t pid, int status)
     for (i = 0; i < q->size; i++) {
         if (q->childs[i].pid == pid) {
             q->childs[i].pid = 0;
-            old_requests += q->childs[i].requests;
             if (q->childs[i].pipe >= 0) {
                 close(q->childs[i].pipe);
                 q->childs[i].pipe = -1;
@@ -334,6 +332,7 @@ int remove_child(struct childs_queue *q, process_pid_t pid, int status)
             child_stats = q->stats_area + i * (q->stats_block_size);
             assert(ci_stat_memblock_check(child_stats));
             ci_stat_memblock_merge(q->stats_history, child_stats);
+            q->srv_stats->history_requests += q->childs[i].requests;
             q->srv_stats->closed_childs++;
             if (status)
                 q->srv_stats->crashed_childs++;
@@ -430,7 +429,7 @@ int childs_queue_stats(struct childs_queue *q, int *childs, int *freeservers,
             (*maxrequests) += q->childs[i].requests;
         }
     }
-    (*maxrequests) += old_requests;
+    (*maxrequests) += q->srv_stats->history_requests;
     (*freeservers) = max_servers - (*used);
     return 1;
 }

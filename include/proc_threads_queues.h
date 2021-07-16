@@ -82,6 +82,7 @@ struct server_statistics {
     unsigned int started_childs;
     unsigned int closed_childs;
     unsigned int crashed_childs;
+    uint64_t history_requests;
     int blob_count;
     ci_server_shared_blob_t blobs[];
 };

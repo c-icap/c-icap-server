@@ -19,10 +19,12 @@
 
 #include "common.h"
 #include "c-icap.h"
+#include "commands.h"
 #include "service.h"
 #include "header.h"
 #include "body.h"
 #include "request_util.h"
+#include "server.h"
 #include "stats.h"
 #include "proc_threads_queues.h"
 #include "debug.h"
@@ -55,6 +57,21 @@ CI_DECLARE_MOD_DATA ci_service_module_t info_service = {
     NULL
 };
 
+struct time_range_stats {
+    int requests_per_sec;
+    int used_servers;
+    int max_servers;
+    int children;
+};
+
+struct info_time_stats {
+    struct time_range_stats _1sec;
+    struct time_range_stats _1min;
+    struct time_range_stats _5min;
+    struct time_range_stats _30min;
+    struct time_range_stats _60min;
+};
+
 struct info_req_data {
     ci_membuf_t *body;
     int txt_mode;
@@ -68,17 +85,27 @@ struct info_req_data {
     unsigned int closed_childs;
     unsigned int crashed_childs;
     ci_stat_memblock_t *collect_stats;
+    struct info_time_stats *info_time_stats;
 };
 
 extern struct childs_queue *childs_queue;
 extern ci_proc_mutex_t accept_mutex;
 
+int InfoSharedMemId = -1;
+
 int build_statistics(struct info_req_data *info_data);
+static void info_monitor_init_cmd(const char *name, int type, void *data);
+static void info_monitor_periodic_cmd(const char *name, int type, void *data);
 
 int info_init_service(ci_service_xdata_t * srv_xdata,
                       struct ci_server_conf *server_conf)
 {
     ci_service_set_xopts(srv_xdata,  CI_XAUTHENTICATEDUSER|CI_XAUTHENTICATEDGROUPS);
+    InfoSharedMemId = ci_server_shared_memblob_register("InfoSharedData", sizeof(struct info_time_stats));
+    ci_command_register_action("info::mon_start", CI_CMD_MONITOR_START, NULL,
+                               info_monitor_init_cmd);
+    ci_command_register_action("info::monitor_periodic", CI_CMD_MONITOR_ONDEMAND, NULL,
+                               info_monitor_periodic_cmd);
     return CI_OK;
 }
 
@@ -116,6 +143,7 @@ void *info_init_request_data(ci_request_t * req)
         info_data = NULL;
     }
 
+    info_data->info_time_stats = ci_server_shared_memblob(InfoSharedMemId);
     return info_data;
 }
 
@@ -337,6 +365,10 @@ static int print_group_statistics(void *data, const char *grp_name, int group_id
     ci_membuf_write(info_data->body, buf, sz, 0);
 
     ci_stat_statistics_iterate(data, group_id, print_statistics);
+    sz = snprintf(buf, sizeof(buf), "%s", tmpl->statsEnd);
+    if (sz >= sizeof(buf))
+        sz = sizeof(buf) - 1;
+    ci_membuf_write(info_data->body, buf, sz, 0);
     return 0;
 }
 
@@ -429,9 +461,235 @@ int build_statistics(struct info_req_data *info_data)
     }
     ci_membuf_write(info_data->body, tmpl->d1TableEnd_tmpl, strlen(tmpl->d1TableEnd_tmpl), 0);
 
+    if (info_data->info_time_stats) {
+        struct {
+            const char *label;
+            struct time_range_stats *v;
+        } time_servers[5] = {{"Current", &info_data->info_time_stats->_1sec},
+                             {"Last 1 minute", &info_data->info_time_stats->_1min},
+                             {"Last 5 minutes", &info_data->info_time_stats->_5min},
+                             {"Last 30 minutes", &info_data->info_time_stats->_30min},
+                             {"Last 60 minutes", &info_data->info_time_stats->_60min}};
+
+        for (k = 0; k < 5; ++k) {
+            sz = snprintf(buf, sizeof(buf), tmpl->statsHeader, time_servers[k].label);
+            if (sz >= sizeof(buf))
+                sz = sizeof(buf) - 1;
+            ci_membuf_write(info_data->body, buf, sz, 0);
+
+            sz = snprintf(buf, sizeof(buf), tmpl->statline_tmpl_int, "Requests/second", time_servers[k].v->requests_per_sec);
+            if (sz >= sizeof(buf))
+                sz = sizeof(buf) - 1;
+            ci_membuf_write(info_data->body, buf, sz, 0);
+
+            sz = snprintf(buf, sizeof(buf), tmpl->statline_tmpl_int, "Average used servers", time_servers[k].v->used_servers);
+            if (sz >= sizeof(buf))
+                sz = sizeof(buf) - 1;
+            ci_membuf_write(info_data->body, buf, sz, 0);
+
+            sz = snprintf(buf, sizeof(buf), tmpl->statline_tmpl_int, "Average running servers", time_servers[k].v->max_servers);
+            if (sz >= sizeof(buf))
+                sz = sizeof(buf) - 1;
+            ci_membuf_write(info_data->body, buf, sz, 0);
+
+            sz = snprintf(buf, sizeof(buf), tmpl->statline_tmpl_int, "Average running children", time_servers[k].v->children);
+            if (sz >= sizeof(buf))
+                sz = sizeof(buf) - 1;
+            ci_membuf_write(info_data->body, buf, sz, 0);
+
+            sz = snprintf(buf, sizeof(buf), "%s", tmpl->statsEnd);
+            if (sz >= sizeof(buf))
+                sz = sizeof(buf) - 1;
+            ci_membuf_write(info_data->body, buf, sz, 0);
+        }
+
+    }
+
     ci_stat_groups_iterate(info_data, print_group_statistics);
     ci_membuf_write(info_data->body, NULL, 0, 1);
 
     return 1;
 }
 
+struct info_time_stats_snapshot {
+    int snapshots;
+    time_t when;
+    time_t when_max;
+    uint64_t requests;
+    uint64_t min_requests;
+    int children;
+    int servers;
+    int used_servers;
+};
+
+static struct info_time_stats_snapshot OneMinSecs[60];
+static struct info_time_stats_snapshot OneHourMins[60];
+
+static void append_snapshots(struct info_time_stats_snapshot *dest, const struct info_time_stats_snapshot *add)
+{
+    dest->snapshots += add->snapshots;
+
+    if (dest->when > add->when || dest->when == 0)
+        dest->when = add->when;
+    if (dest->when_max < add->when_max)
+        dest->when_max = add->when_max;
+
+    if (add->requests > dest->requests)
+        dest->requests = add->requests;
+    if (add->min_requests < dest->min_requests || dest->min_requests == 0)
+        dest->min_requests = add->min_requests;
+
+    dest->children += add->children;
+    dest->servers += add->servers;
+    dest->used_servers += add->used_servers;
+}
+
+static void build_time_range_stats(struct time_range_stats *tr, const struct info_time_stats_snapshot *sn, time_t min_range)
+{
+    time_t period = sn->when_max > sn->when ? sn->when_max - sn->when : 1;
+    if (period < min_range)
+        return;
+    tr->requests_per_sec = (sn->requests - sn->min_requests) / period;
+    tr->max_servers = sn->servers / sn->snapshots;
+    tr->used_servers = sn->used_servers / sn->snapshots;
+    tr->children = sn->children / sn->snapshots;
+}
+
+
+static struct info_time_stats_snapshot *take_snapshot(time_t curr_time)
+{
+    int i;
+    struct childs_queue *q = childs_queue;
+    struct info_time_stats_snapshot *snapshot = NULL;
+    struct info_time_stats_snapshot *minsnapshot = NULL;
+
+    int indx = curr_time % 60;
+    time_t minute = curr_time / (time_t)60;
+    int min_indx =  minute % 60;
+    snapshot = &OneMinSecs[indx];
+    minsnapshot = &OneHourMins[min_indx];
+
+    if (snapshot->when != curr_time) {
+        memset(snapshot, 0, sizeof(struct info_time_stats_snapshot));
+        snapshot->when = curr_time;
+        snapshot->when_max = curr_time;
+    } else
+        snapshot->requests = 0; /*Will update with newer higher value*/
+    snapshot->snapshots++;
+
+    if ((minsnapshot->when % 60) != minute) {
+        memset(minsnapshot, 0, sizeof(struct info_time_stats_snapshot));
+        minsnapshot->when = curr_time;
+        minsnapshot->when_max = curr_time;
+    } else {
+        minsnapshot->requests = 0; /*Will update with newer higher value*/
+        minsnapshot->when_max = curr_time;
+    }
+    minsnapshot->snapshots++;
+
+    for (i = 0; i < q->size; i++) {
+        if (q->childs[i].pid != 0) {
+            snapshot->children++;
+            snapshot->servers += q->childs[i].servers;
+            snapshot->used_servers += q->childs[i].usedservers;
+            snapshot->requests += q->childs[i].requests;
+
+            minsnapshot->children++;
+            minsnapshot->servers += q->childs[i].servers;
+            minsnapshot->used_servers += q->childs[i].usedservers;
+            minsnapshot->requests += q->childs[i].requests;
+        }
+    }
+    snapshot->requests += q->srv_stats->history_requests;
+    minsnapshot->requests += q->srv_stats->history_requests;
+
+    if (snapshot->min_requests == 0)
+        snapshot->min_requests = snapshot->requests;
+    if (minsnapshot->min_requests == 0)
+        minsnapshot->min_requests = minsnapshot->requests;
+    return snapshot;
+}
+
+static void process_snapshot(const struct info_time_stats_snapshot *snapshot)
+{
+    time_t curr_time = snapshot->when;
+    time_t btime = snapshot->when - 1;
+    int prevIndx = btime % 60;
+    struct info_time_stats_snapshot *prevsnapshot = &OneMinSecs[prevIndx];
+    int BACKSECS = 5;
+    while (prevsnapshot->when != btime && BACKSECS > 0) {
+        BACKSECS--;
+        btime--;
+        prevIndx = btime % 60;
+        prevsnapshot = &OneMinSecs[prevIndx];
+    }
+
+    struct info_time_stats *info_tstats = ci_server_shared_memblob(InfoSharedMemId);
+    struct info_time_stats_snapshot stats_1s;
+    memset(&stats_1s, 0, sizeof(struct info_time_stats_snapshot));
+    if (BACKSECS > 0) {
+        append_snapshots(&stats_1s, prevsnapshot);
+        append_snapshots(&stats_1s, snapshot);
+        build_time_range_stats(&info_tstats->_1sec, &stats_1s, 1);
+
+        ci_debug_printf(10, "children %d, used servers: %d/%d, request rate: %d\n",
+                        info_tstats->_1sec.children,
+                        info_tstats->_1sec.used_servers,
+                        info_tstats->_1sec.max_servers,
+                        info_tstats->_1sec.requests_per_sec);
+    }
+
+    int i;
+    struct info_time_stats_snapshot stats_1m;
+    memset(&stats_1m, 0, sizeof(struct info_time_stats_snapshot));
+    stats_1m.when = curr_time;
+    for (i = 0; i < 60; i++) {
+        if (OneMinSecs[i].when >= (curr_time - 60)) {
+            append_snapshots(&stats_1m, &OneMinSecs[i]);
+        }
+    }
+    build_time_range_stats(&info_tstats->_1min, &stats_1m, 60 - 2);
+
+    struct info_time_stats_snapshot stats_5m;
+    struct info_time_stats_snapshot stats_30m;
+    struct info_time_stats_snapshot stats_60m;
+    memset(&stats_5m, 0, sizeof(struct info_time_stats_snapshot));
+    stats_5m.when = curr_time;
+    memset(&stats_30m, 0, sizeof(struct info_time_stats_snapshot));
+    stats_30m.when = curr_time;
+    memset(&stats_60m, 0, sizeof(struct info_time_stats_snapshot));
+    stats_60m.when = curr_time;
+    for (i = 0; i < 60; i++) {
+        if (OneHourMins[i].when >= (curr_time - 300)) {
+            append_snapshots(&stats_5m, &OneHourMins[i]);
+        }
+        if (OneHourMins[i].when >= (curr_time - 1800)) {
+            append_snapshots(&stats_30m, &OneHourMins[i]);
+        }
+        if (OneHourMins[i].when >= (curr_time - 3600)) {
+            append_snapshots(&stats_60m, &OneHourMins[i]);
+        }
+    }
+    build_time_range_stats(&info_tstats->_5min, &stats_5m, 300 - 10);
+    build_time_range_stats(&info_tstats->_30min, &stats_30m, 1800 - 60);
+    build_time_range_stats(&info_tstats->_60min, &stats_60m, 3600 - 60);
+}
+
+
+void info_monitor_init_cmd(const char *name, int type, void *data)
+{
+    memset(OneMinSecs, 0, sizeof(OneMinSecs));
+    memset(OneHourMins, 0, sizeof(OneHourMins));
+    ci_command_schedule("info::monitor_periodic", NULL, 1);
+}
+
+void info_monitor_periodic_cmd(const char *name, int type, void *data)
+{
+    struct info_time_stats_snapshot *snapshot = NULL;
+    time_t now;
+    time(&now);
+    if ((snapshot = take_snapshot(now))) {
+        process_snapshot(snapshot);
+    }
+    ci_command_schedule_on("info::monitor_periodic", NULL, now + 1);
+}
