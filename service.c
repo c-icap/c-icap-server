@@ -278,9 +278,6 @@ struct ci_conf_entry *create_service_conf_table(struct ci_service_xdata *srv_xda
  Base functions for services support ....
 *****************************************************************/
 
-ci_service_module_t *find_service_by_alias(const char *service_name);
-
-
 ci_service_module_t *create_service(const char *service_file, const char *argv[])
 {
     char *extension;
@@ -432,7 +429,6 @@ ci_service_module_t *find_service(const char *service_name)
             return (service_list[i]);
     }
     return NULL;
-    /*     return find_service_by_alias(service_name);*/
 }
 
 ci_service_xdata_t *service_data(ci_service_module_t * srv)
@@ -596,16 +592,6 @@ service_alias_t *add_service_alias(const char *service_alias, const char *servic
                             xdata->intl_srv_conf_table, ALIAS_TABLE);
 
     return &(service_aliases[alias_indx]);
-}
-
-ci_service_module_t *find_service_by_alias(const char *service_name)
-{
-    int i;
-    for (i = 0; i < service_aliases_num; i++) {
-        if (strcmp(service_aliases[i].alias, service_name) == 0)
-            return (service_aliases[i].service);
-    }
-    return NULL;
 }
 
 service_alias_t *find_service_alias(const char *service_name)
