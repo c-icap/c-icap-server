@@ -130,6 +130,12 @@ int ci_stat_group_add(const char *group)
     char **group_list;
     int gid = 0;
 
+    if (STATS) {
+        /*The statistics area is built and finalized,
+          we can not add new statistic items*/
+        return -1;
+    }
+
     for (gid = 0; gid < STAT_GROUPS.entries_num; gid++) {
         if (strcmp(STAT_GROUPS.groups[gid], group) == 0)
             return gid;
@@ -156,6 +162,12 @@ int ci_stat_group_add(const char *group)
 int ci_stat_entry_register(const char *label, ci_stat_type_t type, const char *group)
 {
     int gid;
+
+    if (STATS) {
+        /*The statistics area is built and finalized,
+          we can not add new statistic items*/
+        return -1;
+    }
 
     gid = ci_stat_group_add(group);
     if (gid < 0)
