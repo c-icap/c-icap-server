@@ -64,6 +64,12 @@ CI_DECLARE_FUNC(int) ci_stat_entry_register(const char *label, ci_stat_type_t ty
 CI_DECLARE_FUNC(void) ci_stat_uint64_inc(int ID, uint64_t count);
 
 /**
+ * Decreases by 'count' the counter 'ID', which must be of type CI_STAT_INT64_T
+ \ingroup STAT
+ */
+CI_DECLARE_FUNC(void) ci_stat_uint64_dec(int ID, uint64_t count);
+
+/**
  * Increases by 'count' bytes the counter 'ID', which must be of type
  * CI_STAT_KBS_T.
  \ingroup STAT
@@ -203,8 +209,10 @@ static inline ci_kbs_t ci_stat_memblock_get_kbs(const ci_stat_memblock_t *block,
 }
 
 #define STAT_INT64_INC(memblock, id, count) ci_atomic_add_u64(&(memblock->stats[id].counter), count)
+#define STAT_INT64_DEC(memblock, id, count) ci_atomic_sub_u64(&(memblock->stats[id].counter), count)
 #define STAT_KBS_INC(memblock, id, count) ci_kbs_lock_and_update(&(memblock->stats[id].kbs), count)
 #define STAT_INT64_INC_NL(memblock, id, count) memblock->stats[id].counter += count
+#define STAT_INT64_DEC_NL(memblock, id, count) memblock->stats[id].counter -= count
 #define STAT_KBS_INC_NL(memblock, id, count) ci_kbs_update(&(memblock->stats[id].kbs), count)
 
 static inline void ci_stat_membock_uint64_inc(ci_stat_memblock_t *mem_block, int ID, uint64_t count)
@@ -213,6 +221,14 @@ static inline void ci_stat_membock_uint64_inc(ci_stat_memblock_t *mem_block, int
     if (ID < 0 || ID > mem_block->stats_count)
         return;
     STAT_INT64_INC(mem_block, ID, count);
+}
+
+static inline void ci_stat_membock_uint64_dec(ci_stat_memblock_t *mem_block, int ID, uint64_t count)
+{
+    assert(mem_block);
+    if (ID < 0 || ID > mem_block->stats_count)
+        return;
+    STAT_INT64_DEC(mem_block, ID, count);
 }
 
 static inline void ci_stat_memblock_kbs_inc(ci_stat_memblock_t *mem_block, int ID, uint64_t count)
