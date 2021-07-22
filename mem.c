@@ -25,6 +25,7 @@
 #include "ci_threads.h"
 #include "debug.h"
 #include "mem.h"
+#include "stats.h"
 #include <assert.h>
 
 int ci_buffers_init();
@@ -35,7 +36,7 @@ static int MEM_ALLOCATOR_POOL = -1;
 static int PACK_ALLOCATOR_POOL = -1;
 
 static size_t sizeof_pack_allocator();
-ci_mem_allocator_t *ci_create_pool_allocator(int items_size);
+ci_mem_allocator_t *ci_create_pool_allocator(const char *name, int items_size);
 
 int ci_mem_init()
 {
@@ -144,17 +145,17 @@ int ci_buffers_init()
     memset(short_buffers, 0, sizeof(short_buffers));
     memset(long_buffers, 0, sizeof(long_buffers));
 
-    Pools[BUF64_POOL] = ci_create_pool_allocator(64+PTR_OFFSET);
-    Pools[BUF128_POOL] = ci_create_pool_allocator(128+PTR_OFFSET);
-    Pools[BUF256_POOL] = ci_create_pool_allocator(256+PTR_OFFSET);
-    Pools[BUF512_POOL] = ci_create_pool_allocator(512+PTR_OFFSET);
-    Pools[BUF1024_POOL] = ci_create_pool_allocator(1024+PTR_OFFSET);
+    Pools[BUF64_POOL] = ci_create_pool_allocator("64bytes", 64+PTR_OFFSET);
+    Pools[BUF128_POOL] = ci_create_pool_allocator("128bytes", 128+PTR_OFFSET);
+    Pools[BUF256_POOL] = ci_create_pool_allocator("256bytes", 256+PTR_OFFSET);
+    Pools[BUF512_POOL] = ci_create_pool_allocator("512bytes", 512+PTR_OFFSET);
+    Pools[BUF1024_POOL] = ci_create_pool_allocator("1Kb", 1024+PTR_OFFSET);
 
-    Pools[BUF2048_POOL] = ci_create_pool_allocator(2048+PTR_OFFSET);
-    Pools[BUF4096_POOL] = ci_create_pool_allocator(4096+PTR_OFFSET);
-    Pools[BUF8192_POOL] = ci_create_pool_allocator(8192+PTR_OFFSET);
-    Pools[BUF16384_POOL] = ci_create_pool_allocator(16384+PTR_OFFSET);
-    Pools[BUF32768_POOL] = ci_create_pool_allocator(32768+PTR_OFFSET);
+    Pools[BUF2048_POOL] = ci_create_pool_allocator("2Kb", 2048+PTR_OFFSET);
+    Pools[BUF4096_POOL] = ci_create_pool_allocator("4Kb", 4096+PTR_OFFSET);
+    Pools[BUF8192_POOL] = ci_create_pool_allocator("8Kb", 8192+PTR_OFFSET);
+    Pools[BUF16384_POOL] = ci_create_pool_allocator("16Kb", 16384+PTR_OFFSET);
+    Pools[BUF32768_POOL] = ci_create_pool_allocator("32Kb", 32768+PTR_OFFSET);
 
     short_buffers[0] = Pools[BUF64_POOL];
     short_buffers[1] = Pools[BUF128_POOL];
@@ -408,7 +409,7 @@ int ci_object_pool_register(const char *name, int size)
     if (object_pools == NULL) //??????
         return -1;
 
-    object_pools[ID] = ci_create_pool_allocator(size+PTR_OFFSET);
+    object_pools[ID] = ci_create_pool_allocator(name, size+PTR_OFFSET);
 
     object_pools_used++;
     return ID;
@@ -822,18 +823,24 @@ struct mem_block_item {
 };
 
 struct pool_allocator {
+    char *name;
     int items_size;
     int strict;
-    int alloc_count;
-    int hits_count;
+
+    int stat_allocs_id;
+    int stat_hits_id;
+    int stat_idle_id;
+    int stat_used_id;
+    int disable_stats;
+
     ci_thread_mutex_t mutex;
     struct mem_block_item *free;
     struct mem_block_item *allocated;
 };
 
-static struct pool_allocator *pool_allocator_build(int items_size,
-        int strict)
+static struct pool_allocator *pool_allocator_build(const char *name, int items_size, int strict)
 {
+    char stat_group[256];
     struct pool_allocator *palloc;
 
     palloc = (struct pool_allocator *)malloc(sizeof(struct pool_allocator));
@@ -842,12 +849,30 @@ static struct pool_allocator *pool_allocator_build(int items_size,
         return NULL;
     }
 
+    palloc->name = name ? strdup(name) : NULL;
     palloc->items_size = items_size;
     palloc->strict = strict;
     palloc->free = NULL;
     palloc->allocated = NULL;
-    palloc->alloc_count = 0;
-    palloc->hits_count = 0;
+    palloc->disable_stats = 0;
+
+    snprintf(stat_group, sizeof(stat_group), "%s mem-pool", name);
+    if ((palloc->stat_allocs_id = ci_stat_entry_register("Mallocs", CI_STAT_INT64_T, stat_group)) < 0)
+        palloc->disable_stats = 1;
+    if ((palloc->stat_hits_id = ci_stat_entry_register("Hits", CI_STAT_INT64_T, stat_group)) < 0)
+        palloc->disable_stats = 1;
+    if ((palloc->stat_idle_id = ci_stat_entry_register("Idle", CI_STAT_INT64_T, stat_group)) < 0)
+        palloc->disable_stats = 1;
+    if ((palloc->stat_used_id = ci_stat_entry_register("Used", CI_STAT_INT64_T, stat_group)) < 0)
+        palloc->disable_stats = 1;
+
+    if (palloc->disable_stats) {
+        ci_debug_printf(1,
+                        "WARNING: Statistics for Memory pools \"%s\" are disabled\n"
+                        "Are the statistics areas already built and initialized?\n",
+                        name);
+    }
+
     ci_thread_mutex_init(&palloc->mutex);
     return palloc;
 }
@@ -861,26 +886,31 @@ static void *pool_allocator_alloc(ci_mem_allocator_t *allocator,size_t size)
     if (size > palloc->items_size)
         return NULL;
 
+    ci_stat_memblock_t *STATS = palloc->disable_stats ? NULL : ci_stat_memblock_get();
     ci_thread_mutex_lock(&palloc->mutex);
-
     if (palloc->free) {
         mem_item = palloc->free;
         palloc->free=palloc->free->next;
         data = mem_item->data;
         mem_item->data = NULL;
-        palloc->hits_count++;
+        if (STATS) {
+            STAT_INT64_INC_NL(STATS, palloc->stat_hits_id, 1);
+            STAT_INT64_DEC_NL(STATS, palloc->stat_idle_id, 1);
+        }
     } else {
         mem_item = malloc(sizeof(struct mem_block_item));
         mem_item->data = NULL;
         data = malloc(palloc->items_size);
-        palloc->alloc_count++;
+        if (STATS)
+            STAT_INT64_INC_NL(STATS, palloc->stat_allocs_id, 1);
     }
 
     mem_item->next = palloc->allocated;
     palloc->allocated = mem_item;
 
+    if (STATS)
+        STAT_INT64_INC_NL(STATS, palloc->stat_used_id, 1);
     ci_thread_mutex_unlock(&palloc->mutex);
-    ci_debug_printf(8, "pool hits: %d allocations: %d\n", palloc->hits_count, palloc->alloc_count);
     return data;
 }
 
@@ -889,6 +919,7 @@ static void pool_allocator_free(ci_mem_allocator_t *allocator,void *p)
     struct mem_block_item *mem_item;
     struct pool_allocator *palloc = (struct pool_allocator *)allocator->data;
 
+    ci_stat_memblock_t *STATS = palloc->disable_stats ? NULL : ci_stat_memblock_get();
     ci_thread_mutex_lock(&palloc->mutex);
     if (!palloc->allocated) {
         /*Yes can happen! after a reset but users did not free all objects*/
@@ -900,7 +931,11 @@ static void pool_allocator_free(ci_mem_allocator_t *allocator,void *p)
         mem_item->data = p;
         mem_item->next = palloc->free;
         palloc->free = mem_item;
+        if (STATS)
+            STAT_INT64_INC_NL(STATS, palloc->stat_idle_id, 1);
     }
+    if (STATS)
+        STAT_INT64_DEC_NL(STATS, palloc->stat_used_id, 1);
     ci_thread_mutex_unlock(&palloc->mutex);
 }
 
@@ -908,7 +943,7 @@ static void pool_allocator_reset(ci_mem_allocator_t *allocator)
 {
     struct mem_block_item *mem_item, *cur;
     struct pool_allocator *palloc = (struct pool_allocator *)allocator->data;
-
+    ci_stat_memblock_t *STATS = palloc->disable_stats ? NULL : ci_stat_memblock_get();
     ci_thread_mutex_lock(&palloc->mutex);
     if (palloc->allocated) {
         mem_item = palloc->allocated;
@@ -917,17 +952,20 @@ static void pool_allocator_reset(ci_mem_allocator_t *allocator)
             mem_item = mem_item->next;
             free(cur);
         }
-
     }
     palloc->allocated = NULL;
     if (palloc->free) {
+        int freed = 0;
         mem_item = palloc->free;
         while (mem_item != NULL) {
             cur = mem_item;
             mem_item = mem_item->next;
             free(cur->data);
             free(cur);
+            freed++;
         }
+        if (STATS)
+            STAT_INT64_DEC_NL(STATS, palloc->stat_idle_id, freed);
     }
     palloc->free = NULL;
     ci_thread_mutex_unlock(&palloc->mutex);
@@ -939,15 +977,16 @@ static void pool_allocator_destroy(ci_mem_allocator_t *allocator)
     pool_allocator_reset(allocator);
     struct pool_allocator *palloc = (struct pool_allocator *)allocator->data;
     ci_thread_mutex_destroy(&palloc->mutex);
+    free(palloc->name);
     free(palloc);
 }
 
-ci_mem_allocator_t *ci_create_pool_allocator(int items_size)
+ci_mem_allocator_t *ci_create_pool_allocator(const char *name, int items_size)
 {
     struct pool_allocator *palloc;
     ci_mem_allocator_t *allocator;
 
-    palloc = pool_allocator_build(items_size, 0);
+    palloc = pool_allocator_build(name, items_size, 0);
     /*Use always malloc for ci_mem_alocator struct.*/
     allocator = (ci_mem_allocator_t *) malloc(sizeof(ci_mem_allocator_t));
     if (!allocator)
@@ -957,7 +996,7 @@ ci_mem_allocator_t *ci_create_pool_allocator(int items_size)
     allocator->reset = pool_allocator_reset;
     allocator->destroy = pool_allocator_destroy;
     allocator->data = palloc;
-    allocator->name = NULL;
+    allocator->name = name ? strdup(name) : NULL;
     allocator->type = POOL_ALLOC;
     allocator->must_free = 1;
     return allocator;
