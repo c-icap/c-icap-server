@@ -1081,7 +1081,7 @@ int config(int argc, char **argv)
     return 1;
 }
 
-int config_destroy()
+void config_destroy()
 {
     ci_cfg_lib_destroy();
 }

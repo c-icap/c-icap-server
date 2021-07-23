@@ -100,6 +100,7 @@ void init_commands();
 int init_server();
 int start_child();
 void system_shutdown();
+void config_destroy();
 
 /***************************************************************************************/
 /*Signals managment functions                                                          */
