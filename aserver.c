@@ -45,6 +45,7 @@ char MY_HOSTNAME[CI_MAXHOSTNAMELEN + 1];
 void init_conf_tables();
 int init_body_system();
 int config(int, char **);
+void config_destroy();
 int init_server();
 int start_server();
 int store_pid(char *pidfile);
@@ -186,6 +187,7 @@ int main(int argc, char **argv)
     post_init_modules();
     post_init_services();
     start_server();
+    config_destroy();
     commands_destroy();
     clear_pid(CI_CONF.PIDFILE);
     return 0;
