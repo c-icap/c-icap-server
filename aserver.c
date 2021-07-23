@@ -188,6 +188,7 @@ int main(int argc, char **argv)
     post_init_services();
     start_server();
     config_destroy();
+    commands_destroy();
     clear_pid(CI_CONF.PIDFILE);
     return 0;
 }

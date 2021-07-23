@@ -190,6 +190,7 @@ static void exit_normaly()
     child_data = NULL;
     dettach_childs_queue(childs_queue);
     config_destroy();
+    commands_destroy();
 #endif
 }
 
