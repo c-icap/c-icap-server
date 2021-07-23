@@ -985,6 +985,11 @@ int config(int argc, char **argv)
     return 1;
 }
 
+int config_destroy()
+{
+    ci_cfg_lib_destroy();
+}
+
 void cfg_default_value_restore_all();
 int reconfig()
 {

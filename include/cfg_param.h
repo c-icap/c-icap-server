@@ -160,6 +160,7 @@ int intl_cfg_size_long(const char *directive,const char **argv,void *setdata);
 
 CI_DECLARE_FUNC(void)   ci_cfg_lib_init();
 CI_DECLARE_FUNC(void)   ci_cfg_lib_reset();
+CI_DECLARE_FUNC(void)   ci_cfg_lib_destroy();
 CI_DECLARE_FUNC(void *) ci_cfg_alloc_mem(int size);
 
 /**
