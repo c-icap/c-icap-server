@@ -65,6 +65,7 @@ CI_DECLARE_FUNC(void) ci_command_schedule(const char *name, void *data, time_t a
 
 void commands_init();
 void commands_reset();
+void commands_destroy();
 int execute_command(ci_command_t *command, char *cmdline, int exec_type);
 ci_command_t *find_command(const char *cmd_line);
 int commands_execute_start_child();
