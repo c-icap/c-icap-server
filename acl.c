@@ -732,7 +732,7 @@ int ci_acl_typelist_add(struct ci_acl_type_list *list, const ci_acl_type_t *type
     cur->name[MAX_NAME_LEN] = '\0';
     cur->type = type->type;
     cur->get_test_data = type->get_test_data;
-    cur->free_test_data = type->free_test_data
+    cur->free_test_data = type->free_test_data;
     list->acl_type_list_num++;
     return 1;
 }
