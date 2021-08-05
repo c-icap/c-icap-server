@@ -93,7 +93,7 @@ extern ci_proc_mutex_t accept_mutex;
 
 int InfoSharedMemId = -1;
 
-int build_statistics(struct info_req_data *info_data);
+static int build_statistics(struct info_req_data *info_data);
 static void info_monitor_init_cmd(const char *name, int type, void *data);
 static void info_monitor_periodic_cmd(const char *name, int type, void *data);
 
@@ -260,61 +260,30 @@ void fill_queue_statistics(struct childs_queue *q, struct info_req_data *info_da
 }
 
 struct stats_tmpl {
-    char *gen_template;
-    char *statsHeader;
-    char *statsEnd;
-    char *childsHeader;
-    char *childs_tmpl;
-    char *childsEnd;
-    char *closingChildsHeader;
-    char *d1TableHeader_tmpl;
-    char *d1TableEntry_tmpl;
-    char *d1TableEnd_tmpl;
-    char *statline_tmpl_int;
-    char *statline_tmpl_kbs;
+    char *simple_table_start;
+    char *simple_table_end;
+    char *simple_table_item_int;
+    char *simple_table_item_kbs;
+    char *simple_table_item_str;
+    char *sep;
 };
 
 struct stats_tmpl txt_tmpl = {
-    "Running Servers Statistics\n===========================\n"\
-    "Children number: %d\nFree Servers: %d\nUsed Servers: %d\n"\
-    "Started Processes: %u\nClosed Processes: %u\nCrashed Processes: %u\n"\
-    "Closing Processes: %u"\
-    "\n\n",
     "\n%s Statistics\n==================\n",
     "",
-    "Child pids:",
-    " %d",
-    "\n",
-    "Closing children pids:",
-    "%s\n",
-    "\t %s\n",
-    "\n\n",
     "%s : %llu\n",
-    "%s : %llu Kbs %u bytes\n"
+    "%s : %llu Kbs %u bytes\n",
+    "%s : %s\n",
+    ", "
 };
 
 struct stats_tmpl html_tmpl = {
-    "<H1>Running Servers Statistics</H1>\n"\
-    "<TABLE>"                                     \
-    "<TR><TH>Children number:</TH><TD> %d<TD>"                     \
-    "<TR><TH>Free Servers:</TH><TD> %d<TD>"                      \
-    "<TR><TH>Used Servers:</TH><TD> %d<TD>"                      \
-    "<TR><TH>Started Processes :</TH><TD> %u<TD>"                \
-    "<TR><TH>Closed Processes: </TH><TD>%u<TD>"                  \
-    "<TR><TH>Crashed Processes: </TH><TD>%u<TD>"                 \
-    "<TR><TH>Closing Processes: </TH><TD>%u<TD>"                 \
-    "</TABLE>\n",
     "<H1>%s Statistics</H1>\n<TABLE>",
     "</TABLE>",
-    "<TABLE> <TR><TH>Child pids:</TH>",
-    "<TD> %d</TD>",
-    "</TR></TABLE>\n",
-    "<TABLE> <TR><TH>Closing children pids:</TH>",
-    "<TABLE> <TR><TH>%s</TH></TR>\n",
-    "<TR><TD>%s</TD></TR>\n",
-    "</TABLE>\n",
     "<TR><TH>%s:</TH><TD>  %llu</TD>\n",
-    "<TR><TH>%s:</TH><TD>  %llu Kbs %u bytes</TD>\n"
+    "<TR><TH>%s:</TH><TD>  %llu Kbs %u bytes</TD>\n",
+    "<TR><TH>%s:</TH><TD>  %s</TD>\n",
+    "<BR>"
 };
 
 static int print_statistics(void *data, const char *label, int id, int gId, const ci_stat_t *stat)
@@ -330,7 +299,7 @@ static int print_statistics(void *data, const char *label, int id, int gId, cons
     switch (stat->type) {
     case CI_STAT_INT64_T:
         sz = snprintf(buf, sizeof(buf),
-                      tmpl->statline_tmpl_int,
+                      tmpl->simple_table_item_int,
                       label,
                       ci_stat_memblock_get_counter(info_data->collect_stats, id));
         if (sz >= sizeof(buf))
@@ -339,7 +308,7 @@ static int print_statistics(void *data, const char *label, int id, int gId, cons
         break;
     case CI_STAT_KBS_T:
         kbs = ci_stat_memblock_get_kbs(info_data->collect_stats, id);
-        sz = snprintf(buf, sizeof(buf), tmpl->statline_tmpl_kbs,
+        sz = snprintf(buf, sizeof(buf), tmpl->simple_table_item_kbs,
                       label,
                       ci_kbs_kilobytes(&kbs),
                       ci_kbs_remainder_bytes(&kbs));
@@ -359,24 +328,106 @@ static int print_group_statistics(void *data, const char *grp_name, int group_id
     int sz;
     struct info_req_data *info_data = (struct info_req_data *)data;
     struct stats_tmpl *tmpl = info_data->txt_mode ? &txt_tmpl : &html_tmpl;
-    sz = snprintf(buf, sizeof(buf), tmpl->statsHeader, grp_name);
+    sz = snprintf(buf, sizeof(buf), tmpl->simple_table_start, grp_name);
     if (sz >= sizeof(buf))
         sz = sizeof(buf) - 1;
     ci_membuf_write(info_data->body, buf, sz, 0);
 
     ci_stat_statistics_iterate(data, group_id, print_statistics);
-    sz = snprintf(buf, sizeof(buf), "%s", tmpl->statsEnd);
+    sz = snprintf(buf, sizeof(buf), "%s", tmpl->simple_table_end);
     if (sz >= sizeof(buf))
         sz = sizeof(buf) - 1;
     ci_membuf_write(info_data->body, buf, sz, 0);
     return 0;
 }
 
-#define LOCAL_BUF_SIZE 1024
-int build_statistics(struct info_req_data *info_data)
+
+static void build_running_servers_statistics(struct info_req_data *info_data)
 {
-    char buf[LOCAL_BUF_SIZE];
-    char buf2[LOCAL_BUF_SIZE];
+    char buf[1024];
+    int sz, i;
+    struct stats_tmpl *tmpl;
+    ci_membuf_t *tmp_membuf = NULL;
+
+    if (info_data->txt_mode)
+        tmpl = &txt_tmpl;
+    else
+        tmpl = &html_tmpl;
+
+    assert(info_data->body);
+
+    sz = snprintf(buf, sizeof(buf), tmpl->simple_table_start, "Running Servers");
+    ci_membuf_write(info_data->body, buf, sz < sizeof(buf) ? sz : sizeof(buf), 0);
+    sz = snprintf(buf, sizeof(buf), tmpl->simple_table_item_int, "Children number", info_data->childs);
+    ci_membuf_write(info_data->body, buf, sz < sizeof(buf) ? sz : sizeof(buf), 0);
+
+    sz = snprintf(buf, sizeof(buf), tmpl->simple_table_item_int, "Free Servers", info_data->free_servers);
+    ci_membuf_write(info_data->body, buf, sz < sizeof(buf) ? sz : sizeof(buf), 0);
+
+    sz = snprintf(buf, sizeof(buf), tmpl->simple_table_item_int, "Used Servers", info_data->used_servers);
+    ci_membuf_write(info_data->body, buf, sz < sizeof(buf) ? sz : sizeof(buf), 0);
+
+    sz = snprintf(buf, sizeof(buf), tmpl->simple_table_item_int, "Started Processes", info_data->started_childs);
+    ci_membuf_write(info_data->body, buf, sz < sizeof(buf) ? sz : sizeof(buf), 0);
+
+    sz = snprintf(buf, sizeof(buf), tmpl->simple_table_item_int, "Closed Processes", info_data->closed_childs);
+    ci_membuf_write(info_data->body, buf, sz < sizeof(buf) ? sz : sizeof(buf), 0);
+
+    sz = snprintf(buf, sizeof(buf), tmpl->simple_table_item_int, "Crashed Processes", info_data->crashed_childs);
+    ci_membuf_write(info_data->body, buf, sz < sizeof(buf) ? sz : sizeof(buf), 0);
+
+    sz = snprintf(buf, sizeof(buf), tmpl->simple_table_item_int, "Closing Processes", info_data->closing_childs);
+    ci_membuf_write(info_data->body, buf, sz < sizeof(buf) ? sz : sizeof(buf), 0);
+
+    /*Children pids*/
+    tmp_membuf = ci_membuf_new_sized(4096);
+    assert(ci_membuf_set_flag(tmp_membuf,  CI_MEMBUF_NULL_TERMINATED) != 0);
+    for (i = 0; i < info_data->childs; i++) {
+        sz = snprintf(buf, sizeof(buf), "%d ", info_data->child_pids[i]);
+        ci_membuf_write(tmp_membuf, buf, sz, 0);
+    }
+    sz = snprintf(buf, sizeof(buf), tmpl->simple_table_item_str, "Children pids", ci_membuf_raw(tmp_membuf));
+    ci_membuf_write(info_data->body, buf, sz < sizeof(buf) ? sz : sizeof(buf), 0);
+
+    /*Closing children pids*/
+    ci_membuf_truncate(tmp_membuf, 0);
+    for (i = 0; i < info_data->closing_childs; i++) {
+        sz = snprintf(buf, sizeof(buf), "%d ", info_data->closing_child_pids[i]);
+        ci_membuf_write(tmp_membuf, buf, sz, 0);
+    }
+    sz = snprintf(buf, sizeof(buf), tmpl->simple_table_item_str, "Closing Children pids", ci_membuf_raw(tmp_membuf));
+    ci_membuf_write(info_data->body, buf, sz < sizeof(buf) ? sz : sizeof(buf), 0);
+
+    /*Print inter-process semaphores*/
+    /*TODO: add mechanism to list all created interprocess semaphores not only the following two*/
+    ci_membuf_truncate(tmp_membuf, 0);
+    sz = accept_mutex.scheme->proc_mutex_print_info(&accept_mutex, buf, sizeof(buf));
+    ci_membuf_write(tmp_membuf, buf, sz < sizeof(buf) ? sz : sizeof(buf), 0);
+    ci_membuf_write(tmp_membuf, tmpl->sep, strlen(tmpl->sep), 0);
+
+    sz = accept_mutex.scheme->proc_mutex_print_info(&childs_queue->queue_mtx, buf, sizeof(buf));
+    ci_membuf_write(tmp_membuf, buf, sz < sizeof(buf) ? sz : sizeof(buf), 0);
+    sz = snprintf(buf, sizeof(buf), tmpl->simple_table_item_str, "Semaphores in use", ci_membuf_raw(tmp_membuf));
+    ci_membuf_write(info_data->body, buf, sz < sizeof(buf) ? sz : sizeof(buf), 0);
+
+    /*Shared mem info*/
+    /*Add mechanism to list all allocated shared mem-blocks*/
+    ci_membuf_truncate(tmp_membuf, 0);
+    if (childs_queue->shmid.scheme) {
+        sz = childs_queue->shmid.scheme->shared_mem_print_info(&childs_queue->shmid, buf, sizeof(buf));
+        ci_membuf_write(tmp_membuf, buf, sz < sizeof(buf) ? sz : sizeof(buf), 0);
+    }
+    sz = snprintf(buf, sizeof(buf), tmpl->simple_table_item_str, "Shared mem-blocks in use", ci_membuf_raw(tmp_membuf));
+    ci_membuf_write(info_data->body,buf, sz, 0);
+
+    ci_membuf_write(info_data->body, tmpl->simple_table_end, strlen(tmpl->simple_table_end), 0);
+    ci_membuf_free(tmp_membuf);
+    tmp_membuf = NULL;
+}
+
+static int build_statistics(struct info_req_data *info_data)
+{
+    char buf[1024];
     int sz, k;
     struct stats_tmpl *tmpl;
 
@@ -389,78 +440,7 @@ int build_statistics(struct info_req_data *info_data)
         return 0;
 
     fill_queue_statistics(childs_queue, info_data);
-
-    sz = snprintf(buf, LOCAL_BUF_SIZE,tmpl->gen_template,
-                  info_data->childs,
-                  info_data->free_servers,
-                  info_data->used_servers,
-                  info_data->started_childs,
-                  info_data->closed_childs,
-                  info_data->crashed_childs,
-                  info_data->closing_childs
-                 );
-
-    if (sz > LOCAL_BUF_SIZE)
-        sz = LOCAL_BUF_SIZE;
-
-    ci_membuf_write(info_data->body,buf, sz, 0);
-
-    /*print childs pids ...*/
-    ci_membuf_write(info_data->body, tmpl->childsHeader, strlen(tmpl->childsHeader), 0);
-    for (k = 0; k < info_data->childs; k++) {
-        sz = snprintf(buf, LOCAL_BUF_SIZE, tmpl->childs_tmpl, info_data->child_pids[k]);
-        if (sz > LOCAL_BUF_SIZE)
-            sz = LOCAL_BUF_SIZE;
-        ci_membuf_write(info_data->body,buf, sz, 0);
-    }
-    ci_membuf_write(info_data->body, tmpl->childsEnd, strlen(tmpl->childsEnd), 0);
-
-    /*print closing childs pids ...*/
-    ci_membuf_write(info_data->body, tmpl->closingChildsHeader, strlen(tmpl->closingChildsHeader), 0);
-    for (k = 0; k < info_data->closing_childs; k++) {
-        sz = snprintf(buf, LOCAL_BUF_SIZE, tmpl->childs_tmpl, info_data->closing_child_pids[k]);
-        if (sz > LOCAL_BUF_SIZE)
-            sz = LOCAL_BUF_SIZE;
-        ci_membuf_write(info_data->body,buf, sz, 0);
-    }
-    ci_membuf_write(info_data->body, tmpl->childsEnd, strlen(tmpl->childsEnd), 0);
-
-    /*Print semaphores*/
-    sz = snprintf(buf, LOCAL_BUF_SIZE, tmpl->d1TableHeader_tmpl, "Semaphores in use");
-    if (sz > LOCAL_BUF_SIZE)
-        sz = LOCAL_BUF_SIZE;
-    ci_membuf_write(info_data->body,buf, sz, 0);
-
-    accept_mutex.scheme->proc_mutex_print_info(&accept_mutex, buf2, LOCAL_BUF_SIZE);
-    sz = snprintf(buf, LOCAL_BUF_SIZE, tmpl->d1TableEntry_tmpl, buf2);
-    if (sz > LOCAL_BUF_SIZE)
-        sz = LOCAL_BUF_SIZE;
-    ci_membuf_write(info_data->body,buf, sz, 0);
-
-    childs_queue->queue_mtx.scheme->proc_mutex_print_info(&childs_queue->queue_mtx, buf2, LOCAL_BUF_SIZE);
-    sz = snprintf(buf, LOCAL_BUF_SIZE, tmpl->d1TableEntry_tmpl, buf2);
-    if (sz > LOCAL_BUF_SIZE)
-        sz = LOCAL_BUF_SIZE;
-    ci_membuf_write(info_data->body,buf, sz, 0);
-
-    ci_membuf_write(info_data->body, tmpl->d1TableEnd_tmpl, strlen(tmpl->d1TableEnd_tmpl), 0);
-
-    /*Print shared mem*/
-    sz = snprintf(buf, LOCAL_BUF_SIZE, tmpl->d1TableHeader_tmpl, "Shared mem blocks in use");
-    if (sz > LOCAL_BUF_SIZE)
-        sz = LOCAL_BUF_SIZE;
-    ci_membuf_write(info_data->body,buf, sz, 0);
-
-    if (childs_queue->shmid.scheme) {
-
-        childs_queue->shmid.scheme->shared_mem_print_info(&childs_queue->shmid, buf2, LOCAL_BUF_SIZE);
-        sz = snprintf(buf, LOCAL_BUF_SIZE, tmpl->d1TableEntry_tmpl, buf2);
-        if (sz > LOCAL_BUF_SIZE)
-            sz = LOCAL_BUF_SIZE;
-        ci_membuf_write(info_data->body,buf, sz, 0);
-    }
-    ci_membuf_write(info_data->body, tmpl->d1TableEnd_tmpl, strlen(tmpl->d1TableEnd_tmpl), 0);
-
+    build_running_servers_statistics(info_data);
     if (info_data->info_time_stats) {
         struct {
             const char *label;
@@ -472,32 +452,32 @@ int build_statistics(struct info_req_data *info_data)
                              {"Last 60 minutes", &info_data->info_time_stats->_60min}};
 
         for (k = 0; k < 5; ++k) {
-            sz = snprintf(buf, sizeof(buf), tmpl->statsHeader, time_servers[k].label);
+            sz = snprintf(buf, sizeof(buf), tmpl->simple_table_start, time_servers[k].label);
             if (sz >= sizeof(buf))
                 sz = sizeof(buf) - 1;
             ci_membuf_write(info_data->body, buf, sz, 0);
 
-            sz = snprintf(buf, sizeof(buf), tmpl->statline_tmpl_int, "Requests/second", time_servers[k].v->requests_per_sec);
+            sz = snprintf(buf, sizeof(buf), tmpl->simple_table_item_int, "Requests/second", time_servers[k].v->requests_per_sec);
             if (sz >= sizeof(buf))
                 sz = sizeof(buf) - 1;
             ci_membuf_write(info_data->body, buf, sz, 0);
 
-            sz = snprintf(buf, sizeof(buf), tmpl->statline_tmpl_int, "Average used servers", time_servers[k].v->used_servers);
+            sz = snprintf(buf, sizeof(buf), tmpl->simple_table_item_int, "Average used servers", time_servers[k].v->used_servers);
             if (sz >= sizeof(buf))
                 sz = sizeof(buf) - 1;
             ci_membuf_write(info_data->body, buf, sz, 0);
 
-            sz = snprintf(buf, sizeof(buf), tmpl->statline_tmpl_int, "Average running servers", time_servers[k].v->max_servers);
+            sz = snprintf(buf, sizeof(buf), tmpl->simple_table_item_int, "Average running servers", time_servers[k].v->max_servers);
             if (sz >= sizeof(buf))
                 sz = sizeof(buf) - 1;
             ci_membuf_write(info_data->body, buf, sz, 0);
 
-            sz = snprintf(buf, sizeof(buf), tmpl->statline_tmpl_int, "Average running children", time_servers[k].v->children);
+            sz = snprintf(buf, sizeof(buf), tmpl->simple_table_item_int, "Average running children", time_servers[k].v->children);
             if (sz >= sizeof(buf))
                 sz = sizeof(buf) - 1;
             ci_membuf_write(info_data->body, buf, sz, 0);
 
-            sz = snprintf(buf, sizeof(buf), "%s", tmpl->statsEnd);
+            sz = snprintf(buf, sizeof(buf), "%s", tmpl->simple_table_end);
             if (sz >= sizeof(buf))
                 sz = sizeof(buf) - 1;
             ci_membuf_write(info_data->body, buf, sz, 0);
