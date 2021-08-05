@@ -80,6 +80,11 @@ static inline void ci_membuf_unlock_all(ci_membuf_t *body) {
     body->unlocked = 0;
 }
 
+static inline const char *ci_membuf_raw(ci_membuf_t *body) {
+    _CI_ASSERT(body);
+    return body->buf;
+}
+
 static inline int ci_membuf_size(ci_membuf_t *body) {
     _CI_ASSERT(body);
     return body->endpos;
