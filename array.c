@@ -65,6 +65,29 @@ ci_array_t * ci_array_new2(size_t items, size_t item_size)
     return ci_array_new(array_size);
 }
 
+ci_array_t  *ci_array_rebuild(ci_array_t *old)
+{
+    ci_array_t *array;
+    ci_mem_allocator_t *packer = old->alloc;
+    void  *buffer = old->mem;
+    size_t size = old->max_size;
+
+    packer->reset(packer);
+    array = ci_pack_allocator_alloc(packer, sizeof(ci_array_t));
+    if (!array) {
+        ci_buffer_free(buffer);
+        ci_mem_allocator_destroy(packer);
+        return NULL;
+    }
+
+    array->max_size = size;
+    array->count = 0;
+    array->items = NULL;
+    array->mem = buffer;
+    array->alloc = packer;
+    return array;
+}
+
 void ci_array_destroy(ci_array_t *array)
 {
     void *buffer = array->mem;

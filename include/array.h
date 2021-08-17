@@ -117,6 +117,17 @@ CI_DECLARE_FUNC(ci_array_t *) ci_array_new2(size_t items, size_t item_size);
 CI_DECLARE_FUNC(void) ci_array_destroy(ci_array_t *array);
 
 /**
+ * Creates a new empty array on the existing ci_array_t object.
+ * The stored info on the old object is lost.
+ * The ci_array_destroy function MUST not used on the old ci_array_t
+ * object even if this function returns NULL.
+ \ingroup SIMPLE_ARRAYS
+ \param old the old ci_array_t object to reuse for the new empty array
+ \return a new empty array on success, or NULL on failure
+ */
+CI_DECLARE_FUNC(ci_array_t  *) ci_array_rebuild(ci_array_t *old);
+
+/**
  * Add an name/value pair item to the array.
  \ingroup SIMPLE_ARRAYS
  \param array a pointer to the ci_array_t object
@@ -176,14 +187,18 @@ static inline const ci_array_item_t *ci_array_get_item(const ci_array_t *array, 
  \ingroup STR_ARRAYS
  * An alias to the ci_array_t object. It is used to store items with string
  * values to an array.
- * The ci_str_array_new, ci_str_array_destroy, ci_str_array_add,
- * ci_str_array_search and ci_str_array_iterate functions are similar to
- * the equivalent ci_array_* functions with the required typecasting to
- * work with strings.
+ * The ci_str_array_new, ci_str_array_rebuild, ci_str_array_destroy,
+ * ci_str_array_add, ci_str_array_search and ci_str_array_iterate functions
+ * are similar to the equivalent ci_array_* functions with the required
+ * typecasting to work with strings.
  */
 typedef ci_array_t ci_str_array_t;
 static inline ci_str_array_t * ci_str_array_new(size_t max_mem_size) {
     return (ci_str_array_t *)ci_array_new(max_mem_size);
+}
+
+static inline ci_str_array_t  * ci_str_array_rebuild(ci_str_array_t *old) {
+    return ci_array_rebuild(old);
 }
 
 static inline void ci_str_array_destroy(ci_str_array_t *array) {
@@ -222,6 +237,7 @@ static inline unsigned int ci_str_array_size(const ci_array_t *array) {
 
 /**
  \defgroup PTR_ARRAYS  Arrays of pointers
+
  \ingroup SIMPLE_ARRAYS
  * Arrays of name/pointers to objects pairs
  */
@@ -590,6 +606,14 @@ static inline const void *ci_vector_get(const ci_vector_t *vector, unsigned int 
     return (i < vector->count ? (const void *)vector->items[i]:  (const void *)NULL);
 }
 
+/**
+ \ingroup VECTORS
+ * Return the number of the vector items
+ */
+static inline int ci_vector_size(const ci_vector_t *vector){
+    _CI_ASSERT(vector);
+    return vector->count;
+}
 
 CI_DECLARE_FUNC(const void **) ci_vector_cast_to_voidvoid(ci_vector_t *vector);
 CI_DECLARE_FUNC(ci_vector_t *)ci_vector_cast_from_voidvoid(const void **p);
