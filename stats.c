@@ -34,14 +34,19 @@ struct stat_entry_list {
     int entries_num;
 };
 
+struct stat_group {
+    char *name;
+    int master_group_id;
+};
+
 struct stat_groups_list {
-    char **groups;
+    struct stat_group *groups;
     int size;
     int entries_num;
 };
 
 struct stat_entry_list STAT_STATS = {NULL, 0, 0};
-struct stat_groups_list STAT_GROUPS = {NULL, 0, 0};;
+struct stat_groups_list STAT_GROUPS = {NULL, 0, 0};
 
 struct stat_area {
     void (*release_mem)(void *);
@@ -125,10 +130,48 @@ int stat_entry_by_name(struct stat_entry_list *list, const char *label, int gid)
     return -1;
 }
 
-int ci_stat_group_add(const char *group)
+int ci_stat_group_find(const char *group)
 {
-    char **group_list;
-    int gid = 0;
+    int gid;
+    for (gid = 0; gid < STAT_GROUPS.entries_num; gid++) {
+        assert(STAT_GROUPS.groups[gid].name);
+        if (strcmp(STAT_GROUPS.groups[gid].name, group) == 0)
+            return gid;
+    }
+    return -1;
+}
+
+static int group_add(const char *group, int mgid)
+{
+    int gid = ci_stat_group_find(group);
+    if (gid >= 0) {
+        if (mgid == CI_STAT_GROUP_MASTER && STAT_GROUPS.groups[gid].master_group_id != CI_STAT_GROUP_MASTER)
+            return -1; /*The existing one is not a master group but we need to register a master one*/
+        return gid;
+    }
+
+    if (STAT_GROUPS.size == STAT_GROUPS.entries_num) {
+        struct stat_group *group_list;
+        /* Also covers the case the STAT_GROUPS.size is 0 */
+        group_list = (struct stat_group *)realloc(STAT_GROUPS.groups, (STAT_GROUPS.size + STEP) * sizeof(char *));
+        if (!group_list)
+            return -1;
+        STAT_GROUPS.groups = group_list;
+        STAT_GROUPS.size += STEP;
+    }
+    STAT_GROUPS.groups[STAT_GROUPS.entries_num].name = strdup(group);
+    STAT_GROUPS.groups[STAT_GROUPS.entries_num].master_group_id = mgid;
+    gid = STAT_GROUPS.entries_num;
+    STAT_GROUPS.entries_num++;
+    return gid;
+}
+
+int ci_stat_group_register(const char *group, const char *master_group)
+{
+    int mgid = CI_STAT_GROUP_NONE;
+
+    if (!group)
+        return -1;
 
     if (STATS) {
         /*The statistics area is built and finalized,
@@ -136,27 +179,25 @@ int ci_stat_group_add(const char *group)
         return -1;
     }
 
-    for (gid = 0; gid < STAT_GROUPS.entries_num; gid++) {
-        if (strcmp(STAT_GROUPS.groups[gid], group) == 0)
-            return gid;
-    }
+    if (master_group) {
+        mgid = ci_stat_group_find(master_group);
+        if (mgid < 0)
+            return -1;
 
-    if (STAT_GROUPS.size == 0) {
-        STAT_GROUPS.groups = malloc(STEP * sizeof(char *));
-        if (!STAT_GROUPS.groups)
-            return -1;
-        STAT_GROUPS.size = STEP;
-    } else if (STAT_GROUPS.size == STAT_GROUPS.entries_num) {
-        group_list = realloc(STAT_GROUPS.groups, (STAT_GROUPS.size+STEP)*sizeof(char *));
-        if (!group_list)
-            return -1;
-        STAT_GROUPS.groups = group_list;
-        STAT_GROUPS.size += STEP;
+        if (STAT_GROUPS.groups[mgid].master_group_id != CI_STAT_GROUP_MASTER)
+            return -1; /*The master group is not a master group*/
     }
-    STAT_GROUPS.groups[STAT_GROUPS.entries_num] = strdup(group);
-    gid = STAT_GROUPS.entries_num;
-    STAT_GROUPS.entries_num++;
-    return gid;
+    return group_add(group, mgid);
+}
+
+CI_DECLARE_FUNC(int) ci_stat_mastergroup_register(const char *group)
+{
+    return group_add(group, CI_STAT_GROUP_MASTER);
+}
+
+int ci_stat_group_add(const char *group)
+{
+    return ci_stat_group_register(group, NULL);
 }
 
 int ci_stat_entry_register(const char *label, ci_stat_type_t type, const char *group)
@@ -276,12 +317,12 @@ ci_kbs_t * ci_stat_kbs_ptr(int ID)
     return NULL;
 }
 
-void ci_stat_groups_iterate(void *data, int (*group_call)(void *data, const char *name, int groupId))
+void ci_stat_groups_iterate(void *data, int (*group_call)(void *data, const char *name, int groupId, int masterGroupId))
 {
     int ret = 0;
     int gid;
     for (gid = 0; gid < STAT_GROUPS.entries_num && !ret; gid++) {
-        ret = group_call(data, STAT_GROUPS.groups[gid], gid);
+        ret = group_call(data, STAT_GROUPS.groups[gid].name, gid, STAT_GROUPS.groups[gid].master_group_id);
     }
 }
 

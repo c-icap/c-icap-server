@@ -31,6 +31,8 @@
 int ci_buffers_init();
 
 /*General Functions */
+static int memory_pools_stat_group = -1;
+const char *MEMPOOLS_STAT_MASTER_GROUP = "Memory Pools";
 ci_mem_allocator_t *default_allocator = NULL;
 static int MEM_ALLOCATOR_POOL = -1;
 static int PACK_ALLOCATOR_POOL = -1;
@@ -41,6 +43,9 @@ ci_mem_allocator_t *ci_create_pool_allocator(const char *name, int items_size);
 int ci_mem_init()
 {
     int ret = -1;
+
+    memory_pools_stat_group = ci_stat_mastergroup_register(MEMPOOLS_STAT_MASTER_GROUP);
+
     ret = ci_buffers_init();
 
     default_allocator = ci_create_os_allocator();
@@ -857,6 +862,7 @@ static struct pool_allocator *pool_allocator_build(const char *name, int items_s
     palloc->disable_stats = 0;
 
     snprintf(stat_group, sizeof(stat_group), "%s mem-pool", name);
+    ci_stat_group_register(stat_group, MEMPOOLS_STAT_MASTER_GROUP);
     if ((palloc->stat_allocs_id = ci_stat_entry_register("Mallocs", CI_STAT_INT64_T, stat_group)) < 0)
         palloc->disable_stats = 1;
     if ((palloc->stat_hits_id = ci_stat_entry_register("Hits", CI_STAT_INT64_T, stat_group)) < 0)

@@ -19,6 +19,7 @@
 
 #include "common.h"
 #include "c-icap.h"
+#include "array.h"
 #include "commands.h"
 #include "service.h"
 #include "header.h"
@@ -84,6 +85,7 @@ struct info_req_data {
     unsigned int started_childs;
     unsigned int closed_childs;
     unsigned int crashed_childs;
+    int memory_pools_master_group_id;
     ci_stat_memblock_t *collect_stats;
     struct info_time_stats *info_time_stats;
 };
@@ -120,7 +122,7 @@ void *info_init_request_data(ci_request_t * req)
 
     info_data = malloc(sizeof(struct info_req_data));
 
-    info_data->body = ci_membuf_new();
+    info_data->body = ci_membuf_new_sized(32*1024);
     info_data->childs = 0;
     info_data->child_pids = malloc(childs_queue->size * sizeof(int));
     info_data->free_servers = 0;
@@ -135,6 +137,7 @@ void *info_init_request_data(ci_request_t * req)
         if (strstr(req->args, "view=text"))
             info_data->txt_mode = 1;
     }
+    info_data->memory_pools_master_group_id = ci_stat_group_find("Memory Pools");
 
     void *mem = malloc(ci_stat_memblock_size());
     info_data->collect_stats = mem ? ci_stat_memblock_init(mem, ci_stat_memblock_size()) : NULL;
@@ -260,12 +263,18 @@ void fill_queue_statistics(struct childs_queue *q, struct info_req_data *info_da
 }
 
 struct stats_tmpl {
-    char *simple_table_start;
-    char *simple_table_end;
-    char *simple_table_item_int;
-    char *simple_table_item_kbs;
-    char *simple_table_item_str;
-    char *sep;
+    const char *simple_table_start;
+    const char *simple_table_end;
+    const char *simple_table_item_int;
+    const char *simple_table_item_kbs;
+    const char *simple_table_item_str;
+
+    const char *table_header;
+    const char *table_item;
+    const char *table_row_start;
+    const char *table_row_end;
+    const char *table_col_sep;
+    const char *sep;
 };
 
 struct stats_tmpl txt_tmpl = {
@@ -274,17 +283,119 @@ struct stats_tmpl txt_tmpl = {
     "%s : %llu\n",
     "%s : %llu Kbs %u bytes\n",
     "%s : %s\n",
+
+    "%s",
+    "%s",
+    "\n",
+    "",
+    "\t",
     ", "
 };
 
 struct stats_tmpl html_tmpl = {
     "<H1>%s Statistics</H1>\n<TABLE>",
-    "</TABLE>",
+    "</TABLE>\n",
     "<TR><TH>%s:</TH><TD>  %llu</TD>\n",
     "<TR><TH>%s:</TH><TD>  %llu Kbs %u bytes</TD>\n",
     "<TR><TH>%s:</TH><TD>  %s</TD>\n",
+    "<TH> %s </TH>",
+    "<TD> %s </TD>",
+    "\n<TR>",
+    "</TR>",
+    "",
     "<BR>"
 };
+
+struct subgroups_data {
+    const char *name;
+    ci_str_vector_t *labels;
+    ci_str_array_t *current_row;
+    int memory_pools_master_group_id;
+    ci_stat_memblock_t *collect_stats;
+    int txt_mode;
+    ci_membuf_t *body;
+};
+
+static int build_subgroup_statistics_row(void *data, const char *label, int id, int gId, const ci_stat_t *stat)
+{
+    char buf[256];
+    ci_kbs_t kbs;
+    assert(label);
+    assert(data);
+    struct subgroups_data *subgroups_data = (struct subgroups_data *)data;
+    switch (stat->type) {
+    case CI_STAT_INT64_T:
+        snprintf(buf, sizeof(buf),
+                 "%" PRIu64,
+                 ci_stat_memblock_get_counter(subgroups_data->collect_stats, id));
+        break;
+    case CI_STAT_KBS_T:
+        kbs = ci_stat_memblock_get_kbs(subgroups_data->collect_stats, id);
+        snprintf(buf, sizeof(buf),
+                 "%" PRIu64 " Kbs %" PRIu64 " bytes",
+                 ci_kbs_kilobytes(&kbs),
+                 ci_kbs_remainder_bytes(&kbs));
+        break;
+    default:
+        buf[0] = '-';
+        buf[1] = '\0';
+        break;
+    }
+    ci_debug_printf(8, "SubGroup item %s:%s\n", label, buf);
+    ci_str_array_add(subgroups_data->current_row, label, buf);
+    return 0;
+}
+
+static int build_subgroups_statistics_table(void *data, const char *grp_name, int group_id, int master_group_id)
+{
+    char buf[1024];
+    size_t sz;
+    struct subgroups_data *subgroups_data = (struct subgroups_data *)data;
+    if (master_group_id != subgroups_data->memory_pools_master_group_id)
+        return 0;
+
+    assert(subgroups_data);
+    ci_debug_printf(8, "Subgroup row %s\n", grp_name);
+    if (ci_array_size(subgroups_data->current_row) > 0)
+        ci_str_array_rebuild(subgroups_data->current_row);
+
+    ci_stat_statistics_iterate(data, group_id, build_subgroup_statistics_row);
+
+    struct stats_tmpl *tmpl = subgroups_data->txt_mode ? &txt_tmpl : &html_tmpl;
+    int i;
+    if (ci_vector_size(subgroups_data->labels) == 0) {
+        const char *label;
+        sz = snprintf(buf, sizeof(buf), tmpl->table_header, subgroups_data->name);
+        assert(sz < sizeof(buf));
+        ci_membuf_write(subgroups_data->body, tmpl->table_row_start, strlen(tmpl->table_row_start), 0);
+        ci_membuf_write(subgroups_data->body, buf, sz, 0);
+        for (i = 0; (label = ci_array_name(subgroups_data->current_row, i)) != NULL; i++) {
+            ci_str_vector_add(subgroups_data->labels, label);
+            sz = snprintf(buf, sizeof(buf), tmpl->table_header, label);
+            if (sz > sizeof(buf))
+                sz = sizeof(buf);
+            ci_membuf_write(subgroups_data->body, tmpl->table_col_sep, strlen(tmpl->table_col_sep), 0);
+            ci_membuf_write(subgroups_data->body, buf, sz, 0);
+        }
+    }
+    sz = snprintf(buf, sizeof(buf), tmpl->table_header, grp_name);
+    assert(sz < sizeof(buf));
+    ci_membuf_write(subgroups_data->body, tmpl->table_row_start, strlen(tmpl->table_row_start), 0);
+    ci_membuf_write(subgroups_data->body, buf, sz, 0);
+    for (i = 0; i < ci_vector_size(subgroups_data->labels); i++) {
+        const char *val = "-";
+        const char *item = ci_str_vector_get(subgroups_data->labels, i);
+        if (item)
+            val = ci_str_array_search(subgroups_data->current_row, item);
+        sz = snprintf(buf, sizeof(buf), tmpl->table_item, val);
+        if (sz > sizeof(buf))
+            sz = sizeof(buf);
+        ci_membuf_write(subgroups_data->body, tmpl->table_col_sep, strlen(tmpl->table_col_sep), 0);
+        ci_membuf_write(subgroups_data->body, buf, sz, 0);
+    }
+    ci_membuf_write(subgroups_data->body, tmpl->table_row_end, strlen(tmpl->table_row_end), 0);
+    return 0;
+}
 
 static int print_statistics(void *data, const char *label, int id, int gId, const ci_stat_t *stat)
 {
@@ -322,11 +433,16 @@ static int print_statistics(void *data, const char *label, int id, int gId, cons
     return 0;
 }
 
-static int print_group_statistics(void *data, const char *grp_name, int group_id)
+static int print_group_statistics(void *data, const char *grp_name, int group_id, int master_group_id)
 {
     char buf[1024];
     int sz;
+    if (master_group_id == CI_STAT_GROUP_MASTER)
+        return 0;
+
     struct info_req_data *info_data = (struct info_req_data *)data;
+    if (master_group_id == info_data->memory_pools_master_group_id)
+        return 0; /*They are handled in their own table*/
     struct stats_tmpl *tmpl = info_data->txt_mode ? &txt_tmpl : &html_tmpl;
     sz = snprintf(buf, sizeof(buf), tmpl->simple_table_start, grp_name);
     if (sz >= sizeof(buf))
@@ -484,6 +600,27 @@ static int build_statistics(struct info_req_data *info_data)
         }
 
     }
+
+    struct subgroups_data mempools_data = {
+    name: "pool",
+    labels : ci_str_vector_create(1024),
+    current_row : ci_str_array_new(2048),
+    memory_pools_master_group_id: info_data->memory_pools_master_group_id,
+    collect_stats: info_data->collect_stats,
+    txt_mode: info_data->txt_mode,
+    body: info_data->body
+    };
+    sz = snprintf(buf, sizeof(buf), tmpl->simple_table_start, "Memory pools");
+    if (sz >= sizeof(buf))
+        sz = sizeof(buf) - 1;
+    ci_membuf_write(info_data->body, buf, sz, 0);
+    ci_stat_groups_iterate(&mempools_data, build_subgroups_statistics_table);
+    sz = snprintf(buf, sizeof(buf), "%s", tmpl->simple_table_end);
+    if (sz >= sizeof(buf))
+        sz = sizeof(buf) - 1;
+    ci_membuf_write(info_data->body, buf, sz, 0);
+    ci_str_vector_destroy(mempools_data.labels);
+    ci_str_array_destroy(mempools_data.current_row);
 
     ci_stat_groups_iterate(info_data, print_group_statistics);
     ci_membuf_write(info_data->body, NULL, 0, 1);
