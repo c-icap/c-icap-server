@@ -191,11 +191,11 @@ static void exit_normaly()
     system_shutdown();
 #ifdef MULTICHILD
     child_data = NULL;
-    dettach_childs_queue(childs_queue);
     config_destroy();
     commands_destroy();
     ci_acl_destroy();
     ci_mem_exit();
+    dettach_childs_queue(childs_queue);
 #endif
 }
 
