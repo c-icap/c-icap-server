@@ -706,6 +706,14 @@ int ci_acl_typelist_init(struct ci_acl_type_list *list)
     return 1;
 }
 
+void ci_acl_typelist_destroy(struct ci_acl_type_list *list)
+{
+    free(list->acl_type_list);
+    list->acl_type_list = NULL;
+    list->acl_type_list_size = 0;
+    list->acl_type_list_num = 0;
+}
+
 int ci_acl_typelist_add(struct ci_acl_type_list *list, const ci_acl_type_t *type)
 {
     ci_acl_type_t *cur;
@@ -883,6 +891,11 @@ void ci_acl_reset()
     specs_list = NULL;
     ci_acl_typelist_reset(&types_list);
     acl_load_defaults();
+}
+
+void ci_acl_destroy()
+{
+    ci_acl_typelist_destroy(&types_list);
 }
 
 const ci_acl_spec_t *ci_acl_search(const char *name)
