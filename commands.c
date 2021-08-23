@@ -275,3 +275,29 @@ void commands_exec_scheduled()
     time(&tm);
     ci_list_iterate(COMMANDS_QUEUE, &tm, cb_check_queue);
 }
+
+void ci_command_register_child_cleanup(const char *name, void *data, void (*child_cleanup_handler) (const char *name, process_pid_t pid, int reason, void *data))
+{
+    ci_command_t cmd;
+    strncpy(cmd.name, name, CMD_NM_SIZE);
+    cmd.name[CMD_NM_SIZE - 1] = '\0';
+    cmd.type = CI_CMD_CHILD_CLEANUP;
+    cmd.data = data;
+    cmd.command_child_cleanup = child_cleanup_handler;
+    ci_thread_mutex_lock(&COMMANDS_MTX);
+    ci_list_push(COMMANDS_LIST, &cmd);
+    ci_thread_mutex_unlock(&COMMANDS_MTX);
+    ci_debug_printf(5, "Child cleanup command/handler %s registered\n", name);
+}
+
+void commands_exec_child_cleanup(process_pid_t pid, int reason)
+{
+    ci_command_t *cmd = NULL;
+    ci_debug_printf(5, "Child cleanup handlers for child %d will be executed\n", pid);
+    ci_thread_mutex_lock(&COMMANDS_MTX);
+    for (cmd = ci_list_first(COMMANDS_LIST); cmd != NULL; cmd = ci_list_next(COMMANDS_LIST)) {
+        if (cmd->type == CI_CMD_CHILD_CLEANUP && cmd->command_child_cleanup)
+            cmd->command_child_cleanup(cmd->name, pid, reason, cmd->data);
+    }
+    ci_thread_mutex_unlock(&COMMANDS_MTX);
+}

@@ -21,6 +21,7 @@
 #define __COMMANDS_H
 
 #include "c-icap.h"
+#include "proc_threads_queues.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -37,6 +38,7 @@ extern "C"
 #define CHILD_START_CMD       8
 #define CHILD_STOP_CMD       16
 #define ONDEMAND_CMD         32
+#define CI_CMD_CHILD_CLEANUP  64 /* On master process after a child exit */
 
 #define CMD_NM_SIZE 128
 typedef struct ci_command {
@@ -46,6 +48,7 @@ typedef struct ci_command {
     union {
         void (*command_action)(const char *name, int type,const char **argv);
         void (*command_action_extend)(const char *name, int type, void *data);
+        void (*command_child_cleanup)(const char *name, process_pid_t pid, int reason, void *data);
     };
 } ci_command_t;
 
@@ -63,6 +66,27 @@ CI_DECLARE_FUNC(void) ci_command_register_action(const char *name, int type, voi
 CI_DECLARE_FUNC(void) ci_command_schedule_on(const char *name, void *data, time_t time);
 CI_DECLARE_FUNC(void) ci_command_schedule(const char *name, void *data, time_t afterSecs);
 
+enum {CI_PROC_TERMINATED = 0, CI_PROC_CRASHED};
+/**
+   Register a handler for cleanup stopped children.
+   \var name A name for this handler
+   \var data Pointer to the user data to be passed as handler parameter
+   \var child_cleanup_handler A pointer to the handler.
+
+   The handler will be executed on master process after a child is
+   terminated, normally or after a crash.
+   The handler will be executed with the handler name as name parameter,
+   the terminated process pid as pid parameter, with a non zero integer
+   as reason parameter if child process terminated abnormally and the
+   user data as data parameter.
+   The handler will be executed immediately after the master process
+   informed, maybe after a new child-process started to replace the killed one.
+*/
+CI_DECLARE_FUNC(void) ci_command_register_child_cleanup(const char *name,
+                                                        void *data,
+                                                        void (*child_cleanup_handler) (const char *name, process_pid_t pid, int reason, void *data));
+
+/*For internal use only*/
 void commands_init();
 void commands_reset();
 void commands_destroy();
@@ -71,6 +95,7 @@ ci_command_t *find_command(const char *cmd_line);
 int commands_execute_start_child();
 int commands_execute_stop_child();
 void commands_exec_scheduled();
+void commands_exec_child_cleanup(process_pid_t pid, int reason);
 
 #ifdef __cplusplus
 }
