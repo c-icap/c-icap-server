@@ -21,6 +21,7 @@
 #define __C_ICAP_ACL_H
 
 #include "c-icap.h"
+#include "request.h"
 #include "net_io.h"
 #include "types_ops.h"
 
@@ -89,19 +90,6 @@ typedef struct ci_acl_type {
      */
     const ci_type_ops_t *type;
 } ci_acl_type_t;
-
-struct ci_acl_type_list {
-    ci_acl_type_t *acl_type_list;
-    int acl_type_list_size;
-    int acl_type_list_num;
-};
-
-int ci_acl_typelist_init(struct ci_acl_type_list *list);
-int ci_acl_typelist_add(struct ci_acl_type_list *list, const ci_acl_type_t *type);
-int ci_acl_typelist_release(struct ci_acl_type_list *list);
-int ci_acl_typelist_reset(struct ci_acl_type_list *list);
-const ci_acl_type_t *ci_acl_typelist_search(struct ci_acl_type_list *list, const char *name);
-
 
 /*ACL specs structures and functions */
 

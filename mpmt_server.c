@@ -37,6 +37,7 @@
 #include <sys/select.h>
 #endif
 #include <assert.h>
+#include "acl.h"
 #include "net_io.h"
 #if defined(USE_OPENSSL)
 #include "net_io_ssl.h"

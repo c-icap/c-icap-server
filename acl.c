@@ -582,6 +582,79 @@ int ci_access_entry_add_acl_by_name(ci_access_entry_t *access_entry, const char 
     return 1;
 }
 
+/*******************************************************************/
+/* ci_acl_type functions                                           */
+
+struct ci_acl_type_list {
+    ci_acl_type_t *acl_type_list;
+    int acl_type_list_size;
+    int acl_type_list_num;
+};
+#define STEP 32
+
+int ci_acl_typelist_init(struct ci_acl_type_list *list)
+{
+    list->acl_type_list = malloc(STEP*sizeof(ci_acl_type_t));
+    list->acl_type_list_size = STEP;
+    list->acl_type_list_num = 0;
+    return 1;
+}
+
+const ci_acl_type_t *ci_acl_typelist_search(struct ci_acl_type_list *list,const char *name)
+{
+    int i;
+    for (i = 0; i < list->acl_type_list_num; i++) {
+        if (strcmp(list->acl_type_list[i].name,name) == 0)
+            return (const ci_acl_type_t *)&list->acl_type_list[i];
+    }
+    return NULL;
+}
+
+int ci_acl_typelist_add(struct ci_acl_type_list *list, const ci_acl_type_t *type)
+{
+    ci_acl_type_t *cur;
+    ci_acl_type_t *nl = NULL;
+
+    if (ci_acl_typelist_search(list, type->name) != NULL) {
+        ci_debug_printf(3, "The acl type %s already defined\n", type->name);
+        return 0;
+    }
+
+    if (list->acl_type_list_num == list->acl_type_list_size) {
+        list->acl_type_list_size += STEP;
+        nl = realloc((void *)list->acl_type_list,
+                     list->acl_type_list_size*sizeof(ci_acl_type_t));
+        if (!nl) {
+            ci_debug_printf(1, "Failed to allocate more space for new ci_acl_typr_t\n");
+            return 0;
+        }
+        list->acl_type_list = nl;
+    }
+
+    cur = &(list->acl_type_list[list->acl_type_list_num]);
+    strncpy(cur->name, type->name, MAX_NAME_LEN);
+    cur->name[MAX_NAME_LEN] = '\0';
+    cur->type = type->type;
+    cur->get_test_data = type->get_test_data;
+    cur->free_test_data = type->free_test_data;
+    list->acl_type_list_num++;
+    return 1;
+}
+
+void ci_acl_typelist_destroy(struct ci_acl_type_list *list)
+{
+    free(list->acl_type_list);
+    list->acl_type_list = NULL;
+    list->acl_type_list_size = 0;
+    list->acl_type_list_num = 0;
+}
+
+int ci_acl_typelist_reset(struct ci_acl_type_list *list)
+{
+    list->acl_type_list_num = 0;
+    return 1;
+}
+
 /*********************************************************************************/
 /*ci_acl_spec functions                                                          */
 
@@ -692,84 +765,6 @@ void ci_acl_spec_list_release(ci_acl_spec_t *spec)
         ci_acl_spec_release(cur);
     }
 }
-
-
-/*******************************************************************/
-/* ci_acl_type functions                                           */
-#define STEP 32
-
-int ci_acl_typelist_init(struct ci_acl_type_list *list)
-{
-    list->acl_type_list = malloc(STEP*sizeof(ci_acl_type_t));
-    list->acl_type_list_size = STEP;
-    list->acl_type_list_num = 0;
-    return 1;
-}
-
-void ci_acl_typelist_destroy(struct ci_acl_type_list *list)
-{
-    free(list->acl_type_list);
-    list->acl_type_list = NULL;
-    list->acl_type_list_size = 0;
-    list->acl_type_list_num = 0;
-}
-
-int ci_acl_typelist_add(struct ci_acl_type_list *list, const ci_acl_type_t *type)
-{
-    ci_acl_type_t *cur;
-    ci_acl_type_t *nl = NULL;
-
-    if (ci_acl_typelist_search(list, type->name) != NULL) {
-        ci_debug_printf(3, "The acl type %s already defined\n", type->name);
-        return 0;
-    }
-
-    if (list->acl_type_list_num == list->acl_type_list_size) {
-        list->acl_type_list_size += STEP;
-        nl = realloc((void *)list->acl_type_list,
-                     list->acl_type_list_size*sizeof(ci_acl_type_t));
-        if (!nl) {
-            ci_debug_printf(1, "Failed to allocate more space for new ci_acl_typr_t\n");
-            return 0;
-        }
-        list->acl_type_list = nl;
-    }
-
-    cur = &(list->acl_type_list[list->acl_type_list_num]);
-    strncpy(cur->name, type->name, MAX_NAME_LEN);
-    cur->name[MAX_NAME_LEN] = '\0';
-    cur->type = type->type;
-    cur->get_test_data = type->get_test_data;
-    cur->free_test_data = type->free_test_data;
-    list->acl_type_list_num++;
-    return 1;
-}
-
-const ci_acl_type_t *ci_acl_typelist_search(struct ci_acl_type_list *list,const char *name)
-{
-    int i;
-    for (i = 0; i < list->acl_type_list_num; i++) {
-        if (strcmp(list->acl_type_list[i].name,name) == 0)
-            return (const ci_acl_type_t *)&list->acl_type_list[i];
-    }
-    return NULL;
-}
-
-int ci_acl_typelist_release(struct ci_acl_type_list *list)
-{
-    free(list->acl_type_list);
-    list->acl_type_list_size = 0;
-    list->acl_type_list_num = 0;
-    return 1;
-}
-
-int ci_acl_typelist_reset(struct ci_acl_type_list *list)
-{
-    list->acl_type_list_num = 0;
-    return 1;
-}
-
-
 
 /*********************************************************************************/
 
