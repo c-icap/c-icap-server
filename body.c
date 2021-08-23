@@ -580,9 +580,9 @@ ci_simple_file_t *ci_simple_file_new(ci_off_t maxsize)
 
     if ((body->fd =
                 ci_mktemp_file(CI_TMPDIR, tmp_template, body->filename)) < 0) {
+        char err_buf[512];
         ci_debug_printf(1,
-                        "ci_simple_file_new: Can not open temporary filename in directory:%s\n",
-                        CI_TMPDIR);
+                        "ci_simple_file_new: Can not open temporary filename in directory:%s (%d/%s)\n", CI_TMPDIR, errno, ci_strerror(errno, err_buf, sizeof(err_buf)));
         ci_object_pool_free(body);
         return NULL;
     }
@@ -614,18 +614,23 @@ ci_simple_file_t *ci_simple_file_named_new(char *dir, char *filename,ci_off_t ma
 
     if (filename) {
         snprintf(body->filename, CI_FILENAME_LEN, "%s/%s", dir, filename);
-        if ((body->fd =
-                    do_open(body->filename, O_CREAT | O_RDWR | O_EXCL)) < 0) {
-            ci_debug_printf(1, "Can not open temporary filename: %s\n",
-                            body->filename);
+        if ((body->fd = do_open(body->filename, O_CREAT | O_RDWR | O_EXCL)) < 0) {
+            char err_buf[512];
+            ci_debug_printf(1, "Can not open temporary filename: %s (%d/%s)\n",
+                            body->filename,
+                            errno,
+                            ci_strerror(errno, err_buf, sizeof(err_buf)));
             ci_object_pool_free(body);
             return NULL;
         }
-    } else if ((body->fd =
-                    ci_mktemp_file(dir, tmp_template, body->filename)) < 0) {
+    } else if ((body->fd = ci_mktemp_file(dir, tmp_template, body->filename)) < 0) {
+        char err_buf[512];
         ci_debug_printf(1,
-                        "Can not open temporary filename in directory: %s\n",
-                        dir);
+                        "Can not open temporary filename in directory: %s (%d/%s)\n",
+                        dir,
+                        errno,
+                        ci_strerror(errno, err_buf, sizeof(err_buf))
+            );
         ci_object_pool_free(body);
         return NULL;
     }
