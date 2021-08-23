@@ -192,6 +192,7 @@ static void exit_normaly()
     dettach_childs_queue(childs_queue);
     config_destroy();
     commands_destroy();
+    ci_acl_destroy();
 #endif
 }
 
