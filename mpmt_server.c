@@ -51,6 +51,7 @@
 #include "cfg_param.h"
 #include "commands.h"
 #include "util.h"
+#include "acl.h"
 
 #define MULTICHILD
 //#undef MULTICHILD
