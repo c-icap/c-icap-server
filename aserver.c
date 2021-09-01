@@ -182,5 +182,6 @@ int main(int argc, char **argv)
     commands_destroy();
     ci_acl_destroy();
     clear_pid(CI_CONF.PIDFILE);
+    ci_mem_exit();
     return 0;
 }

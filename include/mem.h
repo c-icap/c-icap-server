@@ -73,6 +73,7 @@ CI_DECLARE_FUNC(void)    ci_object_pool_unregister(int id);
 CI_DECLARE_FUNC(void *)  ci_object_pool_alloc(int id);
 CI_DECLARE_FUNC(void)    ci_object_pool_free(void *ptr);
 
+CI_DECLARE_FUNC(void) ci_mem_exit();
 #ifdef __cplusplus
 }
 #endif

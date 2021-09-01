@@ -59,6 +59,17 @@ void mem_reset()
 {
 }
 
+void ci_object_pools_destroy();
+void ci_mem_exit()
+{
+    ci_mem_allocator_destroy(default_allocator);
+    default_allocator = NULL;
+    ci_buffers_destroy();
+    MEM_ALLOCATOR_POOL = -1;
+    PACK_ALLOCATOR_POOL = -1;
+    ci_object_pools_destroy();
+}
+
 void ci_mem_allocator_destroy(ci_mem_allocator_t *allocator)
 {
     allocator->destroy(allocator);
