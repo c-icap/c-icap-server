@@ -72,17 +72,25 @@ void ci_mem_exit()
 
 void ci_mem_allocator_destroy(ci_mem_allocator_t *allocator)
 {
-    allocator->destroy(allocator);
+    /* The allocator->destroy may release allocator struct */
+    int must_free = allocator->must_free;
+    void (*destroyer)(struct ci_mem_allocator *);
+    destroyer = allocator->destroy;
+
+    destroyer(allocator);
     /*space for ci_mem_allocator_t struct is not always allocated
       using malloc */
-    if (allocator->must_free == 1)
+    if (must_free == 1)
         free(allocator);
-    else if (allocator->must_free == 2)
+    else if (must_free == 2)
         ci_object_pool_free(allocator);
-    /*
-      else if (allocator->must_free == 0)
-          user is responsible to release the struct
-    */
+/*
+    else if (allocator->must_free == 0) {
+        user is responsible to release the allocator object
+        or the object is already released while the
+        destroyer/allocator->destroy is called.
+    }
+*/
 
 }
 
