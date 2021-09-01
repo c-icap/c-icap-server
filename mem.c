@@ -37,7 +37,7 @@ static int PACK_ALLOCATOR_POOL = -1;
 static size_t sizeof_pack_allocator();
 ci_mem_allocator_t *ci_create_pool_allocator(int items_size);
 
-CI_DECLARE_FUNC(int) mem_init()
+int ci_mem_init()
 {
     int ret = -1;
     ret = ci_buffers_init();
@@ -55,8 +55,19 @@ CI_DECLARE_FUNC(int) mem_init()
     return ret;
 }
 
-void mem_reset()
+void ci_mem_reset()
 {
+}
+
+void ci_object_pools_destroy();
+void ci_mem_exit()
+{
+    ci_mem_allocator_destroy(default_allocator);
+    default_allocator = NULL;
+    ci_buffers_destroy();
+    MEM_ALLOCATOR_POOL = -1;
+    PACK_ALLOCATOR_POOL = -1;
+    ci_object_pools_destroy();
 }
 
 void ci_mem_allocator_destroy(ci_mem_allocator_t *allocator)

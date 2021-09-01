@@ -146,11 +146,10 @@ void run_test()
     } while (queries_num < queries_max_num);
 }
 
-int mem_init();
 int main(int argc,char *argv[])
 {
     ci_cfg_lib_init();
-    mem_init();
+    ci_mem_init();
     init_internal_lookup_tables();
 
     __log_error = (void (*)(void *, const char *,...)) log_errors;     /*set c-icap library log  function */

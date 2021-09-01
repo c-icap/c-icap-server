@@ -62,7 +62,6 @@ void log_errors(void *unused, const char *format, ...)
     va_end(ap);
 }
 
-int mem_init();
 int main(int argc, char *argv[])
 {
     int i;
@@ -72,7 +71,7 @@ int main(int argc, char *argv[])
     __log_error = (void (*)(void *, const char *,...)) log_errors;     /*set c-icap library log  function */
 
     ci_cfg_lib_init();
-    mem_init();
+    ci_mem_init();
 
     if (!ci_args_apply(argc, argv, options)) {
         ci_args_usage(argv[0], options);

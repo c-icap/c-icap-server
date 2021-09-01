@@ -69,7 +69,6 @@ static struct ci_options_entry options[] = {
     {NULL,NULL,NULL,NULL,NULL}
 };
 
-int mem_init();
 int main(int argc,char *argv[])
 {
     int i;
@@ -79,7 +78,7 @@ int main(int argc,char *argv[])
     size_t v_size;
 
     ci_cfg_lib_init();
-    mem_init();
+    ci_mem_init();
 
     __log_error = (void (*)(void *, const char *,...)) log_errors; /*set c-icap library log  function */
 

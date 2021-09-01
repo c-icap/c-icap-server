@@ -31,7 +31,6 @@ int print_str(void *data, const char *name, const char *value)
     return 0;
 }
 
-int mem_init();
 int main(int argc,char *argv[])
 {
     ci_str_array_t *arr_str;
@@ -45,7 +44,7 @@ int main(int argc,char *argv[])
     void *data;
     const char *strdata;
     ci_cfg_lib_init();
-    mem_init();
+    ci_mem_init();
 
     __log_error = (void (*)(void *, const char *,...)) log_errors;     /*set c-icap library log  function */
 

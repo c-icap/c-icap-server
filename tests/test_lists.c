@@ -32,7 +32,6 @@ int print_str(void *data, const char *name, const void *value)
     return 0;
 }
 
-int mem_init();
 struct obj {
     char c;
     char buf[64];
@@ -89,7 +88,7 @@ int main(int argc,char *argv[])
     char c;
 
     ci_cfg_lib_init();
-    mem_init();
+    ci_mem_init();
 
     __log_error = (void (*)(void *, const char *,...)) log_errors;     /*set c-icap library log  function */
 

@@ -54,7 +54,6 @@ int is_icap_running(char *pidfile);
 int set_running_permissions(char *user, char *group);
 void init_internal_lookup_tables();
 void request_stats_init();
-int mem_init();
 void init_http_auth();
 
 void compute_my_hostname()
@@ -134,7 +133,7 @@ int main(int argc, char **argv)
 
     assert(strcmp(ci_lib_version_string(), VERSION) == 0);
 
-    mem_init();
+    ci_mem_init();
     init_internal_lookup_tables();
     ci_acl_init();
     init_http_auth();
@@ -191,5 +190,6 @@ int main(int argc, char **argv)
     commands_destroy();
     ci_acl_destroy();
     clear_pid(CI_CONF.PIDFILE);
+    ci_mem_exit();
     return 0;
 }

@@ -194,6 +194,7 @@ static void exit_normaly()
     config_destroy();
     commands_destroy();
     ci_acl_destroy();
+    ci_mem_exit();
 #endif
 }
 

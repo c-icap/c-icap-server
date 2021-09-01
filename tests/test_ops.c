@@ -68,7 +68,6 @@ static struct ci_options_entry options[] = {
     {NULL,NULL,NULL,NULL,NULL}
 };
 
-int mem_init();
 int main(int argc,char *argv[])
 {
     int ret = 0;
@@ -84,7 +83,7 @@ int main(int argc,char *argv[])
         CI_DEBUG_LEVEL = USE_DEBUG_LEVEL;
 
     ci_cfg_lib_init();
-    mem_init();
+    ci_mem_init();
 
     if (!check_ip_ops()) {
         ci_debug_printf(1, "ip_ops check failed!\n");

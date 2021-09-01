@@ -40,14 +40,13 @@ static struct ci_options_entry options[] = {
     {NULL,NULL,NULL,NULL,NULL}
 };
 
-int mem_init();
 int init_body_system();
 int main(int argc,char *argv[])
 {
     ci_membuf_t *mb = NULL;
     ci_simple_file_t *sf = NULL;
     ci_cfg_lib_init();
-    mem_init();
+    ci_mem_init();
     init_body_system();
 
     __log_error = (void (*)(void *, const char *,...)) log_errors;     /*set c-icap library log  function */
