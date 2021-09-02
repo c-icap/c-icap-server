@@ -963,7 +963,7 @@ void child_main(int pipefd)
                             "Ohh!! something happened to listener thread! Terminating\n");
             child_data->to_be_killed = GRACEFULLY;
         }
-        commands_exec_scheduled();
+        commands_exec_scheduled(CI_CMD_ONDEMAND);
     }
 
     ci_debug_printf(5, "Child :%d going down :%s\n", getpid(),
@@ -1140,6 +1140,7 @@ int start_server()
     if (pid != 0) {
         main_signals();
 
+        execute_commands_no_lock(CI_CMD_MONITOR_START);
         while (1) {
             if ((ret = wait_for_commands(ctl_socket, command_buffer, 1)) > 0) {
                 ci_debug_printf(5, "I received the command: %s\n",
@@ -1220,6 +1221,7 @@ int start_server()
                     break;
                 }
             }
+            commands_exec_scheduled(CI_CMD_MONITOR_ONDEMAND);
         }
         /*Main process exit point */
         ci_debug_printf(1,

@@ -173,6 +173,7 @@ int main(int argc, char **argv)
     store_pid(CI_CONF.PIDFILE);
 #endif
 
+    execute_commands_no_lock(CI_CMD_POST_CONFIG);
     if (!init_server())
         return -1;
     post_init_modules();
