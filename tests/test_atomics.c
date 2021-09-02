@@ -113,7 +113,6 @@ static struct ci_options_entry options[] = {
     {NULL,NULL,NULL,NULL,NULL}
 };
 
-int mem_init();
 int main(int argc, char *argv[])
 {
     int i;
@@ -121,7 +120,7 @@ int main(int argc, char *argv[])
     CI_DEBUG_STDOUT = 1;
 
     ci_cfg_lib_init();
-    mem_init();
+    ci_mem_init();
     ci_atomics_init();
 
     if (!ci_args_apply(argc, argv, options)) {
