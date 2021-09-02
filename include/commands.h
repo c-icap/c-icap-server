@@ -40,14 +40,18 @@ extern "C"
 #define ONDEMAND_CMD         32
 
 #define CI_CMD_NULL              0
-#define CI_CMD_MONITOR_PROC      1
-#define CI_CMD_CHILDS_PROC       2
-#define CI_CMD_MONITOR_PROC_POST 4
+#define CI_CMD_MONITOR_PROC      1 /* on master process before children commands are executed*/
+#define CI_CMD_CHILDS_PROC       2 /* on children*/
+#define CI_CMD_MONITOR_PROC_POST 4 /*on master process after children commands are executed*/
 #define CI_CMD_ALL_PROC          7
 #define CI_CMD_CHILD_START       8
 #define CI_CMD_CHILD_STOP       16
 #define CI_CMD_ONDEMAND         32
 #define CI_CMD_CHILD_CLEANUP  64 /* On master process after a child exit */
+#define CI_CMD_POST_CONFIG    128 /*on master process after configuration file is read*/
+#define CI_CMD_MONITOR_START    256
+#define CI_CMD_MONITOR_STOP     512
+#define CI_CMD_MONITOR_ONDEMAND 1024
 
 #define CMD_NM_SIZE 128
 typedef struct ci_command {
@@ -103,7 +107,8 @@ int execute_command(ci_command_t *command, char *cmdline, int exec_type);
 ci_command_t *find_command(const char *cmd_line);
 int commands_execute_start_child();
 int commands_execute_stop_child();
-void commands_exec_scheduled();
+int execute_commands_no_lock (int cmd_type);
+void commands_exec_scheduled(int cmd_type);
 void commands_exec_child_cleanup(process_pid_t pid, int reason);
 
 #ifdef __cplusplus

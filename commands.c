@@ -71,7 +71,13 @@ void register_command_extend(const char *name, int type, void *data,
                              void (*command_action) (const char *name, int type,
                                      void *data))
 {
-    if (type != CHILD_START_CMD && type != CHILD_STOP_CMD && type != ONDEMAND_CMD) {
+    if (type != CI_CMD_CHILD_START &&
+        type != CI_CMD_CHILD_STOP &&
+        type != CI_CMD_ONDEMAND &&
+        type != CI_CMD_POST_CONFIG &&
+        type != CI_CMD_MONITOR_START &&
+        type != CI_CMD_MONITOR_STOP &&
+        type != CI_CMD_MONITOR_ONDEMAND) {
         ci_debug_printf(1, "Can not register extend command %s ! wrong type\n", name );
         return;
     }
@@ -186,7 +192,7 @@ static int exec_cmd_step(void *data, const void *cmd)
     return 0;
 }
 
-static int execute_child_commands (int cmd_type)
+int execute_commands_no_lock (int cmd_type)
 {
     ci_debug_printf(5, "Going to execute child commands\n");
     if (COMMANDS_LIST == NULL) {
@@ -199,12 +205,12 @@ static int execute_child_commands (int cmd_type)
 
 int commands_execute_start_child()
 {
-    return execute_child_commands(CHILD_START_CMD);
+    return execute_commands_no_lock(CHILD_START_CMD);
 }
 
 int commands_execute_stop_child()
 {
-    return execute_child_commands(CHILD_STOP_CMD);
+    return execute_commands_no_lock(CHILD_STOP_CMD);
 }
 
 void ci_command_register_ctl_cmd(const char *name, int type, void (*command_action)(const char *name,int type, const char **argv))
@@ -244,13 +250,19 @@ void ci_command_schedule(const char *name, void *data, time_t afterSecs)
     ci_command_schedule_on(name, data, tm);
 }
 
+struct sheduled_cmd_exec_data {
+    time_t tm;
+    int type;
+};
+
 static int cb_check_queue(void *data, const void *item)
 {
     struct schedule_data *sch = (struct schedule_data *)item;
-    time_t tm = *((time_t *)data);
-    if (sch->when < tm) {
+    struct sheduled_cmd_exec_data  *exec_data = (struct sheduled_cmd_exec_data *) data;
+    assert(exec_data);
+    if (sch->when <= exec_data->tm) {
         ci_command_t *cmd = find_command(sch->name);
-        if (cmd) {
+        if (cmd && cmd->type == exec_data->type) {
             ci_debug_printf(9, "Execute command:%s \n", cmd->name);
             cmd->command_action_extend (cmd->name, cmd->type, (sch->data ? sch->data : cmd->data));
         }
@@ -261,9 +273,9 @@ static int cb_check_queue(void *data, const void *item)
     return 0;
 }
 
-void commands_exec_scheduled()
+void commands_exec_scheduled(int cmd_type)
 {
-    time_t tm;
+    struct sheduled_cmd_exec_data exec_data;
     ci_debug_printf(10, "Going to execute child commands\n");
     if (COMMANDS_LIST == NULL) {
         ci_debug_printf(10, "None command registered\n");
@@ -272,8 +284,9 @@ void commands_exec_scheduled()
     if (!COMMANDS_QUEUE)
         return;
 
-    time(&tm);
-    ci_list_iterate(COMMANDS_QUEUE, &tm, cb_check_queue);
+    time(&exec_data.tm);
+    exec_data.type = cmd_type;
+    ci_list_iterate(COMMANDS_QUEUE, &exec_data, cb_check_queue);
 }
 
 void ci_command_register_child_cleanup(const char *name, void *data, void (*child_cleanup_handler) (const char *name, process_pid_t pid, int reason, void *data))
