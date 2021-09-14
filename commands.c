@@ -265,10 +265,10 @@ static int cb_check_queue(void *data, const void *item)
         if (cmd && cmd->type == exec_data->type) {
             ci_debug_printf(9, "Execute command:%s \n", cmd->name);
             cmd->command_action_extend (cmd->name, cmd->type, (sch->data ? sch->data : cmd->data));
+            ci_thread_mutex_lock(&COMMANDS_MTX);
+            ci_list_remove(COMMANDS_QUEUE, sch);
+            ci_thread_mutex_unlock(&COMMANDS_MTX);
         }
-        ci_thread_mutex_lock(&COMMANDS_MTX);
-        ci_list_remove(COMMANDS_QUEUE, sch);
-        ci_thread_mutex_unlock(&COMMANDS_MTX);
     }
     return 0;
 }
