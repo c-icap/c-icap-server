@@ -23,6 +23,7 @@
 #include "c-icap.h"
 #include "atomic.h"
 #include "ci_threads.h"
+#include "debug.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -125,20 +126,20 @@ static inline uint64_t ci_kbs_remainder_bytes(const ci_kbs_t *kbs)
 
 static inline void ci_kbs_update(ci_kbs_t *kbs, uint64_t bytes)
 {
-    assert(kbs);
+    _CI_ASSERT(kbs);
     kbs->bytes += bytes;
 }
 
 static inline void ci_kbs_lock_and_update(ci_kbs_t *kbs, uint64_t bytes)
 {
-    assert(kbs);
+    _CI_ASSERT(kbs);
     ci_atomic_add_u64(&(kbs->bytes), bytes);
 }
 
 static inline void ci_kbs_add_to(ci_kbs_t *add_to, const ci_kbs_t *kbs)
 {
-    assert(kbs);
-    assert(add_to);
+    _CI_ASSERT(kbs);
+    _CI_ASSERT(add_to);
     add_to->bytes += kbs->bytes;
 }
 
@@ -205,14 +206,14 @@ CI_DECLARE_FUNC(ci_stat_memblock_t *) ci_stat_memblock_init(void *mem, size_t me
 CI_DECLARE_FUNC(int) ci_stat_memblock_check(const ci_stat_memblock_t *block);
 
 static inline uint64_t ci_stat_memblock_get_counter(const ci_stat_memblock_t *block, int id) {
-    assert(block);
+    _CI_ASSERT(block);
     if (id < block->stats_count)
         return block->stats[id].counter;
     return 0;
 }
 
 static inline ci_kbs_t ci_stat_memblock_get_kbs(const ci_stat_memblock_t *block, int id) {
-    assert(block);
+    _CI_ASSERT(block);
     if (id < block->stats_count)
         return block->stats[id].kbs;
     const ci_kbs_t zero = {0};
@@ -231,7 +232,7 @@ static inline ci_kbs_t ci_stat_memblock_get_kbs(const ci_stat_memblock_t *block,
 
 static inline void ci_stat_membock_uint64_inc(ci_stat_memblock_t *mem_block, int ID, uint64_t count)
 {
-    assert(mem_block);
+    _CI_ASSERT(mem_block);
     if (ID < 0 || ID > mem_block->stats_count)
         return;
     STAT_INT64_INC(mem_block, ID, count);
@@ -239,7 +240,7 @@ static inline void ci_stat_membock_uint64_inc(ci_stat_memblock_t *mem_block, int
 
 static inline void ci_stat_membock_uint64_dec(ci_stat_memblock_t *mem_block, int ID, uint64_t count)
 {
-    assert(mem_block);
+    _CI_ASSERT(mem_block);
     if (ID < 0 || ID > mem_block->stats_count)
         return;
     STAT_INT64_DEC(mem_block, ID, count);
@@ -247,7 +248,7 @@ static inline void ci_stat_membock_uint64_dec(ci_stat_memblock_t *mem_block, int
 
 static inline void ci_stat_memblock_kbs_inc(ci_stat_memblock_t *mem_block, int ID, uint64_t count)
 {
-    assert(mem_block);
+    _CI_ASSERT(mem_block);
     if (ID < 0 || ID > mem_block->stats_count)
         return;
     STAT_INT64_INC(mem_block, ID, count);
