@@ -164,13 +164,13 @@ CI_DECLARE_FUNC(void) ci_atomic_sub_i128_non_inline_gl(__int128 *counter, __int1
         ci_atomic_sub_ ## name ## _non_inline(counter, sub);            \
     }                                                                   \
     spec void ci_atomic_load_##name ## _gl(type *counter, type *store) { \
-        ci_atomic_load_ ## name ## _gl_non_inline(counter, store);      \
+        ci_atomic_load_ ## name ## _non_inline_gl(counter, store);      \
     }                                                                   \
     spec void ci_atomic_add_##name ## _gl(type *counter, type add) {     \
-        ci_atomic_add_ ## name ## _gl_non_inline(counter, add);         \
+        ci_atomic_add_ ## name ## _non_inline_gl(counter, add);         \
     }                                                                   \
     spec void ci_atomic_sub_##name ## _gl(type *counter, type sub) {     \
-        ci_atomic_sub_ ## name ## _gl_non_inline(counter, sub);         \
+        ci_atomic_sub_ ## name ## _non_inline_gl(counter, sub);         \
     }
 
 
