@@ -190,12 +190,12 @@ static void exit_normaly()
 {
     system_shutdown();
 #ifdef MULTICHILD
-    child_data = NULL;
     config_destroy();
     commands_destroy();
     ci_acl_destroy();
     ci_mem_exit();
-    dettach_childs_queue(childs_queue);
+    ci_stat_release();
+    child_data = NULL;
 #endif
 }
 
@@ -346,8 +346,6 @@ static void kill_all_childs()
     } while (childs_running);
 
     ci_proc_mutex_destroy(&accept_mutex);
-    destroy_childs_queue(childs_queue);
-    childs_queue = NULL;
     if (old_childs_queue)
         destroy_childs_queue(old_childs_queue);
     old_childs_queue = NULL;
@@ -965,7 +963,6 @@ void child_main(int pipefd)
 
     cancel_all_threads();
     commands_execute_stop_child();
-    exit_normaly();
 }
 
 
@@ -1011,6 +1008,8 @@ int start_child()
         }
         close(pfd[1]);
         child_main(pfd[0]);
+        exit_normaly();
+        dettach_childs_queue(childs_queue);
         exit(0);
     } else {
         close(pfd[0]);
@@ -1226,9 +1225,11 @@ int start_server()
         ci_debug_printf(1,
                         "Possibly a term signal received. Monitor process going to term all children\n");
         kill_all_childs();
-        system_shutdown();
         ci_port_list_release(CI_CONF.PORTS);
         CI_CONF.PORTS = NULL;
+        exit_normaly();
+        destroy_childs_queue(childs_queue);
+        childs_queue = NULL;
         ci_debug_printf(1, "Exiting....\n");
         return 1;
     }

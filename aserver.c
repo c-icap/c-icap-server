@@ -190,10 +190,6 @@ int main(int argc, char **argv)
     post_init_modules();
     post_init_services();
     start_server();
-    config_destroy();
-    commands_destroy();
-    ci_acl_destroy();
     clear_pid(CI_CONF.PIDFILE);
-    ci_mem_exit();
     return 0;
 }
