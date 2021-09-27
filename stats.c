@@ -19,8 +19,8 @@
 
 
 #include "common.h"
+#include "debug.h"
 #include "stats.h"
-#include <assert.h>
 
 struct stat_entry {
     char *label;
@@ -134,7 +134,7 @@ int ci_stat_group_find(const char *group)
 {
     int gid;
     for (gid = 0; gid < STAT_GROUPS.entries_num; gid++) {
-        assert(STAT_GROUPS.groups[gid].name);
+        _CI_ASSERT(STAT_GROUPS.groups[gid].name);
         if (strcmp(STAT_GROUPS.groups[gid].name, group) == 0)
             return gid;
     }
@@ -238,7 +238,7 @@ void ci_stat_allocate_mem()
 {
     size_t mem_size = ci_stat_memblock_size();
     void *mem = malloc(mem_size);
-    assert(mem);
+    _CI_ASSERT(mem);
     ci_stat_attach_mem(mem, mem_size, free);
 }
 
@@ -399,10 +399,10 @@ void ci_stat_memblock_merge(ci_stat_memblock_t *to_block, const ci_stat_memblock
         return;
 
     /* After a reconfigure we may have more counters. */
-    assert(to_block->stats_count >= from_block->stats_count);
-    assert(to_block->stats_count == STAT_STATS.entries_num);
-    assert(to_block->sig == MEMBLOCK_SIG);
-    assert(from_block->sig == MEMBLOCK_SIG);
+    _CI_ASSERT(to_block->stats_count >= from_block->stats_count);
+    _CI_ASSERT(to_block->stats_count == STAT_STATS.entries_num);
+    _CI_ASSERT(to_block->sig == MEMBLOCK_SIG);
+    _CI_ASSERT(from_block->sig == MEMBLOCK_SIG);
 
     for (i = 0; i < from_block->stats_count; i++) {
         switch (STAT_STATS.entries[i].type) {
