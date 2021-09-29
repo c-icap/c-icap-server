@@ -32,6 +32,7 @@
 
 int info_init_service(ci_service_xdata_t * srv_xdata,
                       struct ci_server_conf *server_conf);
+int info_post_init_service(ci_service_xdata_t * srv_xdata, struct ci_server_conf *server_conf);
 int info_check_preview_handler(char *preview_data, int preview_data_len,
                                ci_request_t *);
 int info_end_of_data_handler(ci_request_t * req);
@@ -46,8 +47,7 @@ CI_DECLARE_MOD_DATA ci_service_module_t info_service = {
     "C-icap run-time information",            /* mod_short_descr,  Module short description */
     ICAP_REQMOD,                    /* mod_type, The service type is request modification */
     info_init_service,              /* mod_init_service. Service initialization */
-    NULL,                           /* post_init_service. Service initialization after c-icap
-                    configured. Not used here */
+    info_post_init_service,         /* post_init_service. Service initialization after c-icap configured.*/
     info_close_service,           /* mod_close_service. Called when service shutdowns. */
     info_init_request_data,         /* mod_init_request_data */
     info_release_request_data,      /* mod_release_request_data */
@@ -58,11 +58,32 @@ CI_DECLARE_MOD_DATA ci_service_module_t info_service = {
     NULL
 };
 
+struct time_counters_ids{
+    const char *name;
+    ci_stat_type_t type;
+    const char *group;
+    int id;
+    int per_request:1;
+    int per_time:1;
+} InfoTimeCountersId[] = {
+    /*TODO: Make the InfoTimeCountersId array configurable*/
+    {"BYTES IN", CI_STAT_KBS_T, "General", -1, 1, 1},
+    {"BYTES OUT", CI_STAT_KBS_T, "General", -1, 1, 1},
+    {"HTTP BYTES IN", CI_STAT_KBS_T, "General", -1, 1, 1},
+    {"HTTP BYTES OUT", CI_STAT_KBS_T, "General", -1, 1, 1},
+    {"BODY BYTES IN", CI_STAT_KBS_T, "General", -1, 1, 1},
+    {"BODY BYTES OUT", CI_STAT_KBS_T, "General", -1, 1, 1},
+    {NULL, 0, NULL, -1, 0, 0}
+};
+#define InfoTimeCountersIdLength (sizeof(InfoTimeCountersId) / sizeof(InfoTimeCountersId[0]))
+
 struct time_range_stats {
-    int requests_per_sec;
+    uint64_t requests_per_sec;
     int used_servers;
     int max_servers;
     int children;
+    ci_kbs_t kbs_per_sec[InfoTimeCountersIdLength];
+    ci_kbs_t kbs_per_request[InfoTimeCountersIdLength];
 };
 
 struct info_time_stats {
@@ -108,6 +129,14 @@ int info_init_service(ci_service_xdata_t * srv_xdata,
                                info_monitor_init_cmd);
     ci_command_register_action("info::monitor_periodic", CI_CMD_MONITOR_ONDEMAND, NULL,
                                info_monitor_periodic_cmd);
+    return CI_OK;
+}
+
+int info_post_init_service(ci_service_xdata_t * srv_xdata, struct ci_server_conf *server_conf)
+{
+    int i;
+    for (i = 0; InfoTimeCountersId[i].name != NULL; i++)
+        InfoTimeCountersId[i].id = ci_stat_entry_find(InfoTimeCountersId[i].name, InfoTimeCountersId[i].group, InfoTimeCountersId[i].type);
     return CI_OK;
 }
 
@@ -544,7 +573,7 @@ static void build_running_servers_statistics(struct info_req_data *info_data)
 static int build_statistics(struct info_req_data *info_data)
 {
     char buf[1024];
-    int sz, k;
+    int sz, k, j;
     struct stats_tmpl *tmpl;
 
     if (info_data->txt_mode)
@@ -593,6 +622,28 @@ static int build_statistics(struct info_req_data *info_data)
                 sz = sizeof(buf) - 1;
             ci_membuf_write(info_data->body, buf, sz, 0);
 
+            for (j = 0; InfoTimeCountersId[j].name != NULL; j++) {
+                if (InfoTimeCountersId[j].per_time) {
+                    char label[256];
+                    snprintf(label, sizeof(label), "%s per second", InfoTimeCountersId[j].name);
+                    sz = snprintf(buf, sizeof(buf), tmpl->simple_table_item_kbs, label, ci_kbs_kilobytes(&time_servers[k].v->kbs_per_sec[j]), ci_kbs_remainder_bytes(&time_servers[k].v->kbs_per_sec[j]));
+                    if (sz >= sizeof(buf))
+                        sz = sizeof(buf) - 1;
+                    ci_membuf_write(info_data->body, buf, sz, 0);
+                }
+            }
+
+            for (j = 0; InfoTimeCountersId[j].name != NULL; j++) {
+                if (InfoTimeCountersId[j].per_request) {
+                    char label[256];
+                    snprintf(label, sizeof(label), "%s per request", InfoTimeCountersId[j].name);
+                    sz = snprintf(buf, sizeof(buf), tmpl->simple_table_item_kbs, label, ci_kbs_kilobytes(&time_servers[k].v->kbs_per_request[j]), ci_kbs_remainder_bytes(&time_servers[k].v->kbs_per_request[j]));
+                    if (sz >= sizeof(buf))
+                        sz = sizeof(buf) - 1;
+                    ci_membuf_write(info_data->body, buf, sz, 0);
+                }
+            }
+
             sz = snprintf(buf, sizeof(buf), "%s", tmpl->simple_table_end);
             if (sz >= sizeof(buf))
                 sz = sizeof(buf) - 1;
@@ -633,49 +684,75 @@ struct info_time_stats_snapshot {
     time_t when;
     time_t when_max;
     uint64_t requests;
-    uint64_t min_requests;
     int children;
     int servers;
     int used_servers;
+    ci_kbs_t kbs_counters_instance[InfoTimeCountersIdLength];
 };
 
 static struct info_time_stats_snapshot OneMinSecs[60];
 static struct info_time_stats_snapshot OneHourMins[60];
 
-static void append_snapshots(struct info_time_stats_snapshot *dest, const struct info_time_stats_snapshot *add)
+struct info_time_stats_snapshot_results {
+    int snapshots;
+    time_t when_start;
+    time_t when_end;
+    uint64_t requests_start;
+    uint64_t requests_end;
+    int children;
+    int servers;
+    int used_servers;
+    const ci_kbs_t *kbs_counters_instance_start;
+    const ci_kbs_t *kbs_counters_instance_end;
+};
+
+static void append_snapshots(struct info_time_stats_snapshot_results *result, const struct info_time_stats_snapshot *add)
 {
-    dest->snapshots += add->snapshots;
+    result->snapshots += add->snapshots;
 
-    if (dest->when > add->when || dest->when == 0)
-        dest->when = add->when;
-    if (dest->when_max < add->when_max)
-        dest->when_max = add->when_max;
+    if (result->when_start > add->when || result->when_start == 0) {
+        result->when_start = add->when;
+        result->requests_start = add->requests;
+        result->kbs_counters_instance_start = add->kbs_counters_instance;
+    }
 
-    if (add->requests > dest->requests)
-        dest->requests = add->requests;
-    if (add->min_requests < dest->min_requests || dest->min_requests == 0)
-        dest->min_requests = add->min_requests;
-
-    dest->children += add->children;
-    dest->servers += add->servers;
-    dest->used_servers += add->used_servers;
+    if (result->when_end < add->when_max) {
+        result->when_end = add->when_max;
+        result->requests_end = add->requests;
+        result->kbs_counters_instance_end = add->kbs_counters_instance;
+    }
+    assert(result->kbs_counters_instance_start);
+    assert(result->kbs_counters_instance_end);
+    result->children += add->children;
+    result->servers += add->servers;
+    result->used_servers += add->used_servers;
 }
 
-static void build_time_range_stats(struct time_range_stats *tr, const struct info_time_stats_snapshot *sn, time_t min_range)
+static void build_time_range_stats(struct time_range_stats *tr, const struct info_time_stats_snapshot_results *accumulated, time_t time_range)
 {
-    time_t period = sn->when_max > sn->when ? sn->when_max - sn->when : 1;
-    if (period < min_range)
+    int i;
+    uint64_t requests = accumulated->requests_end - accumulated->requests_start;
+    time_t period = accumulated->when_end > accumulated->when_start ? accumulated->when_end - accumulated->when_start : 1;
+    if (period < time_range)
         return;
-    tr->requests_per_sec = (sn->requests - sn->min_requests) / period;
-    tr->max_servers = sn->servers / sn->snapshots;
-    tr->used_servers = sn->used_servers / sn->snapshots;
-    tr->children = sn->children / sn->snapshots;
+    tr->requests_per_sec = requests / period;
+    tr->max_servers = accumulated->servers / accumulated->snapshots;
+    tr->used_servers = accumulated->used_servers / accumulated->snapshots;
+    tr->children = accumulated->children / accumulated->snapshots;
+
+    for(i = 0; i < InfoTimeCountersIdLength && InfoTimeCountersId[i].name; i++) {
+        uint64_t bytes = accumulated->kbs_counters_instance_end[i].bytes - accumulated->kbs_counters_instance_start[i].bytes;
+        if (InfoTimeCountersId[i].per_request)
+            tr->kbs_per_request[i].bytes = requests ? (bytes / requests) : 0;
+        if (InfoTimeCountersId[i].per_time)
+            tr->kbs_per_sec[i].bytes = bytes / period;
+    }
 }
 
 
 static struct info_time_stats_snapshot *take_snapshot(time_t curr_time)
 {
-    int i;
+    int i, k;
     struct childs_queue *q = childs_queue;
     struct info_time_stats_snapshot *snapshot = NULL;
     struct info_time_stats_snapshot *minsnapshot = NULL;
@@ -690,8 +767,7 @@ static struct info_time_stats_snapshot *take_snapshot(time_t curr_time)
         memset(snapshot, 0, sizeof(struct info_time_stats_snapshot));
         snapshot->when = curr_time;
         snapshot->when_max = curr_time;
-    } else
-        snapshot->requests = 0; /*Will update with newer higher value*/
+    }
     snapshot->snapshots++;
 
     if ((minsnapshot->when % 60) != minute) {
@@ -699,10 +775,20 @@ static struct info_time_stats_snapshot *take_snapshot(time_t curr_time)
         minsnapshot->when = curr_time;
         minsnapshot->when_max = curr_time;
     } else {
-        minsnapshot->requests = 0; /*Will update with newer higher value*/
         minsnapshot->when_max = curr_time;
     }
     minsnapshot->snapshots++;
+
+    /*Will update with newer higher value*/
+    snapshot->requests = q->srv_stats->history_requests;
+    minsnapshot->requests = q->srv_stats->history_requests;
+    for (k = 0; InfoTimeCountersId[k].name != NULL; k++) {
+        if (InfoTimeCountersId[k].id >= 0) {
+            ci_kbs_t kbs = ci_stat_memblock_get_kbs(q->stats_history, InfoTimeCountersId[k].id);
+            snapshot->kbs_counters_instance[k] = kbs;
+            minsnapshot->kbs_counters_instance[k] = kbs;
+        }
+    }
 
     for (i = 0; i < q->size; i++) {
         if (q->childs[i].pid != 0) {
@@ -715,15 +801,18 @@ static struct info_time_stats_snapshot *take_snapshot(time_t curr_time)
             minsnapshot->servers += q->childs[i].servers;
             minsnapshot->used_servers += q->childs[i].usedservers;
             minsnapshot->requests += q->childs[i].requests;
+
+            ci_stat_memblock_t *stats;
+            stats = (ci_stat_memblock_t *)(q->stats_area + i * (q->stats_block_size));
+            for (k = 0; InfoTimeCountersId[k].name != NULL; k++) {
+                if (InfoTimeCountersId[k].id >= 0) {
+                    ci_kbs_t kbs = ci_stat_memblock_get_kbs(stats, InfoTimeCountersId[k].id);
+                    ci_kbs_add_to(&snapshot->kbs_counters_instance[k], &kbs);
+                    ci_kbs_add_to(&minsnapshot->kbs_counters_instance[k], &kbs);
+                }
+            }
         }
     }
-    snapshot->requests += q->srv_stats->history_requests;
-    minsnapshot->requests += q->srv_stats->history_requests;
-
-    if (snapshot->min_requests == 0)
-        snapshot->min_requests = snapshot->requests;
-    if (minsnapshot->min_requests == 0)
-        minsnapshot->min_requests = minsnapshot->requests;
     return snapshot;
 }
 
@@ -742,14 +831,14 @@ static void process_snapshot(const struct info_time_stats_snapshot *snapshot)
     }
 
     struct info_time_stats *info_tstats = ci_server_shared_memblob(InfoSharedMemId);
-    struct info_time_stats_snapshot stats_1s;
-    memset(&stats_1s, 0, sizeof(struct info_time_stats_snapshot));
+    struct info_time_stats_snapshot_results stats_1s;
+    memset(&stats_1s, 0, sizeof(struct info_time_stats_snapshot_results));
     if (BACKSECS > 0) {
         append_snapshots(&stats_1s, prevsnapshot);
         append_snapshots(&stats_1s, snapshot);
         build_time_range_stats(&info_tstats->_1sec, &stats_1s, 1);
 
-        ci_debug_printf(10, "children %d, used servers: %d/%d, request rate: %d\n",
+        ci_debug_printf(10, "children %d, used servers: %d/%d, request rate: %"PRIu64"\n",
                         info_tstats->_1sec.children,
                         info_tstats->_1sec.used_servers,
                         info_tstats->_1sec.max_servers,
@@ -757,9 +846,8 @@ static void process_snapshot(const struct info_time_stats_snapshot *snapshot)
     }
 
     int i;
-    struct info_time_stats_snapshot stats_1m;
-    memset(&stats_1m, 0, sizeof(struct info_time_stats_snapshot));
-    stats_1m.when = curr_time;
+    struct info_time_stats_snapshot_results stats_1m;
+    memset(&stats_1m, 0, sizeof(struct info_time_stats_snapshot_results));
     for (i = 0; i < 60; i++) {
         if (OneMinSecs[i].when >= (curr_time - 60)) {
             append_snapshots(&stats_1m, &OneMinSecs[i]);
@@ -767,15 +855,12 @@ static void process_snapshot(const struct info_time_stats_snapshot *snapshot)
     }
     build_time_range_stats(&info_tstats->_1min, &stats_1m, 60 - 2);
 
-    struct info_time_stats_snapshot stats_5m;
-    struct info_time_stats_snapshot stats_30m;
-    struct info_time_stats_snapshot stats_60m;
-    memset(&stats_5m, 0, sizeof(struct info_time_stats_snapshot));
-    stats_5m.when = curr_time;
-    memset(&stats_30m, 0, sizeof(struct info_time_stats_snapshot));
-    stats_30m.when = curr_time;
-    memset(&stats_60m, 0, sizeof(struct info_time_stats_snapshot));
-    stats_60m.when = curr_time;
+    struct info_time_stats_snapshot_results stats_5m;
+    struct info_time_stats_snapshot_results stats_30m;
+    struct info_time_stats_snapshot_results stats_60m;
+    memset(&stats_5m, 0, sizeof(struct info_time_stats_snapshot_results));
+    memset(&stats_30m, 0, sizeof(struct info_time_stats_snapshot_results));
+    memset(&stats_60m, 0, sizeof(struct info_time_stats_snapshot_results));
     for (i = 0; i < 60; i++) {
         if (OneHourMins[i].when >= (curr_time - 300)) {
             append_snapshots(&stats_5m, &OneHourMins[i]);
