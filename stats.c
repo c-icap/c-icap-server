@@ -220,6 +220,17 @@ int ci_stat_entry_register(const char *label, ci_stat_type_t type, const char *g
     return -1;
 }
 
+int ci_stat_entry_find(const char *label, const char *group, ci_stat_type_t type)
+{
+    int i;
+    int gid = ci_stat_group_find(group);
+    if (gid < 0)
+        return -1;
+    for (i = 0; i < STAT_STATS.entries_num; i++)
+        if (strcmp(label, STAT_STATS.entries[i].label) == 0 && STAT_STATS.entries[i].gid == gid && STAT_STATS.entries[i].type == type) return i;
+    return -1;
+}
+
 void ci_stat_entry_release_lists()
 {
     stat_entry_release_list(&STAT_STATS);

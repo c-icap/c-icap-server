@@ -59,6 +59,17 @@ typedef enum ci_stat_type {
 CI_DECLARE_FUNC(int) ci_stat_entry_register(const char *label, ci_stat_type_t type, const char *group);
 
 /**
+ * Search for that statistic entry counter "label" in statistics group
+ * "group" of type "type".
+ \ingroup STAT
+ \param label The entry name
+ \param group The entry group name
+ \param type The entry type
+ \return The statistic entry ID or -1
+*/
+CI_DECLARE_FUNC(int) ci_stat_entry_find(const char *label, const char *group, ci_stat_type_t type);
+
+/**
  * Increases by 'count' the counter 'ID', which must be of type CI_STAT_INT64_T
  \ingroup STAT
  */
@@ -141,6 +152,24 @@ static inline void ci_kbs_add_to(ci_kbs_t *add_to, const ci_kbs_t *kbs)
     _CI_ASSERT(kbs);
     _CI_ASSERT(add_to);
     add_to->bytes += kbs->bytes;
+}
+
+static inline ci_kbs_t ci_kbs_sub(ci_kbs_t *kbs1, const ci_kbs_t *kbs2)
+{
+    _CI_ASSERT(kbs1);
+    _CI_ASSERT(kbs2);
+    ci_kbs_t res;
+    res.bytes = kbs1->bytes - kbs2->bytes;
+    return res;
+}
+
+static inline ci_kbs_t ci_kbs_add(ci_kbs_t *kbs1, const ci_kbs_t *kbs2)
+{
+    _CI_ASSERT(kbs1);
+    _CI_ASSERT(kbs2);
+    ci_kbs_t res;
+    res.bytes = kbs1->bytes + kbs2->bytes;
+    return res;
 }
 
 /**
