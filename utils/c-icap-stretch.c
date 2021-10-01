@@ -105,6 +105,14 @@ int print_stat(void *data, const char *label, int id, int gid, const ci_stat_t *
     case CI_STAT_KBS_T:
         printf("\t\%s: %" PRIu64 "Kbs and %" PRIu64 "bytes\n", label, ci_kbs_kilobytes(&stat->value.kbs), ci_kbs_remainder_bytes(&stat->value.kbs));
         break;
+    case CI_STAT_TIME_US_T:
+        printf("\t\%s: %" PRIu64 " usec", label, stat->value.counter);
+        break;
+    case CI_STAT_TIME_MS_T:
+        printf("\t\%s: %" PRIu64 " msec", label, stat->value.counter);
+        break;
+    default:
+       break;
     }
     return 0;
 }

@@ -331,7 +331,7 @@ int remove_child(struct childs_queue *q, process_pid_t pid, int status)
             }
             child_stats = q->stats_area + i * (q->stats_block_size);
             assert(ci_stat_memblock_check(child_stats));
-            ci_stat_memblock_merge(q->stats_history, child_stats);
+            ci_stat_memblock_merge(q->stats_history, child_stats, 1);
             q->srv_stats->history_requests += q->childs[i].requests;
             q->srv_stats->closed_childs++;
             if (status)
@@ -454,6 +454,16 @@ static int print_statistics(void *data, const char *label, int id, int gId, cons
                         label,
                         ci_kbs_kilobytes(&kbs),
                         ci_kbs_remainder_bytes(&kbs));
+        break;
+    case CI_STAT_TIME_US_T:
+        ci_debug_printf(1,"\t%s:%" PRIu64 " usec\n",
+                        label,
+                        ci_stat_memblock_get_counter(stats, id));
+        break;
+    case CI_STAT_TIME_MS_T:
+        ci_debug_printf(1,"\t%s:%" PRIu64 " msec\n",
+                        label,
+                        ci_stat_memblock_get_counter(stats, id));
         break;
     default:
         break;

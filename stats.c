@@ -214,7 +214,7 @@ int ci_stat_entry_register(const char *label, ci_stat_type_t type, const char *g
     if (gid < 0)
         return -1;
 
-    if (type == CI_STAT_INT64_T || type == CI_STAT_KBS_T)
+    if (type >= CI_STAT_INT64_T && type < CI_STAT_TYPE_END)
         return stat_entry_add(&STAT_STATS, label, type, gid);
 
     return -1;
@@ -298,6 +298,11 @@ void ci_stat_update(const ci_stat_item_t *stats, int num)
             break;
         case CI_STAT_KBS_T:
             ci_kbs_lock_and_update(&(STATS->mem_block->stats[id].kbs), stats[i].count);
+            break;
+        case CI_STAT_TIME_US_T:
+        case CI_STAT_TIME_MS_T:
+            /*Only can set a 32bit integer?*/
+            STATS->mem_block->stats[id].counter = num;
             break;
         default:
             /*Wrong type id, ignore for now*/
@@ -403,7 +408,7 @@ void ci_stat_memblock_reset(ci_stat_memblock_t *block)
     memset(block->stats, 0, block->stats_count * sizeof(ci_stat_value_t));
 }
 
-void ci_stat_memblock_merge(ci_stat_memblock_t *to_block, const ci_stat_memblock_t *from_block)
+void ci_stat_memblock_merge(ci_stat_memblock_t *to_block, const ci_stat_memblock_t *from_block, int history)
 {
     int i;
     if (!to_block || !from_block)
@@ -422,6 +427,11 @@ void ci_stat_memblock_merge(ci_stat_memblock_t *to_block, const ci_stat_memblock
             break;
         case CI_STAT_KBS_T:
             ci_kbs_add_to(&to_block->stats[i].kbs, &from_block->stats[i].kbs);
+            break;
+        case CI_STAT_TIME_US_T:
+        case CI_STAT_TIME_MS_T:
+            if (!history)
+                to_block->stats[i].counter = (to_block->stats[i].counter + from_block->stats[i].counter) / 2;
             break;
         default:
             /*print error?*/

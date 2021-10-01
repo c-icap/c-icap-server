@@ -43,7 +43,10 @@ extern "C"
  */
 typedef enum ci_stat_type {
     CI_STAT_INT64_T, CI_STAT_KBS_T,
-    STAT_INT64_T = CI_STAT_INT64_T, STAT_KBS_T = CI_STAT_KBS_T /*backward compatibility */
+    STAT_INT64_T = CI_STAT_INT64_T, STAT_KBS_T = CI_STAT_KBS_T, /*backward compatibility */
+    CI_STAT_TIME_US_T,
+    CI_STAT_TIME_MS_T,
+    CI_STAT_TYPE_END
 } ci_stat_type_t;
 
 /**
@@ -227,7 +230,7 @@ CI_DECLARE_FUNC(void) ci_stat_groups_iterate(void *data, int (*group_call)(void 
 CI_DECLARE_FUNC(void) ci_stat_statistics_iterate(void *data, int groupID, int (*stat_call)(void *data, const char *label, int ID, int gId, const ci_stat_t *stat));
 
 /*Stats memblocks low level functions*/
-CI_DECLARE_FUNC(void) ci_stat_memblock_merge(ci_stat_memblock_t *to_block, const ci_stat_memblock_t *from_block);
+CI_DECLARE_FUNC(void) ci_stat_memblock_merge(ci_stat_memblock_t *to_block, const ci_stat_memblock_t *from_block, int history);
 CI_DECLARE_FUNC(void) ci_stat_memblock_reset(ci_stat_memblock_t *block);
 
 CI_DECLARE_FUNC(ci_stat_memblock_t *) ci_stat_memblock_init(void *mem, size_t mem_size);

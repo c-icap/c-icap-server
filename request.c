@@ -66,6 +66,13 @@ static int STAT_RESPMODS = -1;
 static int STAT_OPTIONS = -1;
 static int STAT_ALLOW204 = -1;
 static int STAT_ALLOW206 = -1;
+static int STAT_TIME_PER_REQUESTS = -1;
+
+static struct timestats {
+    time_t indx;
+    uint64_t accumulated_time;
+    int requests;
+} STAT_TIME = {0, 0, 0};
 
 static int request_stat_entry_register(const char *name, int type, const char *gname)
 {
@@ -89,6 +96,7 @@ void request_stats_init()
     STAT_HTTP_BYTES_OUT = request_stat_entry_register("HTTP BYTES OUT", CI_STAT_KBS_T, "General");
     STAT_BODY_BYTES_IN = request_stat_entry_register("BODY BYTES IN", CI_STAT_KBS_T, "General");
     STAT_BODY_BYTES_OUT = request_stat_entry_register("BODY BYTES OUT", CI_STAT_KBS_T, "General");
+    STAT_TIME_PER_REQUESTS = request_stat_entry_register("TIME PER REQUEST", CI_STAT_TIME_US_T, "General");
     /*
       Use a threads mutex lock to update request statistics. They are updated
       only in one place in this file (function do_request), so this is should
@@ -1786,6 +1794,30 @@ int process_request(ci_request_t * req)
     STAT_KBS_INC_NL(STATS, STAT_HTTP_BYTES_OUT, req->http_bytes_out);
     STAT_KBS_INC_NL(STATS, STAT_BODY_BYTES_IN, req->body_bytes_in);
     STAT_KBS_INC_NL(STATS, STAT_BODY_BYTES_OUT, req->body_bytes_out);
+
+    time_t curr_time = ci_clock_time_to_unixtime(&req->stop_w_t);
+    if (curr_time > STAT_TIME.indx) {
+        if (STAT_TIME.requests) {
+            uint64_t val = STAT_TIME.accumulated_time / STAT_TIME.requests;
+            *(ci_stat_uint64_ptr(STAT_TIME_PER_REQUESTS)) = val;
+        }
+        STAT_TIME.indx = curr_time;
+        STAT_TIME.accumulated_time = 0;
+        STAT_TIME.requests = 0;
+
+        if (srv_xdata->stat_time.requests)
+            *(ci_stat_uint64_ptr(srv_xdata->stat_time_per_request)) = srv_xdata->stat_time.accumulated_time / srv_xdata->stat_time.requests;
+        srv_xdata->stat_time.indx = curr_time;
+        srv_xdata->stat_time.accumulated_time = 0;
+        srv_xdata->stat_time.requests = 0;
+    } else {
+        uint64_t us = ci_clock_time_diff_micro(&req->stop_w_t, &req->start_r_t);
+        STAT_TIME.accumulated_time += us;
+        STAT_TIME.requests++;
+        srv_xdata->stat_time.requests++;
+        srv_xdata->stat_time.accumulated_time += us;
+    }
+    ci_debug_printf(1, "Accumulated time %lld, %d\n", (long long)STAT_TIME.accumulated_time, STAT_TIME.requests);
 
     if (srv_xdata) {
         STAT_KBS_INC_NL(STATS, srv_xdata->stat_bytes_in, req->bytes_in);

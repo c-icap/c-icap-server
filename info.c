@@ -271,7 +271,7 @@ void fill_queue_statistics(struct childs_queue *q, struct info_req_data *info_da
 
             stats = q->stats_area + i * (q->stats_block_size);
             assert(ci_stat_memblock_check(stats));
-            ci_stat_memblock_merge(info_data->collect_stats, stats);
+            ci_stat_memblock_merge(info_data->collect_stats, stats, 0);
         } else if (q->childs[i].pid != 0 && q->childs[i].to_be_killed) {
             if (info_data->closing_child_pids)
                 info_data->closing_child_pids[info_data->closing_childs] = q->childs[i].pid;
@@ -281,7 +281,7 @@ void fill_queue_statistics(struct childs_queue *q, struct info_req_data *info_da
     /*Merge history data*/
     stats = q->stats_area + q->size * q->stats_block_size;
     assert(ci_stat_memblock_check(stats));
-    ci_stat_memblock_merge(info_data->collect_stats, stats);
+    ci_stat_memblock_merge(info_data->collect_stats, stats, 1);
 
     srv_stats =
         (struct server_statistics *)(q->stats_area + q->size * q->stats_block_size + q->stats_block_size);
@@ -297,6 +297,8 @@ struct stats_tmpl {
     const char *simple_table_item_int;
     const char *simple_table_item_kbs;
     const char *simple_table_item_str;
+    const char *simple_table_item_usec;
+    const char *simple_table_item_msec;
 
     const char *table_header;
     const char *table_item;
@@ -312,6 +314,8 @@ struct stats_tmpl txt_tmpl = {
     "%s : %llu\n",
     "%s : %llu Kbs %u bytes\n",
     "%s : %s\n",
+    "%s : %llu usec\n",
+    "%s : %llu msec\n",
 
     "%s",
     "%s",
@@ -327,6 +331,8 @@ struct stats_tmpl html_tmpl = {
     "<TR><TH>%s:</TH><TD>  %llu</TD>\n",
     "<TR><TH>%s:</TH><TD>  %llu Kbs %u bytes</TD>\n",
     "<TR><TH>%s:</TH><TD>  %s</TD>\n",
+    "<TR><TH>%s:</TH><TD>  %llu usec</TD>\n",
+    "<TR><TH>%s:</TH><TD>  %llu msec</TD>\n",
     "<TH> %s </TH>",
     "<TD> %s </TD>",
     "\n<TR>",
@@ -364,6 +370,16 @@ static int build_subgroup_statistics_row(void *data, const char *label, int id, 
                  "%" PRIu64 " Kbs %" PRIu64 " bytes",
                  ci_kbs_kilobytes(&kbs),
                  ci_kbs_remainder_bytes(&kbs));
+        break;
+    case CI_STAT_TIME_US_T:
+        snprintf(buf, sizeof(buf),
+                 "%" PRIu64 " usec",
+                 ci_stat_memblock_get_counter(subgroups_data->collect_stats, id));
+        break;
+    case CI_STAT_TIME_MS_T:
+        snprintf(buf, sizeof(buf),
+                 "%" PRIu64 " msec",
+                 ci_stat_memblock_get_counter(subgroups_data->collect_stats, id));
         break;
     default:
         buf[0] = '-';
@@ -452,6 +468,24 @@ static int print_statistics(void *data, const char *label, int id, int gId, cons
                       label,
                       ci_kbs_kilobytes(&kbs),
                       ci_kbs_remainder_bytes(&kbs));
+        if (sz >= sizeof(buf))
+            sz = sizeof(buf) - 1;
+        ci_membuf_write(info_data->body, buf, sz, 0);
+        break;
+    case CI_STAT_TIME_US_T:
+        sz = snprintf(buf, sizeof(buf),
+                      tmpl->simple_table_item_usec,
+                      label,
+                      ci_stat_memblock_get_counter(info_data->collect_stats, id));
+        if (sz >= sizeof(buf))
+            sz = sizeof(buf) - 1;
+        ci_membuf_write(info_data->body, buf, sz, 0);
+        break;
+    case CI_STAT_TIME_MS_T:
+        sz = snprintf(buf, sizeof(buf),
+                      tmpl->simple_table_item_msec,
+                      label,
+                      ci_stat_memblock_get_counter(info_data->collect_stats, id));
         if (sz >= sizeof(buf))
             sz = sizeof(buf) - 1;
         ci_membuf_write(info_data->body, buf, sz, 0);

@@ -113,6 +113,12 @@ typedef struct ci_service_xdata {
     int stat_options;
     int stat_allow204;
     int stat_allow206;
+    int stat_time_per_request;
+    struct timestat {
+        time_t indx;
+        uint64_t accumulated_time;
+        int requests;
+    } stat_time;
 } ci_service_xdata_t;
 
 /**
