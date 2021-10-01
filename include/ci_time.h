@@ -32,12 +32,16 @@ extern "C"
 
 typedef struct timespec ci_clock_time_t;
 
+#define CI_CLOCK_TIME_ZERO (ci_clock_time_t){0,0}
+
 static inline void ci_clock_time_reset(ci_clock_time_t *t)
 {
-    static ci_clock_time_t zero = {0,0};
-    *t = zero;
+    *t = CI_CLOCK_TIME_ZERO;
 }
 
+static inline time_t ci_clock_time_to_unixtime(ci_clock_time_t *tm) {
+    return tm->tv_sec;
+}
 
 static inline int64_t ci_clock_time_diff_milli(ci_clock_time_t *tsstop, ci_clock_time_t *tsstart) {
     return
@@ -60,6 +64,29 @@ static inline int64_t ci_clock_time_diff_nano(ci_clock_time_t *tsstop, ci_clock_
 static inline void ci_clock_time_get(ci_clock_time_t *t)
 {
     clock_gettime(CLOCK_REALTIME, t);
+}
+
+static inline void ci_clock_time_add(ci_clock_time_t *dst, const ci_clock_time_t *t1, const ci_clock_time_t *t2) {
+    dst->tv_nsec = t1->tv_nsec + t2->tv_nsec;
+    dst->tv_sec = t1->tv_sec + t2->tv_sec + (dst->tv_nsec / 1000000000);
+    dst->tv_nsec = dst->tv_nsec % 1000000000;
+}
+
+static inline void ci_clock_time_add_to(ci_clock_time_t *dst, const ci_clock_time_t *t1) {
+    dst->tv_nsec += t1->tv_nsec;
+    dst->tv_sec += t1->tv_sec + (dst->tv_nsec / 1000000000);
+    dst->tv_nsec = dst->tv_nsec % 1000000000;
+}
+
+static inline void ci_clock_time_sub(ci_clock_time_t *dst, const ci_clock_time_t *t1, const ci_clock_time_t *t2) {
+    //check if t2 greater/later than t1?
+    if (t1->tv_nsec < t2->tv_nsec) {
+        dst->tv_sec = t1->tv_sec - 1 - t2->tv_sec;
+        dst->tv_nsec = 1000000000 + t1->tv_nsec - t2->tv_nsec;
+    } else {
+        dst->tv_sec = t1->tv_sec - t2->tv_sec;
+        dst->tv_nsec = t1->tv_nsec - t2->tv_nsec;
+    }
 }
 
 #else /*_WIN32*/
