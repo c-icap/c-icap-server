@@ -408,7 +408,7 @@ void ci_stat_memblock_reset(ci_stat_memblock_t *block)
     memset(block->stats, 0, block->stats_count * sizeof(ci_stat_value_t));
 }
 
-void ci_stat_memblock_merge(ci_stat_memblock_t *to_block, const ci_stat_memblock_t *from_block, int history)
+void ci_stat_memblock_merge(ci_stat_memblock_t *to_block, const ci_stat_memblock_t *from_block, int history, int existing_instances)
 {
     int i;
     if (!to_block || !from_block)
@@ -431,7 +431,7 @@ void ci_stat_memblock_merge(ci_stat_memblock_t *to_block, const ci_stat_memblock
         case CI_STAT_TIME_US_T:
         case CI_STAT_TIME_MS_T:
             if (!history)
-                to_block->stats[i].counter = (to_block->stats[i].counter + from_block->stats[i].counter) / 2;
+                to_block->stats[i].counter = (existing_instances * to_block->stats[i].counter + from_block->stats[i].counter) / (existing_instances + 1);
             break;
         default:
             /*print error?*/

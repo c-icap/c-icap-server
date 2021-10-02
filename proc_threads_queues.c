@@ -331,7 +331,7 @@ int remove_child(struct childs_queue *q, process_pid_t pid, int status)
             }
             child_stats = q->stats_area + i * (q->stats_block_size);
             assert(ci_stat_memblock_check(child_stats));
-            ci_stat_memblock_merge(q->stats_history, child_stats, 1);
+            ci_stat_memblock_merge(q->stats_history, child_stats, 1, q->srv_stats->closed_childs);
             q->srv_stats->history_requests += q->childs[i].requests;
             q->srv_stats->closed_childs++;
             if (status)

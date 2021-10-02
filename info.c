@@ -65,14 +65,16 @@ struct time_counters_ids{
     int id;
     int per_request:1;
     int per_time:1;
+    int average:1;
 } InfoTimeCountersId[] = {
     /*TODO: Make the InfoTimeCountersId array configurable*/
-    {"BYTES IN", CI_STAT_KBS_T, "General", -1, 1, 1},
-    {"BYTES OUT", CI_STAT_KBS_T, "General", -1, 1, 1},
-    {"HTTP BYTES IN", CI_STAT_KBS_T, "General", -1, 1, 1},
-    {"HTTP BYTES OUT", CI_STAT_KBS_T, "General", -1, 1, 1},
-    {"BODY BYTES IN", CI_STAT_KBS_T, "General", -1, 1, 1},
-    {"BODY BYTES OUT", CI_STAT_KBS_T, "General", -1, 1, 1},
+    {"TIME PER REQUEST", CI_STAT_TIME_US_T, "General", -1, 0, 0, 1},
+    {"BYTES IN", CI_STAT_KBS_T, "General", -1, 1, 1, 0},
+    {"BYTES OUT", CI_STAT_KBS_T, "General", -1, 1, 1, 0},
+    {"HTTP BYTES IN", CI_STAT_KBS_T, "General", -1, 1, 1, 0},
+    {"HTTP BYTES OUT", CI_STAT_KBS_T, "General", -1, 1, 1, 0},
+    {"BODY BYTES IN", CI_STAT_KBS_T, "General", -1, 1, 1, 0},
+    {"BODY BYTES OUT", CI_STAT_KBS_T, "General", -1, 1, 1, 0},
     {NULL, 0, NULL, -1, 0, 0}
 };
 #define InfoTimeCountersIdLength (sizeof(InfoTimeCountersId) / sizeof(InfoTimeCountersId[0]))
@@ -84,6 +86,7 @@ struct time_range_stats {
     int children;
     ci_kbs_t kbs_per_sec[InfoTimeCountersIdLength];
     ci_kbs_t kbs_per_request[InfoTimeCountersIdLength];
+    uint64_t uint64_average[InfoTimeCountersIdLength];
 };
 
 struct info_time_stats {
@@ -271,7 +274,7 @@ void fill_queue_statistics(struct childs_queue *q, struct info_req_data *info_da
 
             stats = q->stats_area + i * (q->stats_block_size);
             assert(ci_stat_memblock_check(stats));
-            ci_stat_memblock_merge(info_data->collect_stats, stats, 0);
+            ci_stat_memblock_merge(info_data->collect_stats, stats, 0, (info_data->childs - 1));
         } else if (q->childs[i].pid != 0 && q->childs[i].to_be_killed) {
             if (info_data->closing_child_pids)
                 info_data->closing_child_pids[info_data->closing_childs] = q->childs[i].pid;
@@ -281,7 +284,7 @@ void fill_queue_statistics(struct childs_queue *q, struct info_req_data *info_da
     /*Merge history data*/
     stats = q->stats_area + q->size * q->stats_block_size;
     assert(ci_stat_memblock_check(stats));
-    ci_stat_memblock_merge(info_data->collect_stats, stats, 1);
+    ci_stat_memblock_merge(info_data->collect_stats, stats, 1, info_data->childs);
 
     srv_stats =
         (struct server_statistics *)(q->stats_area + q->size * q->stats_block_size + q->stats_block_size);
@@ -657,6 +660,16 @@ static int build_statistics(struct info_req_data *info_data)
             ci_membuf_write(info_data->body, buf, sz, 0);
 
             for (j = 0; InfoTimeCountersId[j].name != NULL; j++) {
+                if (InfoTimeCountersId[j].average) {
+                    sz = 0;
+                    if (InfoTimeCountersId[j].type == CI_STAT_TIME_US_T)
+                        sz = snprintf(buf, sizeof(buf), tmpl->simple_table_item_usec, InfoTimeCountersId[j].name, time_servers[k].v->uint64_average[j]);
+                    if (sz >= sizeof(buf))
+                        sz = sizeof(buf) - 1;
+                    ci_membuf_write(info_data->body, buf, sz, 0);
+                }
+            }
+            for (j = 0; InfoTimeCountersId[j].name != NULL; j++) {
                 if (InfoTimeCountersId[j].per_time) {
                     char label[256];
                     snprintf(label, sizeof(label), "%s per second", InfoTimeCountersId[j].name);
@@ -722,6 +735,7 @@ struct info_time_stats_snapshot {
     int servers;
     int used_servers;
     ci_kbs_t kbs_counters_instance[InfoTimeCountersIdLength];
+    uint64_t uint64_average[InfoTimeCountersIdLength];
 };
 
 static struct info_time_stats_snapshot OneMinSecs[60];
@@ -738,10 +752,12 @@ struct info_time_stats_snapshot_results {
     int used_servers;
     const ci_kbs_t *kbs_counters_instance_start;
     const ci_kbs_t *kbs_counters_instance_end;
+    uint64_t uint64_average[InfoTimeCountersIdLength];
 };
 
 static void append_snapshots(struct info_time_stats_snapshot_results *result, const struct info_time_stats_snapshot *add)
 {
+    int i;
     result->snapshots += add->snapshots;
 
     if (result->when_start > add->when || result->when_start == 0) {
@@ -760,6 +776,8 @@ static void append_snapshots(struct info_time_stats_snapshot_results *result, co
     result->children += add->children;
     result->servers += add->servers;
     result->used_servers += add->used_servers;
+    for (i = 0; i < InfoTimeCountersIdLength; i++)
+        result->uint64_average[i] += add->uint64_average[i];
 }
 
 static void build_time_range_stats(struct time_range_stats *tr, const struct info_time_stats_snapshot_results *accumulated, time_t time_range)
@@ -780,6 +798,8 @@ static void build_time_range_stats(struct time_range_stats *tr, const struct inf
             tr->kbs_per_request[i].bytes = requests ? (bytes / requests) : 0;
         if (InfoTimeCountersId[i].per_time)
             tr->kbs_per_sec[i].bytes = bytes / period;
+        if (InfoTimeCountersId[i].average)
+            tr->uint64_average[i] = accumulated->uint64_average[i] / accumulated->children; /*Includes accumulated->snapshot*/
     }
 }
 
@@ -818,9 +838,14 @@ static struct info_time_stats_snapshot *take_snapshot(time_t curr_time)
     minsnapshot->requests = q->srv_stats->history_requests;
     for (k = 0; InfoTimeCountersId[k].name != NULL; k++) {
         if (InfoTimeCountersId[k].id >= 0) {
-            ci_kbs_t kbs = ci_stat_memblock_get_kbs(q->stats_history, InfoTimeCountersId[k].id);
-            snapshot->kbs_counters_instance[k] = kbs;
-            minsnapshot->kbs_counters_instance[k] = kbs;
+            if (InfoTimeCountersId[k].type == CI_STAT_KBS_T) {
+                ci_kbs_t kbs = ci_stat_memblock_get_kbs(q->stats_history, InfoTimeCountersId[k].id);
+                snapshot->kbs_counters_instance[k] = kbs;
+                minsnapshot->kbs_counters_instance[k] = kbs;
+            } else {
+                snapshot->uint64_average[k] = 0;
+                minsnapshot->uint64_average[k] = 0;
+            }
         }
     }
 
@@ -840,9 +865,15 @@ static struct info_time_stats_snapshot *take_snapshot(time_t curr_time)
             stats = (ci_stat_memblock_t *)(q->stats_area + i * (q->stats_block_size));
             for (k = 0; InfoTimeCountersId[k].name != NULL; k++) {
                 if (InfoTimeCountersId[k].id >= 0) {
-                    ci_kbs_t kbs = ci_stat_memblock_get_kbs(stats, InfoTimeCountersId[k].id);
-                    ci_kbs_add_to(&snapshot->kbs_counters_instance[k], &kbs);
-                    ci_kbs_add_to(&minsnapshot->kbs_counters_instance[k], &kbs);
+                    if (InfoTimeCountersId[k].type == CI_STAT_KBS_T) {
+                        ci_kbs_t kbs = ci_stat_memblock_get_kbs(stats, InfoTimeCountersId[k].id);
+                        ci_kbs_add_to(&snapshot->kbs_counters_instance[k], &kbs);
+                        ci_kbs_add_to(&minsnapshot->kbs_counters_instance[k], &kbs);
+                    } else if (InfoTimeCountersId[k].average) {
+                        uint64_t val = ci_stat_memblock_get_counter(stats, InfoTimeCountersId[k].id);
+                        snapshot->uint64_average[k] += val;
+                        minsnapshot->uint64_average[k] += val;
+                    }
                 }
             }
         }
