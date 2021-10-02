@@ -339,6 +339,9 @@ void init_extra_data(ci_service_xdata_t * srv_xdata, const char *service)
     snprintf(buf, sizeof(buf), "Service %s ALLOW 206", service);
     srv_xdata->stat_allow206 = service_stat_entry_register(buf, CI_STAT_INT64_T, stat_group);
 
+    snprintf(buf, sizeof(buf), "Service %s TIME PER REQUEST", service);
+    srv_xdata->stat_time_per_request = service_stat_entry_register(buf, CI_STAT_TIME_US_T, stat_group);
+
     snprintf(buf, sizeof(buf), "Service %s BYTES IN", service);
     srv_xdata->stat_bytes_in = service_stat_entry_register(buf, CI_STAT_KBS_T, stat_group);
 
@@ -356,9 +359,6 @@ void init_extra_data(ci_service_xdata_t * srv_xdata, const char *service)
 
     snprintf(buf, sizeof(buf), "Service %s BODY BYTES OUT", service);
     srv_xdata->stat_body_bytes_out = service_stat_entry_register(buf, CI_STAT_KBS_T, stat_group);
-
-    snprintf(buf, sizeof(buf), "Service %s TIME PER REQUEST", service);
-    srv_xdata->stat_time_per_request = service_stat_entry_register(buf, CI_STAT_TIME_US_T, stat_group);
 }
 
 /*Must called only in initialization procedure.
