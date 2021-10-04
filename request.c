@@ -1830,7 +1830,7 @@ int process_request(ci_request_t * req)
         srv_xdata->stat_time.accumulated_time += us;
         srv_xdata->stat_time.accumulated_proc_time += req_processing_time;
     }
-    ci_debug_printf(1, "Accumulated time %lld, %d\n", (long long)STAT_TIME.accumulated_time, STAT_TIME.requests);
+    ci_debug_printf(9, "Accumulated time %lld, %d\n", (long long)STAT_TIME.accumulated_time, STAT_TIME.requests);
 
     if (srv_xdata) {
         STAT_KBS_INC_NL(STATS, srv_xdata->stat_bytes_in, req->bytes_in);
