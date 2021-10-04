@@ -342,6 +342,9 @@ void init_extra_data(ci_service_xdata_t * srv_xdata, const char *service)
     snprintf(buf, sizeof(buf), "Service %s TIME PER REQUEST", service);
     srv_xdata->stat_time_per_request = service_stat_entry_register(buf, CI_STAT_TIME_US_T, stat_group);
 
+    snprintf(buf, sizeof(buf), "Service %s PROCESSING TIME PER REQUEST", service);
+    srv_xdata->stat_proc_time_per_request = service_stat_entry_register(buf, CI_STAT_TIME_US_T, stat_group);
+
     snprintf(buf, sizeof(buf), "Service %s BYTES IN", service);
     srv_xdata->stat_bytes_in = service_stat_entry_register(buf, CI_STAT_KBS_T, stat_group);
 

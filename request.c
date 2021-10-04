@@ -67,10 +67,12 @@ static int STAT_OPTIONS = -1;
 static int STAT_ALLOW204 = -1;
 static int STAT_ALLOW206 = -1;
 static int STAT_TIME_PER_REQUESTS = -1;
+static int STAT_PROC_TIME_PER_REQUESTS = -1;
 
 static struct timestats {
     time_t indx;
     uint64_t accumulated_time;
+    uint64_t accumulated_proc_time;
     int requests;
 } STAT_TIME = {0, 0, 0};
 
@@ -91,6 +93,7 @@ void request_stats_init()
     STAT_ALLOW204 = request_stat_entry_register("ALLOW 204", CI_STAT_INT64_T, "General");
     STAT_ALLOW206 = request_stat_entry_register("ALLOW 206", CI_STAT_INT64_T, "General");
     STAT_TIME_PER_REQUESTS = request_stat_entry_register("TIME PER REQUEST", CI_STAT_TIME_US_T, "General");
+    STAT_PROC_TIME_PER_REQUESTS = request_stat_entry_register("PROCESSING TIME PER REQUEST", CI_STAT_TIME_US_T, "General");
 
     STAT_BYTES_IN = request_stat_entry_register("BYTES IN", CI_STAT_KBS_T, "General");
     STAT_BYTES_OUT = request_stat_entry_register("BYTES OUT", CI_STAT_KBS_T, "General");
@@ -1796,27 +1799,36 @@ int process_request(ci_request_t * req)
     STAT_KBS_INC_NL(STATS, STAT_BODY_BYTES_IN, req->body_bytes_in);
     STAT_KBS_INC_NL(STATS, STAT_BODY_BYTES_OUT, req->body_bytes_out);
 
+    uint64_t req_processing_time = req->processing_time / 1000;
     time_t curr_time = ci_clock_time_to_unixtime(&req->stop_w_t);
     if (curr_time > STAT_TIME.indx) {
         if (STAT_TIME.requests) {
             uint64_t val = STAT_TIME.accumulated_time / STAT_TIME.requests;
             *(ci_stat_uint64_ptr(STAT_TIME_PER_REQUESTS)) = val;
+            val = STAT_TIME.accumulated_proc_time / STAT_TIME.requests;
+            *(ci_stat_uint64_ptr(STAT_PROC_TIME_PER_REQUESTS)) = val;
         }
         STAT_TIME.indx = curr_time;
         STAT_TIME.accumulated_time = 0;
+        STAT_TIME.accumulated_proc_time = 0;
         STAT_TIME.requests = 0;
 
-        if (srv_xdata->stat_time.requests)
+        if (srv_xdata->stat_time.requests) {
             *(ci_stat_uint64_ptr(srv_xdata->stat_time_per_request)) = srv_xdata->stat_time.accumulated_time / srv_xdata->stat_time.requests;
+            *(ci_stat_uint64_ptr(srv_xdata->stat_proc_time_per_request)) = srv_xdata->stat_time.accumulated_proc_time / srv_xdata->stat_time.requests;
+        }
         srv_xdata->stat_time.indx = curr_time;
         srv_xdata->stat_time.accumulated_time = 0;
+        srv_xdata->stat_time.accumulated_proc_time = 0;
         srv_xdata->stat_time.requests = 0;
     } else {
         uint64_t us = ci_clock_time_diff_micro(&req->stop_w_t, &req->start_r_t);
         STAT_TIME.accumulated_time += us;
+        STAT_TIME.accumulated_proc_time += req_processing_time;
         STAT_TIME.requests++;
         srv_xdata->stat_time.requests++;
         srv_xdata->stat_time.accumulated_time += us;
+        srv_xdata->stat_time.accumulated_proc_time += req_processing_time;
     }
     ci_debug_printf(1, "Accumulated time %lld, %d\n", (long long)STAT_TIME.accumulated_time, STAT_TIME.requests);
 

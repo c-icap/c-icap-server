@@ -69,6 +69,7 @@ struct time_counters_ids{
 } InfoTimeCountersId[] = {
     /*TODO: Make the InfoTimeCountersId array configurable*/
     {"TIME PER REQUEST", CI_STAT_TIME_US_T, "General", -1, 0, 0, 1},
+    {"PROCESSING TIME PER REQUEST", CI_STAT_TIME_US_T, "General", -1, 0, 0, 1},
     {"BYTES IN", CI_STAT_KBS_T, "General", -1, 1, 1, 0},
     {"BYTES OUT", CI_STAT_KBS_T, "General", -1, 1, 1, 0},
     {"HTTP BYTES IN", CI_STAT_KBS_T, "General", -1, 1, 1, 0},
