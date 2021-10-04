@@ -81,6 +81,7 @@ struct time_counters_ids{
 #define InfoTimeCountersIdLength (sizeof(InfoTimeCountersId) / sizeof(InfoTimeCountersId[0]))
 
 struct time_range_stats {
+    uint64_t requests;
     uint64_t requests_per_sec;
     int used_servers;
     int max_servers;
@@ -640,6 +641,11 @@ static int build_statistics(struct info_req_data *info_data)
                 sz = sizeof(buf) - 1;
             ci_membuf_write(info_data->body, buf, sz, 0);
 
+            sz = snprintf(buf, sizeof(buf), tmpl->simple_table_item_int, "Requests", time_servers[k].v->requests);
+            if (sz >= sizeof(buf))
+                sz = sizeof(buf) - 1;
+            ci_membuf_write(info_data->body, buf, sz, 0);
+
             sz = snprintf(buf, sizeof(buf), tmpl->simple_table_item_int, "Requests/second", time_servers[k].v->requests_per_sec);
             if (sz >= sizeof(buf))
                 sz = sizeof(buf) - 1;
@@ -788,6 +794,7 @@ static void build_time_range_stats(struct time_range_stats *tr, const struct inf
     time_t period = accumulated->when_end > accumulated->when_start ? accumulated->when_end - accumulated->when_start : 1;
     if (period < time_range)
         return;
+    tr->requests = requests;
     tr->requests_per_sec = requests / period;
     tr->max_servers = accumulated->servers / accumulated->snapshots;
     tr->used_servers = accumulated->used_servers / accumulated->snapshots;
