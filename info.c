@@ -80,7 +80,7 @@ struct time_counters_ids{
 };
 #define InfoTimeCountersIdLength (sizeof(InfoTimeCountersId) / sizeof(InfoTimeCountersId[0]))
 
-struct time_range_stats {
+struct per_time_stats {
     uint64_t requests;
     uint64_t requests_per_sec;
     int used_servers;
@@ -92,11 +92,11 @@ struct time_range_stats {
 };
 
 struct info_time_stats {
-    struct time_range_stats _1sec;
-    struct time_range_stats _1min;
-    struct time_range_stats _5min;
-    struct time_range_stats _30min;
-    struct time_range_stats _60min;
+    struct per_time_stats _1sec;
+    struct per_time_stats _1min;
+    struct per_time_stats _5min;
+    struct per_time_stats _30min;
+    struct per_time_stats _60min;
 };
 
 struct info_req_data {
@@ -121,7 +121,7 @@ extern ci_proc_mutex_t accept_mutex;
 
 int InfoSharedMemId = -1;
 
-static int build_statistics(struct info_req_data *info_data);
+static int print_statistics(struct info_req_data *info_data);
 static void info_monitor_init_cmd(const char *name, int type, void *data);
 static void info_monitor_periodic_cmd(const char *name, int type, void *data);
 
@@ -221,9 +221,8 @@ int info_check_preview_handler(char *preview_data, int preview_data_len,
     ci_http_response_add_header(req, "Content-Type: text/html");
     ci_http_response_add_header(req, "Content-Language: en");
     ci_http_response_add_header(req, "Connection: close");
-    if (info_data->body) {
-        build_statistics (info_data);
-    }
+    if (!print_statistics(info_data))
+        return CI_ERROR;
 
     return CI_MOD_CONTINUE;
 }
@@ -356,7 +355,7 @@ struct subgroups_data {
     ci_membuf_t *body;
 };
 
-static int build_subgroup_statistics_row(void *data, const char *label, int id, int gId, const ci_stat_t *stat)
+static int print_subgroup_stat_item(void *data, const char *label, int id, int gId, const ci_stat_t *stat)
 {
     char buf[256];
     ci_kbs_t kbs;
@@ -396,7 +395,7 @@ static int build_subgroup_statistics_row(void *data, const char *label, int id, 
     return 0;
 }
 
-static int build_subgroups_statistics_table(void *data, const char *grp_name, int group_id, int master_group_id)
+static int print_subgroup_stat_row(void *data, const char *grp_name, int group_id, int master_group_id)
 {
     char buf[1024];
     size_t sz;
@@ -409,7 +408,7 @@ static int build_subgroups_statistics_table(void *data, const char *grp_name, in
     if (ci_array_size(subgroups_data->current_row) > 0)
         ci_str_array_rebuild(subgroups_data->current_row);
 
-    ci_stat_statistics_iterate(data, group_id, build_subgroup_statistics_row);
+    ci_stat_statistics_iterate(data, group_id, print_subgroup_stat_item);
 
     struct stats_tmpl *tmpl = subgroups_data->txt_mode ? &txt_tmpl : &html_tmpl;
     int i;
@@ -447,7 +446,7 @@ static int build_subgroups_statistics_table(void *data, const char *grp_name, in
     return 0;
 }
 
-static int print_statistics(void *data, const char *label, int id, int gId, const ci_stat_t *stat)
+static int print_stat_item(void *data, const char *label, int id, int gId, const ci_stat_t *stat)
 {
     char buf[1024];
     int sz;
@@ -517,7 +516,7 @@ static int print_group_statistics(void *data, const char *grp_name, int group_id
         sz = sizeof(buf) - 1;
     ci_membuf_write(info_data->body, buf, sz, 0);
 
-    ci_stat_statistics_iterate(data, group_id, print_statistics);
+    ci_stat_statistics_iterate(data, group_id, print_stat_item);
     sz = snprintf(buf, sizeof(buf), "%s", tmpl->simple_table_end);
     if (sz >= sizeof(buf))
         sz = sizeof(buf) - 1;
@@ -526,7 +525,7 @@ static int print_group_statistics(void *data, const char *grp_name, int group_id
 }
 
 
-static void build_running_servers_statistics(struct info_req_data *info_data)
+static void print_running_servers_statistics(struct info_req_data *info_data)
 {
     char buf[1024];
     int sz, i;
@@ -609,26 +608,92 @@ static void build_running_servers_statistics(struct info_req_data *info_data)
     tmp_membuf = NULL;
 }
 
-static int build_statistics(struct info_req_data *info_data)
+static void print_per_time_table(struct info_req_data *info_data, const char *label, struct per_time_stats *time_stats)
 {
-    char buf[1024];
-    int sz, k, j;
+    int sz, j;
     struct stats_tmpl *tmpl;
+    char buf[1024];
 
     if (info_data->txt_mode)
         tmpl = &txt_tmpl;
     else
         tmpl = &html_tmpl;
 
-    if (!info_data->body)
-        return 0;
+    sz = snprintf(buf, sizeof(buf), tmpl->simple_table_start, label);
+    if (sz >= sizeof(buf))
+        sz = sizeof(buf) - 1;
+    ci_membuf_write(info_data->body, buf, sz, 0);
 
-    fill_queue_statistics(childs_queue, info_data);
-    build_running_servers_statistics(info_data);
+    sz = snprintf(buf, sizeof(buf), tmpl->simple_table_item_int, "Requests", time_stats->requests);
+    if (sz >= sizeof(buf))
+        sz = sizeof(buf) - 1;
+    ci_membuf_write(info_data->body, buf, sz, 0);
+
+    sz = snprintf(buf, sizeof(buf), tmpl->simple_table_item_int, "Requests/second", time_stats->requests_per_sec);
+    if (sz >= sizeof(buf))
+        sz = sizeof(buf) - 1;
+    ci_membuf_write(info_data->body, buf, sz, 0);
+
+    sz = snprintf(buf, sizeof(buf), tmpl->simple_table_item_int, "Average used servers", time_stats->used_servers);
+    if (sz >= sizeof(buf))
+        sz = sizeof(buf) - 1;
+    ci_membuf_write(info_data->body, buf, sz, 0);
+
+    sz = snprintf(buf, sizeof(buf), tmpl->simple_table_item_int, "Average running servers", time_stats->max_servers);
+    if (sz >= sizeof(buf))
+        sz = sizeof(buf) - 1;
+    ci_membuf_write(info_data->body, buf, sz, 0);
+
+    sz = snprintf(buf, sizeof(buf), tmpl->simple_table_item_int, "Average running children", time_stats->children);
+    if (sz >= sizeof(buf))
+        sz = sizeof(buf) - 1;
+    ci_membuf_write(info_data->body, buf, sz, 0);
+
+    for (j = 0; InfoTimeCountersId[j].name != NULL; j++) {
+        if (InfoTimeCountersId[j].average) {
+            sz = 0;
+            if (InfoTimeCountersId[j].type == CI_STAT_TIME_US_T)
+                sz = snprintf(buf, sizeof(buf), tmpl->simple_table_item_usec, InfoTimeCountersId[j].name, time_stats->uint64_average[j]);
+            if (sz >= sizeof(buf))
+                sz = sizeof(buf) - 1;
+            ci_membuf_write(info_data->body, buf, sz, 0);
+        }
+    }
+    for (j = 0; InfoTimeCountersId[j].name != NULL; j++) {
+        if (InfoTimeCountersId[j].per_time) {
+            char label[256];
+            snprintf(label, sizeof(label), "%s per second", InfoTimeCountersId[j].name);
+            sz = snprintf(buf, sizeof(buf), tmpl->simple_table_item_kbs, label, ci_kbs_kilobytes(&time_stats->kbs_per_sec[j]), ci_kbs_remainder_bytes(&time_stats->kbs_per_sec[j]));
+            if (sz >= sizeof(buf))
+                sz = sizeof(buf) - 1;
+            ci_membuf_write(info_data->body, buf, sz, 0);
+        }
+    }
+
+    for (j = 0; InfoTimeCountersId[j].name != NULL; j++) {
+        if (InfoTimeCountersId[j].per_request) {
+            char label[256];
+            snprintf(label, sizeof(label), "%s per request", InfoTimeCountersId[j].name);
+            sz = snprintf(buf, sizeof(buf), tmpl->simple_table_item_kbs, label, ci_kbs_kilobytes(&time_stats->kbs_per_request[j]), ci_kbs_remainder_bytes(&time_stats->kbs_per_request[j]));
+            if (sz >= sizeof(buf))
+                sz = sizeof(buf) - 1;
+            ci_membuf_write(info_data->body, buf, sz, 0);
+        }
+    }
+
+    sz = snprintf(buf, sizeof(buf), "%s", tmpl->simple_table_end);
+    if (sz >= sizeof(buf))
+        sz = sizeof(buf) - 1;
+    ci_membuf_write(info_data->body, buf, sz, 0);
+}
+
+static void print_per_time_stats(struct info_req_data *info_data)
+{
     if (info_data->info_time_stats) {
+        int k;
         struct {
             const char *label;
-            struct time_range_stats *v;
+            struct per_time_stats *v;
         } time_servers[5] = {{"Current", &info_data->info_time_stats->_1sec},
                              {"Last 1 minute", &info_data->info_time_stats->_1min},
                              {"Last 5 minutes", &info_data->info_time_stats->_5min},
@@ -636,100 +701,60 @@ static int build_statistics(struct info_req_data *info_data)
                              {"Last 60 minutes", &info_data->info_time_stats->_60min}};
 
         for (k = 0; k < 5; ++k) {
-            sz = snprintf(buf, sizeof(buf), tmpl->simple_table_start, time_servers[k].label);
-            if (sz >= sizeof(buf))
-                sz = sizeof(buf) - 1;
-            ci_membuf_write(info_data->body, buf, sz, 0);
-
-            sz = snprintf(buf, sizeof(buf), tmpl->simple_table_item_int, "Requests", time_servers[k].v->requests);
-            if (sz >= sizeof(buf))
-                sz = sizeof(buf) - 1;
-            ci_membuf_write(info_data->body, buf, sz, 0);
-
-            sz = snprintf(buf, sizeof(buf), tmpl->simple_table_item_int, "Requests/second", time_servers[k].v->requests_per_sec);
-            if (sz >= sizeof(buf))
-                sz = sizeof(buf) - 1;
-            ci_membuf_write(info_data->body, buf, sz, 0);
-
-            sz = snprintf(buf, sizeof(buf), tmpl->simple_table_item_int, "Average used servers", time_servers[k].v->used_servers);
-            if (sz >= sizeof(buf))
-                sz = sizeof(buf) - 1;
-            ci_membuf_write(info_data->body, buf, sz, 0);
-
-            sz = snprintf(buf, sizeof(buf), tmpl->simple_table_item_int, "Average running servers", time_servers[k].v->max_servers);
-            if (sz >= sizeof(buf))
-                sz = sizeof(buf) - 1;
-            ci_membuf_write(info_data->body, buf, sz, 0);
-
-            sz = snprintf(buf, sizeof(buf), tmpl->simple_table_item_int, "Average running children", time_servers[k].v->children);
-            if (sz >= sizeof(buf))
-                sz = sizeof(buf) - 1;
-            ci_membuf_write(info_data->body, buf, sz, 0);
-
-            for (j = 0; InfoTimeCountersId[j].name != NULL; j++) {
-                if (InfoTimeCountersId[j].average) {
-                    sz = 0;
-                    if (InfoTimeCountersId[j].type == CI_STAT_TIME_US_T)
-                        sz = snprintf(buf, sizeof(buf), tmpl->simple_table_item_usec, InfoTimeCountersId[j].name, time_servers[k].v->uint64_average[j]);
-                    if (sz >= sizeof(buf))
-                        sz = sizeof(buf) - 1;
-                    ci_membuf_write(info_data->body, buf, sz, 0);
-                }
-            }
-            for (j = 0; InfoTimeCountersId[j].name != NULL; j++) {
-                if (InfoTimeCountersId[j].per_time) {
-                    char label[256];
-                    snprintf(label, sizeof(label), "%s per second", InfoTimeCountersId[j].name);
-                    sz = snprintf(buf, sizeof(buf), tmpl->simple_table_item_kbs, label, ci_kbs_kilobytes(&time_servers[k].v->kbs_per_sec[j]), ci_kbs_remainder_bytes(&time_servers[k].v->kbs_per_sec[j]));
-                    if (sz >= sizeof(buf))
-                        sz = sizeof(buf) - 1;
-                    ci_membuf_write(info_data->body, buf, sz, 0);
-                }
-            }
-
-            for (j = 0; InfoTimeCountersId[j].name != NULL; j++) {
-                if (InfoTimeCountersId[j].per_request) {
-                    char label[256];
-                    snprintf(label, sizeof(label), "%s per request", InfoTimeCountersId[j].name);
-                    sz = snprintf(buf, sizeof(buf), tmpl->simple_table_item_kbs, label, ci_kbs_kilobytes(&time_servers[k].v->kbs_per_request[j]), ci_kbs_remainder_bytes(&time_servers[k].v->kbs_per_request[j]));
-                    if (sz >= sizeof(buf))
-                        sz = sizeof(buf) - 1;
-                    ci_membuf_write(info_data->body, buf, sz, 0);
-                }
-            }
-
-            sz = snprintf(buf, sizeof(buf), "%s", tmpl->simple_table_end);
-            if (sz >= sizeof(buf))
-                sz = sizeof(buf) - 1;
-            ci_membuf_write(info_data->body, buf, sz, 0);
+            print_per_time_table(info_data, time_servers[k].label, time_servers[k].v);
         }
 
     }
+}
+
+static void print_mempools(struct info_req_data *info_data)
+{
+    int sz;
+    char buf[1024];
+    struct stats_tmpl *tmpl;
+    if (info_data->txt_mode)
+        tmpl = &txt_tmpl;
+    else
+        tmpl = &html_tmpl;
 
     struct subgroups_data mempools_data = {
-    name: "pool",
-    labels : ci_str_vector_create(1024),
-    current_row : ci_str_array_new(2048),
-    memory_pools_master_group_id: info_data->memory_pools_master_group_id,
-    collect_stats: info_data->collect_stats,
-    txt_mode: info_data->txt_mode,
-    body: info_data->body
+        name: "pool",
+        labels : ci_str_vector_create(1024),
+        current_row : ci_str_array_new(2048),
+        memory_pools_master_group_id: info_data->memory_pools_master_group_id,
+        collect_stats: info_data->collect_stats,
+        txt_mode: info_data->txt_mode,
+        body: info_data->body
     };
     sz = snprintf(buf, sizeof(buf), tmpl->simple_table_start, "Memory pools");
     if (sz >= sizeof(buf))
         sz = sizeof(buf) - 1;
     ci_membuf_write(info_data->body, buf, sz, 0);
-    ci_stat_groups_iterate(&mempools_data, build_subgroups_statistics_table);
+    ci_stat_groups_iterate(&mempools_data, print_subgroup_stat_row);
     sz = snprintf(buf, sizeof(buf), "%s", tmpl->simple_table_end);
     if (sz >= sizeof(buf))
         sz = sizeof(buf) - 1;
     ci_membuf_write(info_data->body, buf, sz, 0);
     ci_str_vector_destroy(mempools_data.labels);
     ci_str_array_destroy(mempools_data.current_row);
+}
 
+static void print_group_tables(struct info_req_data *info_data)
+{
     ci_stat_groups_iterate(info_data, print_group_statistics);
-    ci_membuf_write(info_data->body, NULL, 0, 1);
+}
 
+static int print_statistics(struct info_req_data *info_data)
+{
+    if (!info_data->body)
+        return 0;
+
+    fill_queue_statistics(childs_queue, info_data);
+    print_running_servers_statistics(info_data);
+    print_per_time_stats(info_data);
+    print_mempools(info_data);
+    print_group_tables(info_data);
+    ci_membuf_write(info_data->body, NULL, 0, 1);
     return 1;
 }
 
@@ -787,7 +812,7 @@ static void append_snapshots(struct info_time_stats_snapshot_results *result, co
         result->uint64_average[i] += add->uint64_average[i];
 }
 
-static void build_time_range_stats(struct time_range_stats *tr, const struct info_time_stats_snapshot_results *accumulated, time_t time_range)
+static void build_per_time_stats(struct per_time_stats *tr, const struct info_time_stats_snapshot_results *accumulated, time_t time_range)
 {
     int i;
     uint64_t requests = accumulated->requests_end - accumulated->requests_start;
@@ -909,7 +934,7 @@ static void process_snapshot(const struct info_time_stats_snapshot *snapshot)
     if (BACKSECS > 0) {
         append_snapshots(&stats_1s, prevsnapshot);
         append_snapshots(&stats_1s, snapshot);
-        build_time_range_stats(&info_tstats->_1sec, &stats_1s, 1);
+        build_per_time_stats(&info_tstats->_1sec, &stats_1s, 1);
 
         ci_debug_printf(10, "children %d, used servers: %d/%d, request rate: %"PRIu64"\n",
                         info_tstats->_1sec.children,
@@ -926,7 +951,7 @@ static void process_snapshot(const struct info_time_stats_snapshot *snapshot)
             append_snapshots(&stats_1m, &OneMinSecs[i]);
         }
     }
-    build_time_range_stats(&info_tstats->_1min, &stats_1m, 60 - 2);
+    build_per_time_stats(&info_tstats->_1min, &stats_1m, 60 - 2);
 
     struct info_time_stats_snapshot_results stats_5m;
     struct info_time_stats_snapshot_results stats_30m;
@@ -945,9 +970,9 @@ static void process_snapshot(const struct info_time_stats_snapshot *snapshot)
             append_snapshots(&stats_60m, &OneHourMins[i]);
         }
     }
-    build_time_range_stats(&info_tstats->_5min, &stats_5m, 300 - 10);
-    build_time_range_stats(&info_tstats->_30min, &stats_30m, 1800 - 60);
-    build_time_range_stats(&info_tstats->_60min, &stats_60m, 3600 - 60);
+    build_per_time_stats(&info_tstats->_5min, &stats_5m, 300 - 10);
+    build_per_time_stats(&info_tstats->_30min, &stats_30m, 1800 - 60);
+    build_per_time_stats(&info_tstats->_60min, &stats_60m, 3600 - 60);
 }
 
 
