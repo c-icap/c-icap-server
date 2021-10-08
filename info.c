@@ -99,9 +99,12 @@ struct info_time_stats {
     struct per_time_stats _60min;
 };
 
+enum { PRINT_INFO_MENU, PRINT_ALL_TABLES, PRINT_SOME_TABLES };
 struct info_req_data {
+    char *url;
     ci_membuf_t *body;
     int txt_mode;
+    int print_page;
     int childs;
     int *child_pids;
     int free_servers;
@@ -114,6 +117,7 @@ struct info_req_data {
     int memory_pools_master_group_id;
     ci_stat_memblock_t *collect_stats;
     struct info_time_stats *info_time_stats;
+    ci_str_vector_t *tables;
 };
 
 extern struct childs_queue *childs_queue;
@@ -121,6 +125,7 @@ extern ci_proc_mutex_t accept_mutex;
 
 int InfoSharedMemId = -1;
 
+static void parse_info_arguments(struct info_req_data *info_data, char *args);
 static int print_statistics(struct info_req_data *info_data);
 static void info_monitor_init_cmd(const char *name, int type, void *data);
 static void info_monitor_periodic_cmd(const char *name, int type, void *data);
@@ -150,6 +155,7 @@ void info_close_service()
     ci_debug_printf(5,"Service %s shutdown!\n", info_service.mod_name);
 }
 
+int url_decoder(const char *input,char *output, int output_len);
 void *info_init_request_data(ci_request_t * req)
 {
     struct info_req_data *info_data;
@@ -157,6 +163,7 @@ void *info_init_request_data(ci_request_t * req)
     info_data = malloc(sizeof(struct info_req_data));
 
     info_data->body = ci_membuf_new_sized(32*1024);
+    info_data->print_page = PRINT_INFO_MENU;
     info_data->childs = 0;
     info_data->child_pids = malloc(childs_queue->size * sizeof(int));
     info_data->free_servers = 0;
@@ -167,11 +174,13 @@ void *info_init_request_data(ci_request_t * req)
     info_data->closed_childs = 0;
     info_data->crashed_childs = 0;
     info_data->txt_mode = 0;
-    if (req->args[0] != '\0') {
-        if (strstr(req->args, "view=text"))
-            info_data->txt_mode = 1;
-    }
+    info_data->tables = NULL;
     info_data->memory_pools_master_group_id = ci_stat_group_find("Memory Pools");
+    if (req->args[0] != '\0') {
+        char decoded_args[256];
+        if (url_decoder(req->args, decoded_args, sizeof(decoded_args)) > 0)
+            parse_info_arguments(info_data, decoded_args);
+    }
 
     void *mem = malloc(ci_stat_memblock_size());
     info_data->collect_stats = mem ? ci_stat_memblock_init(mem, ci_stat_memblock_size()) : NULL;
@@ -188,6 +197,9 @@ void info_release_request_data(void *data)
 {
     struct info_req_data *info_data = (struct info_req_data *)data;
 
+    if (info_data->url)
+        ci_buffer_free(info_data->url);
+
     if (info_data->body)
         ci_membuf_free(info_data->body);
 
@@ -200,17 +212,32 @@ void info_release_request_data(void *data)
     if (info_data->collect_stats)
         free(info_data->collect_stats);
 
+    if (info_data->tables)
+        ci_str_vector_destroy(info_data->tables);
     free(info_data);
 }
 
-
+int url_decoder2(char *input);
 int info_check_preview_handler(char *preview_data, int preview_data_len,
                                ci_request_t * req)
 {
     struct info_req_data *info_data = ci_service_data(req);
-
+    char url[1024];
+    char *args;
     if (ci_req_hasbody(req))
         return CI_MOD_ALLOW204;
+
+    if (ci_http_request_url2(req, url, sizeof(url), CI_HTTP_REQUEST_URL_ARGS)) {
+        int url_size = url_decoder2(url);
+        info_data->url = ci_buffer_alloc(url_size);
+        if (!info_data->url)
+            return CI_ERROR;
+        memcpy(info_data->url, url, url_size);
+
+        if ((args = strchr(url, '?'))) {
+            parse_info_arguments(info_data, args);
+        }
+    }
 
     ci_req_unlock_data(req);
 
@@ -510,6 +537,10 @@ static int print_group_statistics(void *data, const char *grp_name, int group_id
     struct info_req_data *info_data = (struct info_req_data *)data;
     if (master_group_id == info_data->memory_pools_master_group_id)
         return 0; /*They are handled in their own table*/
+
+    if (info_data->print_page == PRINT_SOME_TABLES && info_data->tables && !ci_str_vector_search(info_data->tables, grp_name))
+        return 0;
+
     struct stats_tmpl *tmpl = info_data->txt_mode ? &txt_tmpl : &html_tmpl;
     sz = snprintf(buf, sizeof(buf), tmpl->simple_table_start, grp_name);
     if (sz >= sizeof(buf))
@@ -531,6 +562,10 @@ static void print_running_servers_statistics(struct info_req_data *info_data)
     int sz, i;
     struct stats_tmpl *tmpl;
     ci_membuf_t *tmp_membuf = NULL;
+    const char *TableName = "Running servers";
+
+    if (info_data->print_page == PRINT_SOME_TABLES && info_data->tables && !ci_str_vector_search(info_data->tables, TableName))
+        return;
 
     if (info_data->txt_mode)
         tmpl = &txt_tmpl;
@@ -539,7 +574,7 @@ static void print_running_servers_statistics(struct info_req_data *info_data)
 
     assert(info_data->body);
 
-    sz = snprintf(buf, sizeof(buf), tmpl->simple_table_start, "Running Servers");
+    sz = snprintf(buf, sizeof(buf), tmpl->simple_table_start, TableName);
     ci_membuf_write(info_data->body, buf, sz < sizeof(buf) ? sz : sizeof(buf), 0);
     sz = snprintf(buf, sizeof(buf), tmpl->simple_table_item_int, "Children number", info_data->childs);
     ci_membuf_write(info_data->body, buf, sz < sizeof(buf) ? sz : sizeof(buf), 0);
@@ -701,6 +736,8 @@ static void print_per_time_stats(struct info_req_data *info_data)
                              {"Last 60 minutes", &info_data->info_time_stats->_60min}};
 
         for (k = 0; k < 5; ++k) {
+            if (info_data->print_page == PRINT_SOME_TABLES && info_data->tables && !ci_str_vector_search(info_data->tables, time_servers[k].label))
+                continue;
             print_per_time_table(info_data, time_servers[k].label, time_servers[k].v);
         }
 
@@ -712,10 +749,14 @@ static void print_mempools(struct info_req_data *info_data)
     int sz;
     char buf[1024];
     struct stats_tmpl *tmpl;
+    const char *TableName = "Memory pools";
     if (info_data->txt_mode)
         tmpl = &txt_tmpl;
     else
         tmpl = &html_tmpl;
+
+    if (info_data->print_page == PRINT_SOME_TABLES && info_data->tables && !ci_str_vector_search(info_data->tables, TableName))
+        return;
 
     struct subgroups_data mempools_data = {
         name: "pool",
@@ -726,7 +767,7 @@ static void print_mempools(struct info_req_data *info_data)
         txt_mode: info_data->txt_mode,
         body: info_data->body
     };
-    sz = snprintf(buf, sizeof(buf), tmpl->simple_table_start, "Memory pools");
+    sz = snprintf(buf, sizeof(buf), tmpl->simple_table_start, TableName);
     if (sz >= sizeof(buf))
         sz = sizeof(buf) - 1;
     ci_membuf_write(info_data->body, buf, sz, 0);
@@ -744,16 +785,79 @@ static void print_group_tables(struct info_req_data *info_data)
     ci_stat_groups_iterate(info_data, print_group_statistics);
 }
 
+static void print_link(struct info_req_data *info_data, const char *label, const char *table)
+{
+    char buf[512];
+    size_t sz;
+    int hasArgs = (strchr(info_data->url, '?') != NULL);
+    if (info_data->txt_mode)
+        sz = snprintf(buf, sizeof(buf), "\t'%s': for '%s' statistics\n", table, label);
+    else
+        sz = snprintf(buf, sizeof(buf), "<li><A href=%s%ctable=%s> %s </A></li>\n", info_data->url, (hasArgs ? '&' : '?'), table, label);
+
+    if (sz >= sizeof(buf))
+        sz = sizeof(buf) - 1;
+    ci_membuf_write(info_data->body, buf, sz, 0);
+}
+
+static int print_group(void *data, const char *grp_name, int group_id, int master_group_id)
+{
+    char url_encoded_name[256];
+    char *s;
+    struct info_req_data *info_data = (struct info_req_data *)data;
+    if (master_group_id == CI_STAT_GROUP_MASTER)
+        return 0;
+    if (master_group_id == info_data->memory_pools_master_group_id)
+        return 0; /*They are handled in their own table*/
+    /*TODO: use a ci_url_encode function when this is will be implemented*/
+    snprintf(url_encoded_name, sizeof(url_encoded_name), "%s", grp_name);
+    s = url_encoded_name;
+    while(*s) { if (*s == ' ') *s = '+'; s++;}
+    print_link(info_data, grp_name, url_encoded_name);
+    return 0;
+}
+
+static void print_menu(struct info_req_data *info_data)
+{
+    char buf[512];
+    size_t sz;
+    if (info_data->txt_mode)
+        sz = snprintf(buf, sizeof(buf), "Statistic topics:\n");
+    else
+        sz = snprintf(buf, sizeof(buf), "<H1>Statistic topics</H1>\n<ul>\n");
+
+    if (sz >= sizeof(buf))
+        sz = sizeof(buf) - 1;
+    ci_membuf_write(info_data->body, buf, sz, 0);
+
+    print_link(info_data, "Running servers", "Running+servers");
+    print_link(info_data, "Current", "Current");
+    print_link(info_data, "Last 1 minute", "Last+1+minute");
+    print_link(info_data, "Last 5 minutes", "Last+5+minutes");
+    print_link(info_data, "Last 30 minutes", "Last+30+minutes");
+    print_link(info_data, "Last 60 minutes", "Last+60+minutes");
+    print_link(info_data, "Memory pools", "Memory+pools");
+    ci_stat_groups_iterate(info_data, print_group);
+    print_link(info_data, "All", "*");
+
+    if (!info_data->txt_mode)
+        sz = snprintf(buf, sizeof(buf), "</ul>\n");
+}
+
 static int print_statistics(struct info_req_data *info_data)
 {
     if (!info_data->body)
         return 0;
 
-    fill_queue_statistics(childs_queue, info_data);
-    print_running_servers_statistics(info_data);
-    print_per_time_stats(info_data);
-    print_mempools(info_data);
-    print_group_tables(info_data);
+    if (info_data->print_page == PRINT_INFO_MENU) {
+        print_menu(info_data);
+    } else {
+        fill_queue_statistics(childs_queue, info_data);
+        print_running_servers_statistics(info_data);
+        print_per_time_stats(info_data);
+        print_mempools(info_data);
+        print_group_tables(info_data);
+    }
     ci_membuf_write(info_data->body, NULL, 0, 1);
     return 1;
 }
@@ -975,6 +1079,29 @@ static void process_snapshot(const struct info_time_stats_snapshot *snapshot)
     build_per_time_stats(&info_tstats->_60min, &stats_60m, 3600 - 60);
 }
 
+static void parse_info_arguments(struct info_req_data *info_data, char *args)
+{
+    char *s, *e;
+    if (strstr(args, "view=text"))
+        info_data->txt_mode = 1;
+    if (strstr(args, "table=*"))
+        info_data->print_page = PRINT_ALL_TABLES;
+
+    s = args;
+    while (info_data->print_page != PRINT_ALL_TABLES && (s = strstr(s, "table=")) != NULL) {
+        if (!info_data->tables)
+            info_data->tables = ci_str_vector_create(1024);
+        _CI_ASSERT(info_data->tables);
+        if ((e = strchr(s, '&')))
+            *e = '\0';
+        else
+            e = s + strlen(s) - 1;
+        const char *table = s + 6;
+        ci_str_vector_add(info_data->tables, table);
+        info_data->print_page = PRINT_SOME_TABLES;
+        s = e + 1;
+    }
+}
 
 void info_monitor_init_cmd(const char *name, int type, void *data)
 {
