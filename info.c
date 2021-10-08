@@ -99,11 +99,12 @@ struct info_time_stats {
     struct per_time_stats _60min;
 };
 
+enum {OUT_FMT_TEXT, OUT_FMT_HTML, OUT_FMT_CVS};
 enum { PRINT_INFO_MENU, PRINT_ALL_TABLES, PRINT_SOME_TABLES };
 struct info_req_data {
     char *url;
     ci_membuf_t *body;
-    int txt_mode;
+    int format;
     int print_page;
     int childs;
     int *child_pids;
@@ -173,7 +174,7 @@ void *info_init_request_data(ci_request_t * req)
     info_data->started_childs = 0;
     info_data->closed_childs = 0;
     info_data->crashed_childs = 0;
-    info_data->txt_mode = 0;
+    info_data->format = OUT_FMT_HTML;
     info_data->tables = NULL;
     info_data->memory_pools_master_group_id = ci_stat_group_find("Memory Pools");
     if (req->args[0] != '\0') {
@@ -378,7 +379,7 @@ struct subgroups_data {
     ci_str_array_t *current_row;
     int memory_pools_master_group_id;
     ci_stat_memblock_t *collect_stats;
-    int txt_mode;
+    int format;
     ci_membuf_t *body;
 };
 
@@ -437,7 +438,7 @@ static int print_subgroup_stat_row(void *data, const char *grp_name, int group_i
 
     ci_stat_statistics_iterate(data, group_id, print_subgroup_stat_item);
 
-    struct stats_tmpl *tmpl = subgroups_data->txt_mode ? &txt_tmpl : &html_tmpl;
+    struct stats_tmpl *tmpl = subgroups_data->format == OUT_FMT_TEXT ? &txt_tmpl : &html_tmpl;
     int i;
     if (ci_vector_size(subgroups_data->labels) == 0) {
         const char *label;
@@ -482,7 +483,7 @@ static int print_stat_item(void *data, const char *label, int id, int gId, const
     assert(label);
     assert(data);
     struct info_req_data *info_data = (struct info_req_data *)data;
-    struct stats_tmpl *tmpl = info_data->txt_mode ? &txt_tmpl : &html_tmpl;
+    struct stats_tmpl *tmpl = info_data->format == OUT_FMT_TEXT ? &txt_tmpl : &html_tmpl;
     switch (stat->type) {
     case CI_STAT_INT64_T:
         sz = snprintf(buf, sizeof(buf),
@@ -541,7 +542,7 @@ static int print_group_statistics(void *data, const char *grp_name, int group_id
     if (info_data->print_page == PRINT_SOME_TABLES && info_data->tables && !ci_str_vector_search(info_data->tables, grp_name))
         return 0;
 
-    struct stats_tmpl *tmpl = info_data->txt_mode ? &txt_tmpl : &html_tmpl;
+    struct stats_tmpl *tmpl = info_data->format == OUT_FMT_TEXT ? &txt_tmpl : &html_tmpl;
     sz = snprintf(buf, sizeof(buf), tmpl->simple_table_start, grp_name);
     if (sz >= sizeof(buf))
         sz = sizeof(buf) - 1;
@@ -567,7 +568,7 @@ static void print_running_servers_statistics(struct info_req_data *info_data)
     if (info_data->print_page == PRINT_SOME_TABLES && info_data->tables && !ci_str_vector_search(info_data->tables, TableName))
         return;
 
-    if (info_data->txt_mode)
+    if (info_data->format == OUT_FMT_TEXT)
         tmpl = &txt_tmpl;
     else
         tmpl = &html_tmpl;
@@ -649,7 +650,7 @@ static void print_per_time_table(struct info_req_data *info_data, const char *la
     struct stats_tmpl *tmpl;
     char buf[1024];
 
-    if (info_data->txt_mode)
+    if (info_data->format == OUT_FMT_TEXT)
         tmpl = &txt_tmpl;
     else
         tmpl = &html_tmpl;
@@ -750,7 +751,7 @@ static void print_mempools(struct info_req_data *info_data)
     char buf[1024];
     struct stats_tmpl *tmpl;
     const char *TableName = "Memory pools";
-    if (info_data->txt_mode)
+    if (info_data->format == OUT_FMT_TEXT)
         tmpl = &txt_tmpl;
     else
         tmpl = &html_tmpl;
@@ -764,7 +765,7 @@ static void print_mempools(struct info_req_data *info_data)
         current_row : ci_str_array_new(2048),
         memory_pools_master_group_id: info_data->memory_pools_master_group_id,
         collect_stats: info_data->collect_stats,
-        txt_mode: info_data->txt_mode,
+        format: info_data->format,
         body: info_data->body
     };
     sz = snprintf(buf, sizeof(buf), tmpl->simple_table_start, TableName);
@@ -790,7 +791,7 @@ static void print_link(struct info_req_data *info_data, const char *label, const
     char buf[512];
     size_t sz;
     int hasArgs = (strchr(info_data->url, '?') != NULL);
-    if (info_data->txt_mode)
+    if (info_data->format == OUT_FMT_TEXT)
         sz = snprintf(buf, sizeof(buf), "\t'%s': for '%s' statistics\n", table, label);
     else
         sz = snprintf(buf, sizeof(buf), "<li><A href=%s%ctable=%s> %s </A></li>\n", info_data->url, (hasArgs ? '&' : '?'), table, label);
@@ -821,7 +822,7 @@ static void print_menu(struct info_req_data *info_data)
 {
     char buf[512];
     size_t sz;
-    if (info_data->txt_mode)
+    if (info_data->format == OUT_FMT_TEXT)
         sz = snprintf(buf, sizeof(buf), "Statistic topics:\n");
     else
         sz = snprintf(buf, sizeof(buf), "<H1>Statistic topics</H1>\n<ul>\n");
@@ -840,7 +841,7 @@ static void print_menu(struct info_req_data *info_data)
     ci_stat_groups_iterate(info_data, print_group);
     print_link(info_data, "All", "*");
 
-    if (!info_data->txt_mode)
+    if (!info_data->format == OUT_FMT_TEXT)
         sz = snprintf(buf, sizeof(buf), "</ul>\n");
 }
 
@@ -1083,7 +1084,7 @@ static void parse_info_arguments(struct info_req_data *info_data, char *args)
 {
     char *s, *e;
     if (strstr(args, "view=text"))
-        info_data->txt_mode = 1;
+        info_data->format = OUT_FMT_TEXT;
     if (strstr(args, "table=*"))
         info_data->print_page = PRINT_ALL_TABLES;
 
