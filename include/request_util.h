@@ -341,6 +341,21 @@ CI_DECLARE_FUNC(const char *) ci_http_request(ci_request_t *req);
  */
 CI_DECLARE_FUNC(int) ci_http_request_url(ci_request_t * req, char *buf, int buf_size);
 
+#define CI_HTTP_REQUEST_URL_ARGS 1
+/**
+ \ingroup HTTP
+ \brief Returns the URL (e.g "http://www.chtsanti.net") from http request
+ *
+ * It can be used with both request and response modification ICAP requests.
+ * Similar with the ci_http_request_url but also accepts a flags argument.
+ \param req is a pointer to the current ICAP request object.
+ \param buf a buffer to store the url
+ \param buf_size the "buf" buffer size
+ \param flags the CI_HTTP_REQUEST_URL_ARGS flag is supported
+ \return The bytes written to the "buf" buffer
+ */
+CI_DECLARE_FUNC(int) ci_http_request_url2(ci_request_t * req, char *buf, int buf_size, int flags);
+
 /**
  \ingroup HTTP
  \brief Return the http client ip address if this information is available

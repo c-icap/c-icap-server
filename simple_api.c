@@ -266,7 +266,7 @@ CI_DECLARE_FUNC(const char *) ci_icap_response_get_header(ci_request_t *req, con
 }
 
 #define header_end(e) (e == '\0' || e == '\n' || e == '\r')
-int ci_http_request_url(ci_request_t * req, char *buf, int buf_size)
+int ci_http_request_url2(ci_request_t * req, char *buf, int buf_size, int flags)
 {
     ci_headers_list_t *heads;
     const char *str, *host;
@@ -302,13 +302,22 @@ int ci_http_request_url(ci_request_t * req, char *buf, int buf_size)
     }
 
     /*copy the url...*/
-    for (i = 0; (i < buf_size-1) && !header_end(str[i]) && !isspace(str[i]) && str[i] != '?'; i++) {
-        buf[i] = str[i];
-    }
+    if (flags & CI_HTTP_REQUEST_URL_ARGS)
+        for (i = 0; (i < buf_size-1) && !header_end(str[i]) && !isspace(str[i]); i++)
+            buf[i] = str[i];
+    else
+        for (i = 0; (i < buf_size-1) && !header_end(str[i]) && !isspace(str[i]) && str[i] != '?'; i++)
+            buf[i] = str[i];
+
     buf[i] = '\0';
     bytes += i;
     return bytes;
 }
+
+int ci_http_request_url(ci_request_t * req, char *buf, int buf_size) {
+    return ci_http_request_url2(req, buf, buf_size, 0);
+}
+
 
 const ci_ip_t * ci_http_client_ip(ci_request_t * req)
 {
