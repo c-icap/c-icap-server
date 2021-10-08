@@ -246,7 +246,10 @@ int info_check_preview_handler(char *preview_data, int preview_data_len,
 
     ci_http_response_add_header(req, "HTTP/1.0 200 OK");
     ci_http_response_add_header(req, "Server: C-ICAP");
-    ci_http_response_add_header(req, "Content-Type: text/html");
+    if (info_data->format == OUT_FMT_TEXT)
+        ci_http_response_add_header(req, "Content-Type: text/plain");
+    else
+        ci_http_response_add_header(req, "Content-Type: text/html");
     ci_http_response_add_header(req, "Content-Language: en");
     ci_http_response_add_header(req, "Connection: close");
     if (!print_statistics(info_data))
