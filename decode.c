@@ -162,7 +162,7 @@ CI_DECLARE_FUNC(int) url_decoder(const char *input,char *output, int output_len)
     if (k == output_len-1)
         return -1;
 
-    return 1;
+    return k;
 }
 
 CI_DECLARE_FUNC(int) url_decoder2(char *input)
@@ -188,7 +188,7 @@ CI_DECLARE_FUNC(int) url_decoder2(char *input)
         k++;
     }
     input[k] = '\0';
-    return 1;
+    return k;
 }
 
 
