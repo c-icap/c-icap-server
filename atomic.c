@@ -47,28 +47,28 @@ static ci_proc_mutex_t proc_mtx[MTX_SIZE];
 #define get_mtx(array, pointer) (&array[((size_t)((void *)pointer - (void *)0)) % MTX_SIZE])
 
 #define _implement_atomic_ops(name, type)                               \
-    void ci_atomic_load_##name(type *counter, type *store) {            \
+    void ci_atomic_load_##name(const type *counter, type *store) {      \
         ci_thread_mutex_t *mtx = get_mtx(thr_mtx, counter);             \
         ci_thread_mutex_lock(mtx);                                      \
-        *counter = *store;                                              \
+        *store = *counter;                                              \
         ci_thread_mutex_unlock(mtx);                                    \
     }                                                                   \
     void ci_atomic_add_##name(type *counter, type add) {                \
         ci_thread_mutex_t *mtx = get_mtx(thr_mtx, counter);             \
         ci_thread_mutex_lock(mtx);                                      \
         *counter += add;                                                \
-        ci_thread_mutex_unlock(mtx);                                   \
+        ci_thread_mutex_unlock(mtx);                                    \
     }                                                                   \
     void ci_atomic_sub_##name(type *counter, type sub) {                \
         ci_thread_mutex_t *mtx = get_mtx(thr_mtx, counter);             \
-        ci_thread_mutex_lock(mtx);                                     \
+        ci_thread_mutex_lock(mtx);                                      \
         *counter -= sub;                                                \
         ci_thread_mutex_unlock(mtx);                                    \
     }                                                                   \
-    void ci_atomic_load_##name ## _gl(type *counter, type *store) {     \
+    void ci_atomic_load_##name ## _gl(const type *counter, type *store) { \
         ci_proc_mutex_t *mtx = get_mtx(proc_mtx, counter);              \
         ci_proc_mutex_lock(mtx);                                        \
-        *counter = *store;                                              \
+        *store = *counter;                                              \
         ci_proc_mutex_unlock(mtx);                                      \
     }                                                                   \
     void ci_atomic_add_##name ## _gl(type *counter, type add) {         \
