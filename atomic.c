@@ -53,6 +53,12 @@ static ci_proc_mutex_t proc_mtx[MTX_SIZE];
         *store = *counter;                                              \
         ci_thread_mutex_unlock(mtx);                                    \
     }                                                                   \
+    void ci_atomic_store_##name(type *counter, type store) {            \
+        ci_thread_mutex_t *mtx = get_mtx(thr_mtx, counter);             \
+        ci_thread_mutex_lock(mtx);                                      \
+        *counter = *store;                                              \
+        ci_thread_mutex_unlock(mtx);                                    \
+    }                                                                   \
     void ci_atomic_add_##name(type *counter, type add) {                \
         ci_thread_mutex_t *mtx = get_mtx(thr_mtx, counter);             \
         ci_thread_mutex_lock(mtx);                                      \
@@ -69,6 +75,12 @@ static ci_proc_mutex_t proc_mtx[MTX_SIZE];
         ci_proc_mutex_t *mtx = get_mtx(proc_mtx, counter);              \
         ci_proc_mutex_lock(mtx);                                        \
         *store = *counter;                                              \
+        ci_proc_mutex_unlock(mtx);                                      \
+    }                                                                   \
+    void ci_atomic_store_##name ## _gl(type *counter, type store) {     \
+        ci_proc_mutex_t *mtx = get_mtx(proc_mtx, counter);              \
+        ci_proc_mutex_lock(mtx);                                        \
+        *counter = *store;                                              \
         ci_proc_mutex_unlock(mtx);                                      \
     }                                                                   \
     void ci_atomic_add_##name ## _gl(type *counter, type add) {         \
