@@ -99,13 +99,14 @@ struct info_time_stats {
     struct per_time_stats _60min;
 };
 
-enum {OUT_FMT_TEXT, OUT_FMT_HTML, OUT_FMT_CVS};
+enum {OUT_FMT_TEXT, OUT_FMT_HTML, OUT_FMT_CSV};
 enum { PRINT_INFO_MENU, PRINT_ALL_TABLES, PRINT_SOME_TABLES };
 struct info_req_data {
     char *url;
     ci_membuf_t *body;
     int format;
     int print_page;
+    time_t time;
     int childs;
     int *child_pids;
     int free_servers;
@@ -165,6 +166,7 @@ void *info_init_request_data(ci_request_t * req)
 
     info_data->body = ci_membuf_new_sized(32*1024);
     info_data->print_page = PRINT_INFO_MENU;
+    info_data->time = 0;
     info_data->childs = 0;
     info_data->child_pids = malloc(childs_queue->size * sizeof(int));
     info_data->free_servers = 0;
@@ -248,6 +250,8 @@ int info_check_preview_handler(char *preview_data, int preview_data_len,
     ci_http_response_add_header(req, "Server: C-ICAP");
     if (info_data->format == OUT_FMT_TEXT)
         ci_http_response_add_header(req, "Content-Type: text/plain");
+    else if (info_data->format == OUT_FMT_CSV)
+        ci_http_response_add_header(req, "Content-Type: text/csv");
     else
         ci_http_response_add_header(req, "Content-Type: text/html");
     ci_http_response_add_header(req, "Content-Language: en");
@@ -324,6 +328,7 @@ void fill_queue_statistics(struct childs_queue *q, struct info_req_data *info_da
     info_data->started_childs = srv_stats->started_childs;
     info_data->closed_childs = srv_stats->closed_childs;
     info_data->crashed_childs = srv_stats->crashed_childs;
+    time(&info_data->time);
 }
 
 struct stats_tmpl {
@@ -401,20 +406,27 @@ static int print_subgroup_stat_item(void *data, const char *label, int id, int g
         break;
     case CI_STAT_KBS_T:
         kbs = ci_stat_memblock_get_kbs(subgroups_data->collect_stats, id);
-        snprintf(buf, sizeof(buf),
-                 "%" PRIu64 " Kbs %" PRIu64 " bytes",
-                 ci_kbs_kilobytes(&kbs),
-                 ci_kbs_remainder_bytes(&kbs));
+        if (subgroups_data->format == OUT_FMT_CSV)
+            snprintf(buf, sizeof(buf), "%" PRIu64, kbs.bytes);
+        else
+            snprintf(buf, sizeof(buf),
+                     "%" PRIu64 " Kbs %" PRIu64 " bytes",
+                     ci_kbs_kilobytes(&kbs),
+                     ci_kbs_remainder_bytes(&kbs));
         break;
     case CI_STAT_TIME_US_T:
         snprintf(buf, sizeof(buf),
-                 "%" PRIu64 " usec",
-                 ci_stat_memblock_get_counter(subgroups_data->collect_stats, id));
+                 "%" PRIu64 "%s",
+                 ci_stat_memblock_get_counter(subgroups_data->collect_stats, id),
+                 (subgroups_data->format == OUT_FMT_CSV ? "" : " usec")
+            );
         break;
     case CI_STAT_TIME_MS_T:
         snprintf(buf, sizeof(buf),
-                 "%" PRIu64 " msec",
-                 ci_stat_memblock_get_counter(subgroups_data->collect_stats, id));
+                 "%" PRIu64 "%s",
+                 ci_stat_memblock_get_counter(subgroups_data->collect_stats, id),
+                 (subgroups_data->format == OUT_FMT_CSV ? "" : " msec")
+            );
         break;
     default:
         buf[0] = '-';
@@ -423,6 +435,40 @@ static int print_subgroup_stat_item(void *data, const char *label, int id, int g
     }
     ci_debug_printf(8, "SubGroup item %s:%s\n", label, buf);
     ci_str_array_add(subgroups_data->current_row, label, buf);
+    return 0;
+}
+
+static int print_subgroup_stat_row_csv(struct subgroups_data *subgroups_data, const char *row_name)
+{
+    char buf[1024];
+    int sz, i;
+    if (ci_vector_size(subgroups_data->labels) == 0) {
+        sz = snprintf(buf, sizeof(buf), "\"%s\"", subgroups_data->name);
+        _CI_ASSERT(sz < sizeof(buf));
+        ci_membuf_write(subgroups_data->body, buf, sz, 0);
+        const char *label;
+        for (i = 0; (label = ci_array_name(subgroups_data->current_row, i)) != NULL; i++) {
+            ci_str_vector_add(subgroups_data->labels, label);
+            sz = snprintf(buf, sizeof(buf), "\"%s\"", label);
+            _CI_ASSERT(sz < sizeof(buf));
+            ci_membuf_write(subgroups_data->body, buf, sz, 0);
+        }
+        ci_membuf_write(subgroups_data->body, "\n", 1, 0);
+    }
+
+    sz = snprintf(buf, sizeof(buf), "\"%s\"", row_name);
+    _CI_ASSERT(sz < sizeof(buf));
+    ci_membuf_write(subgroups_data->body, buf, sz, 0);
+    for (i = 0; i < ci_vector_size(subgroups_data->labels); i++) {
+        const char *val = "";
+        const char *item = ci_str_vector_get(subgroups_data->labels, i);
+        if (item)
+            val = ci_str_array_search(subgroups_data->current_row, item);
+        sz = snprintf(buf, sizeof(buf), ",%s", val);
+        _CI_ASSERT(sz < sizeof(buf));
+        ci_membuf_write(subgroups_data->body, buf, sz, 0);
+    }
+    ci_membuf_write(subgroups_data->body, "\n", 1, 0);
     return 0;
 }
 
@@ -440,6 +486,9 @@ static int print_subgroup_stat_row(void *data, const char *grp_name, int group_i
         ci_str_array_rebuild(subgroups_data->current_row);
 
     ci_stat_statistics_iterate(data, group_id, print_subgroup_stat_item);
+
+    if (subgroups_data->format == OUT_FMT_CSV)
+        return print_subgroup_stat_row_csv(subgroups_data, grp_name);
 
     struct stats_tmpl *tmpl = subgroups_data->format == OUT_FMT_TEXT ? &txt_tmpl : &html_tmpl;
     int i;
@@ -474,6 +523,63 @@ static int print_subgroup_stat_row(void *data, const char *grp_name, int group_i
         ci_membuf_write(subgroups_data->body, buf, sz, 0);
     }
     ci_membuf_write(subgroups_data->body, tmpl->table_row_end, strlen(tmpl->table_row_end), 0);
+    return 0;
+}
+
+static int print_stat_label_csv(void *data, const char *label, int id, int gId, const ci_stat_t *stat)
+{
+    char buf[256];
+    int sz;
+    _CI_ASSERT(label);
+    _CI_ASSERT(data);
+    sz = snprintf(buf, sizeof(buf), ",\"%s\"", label);
+    if (sz >= sizeof(buf))
+        sz = sizeof(buf) - 1;
+    struct info_req_data *info_data = (struct info_req_data *)data;
+    ci_membuf_write(info_data->body, buf, sz, 0);
+    return 0;
+}
+
+static int print_stat_item_csv(void *data, const char *label, int id, int gId, const ci_stat_t *stat)
+{
+    char buf[128];
+    int sz;
+    ci_kbs_t kbs;
+    uint64_t value = 0;
+    _CI_ASSERT(stat);
+    _CI_ASSERT(label);
+    _CI_ASSERT(data);
+    struct info_req_data *info_data = (struct info_req_data *)data;
+    switch (stat->type) {
+    case CI_STAT_INT64_T:
+    case CI_STAT_TIME_US_T:
+    case CI_STAT_TIME_MS_T:
+        value = ci_stat_memblock_get_counter(info_data->collect_stats, id);
+        break;
+    case CI_STAT_KBS_T:
+        kbs = ci_stat_memblock_get_kbs(info_data->collect_stats, id);
+        value = kbs.bytes;
+        break;
+    default:
+        break;
+    }
+    sz = snprintf(buf, sizeof(buf), ",%" PRIu64, value);
+    _CI_ASSERT(sz < sizeof(buf));
+    ci_membuf_write(info_data->body, buf, sz, 0);
+    return 0;
+}
+
+static int print_group_statistics_csv(struct info_req_data *info_data, const char *grp_name, int group_id, int master_group_id)
+{
+    char buf[128];
+    int sz;
+    sz = snprintf(buf, sizeof(buf), "\"Time\"");
+    ci_membuf_write(info_data->body, buf, sz, 0);
+    ci_stat_statistics_iterate(info_data, group_id, print_stat_label_csv);
+    sz = snprintf(buf, sizeof(buf), "\n%lld", (long long)info_data->time);
+    ci_membuf_write(info_data->body, buf, sz, 0);
+    ci_stat_statistics_iterate(info_data, group_id, print_stat_item_csv);
+    ci_membuf_write(info_data->body, "\n", 1, 0);
     return 0;
 }
 
@@ -545,6 +651,9 @@ static int print_group_statistics(void *data, const char *grp_name, int group_id
     if (info_data->print_page == PRINT_SOME_TABLES && info_data->tables && !ci_str_vector_search(info_data->tables, grp_name))
         return 0;
 
+    if (info_data->format == OUT_FMT_CSV)
+        return print_group_statistics_csv(info_data, grp_name, group_id, master_group_id);
+
     struct stats_tmpl *tmpl = info_data->format == OUT_FMT_TEXT ? &txt_tmpl : &html_tmpl;
     sz = snprintf(buf, sizeof(buf), tmpl->simple_table_start, grp_name);
     if (sz >= sizeof(buf))
@@ -559,6 +668,17 @@ static int print_group_statistics(void *data, const char *grp_name, int group_id
     return 0;
 }
 
+static void print_running_servers_statistics_csv(struct info_req_data *info_data)
+{
+    char buf[1024];
+    int sz;
+    sz = snprintf(buf, sizeof(buf), "\"Unix Time\",\"Children number\",\"Free Servers\",\"Used Servers\",\"Started Processes\",\"Closed Processes\",\"Crashed Processes\",\"Closing Processes\"\n");
+    ci_membuf_write(info_data->body, buf, sz, 0);
+    sz = snprintf(buf, sizeof(buf), "%lld,%d,%d,%d,%d,%d,%d,%u\n",
+                  (long long)info_data->time, info_data->childs, info_data->free_servers, info_data->used_servers, info_data->started_childs, info_data->closed_childs, info_data->crashed_childs, info_data->closing_childs);
+    _CI_ASSERT(sz < sizeof(buf));
+    ci_membuf_write(info_data->body, buf, sz, 0);
+}
 
 static void print_running_servers_statistics(struct info_req_data *info_data)
 {
@@ -571,6 +691,8 @@ static void print_running_servers_statistics(struct info_req_data *info_data)
     if (info_data->print_page == PRINT_SOME_TABLES && info_data->tables && !ci_str_vector_search(info_data->tables, TableName))
         return;
 
+    if (info_data->format == OUT_FMT_CSV)
+        return print_running_servers_statistics_csv(info_data);
     if (info_data->format == OUT_FMT_TEXT)
         tmpl = &txt_tmpl;
     else
@@ -647,13 +769,71 @@ static void print_running_servers_statistics(struct info_req_data *info_data)
     tmp_membuf = NULL;
 }
 
+static void print_per_time_table_csv(struct info_req_data *info_data, const char *label, struct per_time_stats *time_stats)
+{
+    char buf[1024];
+    int sz, j;
+    sz = snprintf(buf, sizeof(buf), "\"Time\",\"Requests\",\"Requests/second\",\"Average used servers\",\"Average running servers\",\"Average running children\"");
+    ci_membuf_write(info_data->body, buf, sz, 0);
+    for (j = 0; InfoTimeCountersId[j].name != NULL; j++) {
+        if (InfoTimeCountersId[j].average) {
+            sz = snprintf(buf, sizeof(buf), ",\"%s\"", InfoTimeCountersId[j].name);
+            _CI_ASSERT(sz < sizeof(buf));
+            ci_membuf_write(info_data->body, buf, sz, 0);
+        }
+    }
+    for (j = 0; InfoTimeCountersId[j].name != NULL; j++) {
+        if (InfoTimeCountersId[j].per_time) {
+            sz = snprintf(buf, sizeof(buf), ",\"%s\"", InfoTimeCountersId[j].name);
+            _CI_ASSERT(sz < sizeof(buf));
+            ci_membuf_write(info_data->body, buf, sz, 0);
+        }
+    }
+    for (j = 0; InfoTimeCountersId[j].name != NULL; j++) {
+        if (InfoTimeCountersId[j].per_request) {
+            sz = snprintf(buf, sizeof(buf), ",\"%s\"", InfoTimeCountersId[j].name);
+            _CI_ASSERT(sz < sizeof(buf));
+            ci_membuf_write(info_data->body, buf, sz, 0);
+        }
+    }
+    ci_membuf_write(info_data->body, "\n", 1, 0);
+    sz = snprintf(buf, sizeof(buf), "%lld,%" PRIu64 ",%" PRIu64 ",%d,%d,%d", (long long)info_data->time, time_stats->requests, time_stats->requests_per_sec, time_stats->used_servers, time_stats->max_servers, time_stats->children);
+    _CI_ASSERT(sz < sizeof(buf));
+    ci_membuf_write(info_data->body, buf, sz, 0);
+
+    for (j = 0; InfoTimeCountersId[j].name != NULL; j++) {
+        if (InfoTimeCountersId[j].average) {
+            sz = snprintf(buf, sizeof(buf), ",%" PRIu64 "", time_stats->uint64_average[j]);
+            _CI_ASSERT(sz < sizeof(buf));
+            ci_membuf_write(info_data->body, buf, sz, 0);
+        }
+    }
+    for (j = 0; InfoTimeCountersId[j].name != NULL; j++) {
+        if (InfoTimeCountersId[j].per_time) {
+            sz = snprintf(buf, sizeof(buf), ",%" PRIu64, time_stats->kbs_per_sec[j].bytes);
+            _CI_ASSERT(sz < sizeof(buf));
+            ci_membuf_write(info_data->body, buf, sz, 0);
+        }
+    }
+    for (j = 0; InfoTimeCountersId[j].name != NULL; j++) {
+        if (InfoTimeCountersId[j].per_request) {
+            sz = snprintf(buf, sizeof(buf), ",%" PRIu64, time_stats->kbs_per_request[j].bytes);
+            _CI_ASSERT(sz < sizeof(buf));
+            ci_membuf_write(info_data->body, buf, sz, 0);
+        }
+    }
+    ci_membuf_write(info_data->body, "\n", 1, 0);
+}
+
 static void print_per_time_table(struct info_req_data *info_data, const char *label, struct per_time_stats *time_stats)
 {
     int sz, j;
     struct stats_tmpl *tmpl;
     char buf[1024];
 
-    if (info_data->format == OUT_FMT_TEXT)
+    if (info_data->format == OUT_FMT_CSV)
+        return print_per_time_table_csv(info_data, label, time_stats);
+    else if (info_data->format == OUT_FMT_TEXT)
         tmpl = &txt_tmpl;
     else
         tmpl = &html_tmpl;
@@ -754,13 +934,14 @@ static void print_mempools(struct info_req_data *info_data)
     char buf[1024];
     struct stats_tmpl *tmpl;
     const char *TableName = "Memory pools";
+
+    if (info_data->print_page == PRINT_SOME_TABLES && info_data->tables && !ci_str_vector_search(info_data->tables, TableName))
+        return;
+
     if (info_data->format == OUT_FMT_TEXT)
         tmpl = &txt_tmpl;
     else
         tmpl = &html_tmpl;
-
-    if (info_data->print_page == PRINT_SOME_TABLES && info_data->tables && !ci_str_vector_search(info_data->tables, TableName))
-        return;
 
     struct subgroups_data mempools_data = {
         name: "pool",
@@ -771,15 +952,22 @@ static void print_mempools(struct info_req_data *info_data)
         format: info_data->format,
         body: info_data->body
     };
-    sz = snprintf(buf, sizeof(buf), tmpl->simple_table_start, TableName);
-    if (sz >= sizeof(buf))
-        sz = sizeof(buf) - 1;
-    ci_membuf_write(info_data->body, buf, sz, 0);
+
+    if (info_data->format != OUT_FMT_CSV) {
+        sz = snprintf(buf, sizeof(buf), tmpl->simple_table_start, TableName);
+        if (sz >= sizeof(buf))
+            sz = sizeof(buf) - 1;
+        ci_membuf_write(info_data->body, buf, sz, 0);
+    }
+
     ci_stat_groups_iterate(&mempools_data, print_subgroup_stat_row);
-    sz = snprintf(buf, sizeof(buf), "%s", tmpl->simple_table_end);
-    if (sz >= sizeof(buf))
-        sz = sizeof(buf) - 1;
-    ci_membuf_write(info_data->body, buf, sz, 0);
+
+    if (info_data->format != OUT_FMT_CSV) {
+        sz = snprintf(buf, sizeof(buf), "%s", tmpl->simple_table_end);
+        if (sz >= sizeof(buf))
+            sz = sizeof(buf) - 1;
+        ci_membuf_write(info_data->body, buf, sz, 0);
+    }
     ci_str_vector_destroy(mempools_data.labels);
     ci_str_array_destroy(mempools_data.current_row);
 }
@@ -794,7 +982,9 @@ static void print_link(struct info_req_data *info_data, const char *label, const
     char buf[512];
     size_t sz;
     int hasArgs = (strchr(info_data->url, '?') != NULL);
-    if (info_data->format == OUT_FMT_TEXT)
+    if (info_data->format == OUT_FMT_CSV)
+        sz = snprintf(buf, sizeof(buf), "\"%s\", \"%s\"\n", label, table);
+    else if (info_data->format == OUT_FMT_TEXT)
         sz = snprintf(buf, sizeof(buf), "\t'%s': for '%s' statistics\n", table, label);
     else
         sz = snprintf(buf, sizeof(buf), "<li><A href=%s%ctable=%s> %s </A></li>\n", info_data->url, (hasArgs ? '&' : '?'), table, label);
@@ -825,11 +1015,12 @@ static void print_menu(struct info_req_data *info_data)
 {
     char buf[512];
     size_t sz;
-    if (info_data->format == OUT_FMT_TEXT)
+    if (info_data->format == OUT_FMT_CSV)
+        sz = snprintf(buf, sizeof(buf), "\"Statistic Topic\",\"Option\"\n");
+    else if (info_data->format == OUT_FMT_TEXT)
         sz = snprintf(buf, sizeof(buf), "Statistic topics:\n");
     else
         sz = snprintf(buf, sizeof(buf), "<H1>Statistic topics</H1>\n<ul>\n");
-
     if (sz >= sizeof(buf))
         sz = sizeof(buf) - 1;
     ci_membuf_write(info_data->body, buf, sz, 0);
@@ -1088,6 +1279,8 @@ static void parse_info_arguments(struct info_req_data *info_data, char *args)
     char *s, *e;
     if (strstr(args, "view=text"))
         info_data->format = OUT_FMT_TEXT;
+    else if (strstr(args, "view=csv"))
+        info_data->format = OUT_FMT_CSV;
     if (strstr(args, "table=*"))
         info_data->print_page = PRINT_ALL_TABLES;
 
