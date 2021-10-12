@@ -947,13 +947,13 @@ static void print_mempools(struct info_req_data *info_data)
         tmpl = &html_tmpl;
 
     struct subgroups_data mempools_data = {
-        name: "pool",
-        labels : ci_str_vector_create(1024),
-        current_row : ci_str_array_new(2048),
-        memory_pools_master_group_id: info_data->memory_pools_master_group_id,
-        collect_stats: info_data->collect_stats,
-        format: info_data->format,
-        body: info_data->body
+        .name = "pool",
+        .labels = ci_str_vector_create(1024),
+        .current_row  = ci_str_array_new(2048),
+        .memory_pools_master_group_id = info_data->memory_pools_master_group_id,
+        .collect_stats = info_data->collect_stats,
+        .format = info_data->format,
+        .body = info_data->body
     };
 
     if (info_data->format != OUT_FMT_CSV) {
