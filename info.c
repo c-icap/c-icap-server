@@ -1038,7 +1038,7 @@ static void print_menu(struct info_req_data *info_data)
     ci_stat_groups_iterate(info_data, print_group);
     print_link(info_data, "All", "*");
 
-    if (!info_data->format == OUT_FMT_TEXT)
+    if (info_data->format == OUT_FMT_HTML)
         sz = snprintf(buf, sizeof(buf), "</ul>\n");
 }
 
