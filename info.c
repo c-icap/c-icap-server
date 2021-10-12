@@ -400,6 +400,7 @@ static int print_subgroup_stat_item(void *data, const char *label, int id, int g
     struct subgroups_data *subgroups_data = (struct subgroups_data *)data;
     switch (stat->type) {
     case CI_STAT_INT64_T:
+    case CI_STAT_INT64_MEAN_T:
         snprintf(buf, sizeof(buf),
                  "%" PRIu64,
                  ci_stat_memblock_get_counter(subgroups_data->collect_stats, id));
@@ -554,6 +555,7 @@ static int print_stat_item_csv(void *data, const char *label, int id, int gId, c
     case CI_STAT_INT64_T:
     case CI_STAT_TIME_US_T:
     case CI_STAT_TIME_MS_T:
+    case CI_STAT_INT64_MEAN_T:
         value = ci_stat_memblock_get_counter(info_data->collect_stats, id);
         break;
     case CI_STAT_KBS_T:
@@ -595,6 +597,7 @@ static int print_stat_item(void *data, const char *label, int id, int gId, const
     struct stats_tmpl *tmpl = info_data->format == OUT_FMT_TEXT ? &txt_tmpl : &html_tmpl;
     switch (stat->type) {
     case CI_STAT_INT64_T:
+    case CI_STAT_INT64_MEAN_T:
         sz = snprintf(buf, sizeof(buf),
                       tmpl->simple_table_item_int,
                       label,
@@ -871,7 +874,7 @@ static void print_per_time_table(struct info_req_data *info_data, const char *la
     for (j = 0; InfoTimeCountersId[j].name != NULL; j++) {
         if (InfoTimeCountersId[j].average) {
             sz = 0;
-            if (InfoTimeCountersId[j].type == CI_STAT_TIME_US_T)
+            if (InfoTimeCountersId[j].type == CI_STAT_TIME_US_T || InfoTimeCountersId[j].type == CI_STAT_TIME_MS_T || InfoTimeCountersId[j].type == CI_STAT_INT64_MEAN_T)
                 sz = snprintf(buf, sizeof(buf), tmpl->simple_table_item_usec, InfoTimeCountersId[j].name, time_stats->uint64_average[j]);
             if (sz >= sizeof(buf))
                 sz = sizeof(buf) - 1;

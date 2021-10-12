@@ -46,6 +46,7 @@ typedef enum ci_stat_type {
     STAT_INT64_T = CI_STAT_INT64_T, STAT_KBS_T = CI_STAT_KBS_T, /*backward compatibility */
     CI_STAT_TIME_US_T,
     CI_STAT_TIME_MS_T,
+    CI_STAT_INT64_MEAN_T,
     CI_STAT_TYPE_END
 } ci_stat_type_t;
 

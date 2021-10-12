@@ -304,6 +304,7 @@ void ci_stat_update(const ci_stat_item_t *stats, int num)
             break;
         case CI_STAT_TIME_US_T:
         case CI_STAT_TIME_MS_T:
+        case CI_STAT_INT64_MEAN_T:
             STATS->mem_block->stats[id].counter = stats[i].value;
             break;
         default:
@@ -432,6 +433,7 @@ void ci_stat_memblock_merge(ci_stat_memblock_t *to_block, const ci_stat_memblock
             break;
         case CI_STAT_TIME_US_T:
         case CI_STAT_TIME_MS_T:
+        case CI_STAT_INT64_MEAN_T:
             if (!history)
                 to_block->stats[i].counter = (existing_instances * to_block->stats[i].counter + from_block->stats[i].counter) / (existing_instances + 1);
             break;
