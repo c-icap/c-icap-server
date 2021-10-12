@@ -93,6 +93,13 @@ CI_DECLARE_FUNC(void) ci_stat_uint64_dec(int ID, uint64_t count);
 CI_DECLARE_FUNC(void) ci_stat_kbs_inc(int ID, uint64_t count);
 
 /**
+ * Sets the statistic entry 'ID' to the 'value'. It can be any statistic type.
+ * For kbs statistic types the value means 'bytes'.
+ \ingroup STAT
+ */
+CI_DECLARE_FUNC(void) ci_stat_value_set(int ID, uint64_t value);
+
+/**
  * Return the memory address where the CI_STAT_INT64_T counter is stored
  * The user can use this address to update the counter directly. In this
  * case the user is responsible to correctly lock the counter (eg using

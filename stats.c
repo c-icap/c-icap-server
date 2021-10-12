@@ -283,6 +283,18 @@ void ci_stat_kbs_inc(int ID, uint64_t count)
     ci_kbs_lock_and_update(&(STATS->mem_block->stats[ID].kbs), count);
 }
 
+void ci_stat_value_set(int ID, uint64_t value)
+{
+    if (!STATS || !STATS->mem_block)
+        return;
+
+    if (ID < 0 || ID > STATS->mem_block->stats_count)
+        return;
+
+    /*This is also can set kbs statistic type*/
+    ci_atomic_store_u64(&(STATS->mem_block->stats[ID].counter), value);
+}
+
 void ci_stat_update(const ci_stat_item_t *stats, int num)
 {
     int i;
