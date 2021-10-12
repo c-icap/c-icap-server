@@ -886,7 +886,7 @@ int main(int argc, char **argv)
         }
     }
 
-    uint64_t *requests_finished = ci_stat_uint64_ptr(requests_stats);
+    _CI_ATOMIC_TYPE uint64_t *requests_finished = ci_stat_uint64_ptr(requests_stats);
     assert(requests_finished);
     while (1) {
         sleep(1);

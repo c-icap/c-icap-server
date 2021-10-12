@@ -55,8 +55,8 @@ struct connections_queue {
 
 typedef struct child_shared_data {
     int servers;
-    int32_t usedservers;
-    int64_t requests;
+    _CI_ATOMIC_TYPE int32_t usedservers;
+    _CI_ATOMIC_TYPE int64_t requests;
     process_pid_t pid;
     int idle;
     int to_be_killed;

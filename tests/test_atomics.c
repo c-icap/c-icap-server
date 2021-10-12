@@ -13,14 +13,14 @@ int waitingForTest2 = 0;
 int waitingForTest3 = 0;
 int waitingForTest4 = 0;
 
-uint64_t simple_c = 0;
-uint64_t at_c = 0;
-uint64_t ni_at_c = 0;
-uint64_t ni_at_c_gl = 0;
-uint64_t simple_spent_time = 0;
-uint64_t spent_time = 0;
-uint64_t ni_spent_time = 0;
-uint64_t ni_spent_time_gl = 0;
+_CI_ATOMIC_TYPE uint64_t simple_c = 0;
+_CI_ATOMIC_TYPE uint64_t at_c = 0;
+_CI_ATOMIC_TYPE uint64_t ni_at_c = 0;
+_CI_ATOMIC_TYPE uint64_t ni_at_c_gl = 0;
+_CI_ATOMIC_TYPE uint64_t simple_spent_time = 0;
+_CI_ATOMIC_TYPE uint64_t spent_time = 0;
+_CI_ATOMIC_TYPE uint64_t ni_spent_time = 0;
+_CI_ATOMIC_TYPE uint64_t ni_spent_time_gl = 0;
 
 int LOOPS = 10000;
 int THREADS = 100;

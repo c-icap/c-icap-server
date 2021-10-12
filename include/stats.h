@@ -109,7 +109,7 @@ CI_DECLARE_FUNC(void) ci_stat_value_set(int ID, uint64_t value);
  * post_init services and modules handlers.
  \ingroup STAT
  */
-CI_DECLARE_FUNC(uint64_t *) ci_stat_uint64_ptr(int ID);
+CI_DECLARE_FUNC(_CI_ATOMIC_TYPE uint64_t *) ci_stat_uint64_ptr(int ID);
 
 /**
  * Used to batch update statistics
@@ -148,7 +148,7 @@ typedef struct ci_stat_item {
 CI_DECLARE_FUNC(void) ci_stat_update(const ci_stat_item_t *stats, int count);
 
 typedef struct kbs {
-    uint64_t bytes;
+    _CI_ATOMIC_TYPE uint64_t bytes;
 } kbs_t;
 typedef struct kbs ci_kbs_t;
 
@@ -167,7 +167,9 @@ static inline uint64_t ci_kbs_remainder_bytes(const ci_kbs_t *kbs)
 static inline void ci_kbs_update(ci_kbs_t *kbs, uint64_t bytes)
 {
     _CI_ASSERT(kbs);
-    kbs->bytes += bytes;
+    /* Warning: kbs.bytes is an _Atomic, do not use compound assignment
+       to avoid atomic operation */
+    kbs->bytes = kbs->bytes + bytes;
 }
 
 static inline void ci_kbs_lock_and_update(ci_kbs_t *kbs, uint64_t bytes)
@@ -180,7 +182,9 @@ static inline void ci_kbs_add_to(ci_kbs_t *add_to, const ci_kbs_t *kbs)
 {
     _CI_ASSERT(kbs);
     _CI_ASSERT(add_to);
-    add_to->bytes += kbs->bytes;
+    /* Warning: kbs.bytes is an _Atomic, do not use compound assignment
+       to avoid atomic operation */
+    add_to->bytes = add_to->bytes + kbs->bytes;
 }
 
 static inline ci_kbs_t ci_kbs_sub(ci_kbs_t *kbs1, const ci_kbs_t *kbs2)
@@ -210,7 +214,7 @@ CI_DECLARE_FUNC(ci_kbs_t *) ci_stat_kbs_ptr(int ID);
 /*Low level structures and functions*/
 typedef struct ci_stat_value {
     union {
-        uint64_t counter;
+        _CI_ATOMIC_TYPE uint64_t counter;
         ci_kbs_t kbs;
     };
 } ci_stat_value_t;

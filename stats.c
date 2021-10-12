@@ -326,7 +326,7 @@ void ci_stat_update(const ci_stat_item_t *stats, int num)
     }
 }
 
-uint64_t *ci_stat_uint64_ptr(int ID)
+_CI_ATOMIC_TYPE uint64_t *ci_stat_uint64_ptr(int ID)
 {
     if (!STATS || !STATS->mem_block)
         return NULL;
