@@ -108,9 +108,27 @@ CI_DECLARE_FUNC(uint64_t *) ci_stat_uint64_ptr(int ID);
  \ingroup STAT
  */
 typedef struct ci_stat_item {
+    /**
+       \brief The type of statistic entry to update
+     */
     ci_stat_type_t type;
+
+    /**
+       \brief The Id of statistic entry to update
+    */
     int Id;
-    uint64_t count;
+
+    union {
+        /**
+           \brief used to increase or decrease counters
+        */
+        int64_t count;
+
+        /**
+           \brief used to set unsigned types, like the CI_STAT_TIME_*
+        */
+        uint64_t value;
+    };
 } ci_stat_item_t;
 
 /**

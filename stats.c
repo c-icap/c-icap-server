@@ -294,14 +294,17 @@ void ci_stat_update(const ci_stat_item_t *stats, int num)
             continue; /*May print a warning?*/
         switch (stats[i].type) {
         case CI_STAT_INT64_T:
-            ci_atomic_add_u64(&(STATS->mem_block->stats[id].counter), (uint64_t)stats[i].count);
+            if (stats[i].count < 0)
+                ci_atomic_sub_u64(&(STATS->mem_block->stats[id].counter), (uint64_t)(-stats[i].count));
+            else
+                ci_atomic_add_u64(&(STATS->mem_block->stats[id].counter), (uint64_t)stats[i].count);
             break;
         case CI_STAT_KBS_T:
             ci_kbs_lock_and_update(&(STATS->mem_block->stats[id].kbs), stats[i].count);
             break;
         case CI_STAT_TIME_US_T:
         case CI_STAT_TIME_MS_T:
-            STATS->mem_block->stats[id].counter = stats[i].count;
+            STATS->mem_block->stats[id].counter = stats[i].value;
             break;
         default:
             /*Wrong type id, ignore for now*/
