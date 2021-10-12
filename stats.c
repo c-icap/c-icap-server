@@ -301,8 +301,7 @@ void ci_stat_update(const ci_stat_item_t *stats, int num)
             break;
         case CI_STAT_TIME_US_T:
         case CI_STAT_TIME_MS_T:
-            /*Only can set a 32bit integer?*/
-            STATS->mem_block->stats[id].counter = num;
+            STATS->mem_block->stats[id].counter = stats[i].count;
             break;
         default:
             /*Wrong type id, ignore for now*/
