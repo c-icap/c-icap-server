@@ -29,8 +29,17 @@ __ci_implement_atomic_ops(,u32_non_inline, uint32_t);
 __ci_implement_atomic_ops(,u64_non_inline, uint64_t);
 __ci_implement_atomic_ops(,i64_non_inline, int64_t);
 #if defined(CI_ATOMICS_USE_128BIT)
+#if defined(__clang__)
+/* Suppress warning about "large atomic operation may incur significant
+   performance" */
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Watomic-alignment"
+#endif
 __ci_implement_atomic_ops(,u128_non_inline, unsigned __int128);
 __ci_implement_atomic_ops(,i128_non_inline, __int128);
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
 #endif
 
 int ci_atomics_init()
