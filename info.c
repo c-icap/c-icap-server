@@ -106,6 +106,7 @@ struct info_req_data {
     ci_membuf_t *body;
     int format;
     int print_page;
+    int view_child;
     time_t time;
     int childs;
     int *child_pids;
@@ -166,6 +167,7 @@ void *info_init_request_data(ci_request_t * req)
 
     info_data->body = ci_membuf_new_sized(32*1024);
     info_data->print_page = PRINT_INFO_MENU;
+    info_data->view_child = -1;
     info_data->time = 0;
     info_data->childs = 0;
     info_data->child_pids = malloc(childs_queue->size * sizeof(int));
@@ -299,7 +301,12 @@ void fill_queue_statistics(struct childs_queue *q, struct info_req_data *info_da
 
     /*Merge childs data*/
     for (i = 0; i < q->size; i++) {
-        if (q->childs[i].pid != 0 && q->childs[i].to_be_killed == 0) {
+        if (q->childs[i].pid == 0)
+            continue;
+        ci_debug_printf(1, "Check pids %d<>%d\n", q->childs[i].pid, info_data->view_child);
+        if (info_data->view_child > 0 && q->childs[i].pid != info_data->view_child)
+            continue;
+        if (q->childs[i].to_be_killed == 0) {
             if (info_data->child_pids)
                 info_data->child_pids[info_data->childs] = q->childs[i].pid;
             info_data->childs++;
@@ -311,16 +318,18 @@ void fill_queue_statistics(struct childs_queue *q, struct info_req_data *info_da
             stats = q->stats_area + i * (q->stats_block_size);
             assert(ci_stat_memblock_check(stats));
             ci_stat_memblock_merge(info_data->collect_stats, stats, 0, (info_data->childs - 1));
-        } else if (q->childs[i].pid != 0 && q->childs[i].to_be_killed) {
+        } else if (q->childs[i].to_be_killed) {
             if (info_data->closing_child_pids)
                 info_data->closing_child_pids[info_data->closing_childs] = q->childs[i].pid;
             info_data->closing_childs++;
         }
     }
     /*Merge history data*/
-    stats = q->stats_area + q->size * q->stats_block_size;
-    assert(ci_stat_memblock_check(stats));
-    ci_stat_memblock_merge(info_data->collect_stats, stats, 1, info_data->childs);
+    if (info_data->view_child >= 0) {
+        stats = q->stats_area + q->size * q->stats_block_size;
+        assert(ci_stat_memblock_check(stats));
+        ci_stat_memblock_merge(info_data->collect_stats, stats, 1, info_data->childs);
+    }
 
     srv_stats =
         (struct server_statistics *)(q->stats_area + q->size * q->stats_block_size + q->stats_block_size);
@@ -1302,8 +1311,14 @@ static void parse_info_arguments(struct info_req_data *info_data, char *args)
         info_data->format = OUT_FMT_TEXT;
     else if (strstr(args, "view=csv"))
         info_data->format = OUT_FMT_CSV;
+    else if (strstr(args, "view=html"))
+        info_data->format = OUT_FMT_HTML;
     if (strstr(args, "table=*"))
         info_data->print_page = PRINT_ALL_TABLES;
+    if ((s = strstr(args, "child="))) {
+        s += 6;
+        info_data->view_child = strtol(s, NULL, 10);
+    }
 
     s = args;
     while (info_data->print_page != PRINT_ALL_TABLES && (s = strstr(s, "table=")) != NULL) {
