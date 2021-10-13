@@ -285,8 +285,9 @@ static inline ci_kbs_t ci_stat_memblock_get_kbs(const ci_stat_memblock_t *block,
 #define STAT_INT64_INC(memblock, id, count) ci_atomic_add_u64(&(memblock->stats[id].counter), count)
 #define STAT_INT64_DEC(memblock, id, count) ci_atomic_sub_u64(&(memblock->stats[id].counter), count)
 #define STAT_KBS_INC(memblock, id, count) ci_kbs_lock_and_update(&(memblock->stats[id].kbs), count)
-#define STAT_INT64_INC_NL(memblock, id, count) memblock->stats[id].counter += count
-#define STAT_INT64_DEC_NL(memblock, id, count) memblock->stats[id].counter -= count
+/* do not use compound assignment to avoid atomic operation: */
+#define STAT_INT64_INC_NL(memblock, id, count) (memblock->stats[id].counter = memblock->stats[id].counter + count)
+#define STAT_INT64_DEC_NL(memblock, id, count) (memblock->stats[id].counter = memblock->stats[id].counter - count)
 #define STAT_KBS_INC_NL(memblock, id, count) ci_kbs_update(&(memblock->stats[id].kbs), count)
 
 #define STAT_INT64_NL(memblock, id) (memblock->stats[id].counter)
