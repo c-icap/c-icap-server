@@ -1755,9 +1755,9 @@ int process_request(ci_request_t * req)
   counters. But here we are going to update more than 20 counters.
   Atomic operations are fast when updating a counter but because they
   lock the bus, may not perform very well when updating on the same time
-  many counters. At the same time c-icap may have more than 500-1000
-  running threads, is not bad to put a thread in a wait-state (mutex-lock)
-  to give to the other threads the opportunity to make some job.
+  many counters. Moreover the c-icap may have more than 500-1000
+  running threads, is not bad idea to put a thread in a wait-state (mutex-lock)
+  to give to the other threads the chance to make some job.
  */
     ci_thread_mutex_lock(&STAT_MTX);
     if (!STATS)
