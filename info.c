@@ -1039,14 +1039,29 @@ static void print_menu(struct info_req_data *info_data)
     print_link(info_data, "All", "*");
 
     if (info_data->format == OUT_FMT_HTML)
-        sz = snprintf(buf, sizeof(buf), "</ul>\n");
+        ci_membuf_write(info_data->body, "</ul>\n", 6, 0);
 }
+
+/*TODO: make HTML styles configurable, probably using templates interface*/
+const char HTML_HEAD[] =
+    "<!DOCTYPE HTML>\n<HTML lang=\"en\">\n"
+    "<HEAD>\n"
+    "<TITLE>C-icap server statistics page</TITLE>\n"
+    "<STYLE>\n"
+    "  table {border-collapse: collapse;}\n"
+    "  th,td,table {border-style:solid; border-width:1px; }\n"
+    "</STYLE>\n"
+    "</HEAD>\n"
+    "<BODY>\n"
+    ;
+const char HTML_END[] = "</BODY>\n</HTML>";
 
 static int print_statistics(struct info_req_data *info_data)
 {
     if (!info_data->body)
         return 0;
-
+    if (info_data->format == OUT_FMT_HTML)
+        ci_membuf_write(info_data->body, HTML_HEAD, sizeof(HTML_HEAD) - 1, 0);
     if (info_data->print_page == PRINT_INFO_MENU) {
         print_menu(info_data);
     } else {
@@ -1056,7 +1071,10 @@ static int print_statistics(struct info_req_data *info_data)
         print_mempools(info_data);
         print_group_tables(info_data);
     }
-    ci_membuf_write(info_data->body, NULL, 0, 1);
+    if (info_data->format == OUT_FMT_HTML)
+        ci_membuf_write(info_data->body, HTML_END, sizeof(HTML_END) - 1, 1);
+    else
+        ci_membuf_write(info_data->body, NULL, 0, 1);
     return 1;
 }
 
