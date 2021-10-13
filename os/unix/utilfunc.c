@@ -69,6 +69,14 @@ void ci_strntime(char *buf, size_t size)
         buf[0] = '\0';
 }
 
+void ci_to_strntime(char *buf, size_t size, const time_t *tm)
+{
+    assert(size > 0);
+    struct tm br_tm;
+    if (!strftime(buf, size, "%a %b %e %T %Y", localtime_r(tm, &br_tm)))
+        buf[0] = '\0';
+}
+
 void ci_to_strntime_rfc822(char *buf, size_t size, const time_t *tm)
 {
     assert(size > 0);

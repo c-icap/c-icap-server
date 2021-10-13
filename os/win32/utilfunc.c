@@ -95,6 +95,21 @@ void ci_strntime(char *buf, size_t size)
              tm.wYear);
 }
 
+//Untested code:
+void ci_to_strntime(char *buf, size_t size, const time_t *tm)
+{
+    assert(size > 0);
+    LONGLONG ll = Int32x32To64(*tm, 10000000) + 116444736000000000;
+    FILETIME ft;
+    ft.dwLowDateTime = (DWORD) ll;
+    ft.dwHighDateTime = ll >>32;
+    SYSTEMTIME stm;
+    FileTimeToSystemTime(&fd, &stm);
+    snprintf(buf, size, "%s %s %d %d:%d:%d %d", days[stm.wDayOfWeek],
+             months[stm.wMonth], stm.wDay, stm.wHour, stm.wMinute, stm.wSecond,
+             stm.wYear);
+}
+
 void ci_strntime_rfc822(char *buf, size_t size)
 {
     assert(size > 0);
@@ -113,11 +128,11 @@ void ci_to_strntime_rfc822(char *buf, size_t size, const time_t *tm)
     FILETIME ft;
     ft.dwLowDateTime = (DWORD) ll;
     ft.dwHighDateTime = ll >>32;
-    SYSTEMTIME tm;
-    FileTimeToSystemTime(&fd, &tm);
+    SYSTEMTIME stm;
+    FileTimeToSystemTime(&fd, &stm);
     snprintf(buf, size, "%s, %0.2d %s %d %0.2d:%0.2d:%0.2d GMT",
-             days[tm.wDayOfWeek], tm.wDay, months[tm.wMonth], tm.wYear,
-             tm.wHour, tm.wMinute, tm.wSecond);
+             days[stm.wDayOfWeek], stm.wDay, months[stm.wMonth], stm.wYear,
+             stm.wHour, stm.wMinute, stm.wSecond);
 }
 
 int ci_mktemp_file(char *dir, char *template, char *filename)

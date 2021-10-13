@@ -29,6 +29,7 @@
 #include "stats.h"
 #include "proc_threads_queues.h"
 #include "debug.h"
+#include "util.h"
 
 int info_init_service(ci_service_xdata_t * srv_xdata,
                       struct ci_server_conf *server_conf);
@@ -108,6 +109,7 @@ struct info_req_data {
     int print_page;
     int view_child;
     time_t time;
+    char time_str[128];
     int childs;
     int *child_pids;
     int free_servers;
@@ -169,6 +171,7 @@ void *info_init_request_data(ci_request_t * req)
     info_data->print_page = PRINT_INFO_MENU;
     info_data->view_child = -1;
     info_data->time = 0;
+    info_data->time_str[0] = '\0';
     info_data->childs = 0;
     info_data->child_pids = malloc(childs_queue->size * sizeof(int));
     info_data->free_servers = 0;
@@ -338,6 +341,7 @@ void fill_queue_statistics(struct childs_queue *q, struct info_req_data *info_da
     info_data->closed_childs = srv_stats->closed_childs;
     info_data->crashed_childs = srv_stats->crashed_childs;
     time(&info_data->time);
+    ci_to_strntime(info_data->time_str, sizeof(info_data->time_str), &info_data->time);
 }
 
 struct stats_tmpl {
@@ -358,7 +362,7 @@ struct stats_tmpl {
 };
 
 struct stats_tmpl txt_tmpl = {
-    "\n%s Statistics\n==================\n",
+    "\n%s Statistics, %s\n==================\n",
     "",
     "%s : %llu\n",
     "%s : %llu Kbs %u bytes\n",
@@ -368,14 +372,14 @@ struct stats_tmpl txt_tmpl = {
 
     "%s",
     "%s",
-    "\n",
     "",
+    "\n",
     "\t",
     ", "
 };
 
 struct stats_tmpl html_tmpl = {
-    "<H1>%s Statistics</H1>\n<TABLE>",
+    "<H1>%s Statistics</H1>\n<TABLE>\n<CAPTION>%s</CAPTION>",
     "</TABLE>\n",
     "<TR><TH>%s:</TH><TD>  %llu</TD>\n",
     "<TR><TH>%s:</TH><TD>  %llu Kbs %u bytes</TD>\n",
@@ -516,6 +520,7 @@ static int print_subgroup_stat_row(void *data, const char *grp_name, int group_i
             ci_membuf_write(subgroups_data->body, tmpl->table_col_sep, strlen(tmpl->table_col_sep), 0);
             ci_membuf_write(subgroups_data->body, buf, sz, 0);
         }
+        ci_membuf_write(subgroups_data->body, tmpl->table_row_end, strlen(tmpl->table_row_end), 0);
     }
     sz = snprintf(buf, sizeof(buf), tmpl->table_header, grp_name);
     assert(sz < sizeof(buf));
@@ -667,7 +672,7 @@ static int print_group_statistics(void *data, const char *grp_name, int group_id
         return print_group_statistics_csv(info_data, grp_name, group_id, master_group_id);
 
     struct stats_tmpl *tmpl = info_data->format == OUT_FMT_TEXT ? &txt_tmpl : &html_tmpl;
-    sz = snprintf(buf, sizeof(buf), tmpl->simple_table_start, grp_name);
+    sz = snprintf(buf, sizeof(buf), tmpl->simple_table_start, grp_name, info_data->time_str);
     if (sz >= sizeof(buf))
         sz = sizeof(buf) - 1;
     ci_membuf_write(info_data->body, buf, sz, 0);
@@ -712,8 +717,9 @@ static void print_running_servers_statistics(struct info_req_data *info_data)
 
     assert(info_data->body);
 
-    sz = snprintf(buf, sizeof(buf), tmpl->simple_table_start, TableName);
+    sz = snprintf(buf, sizeof(buf), tmpl->simple_table_start, TableName, info_data->time_str);
     ci_membuf_write(info_data->body, buf, sz < sizeof(buf) ? sz : sizeof(buf), 0);
+
     sz = snprintf(buf, sizeof(buf), tmpl->simple_table_item_int, "Children number", info_data->childs);
     ci_membuf_write(info_data->body, buf, sz < sizeof(buf) ? sz : sizeof(buf), 0);
 
@@ -850,7 +856,7 @@ static void print_per_time_table(struct info_req_data *info_data, const char *la
     else
         tmpl = &html_tmpl;
 
-    sz = snprintf(buf, sizeof(buf), tmpl->simple_table_start, label);
+    sz = snprintf(buf, sizeof(buf), tmpl->simple_table_start, label, info_data->time_str);
     if (sz >= sizeof(buf))
         sz = sizeof(buf) - 1;
     ci_membuf_write(info_data->body, buf, sz, 0);
@@ -966,7 +972,7 @@ static void print_mempools(struct info_req_data *info_data)
     };
 
     if (info_data->format != OUT_FMT_CSV) {
-        sz = snprintf(buf, sizeof(buf), tmpl->simple_table_start, TableName);
+        sz = snprintf(buf, sizeof(buf), tmpl->simple_table_start, TableName, info_data->time_str);
         if (sz >= sizeof(buf))
             sz = sizeof(buf) - 1;
         ci_membuf_write(info_data->body, buf, sz, 0);
@@ -1059,6 +1065,7 @@ const char HTML_HEAD[] =
     "<STYLE>\n"
     "  table {border-collapse: collapse;}\n"
     "  th,td,table {border-style:solid; border-width:1px; }\n"
+    "  caption {text-align:right;}\n"
     "</STYLE>\n"
     "</HEAD>\n"
     "<BODY>\n"

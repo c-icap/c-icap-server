@@ -32,6 +32,7 @@ extern "C"
 CI_DECLARE_FUNC(void) ci_strtime(char *buf); /*Obsoleted*/
 CI_DECLARE_FUNC(void) ci_strtime_rfc822(char *buf); /*Obsoleted*/
 CI_DECLARE_FUNC(void) ci_strntime(char *buf, size_t size);
+CI_DECLARE_FUNC(void) ci_to_strntime(char *buf, size_t size, const time_t *tm);
 CI_DECLARE_FUNC(void) ci_strntime_rfc822(char *buf, size_t size);
 CI_DECLARE_FUNC(void) ci_to_strntime_rfc822(char *buf, size_t size, const time_t *tm);
 
