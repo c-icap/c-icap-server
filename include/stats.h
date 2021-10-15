@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2004-2008 Christos Tsantilas
+ *  Copyright (C) 2004-2021 Christos Tsantilas
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -35,18 +35,37 @@ extern "C"
 /**
  \defgroup STAT c-icap API for keeping statistics for services and modules
  \ingroup API
+ * Typical use of these API can be:
+ \code
+ static int MyCounterId = -1;
+ int myservice_init(ci_service_xdata_t *srv_xdata,struct ci_server_conf *server_conf)
+{
+    // MyCounter will be shown in c-icap info statistics page under the
+    // statistic table "Service myservice".
+    MyCounterId = ci_stat_entry_register("MyCounter", CI_STAT_INT64_T, "Service myservice");
+}
+...
+ //Eg somewhere inside service io handler or inside preview handler:
+   ci_stat_uint64_inc(MyCounterId, 1);
+...
+ \endcode
 */
 
 /**
  * Statistic types
  \ingroup STAT
+ * Express various statistic types. All statistics are kept per c-icap
+ * child process and the children values sum (counters or accumulated
+ * kilobytes) or the values mean (mean/average type statistics) are
+ * shown.
  */
 typedef enum ci_stat_type {
-    CI_STAT_INT64_T, CI_STAT_KBS_T,
+    CI_STAT_INT64_T, /*!< An unsigned integer counter */
+    CI_STAT_KBS_T, /*!< Accumulated kilobytes */
     STAT_INT64_T = CI_STAT_INT64_T, STAT_KBS_T = CI_STAT_KBS_T, /*backward compatibility */
-    CI_STAT_TIME_US_T,
-    CI_STAT_TIME_MS_T,
-    CI_STAT_INT64_MEAN_T,
+    CI_STAT_TIME_US_T, /*!< Mean/average time expressed in microseconds */
+    CI_STAT_TIME_MS_T,  /*!< Mean/average time expressed in milliseconds */
+    CI_STAT_INT64_MEAN_T, /*!< A mean unsigned integer value */
     CI_STAT_TYPE_END
 } ci_stat_type_t;
 
@@ -143,15 +162,44 @@ typedef struct ci_stat_item {
  * Updates multiple statistic entries in one step
  \param stats An array with statistic entries ids and their increment values
  \param count The number of items of stats array
+ * example usage:
+ \code
+ int REQUESTS_ID = -1;
+ int FAILURES_ID = -1;
+ ...
+ REQUESTS_ID = ci_stat_entry_register(...);
+ FAILURES_ID = ci_stat_entry_register(...);
+ ...
+ ci_stat_item_t stats[3] = {
+     {CI_STAT_INT64_T, REQUESTS_ID, count : 1},
+     {CI_STAT_INT64_T, FAILURES_ID, count : 1},
+ }
+ ci_stat_update(stats, 2);
+ \endcode
  \ingroup STAT
 */
 CI_DECLARE_FUNC(void) ci_stat_update(const ci_stat_item_t *stats, int count);
 
+/**
+ \typedef ci_kbs_t
+ * Represents (accumulated) kilobytes
+ \ingroup STAT
+ */
 typedef struct kbs {
     _CI_ATOMIC_TYPE uint64_t bytes;
 } kbs_t;
 typedef struct kbs ci_kbs_t;
 
+/**
+ \defgroup KBS    ci_kbs_t operations
+ \ingroup STAT
+ * functions for manipulating ci_kbs_t objects
+*/
+
+/**
+ * Zeroes a ci_kbs_t object
+ \ingroup KBS
+*/
 static inline ci_kbs_t ci_kbs_zero() {ci_kbs_t zero = {0}; return zero;}
 
 static inline uint64_t ci_kbs_kilobytes(const ci_kbs_t *kbs)
@@ -164,6 +212,10 @@ static inline uint64_t ci_kbs_remainder_bytes(const ci_kbs_t *kbs)
     return (kbs->bytes & 0x3FF);
 }
 
+/**
+ * Append/add "bytes" to the given "kbs" ci_kbs_t object counter
+ \ingroup KBS
+*/
 static inline void ci_kbs_update(ci_kbs_t *kbs, uint64_t bytes)
 {
     _CI_ASSERT(kbs);
@@ -172,12 +224,20 @@ static inline void ci_kbs_update(ci_kbs_t *kbs, uint64_t bytes)
     kbs->bytes = kbs->bytes + bytes;
 }
 
+/**
+ * Update atomically the given "kbs" object
+ \ingroup KBS
+*/
 static inline void ci_kbs_lock_and_update(ci_kbs_t *kbs, uint64_t bytes)
 {
     _CI_ASSERT(kbs);
     ci_atomic_add_u64(&(kbs->bytes), bytes);
 }
 
+/**
+ * Appends "kbs"  to "add_to"
+ \ingroup KBS
+*/
 static inline void ci_kbs_add_to(ci_kbs_t *add_to, const ci_kbs_t *kbs)
 {
     _CI_ASSERT(kbs);
@@ -187,6 +247,10 @@ static inline void ci_kbs_add_to(ci_kbs_t *add_to, const ci_kbs_t *kbs)
     add_to->bytes = add_to->bytes + kbs->bytes;
 }
 
+/**
+ * Subtract two ci_kbs_t objects
+ \ingroup KBS
+*/
 static inline ci_kbs_t ci_kbs_sub(ci_kbs_t *kbs1, const ci_kbs_t *kbs2)
 {
     _CI_ASSERT(kbs1);
@@ -196,6 +260,10 @@ static inline ci_kbs_t ci_kbs_sub(ci_kbs_t *kbs1, const ci_kbs_t *kbs2)
     return res;
 }
 
+/**
+ * Adds two ci_kbs_t objects
+ \ingroup KBS
+*/
 static inline ci_kbs_t ci_kbs_add(ci_kbs_t *kbs1, const ci_kbs_t *kbs2)
 {
     _CI_ASSERT(kbs1);
