@@ -231,6 +231,12 @@ int ci_stat_entry_find(const char *label, const char *group, ci_stat_type_t type
     return -1;
 }
 
+ci_stat_type_t ci_stat_entry_type_by_id(int id)
+{
+    _CI_ASSERT(id <  STAT_STATS.entries_num);
+    return STAT_STATS.entries[id].type;
+}
+
 void ci_stat_entry_release_lists()
 {
     stat_entry_release_list(&STAT_STATS);

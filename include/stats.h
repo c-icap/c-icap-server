@@ -93,6 +93,14 @@ CI_DECLARE_FUNC(int) ci_stat_entry_register(const char *label, ci_stat_type_t ty
 CI_DECLARE_FUNC(int) ci_stat_entry_find(const char *label, const char *group, ci_stat_type_t type);
 
 /**
+ * Return the statistic type of the given statistic entry
+ \ingroup STAT
+ \param id The statistic entry ID
+ \return The statistic type
+ */
+CI_DECLARE_FUNC(ci_stat_type_t) ci_stat_entry_type_by_id(int id);
+
+/**
  * Increases by 'count' the counter 'ID', which must be of type CI_STAT_INT64_T
  \ingroup STAT
  */
