@@ -51,6 +51,8 @@ extern "C"
 /**
  * Retrieves the value of a counter of type CI_STAT_KBS_T for the
  * current child.
+ * This is similar to the ci_stat_kbs_get function, but asserts if
+ * the c-icap server statistics subsystem is not configured.
  \ingroup SERVER_STATS
  */
 static inline ci_kbs_t ci_server_stat_kbs_get(int id)
@@ -64,6 +66,8 @@ static inline ci_kbs_t ci_server_stat_kbs_get(int id)
  * Retrieves the value of an integer statistic entry (of the type
  * STAT_INT64_T,CI_STAT_TIME_*_T or CI_STAT_INT64_MEAN_T) for the
  * current child.
+ * This is similar to the ci_stat_uint64_get function, but asserts
+ * if c-icap statistics subsystem is not configured.
  \ingroup SERVER_STATS
  */
 static inline uint64_t ci_server_stat_uint64_get(int id)

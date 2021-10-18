@@ -354,6 +354,36 @@ ci_kbs_t * ci_stat_kbs_ptr(int ID)
     return NULL;
 }
 
+uint64_t ci_stat_uint64_get(int ID)
+{
+    uint64_t value;
+    if (!STATS || !STATS->mem_block)
+        return 0;
+
+    if (ID >= 0 && ID < STATS->mem_block->stats_count)
+        ci_atomic_load_u64(&STATS->mem_block->stats[ID].counter, &value);
+    else
+        value = 0;
+    return value;
+}
+
+ci_kbs_t ci_stat_kbs_get(int ID)
+{
+    static ci_kbs_t zero = {.bytes = 0};
+    ci_kbs_t value;
+    if (!STATS || !STATS->mem_block) {
+        return zero;
+    }
+
+    if (ID >= 0 && ID < STATS->mem_block->stats_count) {
+        uint64_t uint_val;
+        ci_atomic_load_u64(&STATS->mem_block->stats[ID].kbs.bytes, &uint_val);
+        value.bytes = uint_val;
+    } else
+        value.bytes = 0;
+    return value;
+}
+
 void ci_stat_groups_iterate(void *data, int (*group_call)(void *data, const char *name, int groupId, int masterGroupId))
 {
     int ret = 0;

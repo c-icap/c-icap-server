@@ -191,6 +191,13 @@ typedef struct ci_stat_item {
 CI_DECLARE_FUNC(void) ci_stat_update(const ci_stat_item_t *stats, int count);
 
 /**
+ * Return the current value of an integer (STAT_INT64_T, CI_STAT_TIME_*_T
+ * or CI_STAT_INT64_MEAN_T) statistic entry.
+ \ingroup STAT
+ */
+CI_DECLARE_FUNC(uint64_t) ci_stat_uint64_get(int ID);
+
+/**
  \typedef ci_kbs_t
  * Represents (accumulated) kilobytes
  \ingroup STAT
@@ -199,6 +206,13 @@ typedef struct kbs {
     _CI_ATOMIC_TYPE uint64_t bytes;
 } kbs_t;
 typedef struct kbs ci_kbs_t;
+
+/**
+ * Return the value of a statistic entry of type CI_STAT_KBS_T.
+ \ingroup STAT
+*/
+CI_DECLARE_FUNC(ci_kbs_t) ci_stat_kbs_get(int ID);
+
 
 /**
  \defgroup KBS    ci_kbs_t operations
