@@ -90,6 +90,50 @@ void ci_command_register_child_cleanup(const char *name, void *data, void (*chil
         fprintf(stderr, "Can not execute ci_command_register_child_cleanup\n");
 }
 
+ci_kbs_t ci_server_stat_kbs_get_running(int id)
+{
+    typedef void (*CS)(int id);
+    CS fn;
+    fn = (CS)GetProcAddress(GetModuleHandle(NULL), "ci_server_stat_kbs_get_running");
+    if (fn)
+        return (*fn)(id);
+    fprintf(stderr, "Can not execute ci_server_stat_kbs_get_running\n");
+    return NULL;
+}
+
+uint64_t ci_server_stat_uint64_get_running(int id)
+{
+    typedef void (*CS)(int id);
+    CS fn;
+    fn = (CS)GetProcAddress(GetModuleHandle(NULL), "ci_server_stat_uint64_get_running");
+    if (fn)
+        return (*fn)(id);
+    fprintf(stderr, "Can not execute ci_server_stat_uint64_get_running\n");
+    return NULL;
+}
+
+ci_kbs_t ci_server_stat_kbs_get_global(int id)
+{
+    typedef void (*CS)(int id);
+    CS fn;
+    fn = (CS)GetProcAddress(GetModuleHandle(NULL), "ci_server_stat_kbs_get_global");
+    if (fn)
+        return (*fn)(id);
+    fprintf(stderr, "Can not execute ci_server_stat_kbs_get_global\n");
+    return NULL;
+}
+
+uint64_t ci_server_stat_uint64_get_global(int id)
+{
+    typedef void (*CS)(int id);
+    CS fn;
+    fn = (CS)GetProcAddress(GetModuleHandle(NULL), "ci_server_stat_uint64_get_global");
+    if (fn)
+        return (*fn)(id);
+    fprintf(stderr, "Can not execute ci_server_stat_uint64_get_global\n");
+    return NULL;
+}
+
 int ci_server_shared_memblob_register(const char *name, size_t size)
 {
     typedef void (*CS)(const char *, size_t);
