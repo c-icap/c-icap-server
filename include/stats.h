@@ -33,9 +33,9 @@ extern "C"
 /*Fucntions for use with modules and services */
 
 /**
- \defgroup STAT c-icap API for keeping statistics for services and modules
+ \defgroup STAT c-icap library API for keeping statistics
  \ingroup API
- * Typical use of these API can be:
+ * Typical use of these API in a c-icap service can be:
  \code
  static int MyCounterId = -1;
  int myservice_init(ci_service_xdata_t *srv_xdata,struct ci_server_conf *server_conf)
