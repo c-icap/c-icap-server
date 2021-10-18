@@ -49,6 +49,8 @@ extern "C"
    ci_stat_uint64_inc(MyCounterId, 1);
 ...
  \endcode
+* Also check the \ref SERVER_STATS for functions to use to retrieve
+* current c-icap server statistic values.
 */
 
 /**
