@@ -523,34 +523,79 @@ ci_kbs_t ci_server_stat_kbs_get_running(int id)
     return value;
 }
 
-uint64_t ci_server_stat_uint64_get_running(int id)
+static void uint64_counters_sum(int id, uint64_t *value, int *kids)
 {
-    const ci_stat_memblock_t *block;
-    uint64_t value = 0;
     int i;
+    const ci_stat_memblock_t *block;
     assert(childs_queue);
+    *kids = 0;
     for (i = 0; i < childs_queue->size; i++) {
         if (childs_queue->childs[i].pid == 0 || childs_queue->childs[i].to_be_killed != 0)
             continue;
         block = (const ci_stat_memblock_t *) (childs_queue->stats_area + i * (childs_queue->stats_block_size));
-        value +=  ci_stat_memblock_get_counter(block, id);
+        *value +=  ci_stat_memblock_get_counter(block, id);
+        (*kids)++;
     }
+}
 
+uint64_t ci_server_stat_uint64_get_running(int id)
+{
+    uint64_t value = 0;
+    int kids;
+    uint64_counters_sum(id, &value, &kids);
+    int type =  ci_stat_entry_type_by_id(id);
+    switch (type) {
+    case CI_STAT_TIME_US_T:
+    case CI_STAT_TIME_MS_T:
+    case CI_STAT_INT64_MEAN_T:
+        value = value / kids;
+        break;
+    default:
+        break;
+    }
     return value;
 }
 
 ci_kbs_t ci_server_stat_kbs_get_global(int id)
 {
     ci_kbs_t value = ci_server_stat_kbs_get_running(id);
-    ci_kbs_t hist = ci_stat_memblock_get_kbs(childs_queue->stats_history, id);
+
+    /*The childs_queue->stats_history is not visible from children c-icap
+      processes*/
+    ci_stat_memblock_t *hist_stats = childs_queue->stats_area + childs_queue->size * childs_queue->stats_block_size;
+    ci_kbs_t hist = ci_stat_memblock_get_kbs(hist_stats, id);
     ci_kbs_add_to(&value, &hist);
     return value;
 }
 
 uint64_t ci_server_stat_uint64_get_global(int id)
 {
-    uint64_t value = ci_server_stat_uint64_get_running(id);
-    value +=  ci_stat_memblock_get_counter(childs_queue->stats_history, id);
+    int kids = 0;
+    uint64_t value = 0;
+    uint64_counters_sum(id, &value, &kids);
+
+    /*The childs_queue->stats_history and childs_queue->srv_stats are not
+      visible from children c-icap processes*/
+    assert(childs_queue && childs_queue->stats_area);
+    ci_stat_memblock_t *stats_history = childs_queue->stats_area + childs_queue->size * childs_queue->stats_block_size;
+    uint64_t history_value = ci_stat_memblock_get_counter(stats_history, id);
+
+    int type =  ci_stat_entry_type_by_id(id);
+    switch (type) {
+    case CI_STAT_TIME_US_T:
+    case CI_STAT_TIME_MS_T:
+    case CI_STAT_INT64_MEAN_T:
+       {
+           struct server_statistics *srv_stats = (struct server_statistics *)(childs_queue->stats_area + childs_queue->size * childs_queue->stats_block_size + childs_queue->stats_block_size);
+           int closed_kids = srv_stats->closed_childs;
+           value = (value + history_value * closed_kids) / (kids + closed_kids);
+       }
+       break;
+    default:
+        value += history_value;
+        break;
+}
+
     return value;
 }
 
