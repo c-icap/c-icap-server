@@ -1117,7 +1117,8 @@ INCLUDE_FILE_PATTERNS  =
 # instead of the = operator.
 
 PREDEFINED             = "CI_DECLARE_FUNC=" \
-                         "CI_DECLARE_DATA="
+                         "CI_DECLARE_DATA=" \
+                         "__CI_DOXYGEN__="
 
 # If the MACRO_EXPANSION and EXPAND_ONLY_PREDEF tags are set to YES then
 # this tag can be used to specify a list of macro names that should be expanded.

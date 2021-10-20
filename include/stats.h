@@ -33,7 +33,7 @@ extern "C"
 /*Fucntions for use with modules and services */
 
 /**
- \defgroup STAT c-icap library API for keeping statistics
+ \defgroup STAT c-icap library statistics API
  \ingroup API
  * Typical use of these API in a c-icap service can be:
  \code
@@ -49,17 +49,13 @@ extern "C"
    ci_stat_uint64_inc(MyCounterId, 1);
 ...
  \endcode
-* Also check the \ref SERVER_STATS for functions to use to retrieve
+q* Also check the \ref SERVER_STATS for functions which can be used to retrieve
 * current c-icap server statistic values.
 */
 
 /**
  * Statistic types
  \ingroup STAT
- * Express various statistic types. All statistics are kept per c-icap
- * child process and the children values sum (counters or accumulated
- * kilobytes) or the values mean (mean/average type statistics) are
- * shown.
  */
 typedef enum ci_stat_type {
     CI_STAT_INT64_T, /*!< An unsigned integer counter */
@@ -72,12 +68,12 @@ typedef enum ci_stat_type {
 } ci_stat_type_t;
 
 /**
- * Registers a statistic entry counter. The counter can count kilobytes
- * (CI_STAT_KBS_T type) or simple counter (CI_STAT_INT64_T type)
+ * Registers a statistic entry. The statistic entry can represent a counter
+ * (CI_STAT_KBS_T or CI_STAT_INT64_T types), a time range value
+ * (CI_STAT_TIME_* types), a mean/average integer (CI_STAT_INT64_MEAN_T), etc.
  \ingroup STAT
  \param label A name for this entry
- \param type The type of the entry.  The counter can count kilobytes
- *           (CI_STAT_KBS_T type) or simple counter (CI_STAT_INT64_T type)
+ \param type The type of the entry.
  \param group The group under which this entry appeared in info page.
  \return An ID which can be used to update counter
 */
@@ -129,11 +125,11 @@ CI_DECLARE_FUNC(void) ci_stat_kbs_inc(int ID, uint64_t count);
 CI_DECLARE_FUNC(void) ci_stat_value_set(int ID, uint64_t value);
 
 /**
- * Return the memory address where the CI_STAT_INT64_T counter is stored
+ * Return the memory address where the CI_STAT_INT64_T counter is stored.
  * The user can use this address to update the counter directly. In this
  * case the user is responsible to correctly lock the counter (eg using
- * ci_thread_mutex) before using it.
- * This function can work only after the statistics memory is initialised,
+ * ci_thread_mutex, or using C11 or c-icap atomic operations) before using it.
+ * This function can work only after the statistics memory is initialized,
  * after the running child is forked. It can not be used in init and
  * post_init services and modules handlers.
  \ingroup STAT
@@ -171,7 +167,10 @@ typedef struct ci_stat_item {
 /**
  * Updates multiple statistic entries in one step
  \param stats An array with statistic entries ids and their increment values
- \param count The number of items of stats array
+        for CI_STAT_INT64_T and CI_STAT_KBS_T types or a set value for
+        CI_STAT_TIME_* and CI_STAT_INT64_MEAN types.
+ \param count The number of items of the array.
+ *
  * example usage:
  \code
  int REQUESTS_ID = -1;
@@ -191,7 +190,7 @@ typedef struct ci_stat_item {
 CI_DECLARE_FUNC(void) ci_stat_update(const ci_stat_item_t *stats, int count);
 
 /**
- * Return the current value of an integer (STAT_INT64_T, CI_STAT_TIME_*_T
+ * Return the current value of an integer (CI_STAT_INT64_T, CI_STAT_TIME_*_T
  * or CI_STAT_INT64_MEAN_T) statistic entry.
  \ingroup STAT
  */

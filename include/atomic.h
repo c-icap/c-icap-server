@@ -52,6 +52,81 @@
    or c++ std::atomic interfaces they prefer.
 */
 
+/**
+ \defgroup ATOMICS Simple atomic operations for c-icap
+ \ingroup API
+ \brief The c-icap atomics operations are currently implemented for
+ * 32bit and 64bit unsigned and signed integers. To use the functions
+ * bellow replace with the correct TYPELABEL and TYPE.\n
+ * The _gl suffixed functions are for use with inter-process atomic
+ * objects, where the non-suffixed functions are for use inside the
+ * same process.
+ \details
+ * Currently the following integer types are supported:
+ *   - for unsigned 32bit integers use TYPE="uint32_t" and TYPELABEL= "u32"
+ *   - for signed 32bit integers TYPE="int32_t" and TYPELABEL= "i32"
+ *   - for unsigned 64bit integers TYPE="uint64_t" and TYPELABEL= "u64"
+ *   - for signed 64bit integers TYPE="int64_t" and TYPELABEL= "i64"
+ *
+ * The c-icap atomic operations are implemented using C11 atomics.
+ * If the C11 atomics are not supported, then a pthread mutex or an
+ * inter-process mutex (for the _gl suffixed functions - normally a
+ * posix or a sysv mutex) is used to lock the atomic object before
+ * an update or read operation.
+ *
+ */
+#if defined(__CI_DOXYGEN__)
+/**
+ * Reads atomically the value from an atomic of type TYPE.
+ \ingroup ATOMICS
+ */
+void ci_atomic_load_TYPELABEL(_CI_ATOMIC_TYPE const TYPE *counter, TYPE *value);
+
+/**
+ * Sets atomically a value to an atomic of type TYPE.
+ \ingroup ATOMICS
+ */
+void ci_atomic_store_TYPELABEL(_CI_ATOMIC_TYPE TYPE *counter, TYPE value);
+
+/**
+ * Adds atomically an amount "add" to the atomic "counter" of type TYPE.
+ \ingroup ATOMICS
+ */
+void ci_atomic_add_TYPELABEL(_CI_ATOMIC_TYPE TYPE *counter, TYPE add);
+
+/**
+ * Subtracts atomically an amount "sub" from the atomic "counter" of type TYPE.
+ \ingroup ATOMICS
+ */
+void ci_atomic_sub_TYPELABEL(_CI_ATOMIC_TYPE TYPE *counter, TYPE sub);
+
+/**
+ * Reads atomically the value from an inter-process atomic variable, of type TYPE.
+ \ingroup ATOMICS
+ */
+void ci_atomic_load_TYPELABEL_gl(_CI_ATOMIC_TYPE const TYPE *counter, TYPE *value);
+
+/**
+ * Sets atomically a value to an inter-process atomic variable, of type TYPE.
+ \ingroup ATOMICS
+ */
+void ci_atomic_store_TYPELABEL_gl(_CI_ATOMIC_TYPE TYPE *counter, TYPE value);
+
+/**
+ * Adds atomically an amount "add" to the inter-process atomic variable "counter", of type TYPE.
+ \ingroup ATOMICS
+ */
+void ci_atomic_add_TYPELABEL_gl(_CI_ATOMIC_TYPE TYPE *counter, TYPE add);
+
+/**
+ * Subtracts atomically an amount "sub" from the inter-process atomic variable "counter", of type TYPE.
+ \ingroup ATOMICS
+ */
+void ci_atomic_sub_TYPELABEL_gl(_CI_ATOMIC_TYPE TYPE *counter, TYPE sub);
+
+#endif
+
+
 #if defined(CI_ATOMICS_INLINE)
 #if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L && !defined(__STDC_NO_ATOMICS__)
 #define __CI_INLINE_POSIX_ATOMICS 1
