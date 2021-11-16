@@ -17,9 +17,9 @@
  *  MA  02110-1301  USA.
  */
 
-//#include "common.h"
-//#include "c-icap.h"
-#include <stdio.h>
+#include "common.h"
+#include "c-icap.h"
+#include "proc_threads_queues.h"
 #include <w32api/windows.h>
 
 char *logformat_fmt(const char *name)
@@ -79,9 +79,9 @@ void ci_command_schedule(const char *name, void *data, time_t time)
      fprintf(stderr, "Can not execute ci_command_schedule\n");
 }
 
-void ci_command_register_child_cleanup(const char *name, void *data, void (*child_cleanup_handler) (const char *name, process_pid_t pid, int reason, void *data))
+void ci_command_register_child_cleanup(const char *name, void *data, void (*child_cleanup_handler) (const char *name, HANDLE pid, int reason, void *data))
 {
-    typedef void (*RC)(const char *, void *, void(*)(const char *, process_pid_t, int, void *));
+    typedef void (*RC)(const char *, void *, void(*)(const char *, HANDLE, int, void *));
     RC fn;
     fn = (RC)GetProcAddress(GetModuleHandle(NULL), "ci_command_register_child_cleanup");
     if (fn)
@@ -92,51 +92,51 @@ void ci_command_register_child_cleanup(const char *name, void *data, void (*chil
 
 ci_kbs_t ci_server_stat_kbs_get_running(int id)
 {
-    typedef void (*CS)(int id);
+    typedef ci_kbs_t (*CS)(int id);
     CS fn;
     fn = (CS)GetProcAddress(GetModuleHandle(NULL), "ci_server_stat_kbs_get_running");
     if (fn)
         return (*fn)(id);
     fprintf(stderr, "Can not execute ci_server_stat_kbs_get_running\n");
-    return NULL;
+    return ci_kbs_zero();
 }
 
 uint64_t ci_server_stat_uint64_get_running(int id)
 {
-    typedef void (*CS)(int id);
+    typedef uint64_t (*CS)(int id);
     CS fn;
     fn = (CS)GetProcAddress(GetModuleHandle(NULL), "ci_server_stat_uint64_get_running");
     if (fn)
         return (*fn)(id);
     fprintf(stderr, "Can not execute ci_server_stat_uint64_get_running\n");
-    return NULL;
+    return 0;
 }
 
 ci_kbs_t ci_server_stat_kbs_get_global(int id)
 {
-    typedef void (*CS)(int id);
+    typedef ci_kbs_t (*CS)(int id);
     CS fn;
     fn = (CS)GetProcAddress(GetModuleHandle(NULL), "ci_server_stat_kbs_get_global");
     if (fn)
         return (*fn)(id);
     fprintf(stderr, "Can not execute ci_server_stat_kbs_get_global\n");
-    return NULL;
+    return ci_kbs_zero();
 }
 
 uint64_t ci_server_stat_uint64_get_global(int id)
 {
-    typedef void (*CS)(int id);
+    typedef uint64_t (*CS)(int id);
     CS fn;
     fn = (CS)GetProcAddress(GetModuleHandle(NULL), "ci_server_stat_uint64_get_global");
     if (fn)
         return (*fn)(id);
     fprintf(stderr, "Can not execute ci_server_stat_uint64_get_global\n");
-    return NULL;
+    return 0;
 }
 
 int ci_server_shared_memblob_register(const char *name, size_t size)
 {
-    typedef void (*CS)(const char *, size_t);
+    typedef int (*CS)(const char *, size_t);
     CS fn;
     fn = (CS)GetProcAddress(GetModuleHandle(NULL), "ci_server_shared_memblob_register");
     if (fn)
@@ -148,7 +148,7 @@ int ci_server_shared_memblob_register(const char *name, size_t size)
 
 ci_server_shared_blob_t *ci_server_shared_memblob(int ID)
 {
-    typedef void (*CS)(int ID);
+    typedef ci_server_shared_blob_t * (*CS)(int ID);
     CS fn;
     fn = (CS)GetProcAddress(GetModuleHandle(NULL), "ci_server_shared_memblob");
     if (fn)
@@ -160,7 +160,7 @@ ci_server_shared_blob_t *ci_server_shared_memblob(int ID)
 
 ci_server_shared_blob_t * ci_server_shared_memblob_byname(const char *name)
 {
-    typedef void (*CS)(const char *);
+    typedef ci_server_shared_blob_t * (*CS)(const char *);
     CS fn;
     fn = (CS)GetProcAddress(GetModuleHandle(NULL), "ci_server_shared_memblob_byname");
     if (fn)
