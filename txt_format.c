@@ -330,7 +330,7 @@ int fmt_remoteip(ci_request_t *req, char *buf,int len, const char *param)
     if (len<CI_IPLEN)
         return 0;
 
-    if (!ci_conn_remote_ip(req->connection, buf)) {
+    if (!ci_conn_source_ip(req->connection, buf)) {
         buf[0] = '-';
         buf[1] = '\0';
     }
@@ -343,7 +343,7 @@ int fmt_localip(ci_request_t *req, char *buf,int len, const char *param)
     if (len<CI_IPLEN)
         return 0;
 
-    if (!ci_conn_local_ip(req->connection, buf)) {
+    if (!ci_conn_dest_ip(req->connection, buf)) {
         buf[0] = '-';
         buf[1] = '\0';
     }

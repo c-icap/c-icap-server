@@ -142,8 +142,9 @@ CI_DECLARE_FUNC(const char *) ci_inet_ntoa(int af,const void *src, char *dst,int
 
 CI_DECLARE_FUNC(const ci_sockaddr_t *) ci_ip_to_ci_sockaddr_t(const char *ip, ci_sockaddr_t *addr);
 CI_DECLARE_FUNC(const char *) ci_sockaddr_t_to_ip(ci_sockaddr_t *addr, char *ip,int ip_strlen);
-#define ci_conn_remote_ip(conn,ip) ci_sockaddr_t_to_ip(&(conn->claddr),ip,CI_IPLEN)
-#define ci_conn_local_ip(conn,ip)  ci_sockaddr_t_to_ip(&(conn->srvaddr),ip,CI_IPLEN)
+
+#define ci_conn_source_ip(conn,ip) ci_sockaddr_t_to_ip(&(conn->claddr),ip,CI_IPLEN)
+#define ci_conn_dest_ip(conn,ip)  ci_sockaddr_t_to_ip(&(conn->srvaddr),ip,CI_IPLEN)
 
 #ifdef USE_IPV6
 CI_DECLARE_FUNC(void) ci_sockaddr_set_port(ci_sockaddr_t *addr, int port);

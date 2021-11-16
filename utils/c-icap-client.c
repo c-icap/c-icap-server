@@ -374,7 +374,7 @@ int main(int argc, char **argv)
 
     ci_client_get_server_options(req, IO_TIMEOUT);
     ci_debug_printf(10, "OK done with options!\n");
-    ci_conn_remote_ip(conn, ip);
+    ci_conn_dest_ip(conn, ip);
     ci_debug_printf(1, "ICAP server:%s, ip:%s, port:%d\n\n", icap_server, ip,
                     port);
 
