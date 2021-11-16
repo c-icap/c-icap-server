@@ -43,10 +43,11 @@ extern "C"
 #ifndef _WIN32
 #define ci_socket int
 #define CI_SOCKET_INVALID -1
-#define ci_socket_valid(fd) (fd > 0)
+#define ci_socket_valid(fd) (fd >= 0)
 #else
 #define ci_socket SOCKET
 #define CI_SOCKET_INVALID INVALID_SOCKET
+#define ci_socket_valid(fd) (fd != INVALID_SOCKET)
 #endif
 typedef ci_socket ci_socket_t;
 
