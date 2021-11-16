@@ -68,6 +68,15 @@ struct thread_data {
     unsigned int rand_seed;
 } *threads;
 
+int pid_to_int(ci_thread_t id)
+{
+#if defined(_WIN32)|| defined(__CYGWIN__)
+    return (int)(uintptr_t)id;
+#else
+    return id;
+#endif
+}
+
 ci_thread_mutex_t filemtx;
 int file_indx = 0;
 int requests_stats = 0;
@@ -410,8 +419,7 @@ static int threadjobreqmod(void *data)
     struct thread_data *thread_data = (struct thread_data *)data;
     time_t start;
     time(&start);
-    thread_data->rand_seed = start + thread_data->id;
-
+    thread_data->rand_seed = start + pid_to_int(thread_data->id);
     while (!_THE_END) {
 
         if (!(conn = connect_to_server())) {
@@ -560,7 +568,7 @@ static int threadjobsendfiles(void *data)
     struct thread_data *thread_data = (struct thread_data *)data;
     time_t start;
     time(&start);
-    thread_data->rand_seed = start + thread_data->id;
+    thread_data->rand_seed = start + pid_to_int(thread_data->id);
 
     while (1) {
 
