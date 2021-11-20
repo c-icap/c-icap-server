@@ -166,7 +166,7 @@ void *info_init_request_data(ci_request_t * req)
     struct info_req_data *info_data;
 
     info_data = malloc(sizeof(struct info_req_data));
-
+    info_data->url = NULL;
     info_data->body = ci_membuf_new_sized(32*1024);
     info_data->print_page = PRINT_INFO_MENU;
     info_data->view_child = -1;
@@ -237,10 +237,11 @@ int info_check_preview_handler(char *preview_data, int preview_data_len,
 
     if (ci_http_request_url2(req, url, sizeof(url), CI_HTTP_REQUEST_URL_ARGS)) {
         int url_size = url_decoder2(url);
-        info_data->url = ci_buffer_alloc(url_size);
+        info_data->url = ci_buffer_alloc(url_size + 1);
         if (!info_data->url)
             return CI_ERROR;
         memcpy(info_data->url, url, url_size);
+        info_data->url[url_size] = '\0';
 
         if ((args = strchr(url, '?'))) {
             parse_info_arguments(info_data, args);
@@ -999,13 +1000,13 @@ static void print_link(struct info_req_data *info_data, const char *label, const
 {
     char buf[512];
     size_t sz;
-    int hasArgs = (strchr(info_data->url, '?') != NULL);
+    int hasArgs = (info_data->url && strchr(info_data->url, '?') != NULL);
     if (info_data->format == OUT_FMT_CSV)
         sz = snprintf(buf, sizeof(buf), "\"%s\", \"%s\"\n", label, table);
     else if (info_data->format == OUT_FMT_TEXT)
         sz = snprintf(buf, sizeof(buf), "\t'%s': for '%s' statistics\n", table, label);
     else
-        sz = snprintf(buf, sizeof(buf), "<li><A href=%s%ctable=%s> %s </A></li>\n", info_data->url, (hasArgs ? '&' : '?'), table, label);
+        sz = snprintf(buf, sizeof(buf), "<li><A href=%s%ctable=%s> %s </A></li>\n", info_data->url ? info_data->url : "", (hasArgs ? '&' : '?'), table, label);
 
     if (sz >= sizeof(buf))
         sz = sizeof(buf) - 1;
