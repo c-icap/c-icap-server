@@ -153,8 +153,10 @@ int echo_check_preview_handler(char *preview_data, int preview_data_len,
     /*If there are not body data in HTTP encapsulated object but only headers
       respond with Allow204 (no modification required) and terminate here the
       ICAP transaction */
-    if (!ci_req_hasbody(req))
+    if (!ci_req_hasbody(req)) {
+        ci_icap_add_xheader(req, "X-Echo-Action: allow204");
         return CI_MOD_ALLOW204;
+    }
 
     /*Unlock the request body data so the c-icap server can send data before
       all body data has received */
@@ -162,8 +164,10 @@ int echo_check_preview_handler(char *preview_data, int preview_data_len,
 
     /*If there are not preview data tell to the client to continue sending data
       (http object modification required). */
-    if (!preview_data_len)
+    if (!preview_data_len) {
+        ci_icap_add_xheader(req, "X-Echo-Action: continue");
         return CI_MOD_CONTINUE;
+    }
 
     /* In most real world services we should decide here if we must modify/process
     or not the encupsulated HTTP object and return CI_MOD_CONTINUE or
@@ -185,12 +189,14 @@ int echo_check_preview_handler(char *preview_data, int preview_data_len,
             ci_ring_buf_write(echo_data->body, preview_data, preview_data_len);
             echo_data->eof = ci_req_hasalldata(req);
         }
+        ci_icap_add_xheader(req, "X-Echo-Action: continue");
         return CI_MOD_CONTINUE;
     } else {
         whattodo = 0;
         /*Nothing to do just return an allow204 (No modification) to terminate here
          the ICAP transaction */
         ci_debug_printf(8, "Allow 204...\n");
+        ci_icap_add_xheader(req, "X-Echo-Action: allow204");
         return CI_MOD_ALLOW204;
     }
 }
