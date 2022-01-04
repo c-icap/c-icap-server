@@ -125,7 +125,7 @@ server_decl_t *newthread(struct connections_queue *con_queue)
 
 int thread_main(server_decl_t * srv)
 {
-    ci_connection_t con;
+    struct connections_queue_item con;
     char clientname[CI_MAXHOSTNAMELEN + 1];
     int ret, request_status = 0;
 
@@ -151,19 +151,19 @@ int thread_main(server_decl_t * srv)
             break;
         }
 
-        ci_netio_init(con.fd);
+        ci_netio_init(con.conn.fd);
 
         ret = 1;
         if (srv->current_req == NULL)
-            srv->current_req = newrequest(&con);
+            srv->current_req = newrequest(&con.conn);
         else
-            ret = recycle_request(srv->current_req, &con);
+            ret = recycle_request(srv->current_req, &con.conn);
 
         if (srv->current_req == NULL || ret == 0) {
-            ci_sockaddr_t_to_host(&(con.claddr), clientname,
+            ci_sockaddr_t_to_host(&(con.conn.claddr), clientname,
                                   CI_MAXHOSTNAMELEN);
             ci_debug_printf(1, "Request from %s denied...\n", clientname);
-            hard_close_connection((&con));
+            hard_close_connection((&con.conn));
             continue;        /*The request rejected. Log an error and continue ... */
         }
 
@@ -231,7 +231,7 @@ maybe with lists instead of connections array....*/
 
 int worker_main(ci_socket sockfd)
 {
-    ci_connection_t conn;
+    struct connections_queue_item con;
     int claddrlen = sizeof(struct sockaddr_in);
 //     char clientname[300];
     int haschild = 1, jobs_in_queue = 0;
@@ -252,8 +252,8 @@ int worker_main(ci_socket sockfd)
         do {                  //Getting requests while we have free servers.....
             ci_debug_printf(1, "In accept loop..................\n");
             error = 0;
-            if (((conn.fd =
-                        accept(sockfd, (struct sockaddr *) &(conn.claddr.sockaddr),
+            if (((con.conn.fd =
+                        accept(sockfd, (struct sockaddr *) &(con.conn.claddr.sockaddr),
                                &claddrlen)) == INVALID_SOCKET) &&
 //             if(((conn.fd = WSAAccept(sockfd, (struct sockaddr *)&(conn.claddr), &claddrlen,NULL,NULL)) == INVALID_SOCKET ) &&
                     (error = WSAGetLastError())) {
@@ -264,25 +264,23 @@ int worker_main(ci_socket sockfd)
             }
 
             ci_debug_printf(1, "Accepting one connection...\n");
-            claddrlen = sizeof(conn.srvaddr.sockaddr);
-            getsockname(conn.fd,
-                        (struct sockaddr *) &(conn.srvaddr.sockaddr),
+            claddrlen = sizeof(con.conn.srvaddr.sockaddr);
+            getsockname(con.conn.fd,
+                        (struct sockaddr *) &(con.conn.srvaddr.sockaddr),
                         &claddrlen);
 
-            ci_fill_sockaddr(&conn.claddr);
-            ci_fill_sockaddr(&conn.srvaddr);
+            ci_fill_sockaddr(&con.conn.claddr);
+            ci_fill_sockaddr(&con.conn.srvaddr);
 
             icap_socket_opts(sockfd, MAX_SECS_TO_LINGER);
-
-            if ((jobs_in_queue = put_to_queue(con_queue, &conn)) == 0) {
-                ci_debug_printf(1,
-                                "ERROR!!!!!!NO AVAILABLE SERVERS!!!!!!!!!\n");
-//                  child_data->to_be_killed = GRACEFULLY;
-                ci_debug_printf(1,
+            con.proto = CI_PROTO_ICAP;
+            if ((jobs_in_queue = put_to_queue(con_queue, &con)) == 0) {
+                ci_debug_printf(8,
                                 "Jobs in Queue: %d, Free servers: %d, Used Servers: %d, Requests: %d\n",
                                 jobs_in_queue, child_data->servers - child_data->usedservers,
                                 child_data->usedservers,
                                 child_data->requests);
+                continue;
             }
             ci_atomic_load_i32(&child_data->usedservers, &child_usedservers);
             haschild = ((child_data->servers - child_usedservers) > 0 ? 1 : 0);
