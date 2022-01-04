@@ -27,6 +27,12 @@
 #include <openssl/ssl.h>
 #endif
 
+enum {
+    CI_PROTO_NONE,
+    CI_PROTO_ICAP,
+    CI_PROTO_HTTP
+};
+
 /**
  * Basic configurations for a listening port
  \ingroup CONFIG
@@ -36,6 +42,7 @@ typedef struct ci_port {
     int protocol_family;
     char *address;
     int secs_to_linger;
+    int proto;
 #ifdef USE_OPENSSL
     int tls_enabled;
     char *tls_server_cert;

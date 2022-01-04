@@ -58,6 +58,7 @@ static void ci_port_move_configured(ci_port_t *dst, ci_port_t *src)
 {
     dst->configured = src->configured;
     dst->fd = src->fd;
+    dst->proto = src->proto;
     src->configured = 0;
     src->fd = -1;
 
@@ -100,6 +101,7 @@ void ci_port_close(ci_port_t *port)
 #endif
         close(port->fd);
     port->fd = -1;
+    port->proto = 0;
     port->configured = 0;
 }
 

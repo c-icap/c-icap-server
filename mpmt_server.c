@@ -567,7 +567,7 @@ server_decl_t *newthread(struct connections_queue *con_queue)
 
 int thread_main(server_decl_t * srv)
 {
-    ci_connection_t con;
+    struct connections_queue_item con;
     char clientname[CI_MAXHOSTNAMELEN + 1];
     int ret, request_status = CI_NO_STATUS;
     int keepalive_reqs;
@@ -610,15 +610,15 @@ int thread_main(server_decl_t * srv)
 
         ret = 1;
         if (srv->current_req == NULL)
-            srv->current_req = newrequest(&con);
+            srv->current_req = newrequest(&con.conn);
         else
-            ret = recycle_request(srv->current_req, &con);
+            ret = recycle_request(srv->current_req, &con.conn);
 
         if (srv->current_req == NULL || ret == 0) {
-            ci_sockaddr_t_to_host(&(con.claddr), clientname,
+            ci_sockaddr_t_to_host(&(con.conn.claddr), clientname,
                                   CI_MAXHOSTNAMELEN);
             ci_debug_printf(1, "Request from %s denied...\n", clientname);
-            ci_connection_hard_close(&con);
+            ci_connection_hard_close(&con.conn);
             goto end_of_main_loop_thread;    /*The request rejected. Log an error and continue ... */
         }
 
@@ -699,7 +699,7 @@ end_of_main_loop_thread:
 
 void listener_thread(void *unused)
 {
-    ci_connection_t conn;
+    struct connections_queue_item con;
     ci_port_t *port;
     int haschild = 1, jobs_in_queue = 0;
     int pid;
@@ -783,13 +783,13 @@ void listener_thread(void *unused)
 #endif
                 int ret = 0;
                 do {
-                    ci_connection_reset(&conn);
+                    ci_connection_reset(&con.conn);
 #ifdef USE_OPENSSL
                     if (port->bio)
-                        ret = icap_accept_tls_connection(port, &conn);
+                        ret = icap_accept_tls_connection(port, &con.conn);
                     else
 #endif
-                        ret = icap_accept_raw_connection(port, &conn);
+                        ret = icap_accept_raw_connection(port, &con.conn);
                     if (ret <= 0) {
                         if (child_data->to_be_killed) {
                             ci_debug_printf(5, "Accept aborted: listener server signalled to exit!\n");
@@ -802,21 +802,21 @@ void listener_thread(void *unused)
                 } while (ret == 0);
 
                 // Probably ECONNABORTED or similar error
-                if (conn.fd < 0)
+                if (con.conn.fd < 0)
                     continue;
 
                 /*Do w need the following? Options has been set in icap_init_server*/
                 icap_socket_opts(port->fd, MAX_SECS_TO_LINGER);
 
-                if ((jobs_in_queue = put_to_queue(con_queue, &conn)) == 0) {
-                    ci_debug_printf(1,
-                                    "ERROR!!!!!! NO AVAILABLE SERVERS! THIS IS A BUG!!!!!!!!\n");
-                    ci_debug_printf(1,
-                                    "Jobs in Queue: %d, Free servers: %d, Used Servers: %d, Requests: %d\n",
+                con.proto = port->proto;
+                if ((jobs_in_queue = put_to_queue(con_queue, &con)) == 0) {
+                    /* connection dropped */
+                    ci_debug_printf(8, "Jobs in Queue: %d, Free servers: %d, Used Servers: %d, Requests: %" PRIi64 "\n",
                                     jobs_in_queue, child_data->freeservers,
                                     child_data->usedservers,
-                                    child_data->requests);
-                    goto LISTENER_FAILS;
+                                    (int64_t)child_data->requests);
+                    ci_connection_hard_close(&con.conn);
+                    continue;
                 }
                 (child_data->connections)++;     //NUM of Requests....
             } /*for (Listen_SOCKETS[i]...*/
@@ -896,7 +896,7 @@ void child_main(int pipefd)
     threads_list =
         (server_decl_t **) malloc((CI_CONF.THREADS_PER_CHILD + 1) *
                                   sizeof(server_decl_t *));
-    con_queue = init_queue(CI_CONF.THREADS_PER_CHILD);
+    con_queue = init_queue(2*CI_CONF.THREADS_PER_CHILD);
 
     for (i = 0; i < CI_CONF.THREADS_PER_CHILD; i++) {
         if ((threads_list[i] = newthread(con_queue)) == NULL) {
