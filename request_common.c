@@ -272,7 +272,9 @@ ci_request_t *ci_request_alloc(ci_connection_t * connection)
 
     req->preview_data_type = -1;
     req->auth_required = 0;
-
+    req->protocol = 0;
+    req->proto_version.major = 0;
+    req->proto_version.minor = 0;
 
     req->log_str = NULL;
     req->attributes = NULL;
@@ -350,6 +352,9 @@ void ci_request_reset(ci_request_t * req)
 
     req->preview_data_type = -1;
     req->auth_required = 0;
+    req->protocol = 0;
+    req->proto_version.major = 0;
+    req->proto_version.minor = 0;
 
     if (req->log_str)
         ci_buffer_free(req->log_str);

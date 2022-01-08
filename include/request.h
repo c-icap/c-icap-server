@@ -32,6 +32,7 @@
 #include "net_io.h"
 #include "array.h"
 #include "ci_time.h"
+#include "port.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -165,11 +166,16 @@ typedef struct ci_request {
     int allow206;
     int64_t i206_use_original_body;
     ci_ip_t xclient_ip;
+    enum CI_PROTO protocol;
+    struct {
+        int major;
+        int minor;
+    } proto_version;
 } ci_request_t;
 
 /*This functions needed in server (mpmt_server.c ) */
-ci_request_t *newrequest(ci_connection_t *connection);
-int recycle_request(ci_request_t *req,ci_connection_t *connection);
+ci_request_t *server_request_alloc();
+int server_request_use_connection(ci_request_t * req, ci_connection_t * connection, int protocol);
 int keepalive_request(ci_request_t *req);
 int process_request(ci_request_t *);
 

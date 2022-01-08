@@ -55,6 +55,7 @@ int is_icap_running(char *pidfile);
 int set_running_permissions(char *user, char *group);
 void init_internal_lookup_tables();
 void request_stats_init();
+void http_server_init();
 void init_http_auth();
 
 void compute_my_hostname()
@@ -154,6 +155,7 @@ int main(int argc, char **argv)
     init_conf_tables();
     ci_stat_group_add("Server"); /* Add it first to show it first at info page */
     request_stats_init();
+    http_server_init();
     init_modules();
     init_services();
     config(argc, argv);

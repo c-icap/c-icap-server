@@ -29,8 +29,8 @@
 struct ci_tls_server_accept_details;
 #endif
 
-enum {
-    CI_PROTO_NONE,
+enum CI_PROTO {
+    CI_PROTO_NONE = 0,
     CI_PROTO_ICAP,
     CI_PROTO_HTTP
 };

@@ -185,6 +185,8 @@ static struct ci_conf_entry conf_variables[] = {
     {"SslPort", &CI_CONF.PORTS, cfg_set_port, NULL},
     {"SslPassphrase", &CI_CONF.TLS_PASSPHRASE, intl_cfg_set_str, NULL},
 #endif
+    {"HttpPort", &CI_CONF.PORTS, cfg_set_port, NULL},
+    {"HttpsPort", &CI_CONF.PORTS, cfg_set_port, NULL},
     {"User", &CI_CONF.RUN_USER, intl_cfg_set_str, NULL},
     {"Group", &CI_CONF.RUN_GROUP, intl_cfg_set_str, NULL},
     {"Umask", &UMASK, intl_cfg_set_octal, NULL},
@@ -460,11 +462,14 @@ int cfg_set_port(const char *directive, const char **argv, void *setdata)
         return 0;
     }
 
+    int isHTTP = (strcmp(directive, "HttpPort") == 0 || strcmp(directive, "HttpsPort") == 0) ? 1 : 0;
+    pcfg->proto = isHTTP ? CI_PROTO_HTTP : CI_PROTO_ICAP;
+
     if (!argv[1])
         return 1;
 
 #ifdef USE_OPENSSL
-    int isTls = (strcmp(directive, "TlsPort") == 0 || strcmp(directive, "SslPort") == 0) ? 1 : 0;
+    int isTls = (strcmp(directive, "TlsPort") == 0 || strcmp(directive, "SslPort") == 0 || strcmp(directive, "HttpsPort") == 0) ? 1 : 0;
     if (isTls)
         CI_CONF.TLS_ENABLED = 1;
     pcfg->tls_enabled = isTls;
@@ -1114,9 +1119,11 @@ void release_modules();
 void ci_dlib_closeall();
 int log_open();
 void reset_http_auth();
+void http_server_close();
 
 void system_shutdown()
 {
+    http_server_close();
     /*
       - reset commands table
     */

@@ -41,7 +41,7 @@ extern "C"
 
 CI_DECLARE_DATA extern const char *ci_methods[];
 static inline const char *ci_method_string(int method) {
-    return ((method & CI_METHOD_ALL) ? ci_methods[method]: "UNKNOWN");
+    return (method > 0 && method <= ICAP_RESPMOD ? ci_methods[method]: "UNKNOWN");
 }
 
 enum ci_error_codes { EC_100, EC_200, EC_204, EC_206,
