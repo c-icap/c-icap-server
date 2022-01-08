@@ -42,8 +42,8 @@ ci_thread_mutex_t COMMANDS_MTX;
 void commands_init()
 {
     ci_thread_mutex_init(&COMMANDS_MTX);
-    COMMANDS_LIST = ci_list_create(64, sizeof(ci_command_t));
-    COMMANDS_QUEUE = ci_list_create(64, sizeof(struct schedule_data));
+    COMMANDS_LIST = ci_list_create(1024, sizeof(ci_command_t));
+    COMMANDS_QUEUE = ci_list_create(1024, sizeof(struct schedule_data));
 }
 
 
@@ -97,11 +97,11 @@ void commands_reset()
 {
     if (COMMANDS_QUEUE) {
         ci_list_destroy(COMMANDS_QUEUE);
-        COMMANDS_QUEUE = ci_list_create(64, sizeof(struct schedule_data));
+        COMMANDS_QUEUE = ci_list_create(1024, sizeof(struct schedule_data));
     }
     if (COMMANDS_LIST) {
         ci_list_destroy(COMMANDS_LIST);
-        COMMANDS_LIST = ci_list_create(64, sizeof(ci_command_t));
+        COMMANDS_LIST = ci_list_create(1024, sizeof(ci_command_t));
     }
 }
 
