@@ -373,7 +373,7 @@ int ci_connection_read(ci_connection_t *conn, void *buf, size_t count, int timeo
     return ci_read(conn->fd, buf, count, timeout);
 }
 
-int ci_connection_write(ci_connection_t *conn, void *buf, size_t count, int timeout)
+int ci_connection_write(ci_connection_t *conn, const void *buf, size_t count, int timeout)
 {
     assert(conn);
 #ifdef USE_OPENSSL
@@ -393,7 +393,7 @@ int ci_connection_read_nonblock(ci_connection_t *conn, void *buf, size_t count)
     return ci_read_nonblock(conn->fd, buf, count);
 }
 
-int ci_connection_write_nonblock(ci_connection_t *conn, void *buf, size_t count)
+int ci_connection_write_nonblock(ci_connection_t *conn, const void *buf, size_t count)
 {
     assert(conn);
 #ifdef USE_OPENSSL

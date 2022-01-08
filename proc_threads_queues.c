@@ -37,7 +37,6 @@ static int list_copy_connection(void *dest, const void *src)
     return 1;
 }
 
-
 struct connections_queue *init_queue(int size)
 {
     int ret;

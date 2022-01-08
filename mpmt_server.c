@@ -608,18 +608,24 @@ int thread_main(server_decl_t * srv)
         (child_data->usedservers)++;
         ci_thread_mutex_unlock(&counters_mtx);
 
-        ret = 1;
-        if (srv->current_req == NULL)
-            srv->current_req = newrequest(&con.conn);
-        else
-            ret = recycle_request(srv->current_req, &con.conn);
+        if (srv->current_req == NULL) {
+            srv->current_req = server_request_alloc();
+            if (!srv->current_req) {
+                ci_debug_printf(1, "ERROR: Request memory allocation failure, reject connection\n");
+                ci_connection_hard_close(&con.conn);
+                /* Does it make sense to continue if we can not allocate a small amount of memory? */
+                goto end_of_main_loop_thread;
+            }
+        }
 
-        if (srv->current_req == NULL || ret == 0) {
+        ret = server_request_use_connection(srv->current_req, &con.conn, con.proto);
+        if (ret == 0) {
+            /*The request rejected. Log an error and continue*/
             ci_sockaddr_t_to_host(&(con.conn.claddr), clientname,
                                   CI_MAXHOSTNAMELEN);
-            ci_debug_printf(1, "Request from %s denied...\n", clientname);
+            ci_debug_printf(1, "Request from %s is denied\n", clientname);
             ci_connection_hard_close(&con.conn);
-            goto end_of_main_loop_thread;    /*The request rejected. Log an error and continue ... */
+            goto end_of_main_loop_thread;
         }
 
         keepalive_reqs = 0;

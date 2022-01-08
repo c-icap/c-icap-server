@@ -46,7 +46,7 @@ c_icap_SOURCES = aserver.c request.c cfg_param.c \
                    proc_threads_queues.c http_auth.c \
                    access.c log.c service.c module.c \
 		   commands.c mpmt_server.c dlib.c info.c \
-		   default_acl.c port.c $(UTIL_SOURCES)
+		   default_acl.c port.c http_server.c $(UTIL_SOURCES)
 
 
 # libicapapi ......
@@ -73,7 +73,7 @@ INCS = access.h body.h cfg_param.h c-icap-conf.h c-icap.h ci_threads.h \
 	net_io.h proc_mutex.h proc_threads_queues.h request.h service.h \
 	shared_mem.h simple_api.h util.h lookup_table.h hash.h stats.h acl.h \
         cache.h txt_format.h types_ops.h txtTemplate.h array.h registry.h \
-	md5.h ci_regex.h net_io_ssl.h port.h
+	md5.h ci_regex.h net_io_ssl.h port.h http_server.h
 
 ALL_INCS=$(INCS:%.h=include/%.h)
 

@@ -183,9 +183,9 @@ CI_DECLARE_FUNC(int) ci_connect_to_nonblock(ci_connection_t *connection, const c
 
 CI_DECLARE_FUNC(int) ci_connection_wait(ci_connection_t *conn, int secs, int what_wait);
 CI_DECLARE_FUNC(int) ci_connection_read(ci_connection_t *conn, void *buf, size_t count, int timeout);
-CI_DECLARE_FUNC(int) ci_connection_write(ci_connection_t *conn, void *buf, size_t count, int timeout);
+CI_DECLARE_FUNC(int) ci_connection_write(ci_connection_t *conn, const void *buf, size_t count, int timeout);
 CI_DECLARE_FUNC(int) ci_connection_read_nonblock(ci_connection_t *conn, void *buf, size_t count);
-CI_DECLARE_FUNC(int) ci_connection_write_nonblock(ci_connection_t *conn, void *buf, size_t count);
+CI_DECLARE_FUNC(int) ci_connection_write_nonblock(ci_connection_t *conn, const void *buf, size_t count);
 CI_DECLARE_FUNC(int) ci_connection_linger_close(ci_connection_t *conn, int timeout);
 CI_DECLARE_FUNC(int) ci_connection_hard_close(ci_connection_t *conn);
 #ifdef __cplusplus

@@ -104,32 +104,15 @@ static int wait_for_data(ci_connection_t *conn, int secs, int what_wait)
     return wait_status;
 }
 
-ci_request_t *newrequest(ci_connection_t * connection)
+ci_request_t *server_request_alloc()
 {
-    ci_request_t *req;
-    int access;
-    int len;
     ci_connection_t *conn;
-
-    conn = (ci_connection_t *) malloc(sizeof(ci_connection_t));
+    conn = (ci_connection_t *) calloc(1, sizeof(ci_connection_t));
     assert(conn);
-    ci_copy_connection(conn, connection);
-    req = ci_request_alloc(conn);
-
-    if ((access = access_check_client(req)) == CI_ACCESS_DENY) { /*Check for client access */
-        len = strlen(FORBITTEN_STR);
-        ci_connection_write(connection, FORBITTEN_STR, len, TIMEOUT);
-        ci_request_destroy(req);
-        return NULL;          /*Or something that means authentication error */
-    }
-
-
-    req->access_type = access;
-    return req;
+    return ci_request_alloc(conn);
 }
 
-
-int recycle_request(ci_request_t * req, ci_connection_t * connection)
+int server_request_use_connection(ci_request_t * req, ci_connection_t * connection, int protocol)
 {
     int access;
     int len;
@@ -143,6 +126,7 @@ int recycle_request(ci_request_t * req, ci_connection_t * connection)
         return 0;             /*Or something that means authentication error */
     }
     req->access_type = access;
+    req->protocol = protocol;
     return 1;
 }
 
@@ -151,8 +135,10 @@ int keepalive_request(ci_request_t *req)
     /* Preserve extra read bytes*/
     char *pstrblock = req->pstrblock_read;
     int pstrblock_len = req->pstrblock_read_len;
-    // Just reset without change or free memory
+    /*Preserve protocol:*/
+    int protocol = req->protocol;
     ci_request_reset(req);
+    req->protocol = protocol;
     if (PIPELINING) {
         req->pstrblock_read = pstrblock;
         req->pstrblock_read_len = pstrblock_len;
@@ -188,7 +174,7 @@ static int icap_header_check_realloc(char **buf, int *size, int used, int mustad
 }
 
 
-static int ci_read_icap_header(ci_request_t * req, ci_headers_list_t * h, int timeout)
+int ci_read_icap_header(ci_request_t * req, ci_headers_list_t * h, int timeout)
 {
     int bytes, request_status = EC_100, i, eoh = 0, startsearch = 0, readed = 0;
     int wait_status = 0;
@@ -1666,10 +1652,16 @@ static int do_request(ci_request_t * req)
     return ret_status;
 }
 
+int http_process_request(ci_request_t *req);
+
 int process_request(ci_request_t * req)
 {
     int res;
     ci_service_xdata_t *srv_xdata;
+
+    if (req->protocol == CI_PROTO_HTTP)
+        return http_process_request(req);
+
     res = do_request(req);
 
     if (req->pstrblock_read_len) {

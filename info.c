@@ -26,6 +26,7 @@
 #include "stats.h"
 #include "proc_threads_queues.h"
 #include "debug.h"
+#include "http_server.h"
 
 int info_init_service(ci_service_xdata_t * srv_xdata,
                       struct ci_server_conf *server_conf);
@@ -57,6 +58,7 @@ CI_DECLARE_MOD_DATA ci_service_module_t info_service = {
 
 struct info_req_data {
     ci_membuf_t *body;
+    int must_free_body;
     int txt_mode;
     int childs;
     int *child_pids;
@@ -74,11 +76,13 @@ extern struct childs_queue *childs_queue;
 extern ci_proc_mutex_t accept_mutex;
 
 int build_statistics(struct info_req_data *info_data);
+static int stats_web_service(ci_request_t *req);
 
 int info_init_service(ci_service_xdata_t * srv_xdata,
                       struct ci_server_conf *server_conf)
 {
     ci_service_set_xopts(srv_xdata,  CI_XAUTHENTICATEDUSER|CI_XAUTHENTICATEDGROUPS);
+    ci_http_server_register_service("/statistics", stats_web_service, 0);
     return CI_OK;
 }
 
@@ -92,8 +96,13 @@ void *info_init_request_data(ci_request_t * req)
     struct info_req_data *info_data;
 
     info_data = malloc(sizeof(struct info_req_data));
-
-    info_data->body = ci_membuf_new();
+    if (req->protocol == CI_PROTO_HTTP) {
+        info_data->body = ci_http_server_response_body(req);
+        info_data->must_free_body = 0;
+    } else {
+        info_data->body = ci_membuf_new();
+        info_data->must_free_body = 1;
+    }
     info_data->childs = 0;
     info_data->child_pids = malloc(childs_queue->size * sizeof(int));
     info_data->free_servers = 0;
@@ -120,8 +129,7 @@ void *info_init_request_data(ci_request_t * req)
 void info_release_request_data(void *data)
 {
     struct info_req_data *info_data = (struct info_req_data *)data;
-
-    if (info_data->body)
+    if (info_data->must_free_body && info_data->body)
         ci_membuf_free(info_data->body);
 
     if (info_data->child_pids)
@@ -412,6 +420,19 @@ int build_statistics(struct info_req_data *info_data)
     }
     ci_membuf_write(info_data->body, NULL, 0, 1);
 
+    return 1;
+}
+
+int stats_web_service(ci_request_t *req)
+{
+    struct info_req_data *info_data = (struct info_req_data *)info_init_request_data(req);
+    if (info_data->txt_mode)
+        ci_http_server_response_add_header(req, "Content-Type: text/plain");
+    else
+        ci_http_server_response_add_header(req, "Content-Type: text/html");
+    ci_http_server_response_add_header(req, "Content-Language: en");
+    build_statistics(info_data);
+    info_release_request_data((void *)info_data);
     return 1;
 }
 

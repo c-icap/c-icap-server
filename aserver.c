@@ -57,6 +57,7 @@ int set_running_permissions(char *user, char *group);
 void init_internal_lookup_tables();
 void request_stats_init();
 int mem_init();
+void http_server_init();
 void init_http_auth();
 
 void compute_my_hostname()
@@ -154,6 +155,7 @@ int main(int argc, char **argv)
     }
     init_conf_tables();
     request_stats_init();
+    http_server_init();
     init_modules();
     init_services();
     config(argc, argv);
