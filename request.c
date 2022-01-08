@@ -1813,22 +1813,26 @@ int process_request(ci_request_t * req)
         STAT_TIME.accumulated_proc_time = 0;
         STAT_TIME.requests = 0;
 
-        if (srv_xdata->stat_time.requests) {
-            *(ci_stat_uint64_ptr(srv_xdata->stat_time_per_request)) = srv_xdata->stat_time.accumulated_time / srv_xdata->stat_time.requests;
-            *(ci_stat_uint64_ptr(srv_xdata->stat_proc_time_per_request)) = srv_xdata->stat_time.accumulated_proc_time / srv_xdata->stat_time.requests;
+        if (srv_xdata) {
+            if (srv_xdata->stat_time.requests) {
+                *(ci_stat_uint64_ptr(srv_xdata->stat_time_per_request)) = srv_xdata->stat_time.accumulated_time / srv_xdata->stat_time.requests;
+                *(ci_stat_uint64_ptr(srv_xdata->stat_proc_time_per_request)) = srv_xdata->stat_time.accumulated_proc_time / srv_xdata->stat_time.requests;
+            }
+            srv_xdata->stat_time.indx = curr_time;
+            srv_xdata->stat_time.accumulated_time = 0;
+            srv_xdata->stat_time.accumulated_proc_time = 0;
+            srv_xdata->stat_time.requests = 0;
         }
-        srv_xdata->stat_time.indx = curr_time;
-        srv_xdata->stat_time.accumulated_time = 0;
-        srv_xdata->stat_time.accumulated_proc_time = 0;
-        srv_xdata->stat_time.requests = 0;
     } else {
         uint64_t us = ci_clock_time_diff_micro(&req->stop_w_t, &req->start_r_t);
         STAT_TIME.accumulated_time += us;
         STAT_TIME.accumulated_proc_time += req_processing_time;
         STAT_TIME.requests++;
-        srv_xdata->stat_time.requests++;
-        srv_xdata->stat_time.accumulated_time += us;
-        srv_xdata->stat_time.accumulated_proc_time += req_processing_time;
+        if (srv_xdata) {
+            srv_xdata->stat_time.requests++;
+            srv_xdata->stat_time.accumulated_time += us;
+            srv_xdata->stat_time.accumulated_proc_time += req_processing_time;
+        }
     }
     ci_debug_printf(9, "Accumulated time %lld, %d\n", (long long)STAT_TIME.accumulated_time, STAT_TIME.requests);
 
