@@ -22,7 +22,7 @@
 #include "debug.h"
 #include "request.h"
 #include "request_util.h"
-//#include "access.h"
+#include "access.h"
 #include "array.h"
 #include "acl.h"
 #include "util.h"
@@ -244,6 +244,13 @@ static int http_do_request(ci_request_t *req)
     }
     if ((status = http_server_request_parse_first_line(req)) != EC_200)
         goto http_do_request_bad_status;
+
+    int auth_status = CI_ACCESS_ALLOW;
+    if ((auth_status = access_check_request(req)) == CI_ACCESS_DENY) {
+        status = (req->auth_required ? EC_407 : EC_403);
+        ci_debug_printf(3, "HTTP request not allowed/authenticated, status: %d\n", auth_status);
+        goto http_do_request_bad_status;
+    }
 
     if (http_server_exec_service_handler(req)) {
         return 1;
