@@ -138,6 +138,7 @@ static int http_server_response_send(ci_request_t *req)
         if (len <= 0)
             goto http_server_response_send_done;
         req->bytes_out += len;
+        req->body_bytes_out = len;
     }
     ok = 1;
 
@@ -145,6 +146,7 @@ http_server_response_send_done:
     ci_clock_time_get(&req->stop_w_t);
     /*We are finishing sending*/
     req->status = SEND_EOF;
+    req->http_bytes_out = req->bytes_out;
 
     return ok;
 }
@@ -153,6 +155,7 @@ int ci_read_icap_header(ci_request_t * req, ci_headers_list_t * h, int timeout);
 static int ci_read_http_header(ci_request_t * req, int timeout)
 {
     int ret = ci_read_icap_header(req, req->request_header, timeout);
+    req->http_bytes_in = req->bytes_in;
     return (ret == EC_100 ? EC_200 : ret);
 }
 
