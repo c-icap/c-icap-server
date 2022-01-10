@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2004 Christos Tsantilas
+ *  Copyright (C) 2004-2022 Christos Tsantilas
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -1002,6 +1002,8 @@ void release_header_value(ci_headers_list_t *headers, char *head)
 void *get_icap_header(ci_request_t *req, char *param)
 {
     ci_headers_list_t *heads;
+    if (req->protocol == CI_PROTO_HTTP)
+        return NULL;
     heads = req->request_header;
     return (void *)get_header(heads, param);
 }
@@ -1016,6 +1018,8 @@ void free_icap_header(ci_request_t *req, void *param)
 void *get_icap_response_header(ci_request_t *req, char *param)
 {
     ci_headers_list_t *heads;
+    if (req->protocol == CI_PROTO_HTTP)
+        return NULL;
     heads = req->response_header;
     return (void *)get_header(heads, param);
 }
@@ -1030,7 +1034,10 @@ void free_icap_response_header(ci_request_t *req, void *param)
 void *get_http_req_header(ci_request_t *req, char *param)
 {
     ci_headers_list_t *heads;
-    heads = ci_http_request_headers(req);
+    if (req->protocol == CI_PROTO_HTTP)
+        heads = req->request_header;
+    else
+        heads = ci_http_request_headers(req);
     return (void *)get_header(heads, param);
 }
 void free_http_req_header(ci_request_t *req, void *param)
@@ -1043,7 +1050,10 @@ void free_http_req_header(ci_request_t *req, void *param)
 void *get_http_resp_header(ci_request_t *req, char *param)
 {
     ci_headers_list_t *heads;
-    heads = ci_http_response_headers(req);
+    if (req->protocol == CI_PROTO_HTTP)
+        heads = req->response_header;
+    else
+        heads = ci_http_response_headers(req);
     return (void *)get_header(heads, param);
 }
 
@@ -1058,7 +1068,10 @@ void *get_http_req_url(ci_request_t *req, char *param)
 {
     char *buf;
     ci_headers_list_t *heads;
-    heads = ci_http_request_headers(req);
+    if (req->protocol == CI_PROTO_HTTP)
+        heads = req->request_header;
+    else
+        heads = ci_http_request_headers(req);
     if (!heads)
         return NULL;
     buf = ci_buffer_alloc(8192);
@@ -1076,7 +1089,10 @@ void *get_http_req_line(ci_request_t *req, char *param)
     size_t first_line_size;
     const char *first_line;
     char *buf;
-    heads = ci_http_request_headers(req);
+    if (req->protocol == CI_PROTO_HTTP)
+        heads = req->request_header;
+    else
+        heads = ci_http_request_headers(req);
     if (!heads)
         return NULL;
 
@@ -1108,7 +1124,10 @@ void *get_http_resp_line(ci_request_t *req, char *param)
     const char *first_line;
     char *buf;
     ci_headers_list_t *heads;
-    heads = ci_http_response_headers(req);
+    if (req->protocol == CI_PROTO_HTTP)
+        heads = req->response_header;
+    else
+        heads = ci_http_response_headers(req);
     if (!heads)
         return NULL;
 
@@ -1141,6 +1160,9 @@ void *get_http_req_method(ci_request_t *req, char *param)
     size_t found_size;
     const char *first_line, *e, *eol;
     char *buf;
+    if (req->protocol == CI_PROTO_HTTP)
+        return (void *)ci_http_method_string(req->type);
+
     heads = ci_http_request_headers(req);
     if (!heads)
         return NULL;
@@ -1163,6 +1185,9 @@ void *get_http_req_method(ci_request_t *req, char *param)
 
 void free_http_req_method(ci_request_t *req, void *data)
 {
+    if (req->protocol == CI_PROTO_HTTP)
+        return; /*No memory is allocated in this case*/
+
     if (data)
         ci_buffer_free(data);
 }
