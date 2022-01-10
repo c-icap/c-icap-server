@@ -45,11 +45,11 @@ int call_authenticators(authenticator_module_t ** authenticators,
                         void *method_data)
 {
     int i, res;
-    for (i = 0; authenticators[i] != NULL; i++) {
-        if ((res =
-                    authenticators[i]->authenticate(method_data, NULL)) !=
-                CI_ACCESS_UNKNOWN) {
-            return res;
+    if (authenticators) {
+        for (i = 0; authenticators[i] != NULL; i++) {
+            if ((res = authenticators[i]->authenticate(method_data, NULL)) != CI_ACCESS_UNKNOWN) {
+                return res;
+            }
         }
     }
     return CI_ACCESS_DENY;
@@ -62,7 +62,6 @@ int http_authenticate(ci_request_t * req, char *use_method)
     authenticator_module_t **authenticators;
     void *method_data;
     const char *auth_str, *method_str, *username;
-    char *auth_header = NULL;
     int len, res;
 
     if (ALLOW_REMOTE_PROXY_USERS && !use_method) {
@@ -92,13 +91,14 @@ int http_authenticate(ci_request_t * req, char *use_method)
     }
 
     res = CI_ACCESS_DENY;
-    if ((method_str =
-                ci_headers_value(req->request_header, "Proxy-Authorization")) != NULL) {
+    const char *author_header = req->protocol == CI_PROTO_HTTP ? "Authorization" : "Proxy-Authorization";
+    method_str = ci_headers_value(req->request_header, author_header);
+    if (method_str != NULL) {
         ci_debug_printf(5, "Str is %s ....\n", method_str);
         if ((auth_str = strchr(method_str, ' ')) == NULL)
             return CI_ACCESS_DENY;
         len = auth_str - method_str;
-        if (strncmp(method_str, use_method, len) != 0)
+        if (strncasecmp(method_str, use_method, len) != 0)
             return CI_ACCESS_DENY;
         ci_debug_printf(5, "Method is %s ....\n", method_str);
 
@@ -113,10 +113,13 @@ int http_authenticate(ci_request_t * req, char *use_method)
     }
 
     if (res == CI_ACCESS_DENY) {
-        auth_header = auth_method->authentication_header();
-        ci_headers_add(req->xheaders, auth_header);
+        char buf[1024];
+        const char *auth_header_value = auth_method->authentication_header(req);
+        const char *auth_header = req->protocol == CI_PROTO_HTTP ? "WWW-Authenticate" : "Proxy-Authenticate";
+        snprintf(buf, sizeof(buf), "%s: %s", auth_header, auth_header_value);
         if (auth_method->release_authentication_header)
-            auth_method->release_authentication_header(auth_header);
+            auth_method->release_authentication_header(auth_header_value);
+        ci_headers_add(req->xheaders, buf);
         req->auth_required = 1;
         ci_debug_printf(3, "Access denied. Authentication required!!!!!\n");
     }
@@ -369,7 +372,7 @@ void reset_http_auth()
 /* basic auth method implementation                                               */
 
 static char *basic_realm = "Basic authentication";
-static char *basic_authentication = NULL;
+static char basic_authentication[1024];
 
 /*Configuration Table .....*/
 static struct ci_conf_entry basic_conf_params[] = {
@@ -382,7 +385,7 @@ void basic_close();
 struct http_basic_auth_data *basic_create_auth_data(const char *auth_line,
         const char **username);
 void basic_release_auth_data(struct http_basic_auth_data *data);
-char *basic_authentication_header();
+char *basic_authentication_header(ci_request_t *);
 
 http_auth_method_t basic_auth = {
     "basic",
@@ -396,25 +399,15 @@ http_auth_method_t basic_auth = {
     basic_conf_params
 };
 
-#define BASIC_HEAD_PREFIX  "Proxy-Authenticate: Basic realm="
 int basic_post_init(struct ci_server_conf *server_conf)
 {
-    int size = strlen(BASIC_HEAD_PREFIX)+strlen(basic_realm)+3;
-    basic_authentication = malloc((size+1)*sizeof(char));
-
-    if (!basic_authentication)
-        return 0;
-
-    snprintf(basic_authentication, size, "%s\"%s\"", BASIC_HEAD_PREFIX, basic_realm);
+    snprintf(basic_authentication, sizeof(basic_authentication), "Basic realm=\"%s\"", basic_realm);
     return 1;
 }
 
 void basic_close()
 {
-    if (basic_authentication) {
-        free(basic_authentication);
-        basic_authentication = NULL;
-    }
+    memset(basic_authentication, 0, sizeof(basic_authentication));
 }
 
 struct http_basic_auth_data *basic_create_auth_data(const char *auth_line,
@@ -448,7 +441,7 @@ void basic_release_auth_data(struct http_basic_auth_data *data)
     free(data);
 }
 
-char *basic_authentication_header()
+char *basic_authentication_header(ci_request_t *req)
 {
     return basic_authentication;
 }
