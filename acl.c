@@ -56,6 +56,11 @@ void *get_reqtype(ci_request_t *req, char *param)
     return (void *)ci_method_string(req->type);
 }
 
+void *get_protocol(ci_request_t *req, char *param)
+{
+    return (void *)(req->protocol == CI_PROTO_HTTP ? "HTTP" : "ICAP");
+}
+
 void *get_port(ci_request_t *req, char *param)
 {
     return &req->connection->srvaddr.ci_sin_port;
@@ -119,6 +124,13 @@ ci_acl_type_t acl_service = {
 ci_acl_type_t acl_req_type = {
     "type",
     get_reqtype,
+    NULL,
+    &ci_str_ops
+};
+
+ci_acl_type_t acl_protocol_type = {
+    "protocol",
+    get_protocol,
     NULL,
     &ci_str_ops
 };
@@ -841,6 +853,7 @@ static int acl_load_defaults()
     ci_acl_typelist_add(&types_list, &acl_tcp_port);
     ci_acl_typelist_add(&types_list, &acl_service);
     ci_acl_typelist_add(&types_list, &acl_req_type);
+    ci_acl_typelist_add(&types_list, &acl_protocol_type);
     ci_acl_typelist_add(&types_list, &acl_user);
     ci_acl_typelist_add(&types_list, &acl_tcp_src);
     ci_acl_typelist_add(&types_list, &acl_tcp_srvip);
