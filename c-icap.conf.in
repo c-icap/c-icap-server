@@ -182,6 +182,28 @@ Port 1344
 # Default:
 #       None
 
+# TAG: HttpPort
+# Format: HttpPort [address:]port
+# Description:
+#       The address that the c-icap server uses to listen for HTTP requests.
+#	The c-icap has its own HTTP server. The services or modules can
+#	register their own HTTP service handler to serve simple HTTP
+#	requests.
+#	The c-icap info service uses this HTTP server to serve statistics as
+#	a web page under the "/statistics" service/path.
+# Example:
+#	HttpPort 192.168.1.1:1380
+# Default:
+#	None
+
+# TAG: HttpsPort
+# Format: HttpsPort [address:]port [cert=path_to_pem_cert] [key=path_to_pem_key] [client_ca=path_to_pem_file] [ciphers=ciph1:ciph2...] [tls_options=[!]Opt1|[!]Opt2|...]
+# Description:
+#	The address that the c-icap server uses to listen for HTTPS requests.
+#	Similar to the HttpPort but accepts TLS connections.
+# Default:
+#	None
+
 # TAG: TlsPassphrase
 # Format: TlsPassphrase /path/to/script
 # Description:
@@ -625,14 +647,13 @@ RemoteProxyUserHeaderEncoded on
 #	       %huo: Modified Http request url
 #	       %<ho: Modified Http reply header. Supports header name
 #	       	     as argument. If no argument given the first line returned
-#	       %iu: Icap request url
-#	       %im: Icap method. For c-icap HTTP server requests prints the
-#	            HTTP method.
-#	       %is: Icap status code
-#	       %>ih: Icap request header. Supports header name
-#	       	     as argument. If no argument given the first line returned
-#	       %<ih: Icap response header. Supports header name
-#	       	     as argument. If no argument given the first line returned
+#	       %iu: client request path
+#	       %im: client request method.
+#	       %is: c-icap response status code
+#	       %>ih: client request header. Accepts a header name as argument.
+#	       	     If no argument is given the first line is printed
+#	       %<ih: c-icap response header. Accepts a header name as argument.
+#	       	     If no argument is given the first line is printed
 #	       %Ih: Http bytes received
 #	       %Oh: Http bytes sent
 #	       %Ib: Http body bytes received
