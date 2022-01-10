@@ -331,6 +331,10 @@ int fmt_localip(ci_request_t *req, char *buf,int len, const char *param)
 
 int fmt_icapmethod(ci_request_t *req, char *buf,int len, const char *param)
 {
+    if (req->protocol == CI_PROTO_HTTP) {
+        const char *s = ci_http_method_string(req->type);
+        return snprintf(buf, len, "HTTP_%s", s);
+    }
     int i;
     const char *s = ci_method_string(req->type);
     for (i = 0; i < len && *s; i++,s++)

@@ -129,6 +129,30 @@ extern "C"
 #define ci_req_hasalldata(req)((req)->eof_received)
 
 /**
+ \ingroup HTTP
+ The HTTP ptotocol methods
+*/
+enum ci_http_method {
+    CI_HTTP_METHOD_NONE,
+    CI_HTTP_METHOD_GET,
+    CI_HTTP_METHOD_POST,
+    CI_HTTP_METHOD_PUT,
+    CI_HTTP_METHOD_HEAD,
+    CI_HTTP_METHOD_CONNECT,
+    CI_HTTP_METHOD_TRACE,
+    CI_HTTP_METHOD_OPTIONS,
+    CI_HTTP_METHOD_DELETE,
+    CI_HTTP_METHOD_MAX,
+};
+
+/**
+ * Returns the HTTP response headers.
+ \ingroup HTTP
+ * The string representation of the method which is of type ci_http_method
+ */
+CI_DECLARE_FUNC(const char *)ci_http_method_string(int method);
+
+/**
  * Decodes a base64 encoded string.
  \ingroup UTILITY
  *
