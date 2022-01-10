@@ -164,6 +164,7 @@ static int http_server_request_parse_first_line(ci_request_t *req)
         ci_debug_printf(7, "Http request protocol info, method not allowed: %.15s\n", str);
         return EC_405; /*Not allowed. Only GET method is allowed*/
     }
+    req->type = CI_HTTP_METHOD_GET;
     str += 3;
     while(*str == ' ') ++str; /*Str point to the start of the path*/
     const char *end = str;

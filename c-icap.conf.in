@@ -626,7 +626,8 @@ RemoteProxyUserHeaderEncoded on
 #	       %<ho: Modified Http reply header. Supports header name
 #	       	     as argument. If no argument given the first line returned
 #	       %iu: Icap request url
-#	       %im: Icap method
+#	       %im: Icap method. For c-icap HTTP server requests prints the
+#	            HTTP method.
 #	       %is: Icap status code
 #	       %>ih: Icap request header. Supports header name
 #	       	     as argument. If no argument given the first line returned
