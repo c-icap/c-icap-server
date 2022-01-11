@@ -182,6 +182,7 @@ static int http_server_request_parse_first_line(ci_request_t *req)
     req->service[end-str] = '\0';
 
     if (*end == '?') {
+        end++;
         str = end;
         while(*end && *end != ' ') ++end;
         if (!*end) {
