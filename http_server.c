@@ -20,6 +20,7 @@
 #include "common.h"
 #include "c-icap.h"
 #include "debug.h"
+#include "http_server.h"
 #include "request.h"
 #include "request_util.h"
 #include "access.h"
