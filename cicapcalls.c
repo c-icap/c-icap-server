@@ -146,9 +146,9 @@ int ci_server_shared_memblob_register(const char *name, size_t size)
     return -1;
 }
 
-ci_server_shared_blob_t *ci_server_shared_memblob(int ID)
+void *ci_server_shared_memblob(int ID)
 {
-    typedef ci_server_shared_blob_t * (*CS)(int ID);
+    typedef void * (*CS)(int ID);
     CS fn;
     fn = (CS)GetProcAddress(GetModuleHandle(NULL), "ci_server_shared_memblob");
     if (fn)
@@ -158,9 +158,9 @@ ci_server_shared_blob_t *ci_server_shared_memblob(int ID)
     return NULL;
 }
 
-ci_server_shared_blob_t * ci_server_shared_memblob_byname(const char *name)
+void * ci_server_shared_memblob_byname(const char *name)
 {
-    typedef ci_server_shared_blob_t * (*CS)(const char *);
+    typedef void * (*CS)(const char *);
     CS fn;
     fn = (CS)GetProcAddress(GetModuleHandle(NULL), "ci_server_shared_memblob_byname");
     if (fn)
