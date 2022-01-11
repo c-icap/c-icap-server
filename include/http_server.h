@@ -32,6 +32,11 @@
 #include "body.h"
 #include <assert.h>
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 CI_DECLARE_FUNC(void) ci_http_server_register_service(const char *path, int (*handler)(ci_request_t *req), unsigned);
 
 static inline ci_membuf_t *ci_http_server_response_body(ci_request_t *req) {
@@ -53,5 +58,9 @@ static inline const char *ci_http_server_response_add_header(ci_request_t *req, 
     assert(req);
     return ci_icap_add_xheader(req, header);
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
