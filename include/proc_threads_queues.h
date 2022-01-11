@@ -68,14 +68,14 @@ typedef struct child_shared_data {
 
 typedef struct ci_server_shared_blob {
     union {
-        struct c64bit {
+        struct {
             uint64_t c1;
             uint64_t c2;
             uint64_t c3;
             uint64_t c4;
         } c64;
         unsigned char c8[32];
-    };
+    } blob32b;
 } ci_server_shared_blob_t;
 
 struct server_statistics {

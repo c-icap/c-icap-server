@@ -632,7 +632,7 @@ void *ci_server_shared_memblob(int id)
 {
     if (id < 0 || id >= childs_queue->srv_stats->blob_count)
         return NULL;
-    return (void *)(childs_queue->srv_stats->blobs[id].c8);
+    return (void *)(childs_queue->srv_stats->blobs[id].blob32b.c8);
 }
 
 void *ci_server_shared_memblob_byname(const char *name)
