@@ -249,7 +249,7 @@ static int http_do_request(ci_request_t *req)
 
     int auth_status = CI_ACCESS_ALLOW;
     if ((auth_status = access_check_request(req)) == CI_ACCESS_DENY) {
-        status = (req->auth_required ? EC_407 : EC_403);
+        status = (req->auth_required ? EC_401 : EC_403);
         ci_debug_printf(3, "HTTP request not allowed/authenticated, status: %d\n", auth_status);
         goto http_do_request_bad_status;
     }
