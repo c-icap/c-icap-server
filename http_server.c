@@ -44,11 +44,12 @@ static int STAT_WS_BODY_BYTES_OUT = -1;
 
 struct http_service_handler {
     int (*handler)(ci_request_t *req);
+    char descr[256];
     /*Statistics info and other members:*/
 };
 
 ci_array_t *ServiceHandlers = NULL;
-
+static int main_web_service(ci_request_t *req);
 
 static int request_stat_entry_register(const char *name, int type, const char *gname)
 {
@@ -67,6 +68,7 @@ void http_server_init()
     STAT_WS_BODY_BYTES_OUT = request_stat_entry_register("BODY BYTES OUT", CI_STAT_KBS_T, "WEB SERVER");
     ci_thread_mutex_init(&STAT_MTX);
     ServiceHandlers = ci_array_new2(1024, sizeof(struct http_service_handler));
+    ci_http_server_register_service("/", "The c-icap main web page", main_web_service, 0);
 }
 
 void http_server_close()
@@ -77,7 +79,7 @@ void http_server_close()
     }
 }
 
-void ci_http_server_register_service(const char *path, int (*handler)(ci_request_t *req), unsigned flags)
+void ci_http_server_register_service(const char *path, const char *descr, int (*handler)(ci_request_t *req), unsigned flags)
 {
     /*
       if (KIDS_STARTED || GO_MULTITHREAD) {
@@ -87,6 +89,7 @@ void ci_http_server_register_service(const char *path, int (*handler)(ci_request
      */
     struct http_service_handler service_handler;
     service_handler.handler = handler;
+    snprintf(service_handler.descr, sizeof(service_handler.descr), "%s", descr);
     ci_array_add(ServiceHandlers, path, &service_handler, sizeof(struct http_service_handler));
 }
 
@@ -299,4 +302,46 @@ int http_process_request(ci_request_t *req)
     STAT_KBS_INC_NL(STATS, STAT_WS_BODY_BYTES_OUT, req->body_bytes_out);
     ci_thread_mutex_unlock(&STAT_MTX);
     return status;
+}
+
+int main_web_service(ci_request_t *req)
+{
+    const char Header[] =
+        "<!DOCTYPE HTML>\n<HTML lang=\"en\">\n"
+        "<HEAD>\n"
+        "<TITLE>C-icap web server main page</TITLE>\n"
+        "<STYLE>\n"
+        "  table {border-collapse: collapse;}\n"
+        "  th,td,table {border-style:solid; border-width:1px; }\n"
+        "  caption {text-align:right;}\n"
+        "</STYLE>\n"
+        "</HEAD>\n"
+        "<BODY>\n"
+        "<HTML>\n"
+        "<H1>The available c-icap web services</H1>\n"
+        "<UL>"
+        ;
+    const char End[] = "</UL>\n</BODY>\n</HTML>";
+
+    if (!ServiceHandlers)
+        return 0;
+    ci_http_server_response_add_header(req, "Content-Type: text/html");
+    ci_http_server_response_add_header(req, "Content-Language: en");
+    ci_membuf_t *body = ci_http_server_response_body(req);
+    ci_membuf_write(body, Header, sizeof(Header) - 1, 0);
+    int i = 0;
+    const ci_array_item_t *it = NULL;
+    for (i = 0; (it = ci_array_get_item(ServiceHandlers, i)) != NULL; i++) {
+        char buf[1024];
+        const char *path = it->name;
+        const struct http_service_handler *srv = it->value;
+        _CI_ASSERT(path);
+        _CI_ASSERT(srv);
+        int bytes = snprintf(buf, sizeof(buf), "<LI><A href='%s'>%s</A></LI>\n", path, srv->descr);
+        if (bytes >= sizeof(buf))
+            bytes = sizeof(buf) - 1;
+        ci_membuf_write(body, buf, bytes, 0);
+    }
+    ci_membuf_write(body, End, sizeof(End) - 1, 1);
+    return 1;
 }

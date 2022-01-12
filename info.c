@@ -137,6 +137,7 @@ static int print_statistics(struct info_req_data *info_data);
 static void info_monitor_init_cmd(const char *name, int type, void *data);
 static void info_monitor_periodic_cmd(const char *name, int type, void *data);
 static int stats_web_service(ci_request_t *req);
+static int build_info_web_service(ci_request_t *req);
 
 int info_init_service(ci_service_xdata_t * srv_xdata,
                       struct ci_server_conf *server_conf)
@@ -148,7 +149,8 @@ int info_init_service(ci_service_xdata_t * srv_xdata,
     ci_command_register_action("info::monitor_periodic", CI_CMD_MONITOR_ONDEMAND, NULL,
                                info_monitor_periodic_cmd);
 
-    ci_http_server_register_service("/statistics", stats_web_service, 0);
+    ci_http_server_register_service("/statistics", "The c-icap statistics web service", stats_web_service, 0);
+    ci_http_server_register_service("/build_info", "The c-icap build configuration web service", build_info_web_service, 0);
     return CI_OK;
 }
 
@@ -1121,8 +1123,47 @@ int stats_web_service(ci_request_t *req)
         ci_http_server_response_add_header(req, "Content-Type: text/csv");
     else
         ci_http_server_response_add_header(req, "Content-Type: text/html");
+    ci_http_server_response_add_header(req, "Content-Language: en");
     print_statistics(info_data);
     info_release_request_data((void *)info_data);
+    return 1;
+}
+
+struct keyval {const char *n; const char *v;};
+extern struct keyval _CI_CONF_AUTOCONF[];
+extern struct keyval _CI_CONF_C_ICAP_CONF[];
+static int build_info_web_service(ci_request_t *req)
+{
+    char buf[1024];
+    int i, bytes;
+    ci_http_server_response_add_header(req, "Content-Type: text/html");
+    ci_http_server_response_add_header(req, "Content-Language: en");
+    ci_membuf_t *body = ci_http_server_response_body(req);
+    ci_membuf_write(body, HTML_HEAD, sizeof(HTML_HEAD) - 1, 0);
+    bytes = snprintf(buf, sizeof(buf),
+                     "<H2>Build information</H2>\n"
+                     "c-icap version: %s<BR>\n"
+                     "Configure script options: %s<BR>\n"
+                     "Configured for host: %s<BR>\n",
+                     VERSION,
+                     C_ICAP_CONFIGURE_OPTIONS,
+                     C_ICAP_CONFIG_HOST_TYPE);
+    ci_membuf_write(body, buf, bytes, 0);
+    bytes = snprintf(buf, sizeof(buf), "<H2> autoconf.h options </H2>\n");
+    ci_membuf_write(body, buf, bytes, 0);
+    ci_membuf_write(body, "<PRE>", 5, 0);
+    for (i = 0; _CI_CONF_AUTOCONF[i].n != NULL; i++) {
+        bytes = snprintf(buf, sizeof(buf), "#define %s %s\n", _CI_CONF_AUTOCONF[i].n, _CI_CONF_AUTOCONF[i].v);
+        ci_membuf_write(body, buf, bytes, 0);
+    }
+    bytes = snprintf(buf, sizeof(buf), "<H2>c-icap-conf.h </H2>\n");
+    ci_membuf_write(body, buf, bytes, 0);
+    for (i = 0; _CI_CONF_C_ICAP_CONF[i].n != NULL; i++) {
+        bytes = snprintf(buf, sizeof(buf), "#define %s %s\n", _CI_CONF_C_ICAP_CONF[i].n, _CI_CONF_C_ICAP_CONF[i].v);
+        ci_membuf_write(body, buf, bytes, 0);
+    }
+    ci_membuf_write(body, "</PRE>", 6, 0);
+    ci_membuf_write(body, HTML_END, sizeof(HTML_END) - 1, 1);
     return 1;
 }
 
