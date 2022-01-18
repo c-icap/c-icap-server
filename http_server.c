@@ -119,6 +119,7 @@ static int http_server_response_send(ci_request_t *req)
 
     ci_membuf_t *body = (ci_membuf_t *)req->service_data;
     if (body && ci_membuf_size(body)) {
+        ci_headers_remove(req->response_header, "Content-Length");
         snprintf(buf, sizeof(buf), "Content-Length: %d", ci_membuf_size(body));
         ci_headers_add(req->response_header, buf);
     }
