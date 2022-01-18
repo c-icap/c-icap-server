@@ -25,6 +25,25 @@
 #include <ctype.h>
 #include <errno.h>
 
+const char *ci_http_methods_str[] = {
+    "UNKNOWN",
+    "GET",
+    "POST",
+    "PUT",
+    "HEAD",
+    "CONNECT",
+    "TRACE",
+    "OPTIONS",
+    "DELETE",
+    NULL
+};
+
+const char *ci_http_method_string(int method)
+{
+    if (method <= CI_HTTP_METHOD_NONE || method >= CI_HTTP_METHOD_MAX)
+        return "UNKNWON";
+    return ci_http_methods_str[method];
+}
 
 /*
 int ci_resp_check_body(ci_request_t *req){

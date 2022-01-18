@@ -30,6 +30,7 @@
 #include "proc_threads_queues.h"
 #include "debug.h"
 #include "util.h"
+#include "http_server.h"
 
 int info_init_service(ci_service_xdata_t * srv_xdata,
                       struct ci_server_conf *server_conf);
@@ -105,6 +106,7 @@ enum { PRINT_INFO_MENU, PRINT_ALL_TABLES, PRINT_SOME_TABLES };
 struct info_req_data {
     char *url;
     ci_membuf_t *body;
+    int must_free_body;
     int format;
     int print_page;
     int view_child;
@@ -134,6 +136,8 @@ static void parse_info_arguments(struct info_req_data *info_data, char *args);
 static int print_statistics(struct info_req_data *info_data);
 static void info_monitor_init_cmd(const char *name, int type, void *data);
 static void info_monitor_periodic_cmd(const char *name, int type, void *data);
+static int stats_web_service(ci_request_t *req);
+static int build_info_web_service(ci_request_t *req);
 
 int info_init_service(ci_service_xdata_t * srv_xdata,
                       struct ci_server_conf *server_conf)
@@ -144,6 +148,9 @@ int info_init_service(ci_service_xdata_t * srv_xdata,
                                info_monitor_init_cmd);
     ci_command_register_action("info::monitor_periodic", CI_CMD_MONITOR_ONDEMAND, NULL,
                                info_monitor_periodic_cmd);
+
+    ci_http_server_register_service("/statistics", "The c-icap statistics web service", stats_web_service, 0);
+    ci_http_server_register_service("/build_info", "The c-icap build configuration web service", build_info_web_service, 0);
     return CI_OK;
 }
 
@@ -167,7 +174,13 @@ void *info_init_request_data(ci_request_t * req)
 
     info_data = malloc(sizeof(struct info_req_data));
     info_data->url = NULL;
-    info_data->body = ci_membuf_new_sized(32*1024);
+    if (req->protocol == CI_PROTO_HTTP) {
+        info_data->body = ci_http_server_response_body(req);
+        info_data->must_free_body = 0;
+    } else {
+        info_data->body = ci_membuf_new_sized(32*1024);
+        info_data->must_free_body = 1;
+    }
     info_data->print_page = PRINT_INFO_MENU;
     info_data->view_child = -1;
     info_data->time = 0;
@@ -208,7 +221,7 @@ void info_release_request_data(void *data)
     if (info_data->url)
         ci_buffer_free(info_data->url);
 
-    if (info_data->body)
+    if (info_data->must_free_body && info_data->body)
         ci_membuf_free(info_data->body);
 
     if (info_data->child_pids)
@@ -1092,6 +1105,65 @@ static int print_statistics(struct info_req_data *info_data)
         ci_membuf_write(info_data->body, HTML_END, sizeof(HTML_END) - 1, 1);
     else
         ci_membuf_write(info_data->body, NULL, 0, 1);
+    return 1;
+}
+
+int stats_web_service(ci_request_t *req)
+{
+    struct info_req_data *info_data = (struct info_req_data *)info_init_request_data(req);
+    int url_size = sizeof(req->service) + sizeof(req->args) + 1;
+    info_data->url = ci_buffer_alloc(sizeof(req->service) + sizeof(req->args));
+    snprintf(info_data->url, url_size, "%s%s%s", req->service, (req->args[0] != '\0' ? "?" : ""), req->args);
+    if (req->args[0] != '\0') {
+        parse_info_arguments(info_data, req->args);
+    }
+    if (info_data->format == OUT_FMT_TEXT)
+        ci_http_server_response_add_header(req, "Content-Type: text/plain");
+    else if (info_data->format == OUT_FMT_CSV)
+        ci_http_server_response_add_header(req, "Content-Type: text/csv");
+    else
+        ci_http_server_response_add_header(req, "Content-Type: text/html");
+    ci_http_server_response_add_header(req, "Content-Language: en");
+    print_statistics(info_data);
+    info_release_request_data((void *)info_data);
+    return 1;
+}
+
+struct keyval {const char *n; const char *v;};
+extern struct keyval _CI_CONF_AUTOCONF[];
+extern struct keyval _CI_CONF_C_ICAP_CONF[];
+static int build_info_web_service(ci_request_t *req)
+{
+    char buf[1024];
+    int i, bytes;
+    ci_http_server_response_add_header(req, "Content-Type: text/html");
+    ci_http_server_response_add_header(req, "Content-Language: en");
+    ci_membuf_t *body = ci_http_server_response_body(req);
+    ci_membuf_write(body, HTML_HEAD, sizeof(HTML_HEAD) - 1, 0);
+    bytes = snprintf(buf, sizeof(buf),
+                     "<H2>Build information</H2>\n"
+                     "c-icap version: %s<BR>\n"
+                     "Configure script options: %s<BR>\n"
+                     "Configured for host: %s<BR>\n",
+                     VERSION,
+                     C_ICAP_CONFIGURE_OPTIONS,
+                     C_ICAP_CONFIG_HOST_TYPE);
+    ci_membuf_write(body, buf, bytes, 0);
+    bytes = snprintf(buf, sizeof(buf), "<H2> autoconf.h options </H2>\n");
+    ci_membuf_write(body, buf, bytes, 0);
+    ci_membuf_write(body, "<PRE>", 5, 0);
+    for (i = 0; _CI_CONF_AUTOCONF[i].n != NULL; i++) {
+        bytes = snprintf(buf, sizeof(buf), "#define %s %s\n", _CI_CONF_AUTOCONF[i].n, _CI_CONF_AUTOCONF[i].v);
+        ci_membuf_write(body, buf, bytes, 0);
+    }
+    bytes = snprintf(buf, sizeof(buf), "<H2>c-icap-conf.h </H2>\n");
+    ci_membuf_write(body, buf, bytes, 0);
+    for (i = 0; _CI_CONF_C_ICAP_CONF[i].n != NULL; i++) {
+        bytes = snprintf(buf, sizeof(buf), "#define %s %s\n", _CI_CONF_C_ICAP_CONF[i].n, _CI_CONF_C_ICAP_CONF[i].v);
+        ci_membuf_write(body, buf, bytes, 0);
+    }
+    ci_membuf_write(body, "</PRE>", 6, 0);
+    ci_membuf_write(body, HTML_END, sizeof(HTML_END) - 1, 1);
     return 1;
 }
 

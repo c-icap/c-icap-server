@@ -57,6 +57,7 @@ static void ci_port_move_configured(ci_port_t *dst, ci_port_t *src)
     dst->configured = src->configured;
     dst->accept_socket = src->accept_socket;
     dst->stat_connections = src->stat_connections;
+    dst->proto = src->proto;
     src->configured = 0;
     src->accept_socket = CI_SOCKET_INVALID;
     src->stat_connections = -1;
@@ -97,6 +98,7 @@ void ci_port_close(ci_port_t *port)
     else
 #endif
         close(port->accept_socket);
+    port->proto = 0;
     port->accept_socket = CI_SOCKET_INVALID;
     port->configured = 0;
 }

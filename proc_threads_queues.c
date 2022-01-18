@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2004-2008 Christos Tsantilas
+ *  Copyright (C) 2004-2021 Christos Tsantilas
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -30,31 +30,34 @@
 static ci_dyn_array_t *MemBlobs = NULL;
 static int MemBlobsCount = 0;
 
+static int list_copy_connection(void *dest, const void *src)
+{
+    struct connections_queue_item *d = (struct connections_queue_item *)dest;
+    struct connections_queue_item *s = (struct connections_queue_item *)src;
+    ci_copy_connection(&d->conn, &s->conn);
+    d->proto = s->proto;
+    return 1;
+}
+
 struct connections_queue *init_queue(int size)
 {
     int ret;
     struct connections_queue *q;
-    if ((q =
-                (struct connections_queue *) malloc(sizeof(struct connections_queue)))
-            == NULL)
+    if ((q = (struct connections_queue *) calloc(1, sizeof(struct connections_queue))) == NULL)
         return NULL;
-
 
     ret = ci_thread_mutex_init(&(q->queue_mtx));
     if (ret == 0) ret = ci_thread_mutex_init(&(q->cond_mtx));
     if (ret == 0) ret = ci_thread_cond_init(&(q->queue_cond));
-
-    if (ret == 0
-            && (q->connections =
-                    (ci_connection_t *) malloc(size * sizeof(ci_connection_t))) !=
-            NULL) {
-        q->size = size;
+    if (ret == 0 &&  (q->connections = ci_list_create(65535, sizeof(struct connections_queue_item)))) {
+        ci_list_copy_handler(q->connections, list_copy_connection);
+        q->warn_size = size;
         q->used = 0;
         return q;
     }
     //else memory allocation failed or mutex/cond init failed
     if (q->connections)
-        free(q->connections);
+        ci_list_destroy(q->connections);
     free(q);
     return NULL;
 }
@@ -63,29 +66,28 @@ void destroy_queue(struct connections_queue *q)
 {
     ci_thread_mutex_destroy(&(q->queue_mtx));
     ci_thread_cond_destroy(&(q->queue_cond));
-    free(q->connections);
+    /*TODO: pop connections and close them*/
+    ci_list_destroy(q->connections);
     free(q);
 }
 
-int put_to_queue(struct connections_queue *q, ci_connection_t * con)
+int put_to_queue(struct connections_queue *q, struct connections_queue_item *con)
 {
-    int ret;
     if (ci_thread_mutex_lock(&(q->queue_mtx)) != 0)
         return -1;
-    if (q->used == q->size) {
+    if (q->used == q->warn_size) {
         ci_thread_mutex_unlock(&(q->queue_mtx));
-        ci_debug_printf(1, "put_to_queue_fatal error used=%d size=%d\n",
-                        q->used, q->size);
+        ci_debug_printf(1, "Too long connections queue (%d), drop connection\n", q->used);
         return 0;
     }
-    ci_copy_connection(&(q->connections[q->used]), con);
-    ret = ++q->used;
+    ci_list_push_back(q->connections, con);
+    ++q->used;
     ci_thread_mutex_unlock(&(q->queue_mtx));
     ci_thread_cond_signal(&(q->queue_cond));   //????
-    return ret;
+    return 1;
 }
 
-int get_from_queue(struct connections_queue *q, ci_connection_t * con)
+int get_from_queue(struct connections_queue *q, struct connections_queue_item *con)
 {
     if (ci_thread_mutex_lock(&(q->queue_mtx)) != 0)
         return -1;
@@ -94,7 +96,7 @@ int get_from_queue(struct connections_queue *q, ci_connection_t * con)
         return 0;
     }
     q->used--;
-    ci_copy_connection(con, &(q->connections[q->used]));
+    ci_list_pop(q->connections, con);
     ci_thread_mutex_unlock(&(q->queue_mtx));
     return 1;
 }

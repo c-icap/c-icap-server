@@ -24,10 +24,10 @@
 #include <ctype.h>
 
 const char *ci_methods[] = {
-    "",                        /*0x00 */
+    "UNKNOWN",                 /*0x00 */
     "OPTIONS",                 /*0x01 */
     "REQMOD",                  /*0x02 */
-    "",                        /*0x03 */
+    "UNKNOWN",                 /*0x03 */
     "RESPMOD"                  /*0x04 */
 };
 

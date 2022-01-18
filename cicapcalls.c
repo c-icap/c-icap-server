@@ -169,3 +169,15 @@ void * ci_server_shared_memblob_byname(const char *name)
     fprintf(stderr, "Can not execute ci_server_shared_memblob_byname\n");
     return NULL;
 }
+
+void ci_http_server_register_service(const char *path, const char *descr, int (*handler)(ci_request_t *req), unsigned)
+{
+    typedef void (*CS)(const char *, const char *, int (*)(ci_request_t *req), unsigned);
+    CS fn;
+    fn = (CS)GetProcAddress(GetModuleHandle(NULL), "ci_http_server_register_service");
+    if (fn)
+        return (*fn)(name);
+
+    fprintf(stderr, "Can not execute ci_http_server_register_service\n");
+    return NULL;
+}

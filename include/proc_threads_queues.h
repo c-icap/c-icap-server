@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2004-2008 Christos Tsantilas
+ *  Copyright (C) 2004-2021 Christos Tsantilas
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -21,6 +21,7 @@
 #ifndef __C_ICAP_PROC_THREADS_QUEUES_H
 #define __C_ICAP_PROC_THREADS_QUEUES_H
 
+#include "array.h"
 #include "net_io.h"
 #include "ci_threads.h"
 #include "proc_mutex.h"
@@ -42,11 +43,15 @@ enum KILL_MODE {NO_KILL = 0,GRACEFULLY,IMMEDIATELY};
 #define ci_pipe_t   int
 #endif
 
+struct connections_queue_item {
+    ci_connection_t conn;
+    int proto;
+};
 
 struct connections_queue {
-    ci_connection_t *connections;
+    ci_list_t *connections;
     int used;
-    int size;
+    int warn_size;
     ci_thread_mutex_t queue_mtx;
     ci_thread_mutex_t cond_mtx;
     ci_thread_cond_t queue_cond;
@@ -103,8 +108,8 @@ struct childs_queue {
 
 struct connections_queue *init_queue(int size);
 void destroy_queue(struct connections_queue *q);
-int put_to_queue(struct connections_queue *q,ci_connection_t *con);
-int get_from_queue(struct connections_queue *q, ci_connection_t *con);
+int put_to_queue(struct connections_queue *q, struct connections_queue_item *con);
+int get_from_queue(struct connections_queue *q, struct connections_queue_item *con);
 int wait_for_queue(struct connections_queue *q);
 #define connections_pending(q) (q->used)
 

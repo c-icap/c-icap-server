@@ -29,6 +29,12 @@
 struct ci_tls_server_accept_details;
 #endif
 
+enum CI_PROTO {
+    CI_PROTO_NONE = 0,
+    CI_PROTO_ICAP,
+    CI_PROTO_HTTP
+};
+
 /**
  * Basic configurations for a listening port
  \ingroup CONFIG
@@ -39,6 +45,7 @@ typedef struct ci_port {
     char *address;
     int secs_to_linger;
     int tls_enabled;
+    int proto;
 #ifdef USE_OPENSSL
     char *tls_server_cert;
     char *tls_server_key;

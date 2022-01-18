@@ -44,7 +44,7 @@ extern "C"
 #define CI_MOD_ALLOW206 206
 #define CI_MOD_ERROR     -1
 
-#define MAX_SERVICE_NAME  63
+#define MAX_SERVICE_NAME 255
 #define MAX_SERVICE_ARGS 255
 
 #define CI_ISTAG     "CI0001" /*Always length of 6 chars*/
