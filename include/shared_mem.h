@@ -75,7 +75,7 @@ CI_DECLARE_FUNC(void) *ci_shared_mem_create(ci_shared_mem_id_t *id, const char *
 CI_DECLARE_FUNC(void) *ci_shared_mem_attach(ci_shared_mem_id_t *id);
 CI_DECLARE_FUNC(int) ci_shared_mem_detach(ci_shared_mem_id_t *id);
 CI_DECLARE_FUNC(int) ci_shared_mem_destroy(ci_shared_mem_id_t *id);
-
+CI_DECLARE_FUNC(int) ci_shared_mem_print_info(ci_shared_mem_id_t *id, char *buf, size_t buf_size);
 
 CI_DECLARE_FUNC(int) ci_shared_mem_set_scheme(const char *name);
 

@@ -64,24 +64,7 @@ struct ci_proc_mutex {
 #else
 
     const ci_proc_mutex_scheme_t *scheme;
-    union {
-#if defined(USE_SYSV_IPC_MUTEX)
-        struct {
-            int id;
-        } sysv;
-#endif
-#if defined(USE_POSIX_SEMAPHORES)
-        struct {
-            sem_t *sem;
-        } posix;
-#endif
-#if defined(USE_POSIX_FILE_LOCK)
-        struct {
-            int fd;
-        } file;
-#endif
-    };
-
+    void *data;
 #endif
 };
 
@@ -90,10 +73,12 @@ CI_DECLARE_FUNC(int) ci_proc_mutex_init2(ci_proc_mutex_t *mutex, const char *nam
 CI_DECLARE_FUNC(int) ci_proc_mutex_lock(ci_proc_mutex_t *mutex);
 CI_DECLARE_FUNC(int) ci_proc_mutex_unlock(ci_proc_mutex_t *mutex);
 CI_DECLARE_FUNC(int) ci_proc_mutex_destroy(ci_proc_mutex_t *mutex);
+CI_DECLARE_FUNC(int) ci_proc_mutex_print_info(ci_proc_mutex_t *mutex, char *buf, size_t size);
 
 CI_DECLARE_FUNC(int) ci_proc_mutex_set_scheme(const char *scheme);
 CI_DECLARE_FUNC(const ci_proc_mutex_scheme_t *) ci_proc_mutex_default_scheme();
 
+CI_DECLARE_FUNC(void) ci_proc_mutex_recover_after_crash();
 
 #ifdef __cplusplus
 }

@@ -1015,6 +1015,24 @@ AC_MSG_RESULT(no),
 )
 AC_SUBST(PTHREADS_RWLOCK)
 
+# interprocess pthread mutexes
+PTHREADS_PROCESS_SHARED="0"
+AC_MSG_CHECKING([if have PTHREAD_PROCESS_SHARED])
+AC_TRY_COMPILE(
+[#include <pthread.h>],
+[
+   pthread_mutexattr_t mtx_attr;
+   pthread_mutexattr_init(&mtx_attr);
+   pthread_mutexattr_setpshared(&mtx_attr, PTHREAD_PROCESS_SHARED);
+   pthread_mutexattr_setrobust(&mtx_attr, PTHREAD_MUTEX_ROBUST);
+],
+AC_DEFINE(HAVE_PTHREADS_PROCESS_SHARED,1,[Define HAVE_PTHREADS_PROCESS_SHARED if pthreads library supports interprocess shared mutexes])
+PTHREADS_PROCESS_SHARED="1"
+AC_MSG_RESULT(yes),
+AC_MSG_RESULT(no),
+)
+AC_SUBST(PTHREADS_PROCESS_SHARED)
+
 C11_ATOMICS="0"
 AC_MSG_CHECKING([if have c11 atomics])
 AC_TRY_COMPILE(

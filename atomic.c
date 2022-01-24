@@ -120,19 +120,11 @@ int ci_atomics_init()
     for (i = 0; i < MTX_SIZE; ++i ) {
         ci_thread_mutex_init(&(thr_mtx[i]));
     }
-    /* File locks can not be used for threads.
-       By default use posix semaphores, else sysv locks.
-       TODO: implement interprocess pthread locking.
-    */
     int ret = 0 , error = 0;
     for (i = 0; i < MTX_SIZE; ++i) {
         char name[128];
         snprintf(name, sizeof(name), "ci_atomic_%d", i);
-#if defined(USE_POSIX_SEMAPHORES)
-        ret = ci_proc_mutex_init2(&(proc_mtx[i]), name, "posix");
-#elif defined(USE_SYSV_IPC_MUTEX)
-        ret = ci_proc_mutex_init2(&(proc_mtx[i]), name, "sysv");
-#endif
+        ret = ci_proc_mutex_init(&(proc_mtx[i]), name);
         if (!ret)
             error = 1;
     }

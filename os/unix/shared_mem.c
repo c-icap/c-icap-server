@@ -281,3 +281,11 @@ int ci_shared_mem_destroy(ci_shared_mem_id_t * id)
     assert(id && id->scheme);
     return id->scheme->shared_mem_destroy(id);
 }
+
+int ci_shared_mem_print_info(ci_shared_mem_id_t *id, char *buf, size_t buf_size)
+{
+    assert(id && id->scheme);
+    if (id->scheme->shared_mem_print_info)
+        return id->scheme->shared_mem_print_info(id, buf, buf_size);
+    return snprintf(buf, buf_size, "shared_mem:%s", id->name);
+}

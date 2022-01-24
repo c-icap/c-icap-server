@@ -52,3 +52,8 @@ int ci_proc_mutex_unlock(ci_proc_mutex_t * mutex)
     ReleaseMutex(mutex->id);
     return 1;
 }
+
+void ci_proc_mutex_recover_after_crash()
+{
+    /*Nothing to do*/
+}

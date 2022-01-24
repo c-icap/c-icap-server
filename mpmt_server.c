@@ -363,6 +363,8 @@ static void check_for_exited_childs()
             if (WIFSIGNALED(status))
                 ci_debug_printf(1, "signaled with signal: %d\n",
                                 WTERMSIG(status));
+            /* Try recover inter-process mutexes from crash*/
+            ci_proc_mutex_recover_after_crash();
         }
         ret = remove_child(childs_queue, pid, exit_status);
         if (ret == 0 && old_childs_queue) {

@@ -113,15 +113,17 @@ MaxRequestsPerChild  0
 #	InterProcessSharedMemScheme posix
 
 # TAG: InterProcessLockingScheme
-# Format: InterProcessSharedMemScheme file | sysv | posix
+# Format: InterProcessSharedMemScheme pthread | file | sysv | posix
 # Description:
 #	The interprocess locking scheme to use. Available schemes:
-#       file  Use lock file
-#       sysv  Use the sysv ipc semaphores
-#	posix Use posix semaphores: Use it with caution you may experienced
-#             locking problems if one or more processes crashed.
+#	pthread pthread mutexes stored in a shared mem. This is the
+#	        default, if shared pthread mutexes are supported.
+#       file    Use lock file
+#       sysv    Use the sysv ipc semaphores
+#	posix   Use posix semaphores: Use it with caution you may experienced
+#               locking problems if one or more processes crashed.
 # Default:
-#	InterProcessLockingScheme file
+#	InterProcessLockingScheme pthread
 
 # TAG: Port
 # Format: Port [address:]port
