@@ -601,6 +601,39 @@ uint64_t ci_server_stat_uint64_get_global(int id)
     return value;
 }
 
+ci_stat_memblock_t *ci_server_stat_get_all_stats(uint32_t flags)
+{
+    size_t buf_size = ci_stat_memblock_size();
+    void *buf = ci_buffer_alloc(buf_size);
+    if (!buf)
+        return NULL;
+    ci_stat_memblock_t *stats = ci_stat_memblock_init(buf, buf_size);
+    if (!stats)
+        return NULL;
+
+    int i, kids = 0;
+    const ci_stat_memblock_t *kid_stats;
+    assert(childs_queue);
+    for (i = 0, kids = 0; i < childs_queue->size; i++) {
+        if (childs_queue->childs[i].pid == 0 || childs_queue->childs[i].to_be_killed != 0)
+            continue;
+        kid_stats = (const ci_stat_memblock_t *) (childs_queue->stats_area + i * (childs_queue->stats_block_size));
+        ci_stat_memblock_merge(stats, kid_stats, 0, kids);
+        kids++;
+    }
+
+    ci_stat_memblock_t *hist_stats = childs_queue->stats_area + childs_queue->size * childs_queue->stats_block_size;
+    ci_stat_memblock_merge(stats, hist_stats, 1, kids);
+
+    return stats;
+}
+
+void ci_server_stat_free_all_stats(ci_stat_memblock_t *blk)
+{
+    ci_buffer_free((void *)blk);
+}
+
+
 struct shared_blob_data{
     int id;
     int items;

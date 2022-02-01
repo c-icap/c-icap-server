@@ -105,6 +105,23 @@ CI_DECLARE_FUNC(ci_kbs_t) ci_server_stat_kbs_get_global(int id);
  */
 CI_DECLARE_FUNC(uint64_t) ci_server_stat_uint64_get_global(int id);
 
+/**
+ * Retrieves all c-icap server statistics into a ci_stat_memblock_t object.
+ * The statistics can be retrieved using the ci_stat_memblock_get_counter
+ * and ci_stat_memblock_get_kbs functions.
+ * The returned ci_stat_memblock_t object must be released using the
+ * ci_server_stat_free_all_stats function.
+ \param flags It is ignored
+ \return a ci_stat_memblock_t object with c-icap global statistics.
+ */
+CI_DECLARE_FUNC(ci_stat_memblock_t *)ci_server_stat_get_all_stats(uint32_t flags);
+
+/**
+ * Frees the ci_stat_memblock_t object returned by ci_server_stat_get_all_stats
+ * function.
+ */
+CI_DECLARE_FUNC(void) ci_server_stat_free_all_stats(ci_stat_memblock_t *blk);
+
 /*c-icap server statistics functions*/
 /**
  *
