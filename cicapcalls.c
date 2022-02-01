@@ -135,6 +135,30 @@ uint64_t ci_server_stat_uint64_get_global(int id)
     return 0;
 }
 
+ci_stat_memblock_t *ci_server_stat_get_all_stats(uint32_t flags)
+{
+    typedef ci_stat_memblock_t *(*CS)(uint32_t);
+    CS fn;
+    fn = (CS)GetProcAddress(GetModuleHandle(NULL), "ci_server_stat_get_all_stats");
+    if (fn)
+        return (*fn)(flags);
+
+    fprintf(stderr, "Can not execute ci_server_stat_get_all_stats\n");
+    return -1;
+}
+
+void ci_server_stat_free_all_stats(ci_stat_memblock_t *blk)
+{
+    typedef void (*CS)(ci_stat_memblock_t *);
+    CS fn;
+    fn = (CS)GetProcAddress(GetModuleHandle(NULL), "ci_server_stat_free_all_stats");
+    if (fn)
+        return (*fn)(blk);
+
+    fprintf(stderr, "Can not execute ci_server_stat_free_all_stats\n");
+}
+
+
 int ci_server_shared_memblob_register(const char *name, size_t size)
 {
     typedef int (*CS)(const char *, size_t);
