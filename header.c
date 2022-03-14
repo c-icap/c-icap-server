@@ -66,7 +66,7 @@ const char *ci_encaps_entities[] = {
     "opt-body"
 };
 
-ci_headers_list_t *ci_headers_create()
+ci_headers_list_t *ci_headers_create2(int num, size_t buf_size)
 {
     ci_headers_list_t *h;
     h = malloc(sizeof(ci_headers_list_t));
@@ -76,8 +76,10 @@ ci_headers_list_t *ci_headers_create()
     }
     h->headers = NULL;
     h->buf = NULL;
-    if (!(h->headers = malloc(HEADERSTARTSIZE * sizeof(char *)))
-            || !(h->buf = malloc(HEADSBUFSIZE * sizeof(char)))) {
+    assert(buf_size > 0);
+    assert(num > 0);
+    if (!(h->headers = malloc(num * sizeof(char *)))
+            || !(h->buf = malloc(buf_size))) {
         ci_debug_printf(1, "Server Error: Error allocation memory \n");
         if (h->headers)
             free(h->headers);
@@ -87,13 +89,18 @@ ci_headers_list_t *ci_headers_create()
         return NULL;
     }
 
-    h->size = HEADERSTARTSIZE;
+    h->size = num;
     h->used = 0;
-    h->bufsize = HEADSBUFSIZE;
+    h->bufsize = buf_size;
     h->bufused = 0;
     h->packed = 0;
 
     return h;
+}
+
+ci_headers_list_t *ci_headers_create()
+{
+    return ci_headers_create2(HEADERSTARTSIZE, HEADSBUFSIZE);
 }
 
 void ci_headers_destroy(ci_headers_list_t * h)
@@ -559,6 +566,24 @@ size_t ci_headers_pack_to_buffer(const ci_headers_list_t *heads, char *buf, size
         buf[heads->bufused+1] = '\n';
     }
     return n;
+}
+
+ci_headers_list_t *ci_headers_clone(const ci_headers_list_t *head)
+{
+    int i;
+    ci_headers_list_t *cloned = ci_headers_create2(head->size, head->bufsize);
+    if (!cloned) {
+        ci_debug_printf(1, "ci_headers_clone: memory allocation failure\n");
+    }
+    memcpy(cloned->buf, head->buf, head->bufused);
+    cloned->bufused = head->bufused;
+    cloned->packed = head->packed;
+    cloned->used = head->used;
+    for (i = 0; i < head->used; i++) {
+        size_t hpos = head->headers[i] - head->buf;
+        cloned->headers[i] = cloned->buf + hpos;
+    }
+    return cloned;
 }
 
 /********************************************************************************************/

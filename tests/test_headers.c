@@ -58,7 +58,10 @@ int main(int argc, char *argv[])
     s = ci_headers_value2(headers, "X-Test-Header", &valsize);
     printf(" Search for the last 'X-Test-Header' header value and get size: '%s' of size %d\n", s, (int)valsize);
 
+    ci_headers_list_t *clonedUnpacked = ci_headers_clone(headers);
+
     ci_headers_pack(headers);
+    ci_headers_list_t *clonedPacked = ci_headers_clone(headers);
 
     printf("\n\nThe Packed headers are:\n%.*s\n",headers->bufused, headers->headers[0]);
     s = ci_headers_first_line2(headers, &valsize);
@@ -68,5 +71,12 @@ int main(int argc, char *argv[])
     s = ci_headers_value2(headers, "X-Test-Header", &valsize);
     printf(" Search for the last 'X-Test-Header' header value in packed: '%.*s'\n", (int)valsize, s);
 
+    printf("\n\nPrint ClonedUnpacked headers \n");
+    for (i=0; i<clonedUnpacked->used; i++) {
+        printf(" %d. %s\n", i, clonedUnpacked->headers[i]);
+    }
+
+
+    printf("\n\nPrint Clonedpacked headers are:\n%.*s\n",clonedPacked->bufused, clonedPacked->headers[0]);
     return 0;
 }

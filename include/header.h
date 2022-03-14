@@ -293,6 +293,14 @@ CI_DECLARE_FUNC(const char *) ci_headers_first_line(const ci_headers_list_t *hea
 */
 CI_DECLARE_FUNC(const char *) ci_headers_first_line2(const ci_headers_list_t *heads, size_t *return_size);
 
+
+/**
+ * Clones a ci_headers_list_t object
+ \ingroup HEADERS
+ \return A new ci_headers_list_t object similar with the given heads object
+ */
+CI_DECLARE_FUNC(ci_headers_list_t *) ci_headers_clone(const ci_headers_list_t *heads);
+
 /*compatibility macro*/
 #define ci_headers_copy_header_bytes ci_headers_pack_to_buffer
 
