@@ -342,7 +342,7 @@ void fill_queue_statistics(struct childs_queue *q, struct info_req_data *info_da
         }
     }
     /*Merge history data*/
-    if (info_data->view_child >= 0) {
+    if (info_data->view_child < 0) {
         stats = q->stats_area + q->size * q->stats_block_size;
         assert(ci_stat_memblock_check(stats));
         ci_stat_memblock_merge(info_data->collect_stats, stats, 1, info_data->childs);
