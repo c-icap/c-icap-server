@@ -107,8 +107,8 @@ CI_DECLARE_FUNC(uint64_t) ci_server_stat_uint64_get_global(int id);
 
 /**
  * Retrieves all c-icap server statistics into a ci_stat_memblock_t object.
- * The statistics can be retrieved using the ci_stat_memblock_get_counter
- * and ci_stat_memblock_get_kbs functions.
+ * The individual statistics can be retrieved using the
+ * ci_stat_memblock_get_* family API functions.
  * The returned ci_stat_memblock_t object must be released using the
  * ci_server_stat_free_all_stats function.
  \param flags It is ignored
@@ -121,6 +121,23 @@ CI_DECLARE_FUNC(ci_stat_memblock_t *)ci_server_stat_get_all_stats(uint32_t flags
  * function.
  */
 CI_DECLARE_FUNC(void) ci_server_stat_free_all_stats(ci_stat_memblock_t *blk);
+
+/**
+ * Retrieves c-icap child process statistics. The individual statistics values
+ * can be retrieved using the ci_stat_memblock_get_* API functions.
+ \param pid The c-icap child process pid
+ \param flags It is ignored
+ \return a ci_stat_memblock_t object with child c-icap statistics or NULL
+ */
+const ci_stat_memblock_t *ci_server_stat_get_child_stats(process_pid_t pid, uint32_t flags);
+
+/**
+ * Retrieves c-icap history statistics, the collected statistics from gone
+ * c-icap children processes.
+ \param flags It is ignored
+ \return a ci_stat_memblock_t object with c-icap history statistics.
+ */
+const ci_stat_memblock_t *ci_server_stat_get_history_stats(uint32_t flags);
 
 /*c-icap server statistics functions*/
 /**

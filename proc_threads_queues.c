@@ -633,6 +633,25 @@ void ci_server_stat_free_all_stats(ci_stat_memblock_t *blk)
     ci_buffer_free((void *)blk);
 }
 
+const ci_stat_memblock_t *ci_server_stat_get_child_stats(process_pid_t pid, uint32_t flags)
+{
+    int i;
+    const ci_stat_memblock_t *kid_stats;
+    assert(childs_queue);
+    for (i = 0; i < childs_queue->size; i++) {
+        if (childs_queue->childs[i].pid == pid) {
+            kid_stats = (const ci_stat_memblock_t *) (childs_queue->stats_area + i * (childs_queue->stats_block_size));
+            return kid_stats;
+        }
+    }
+    return NULL;
+}
+
+const ci_stat_memblock_t *ci_server_stat_get_history_stats(uint32_t flags)
+{
+    const ci_stat_memblock_t *hist_stats = childs_queue->stats_area + childs_queue->size * childs_queue->stats_block_size;
+    return hist_stats;
+}
 
 struct shared_blob_data{
     int id;

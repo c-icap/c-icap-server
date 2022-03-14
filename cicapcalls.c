@@ -158,6 +158,29 @@ void ci_server_stat_free_all_stats(ci_stat_memblock_t *blk)
     fprintf(stderr, "Can not execute ci_server_stat_free_all_stats\n");
 }
 
+const ci_stat_memblock_t *ci_server_stat_get_child_stats(process_pid_t pid, uint32_t flags)
+{
+    typedef void (*CS)(process_pid_t, uint32_t);
+    CS fn;
+    fn = (CS)GetProcAddress(GetModuleHandle(NULL), "ci_server_stat_get_child_stats");
+    if (fn)
+        return (*fn)(pid, flags);
+
+    fprintf(stderr, "Can not execute ci_server_stat_get_child_stats\n");
+    return NULL;
+}
+
+const ci_stat_memblock_t *ci_server_stat_get_history_stats(uint32_t flags)
+{
+    typedef void (*CS)(uint32_t);
+    CS fn;
+    fn = (CS)GetProcAddress(GetModuleHandle(NULL), "ci_server_stat_get_history_stats");
+    if (fn)
+        return (*fn)(flags);
+
+    fprintf(stderr, "Can not execute ci_server_stat_get_history_stats\n");
+    return NULL;
+}
 
 int ci_server_shared_memblob_register(const char *name, size_t size)
 {
