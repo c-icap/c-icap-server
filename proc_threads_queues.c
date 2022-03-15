@@ -672,7 +672,7 @@ int ci_server_shared_memblob_register(const char *name, size_t size)
     */
 
     if (!MemBlobs) {
-         MemBlobs = ci_dyn_array_new2(32, sizeof(struct shared_blob_data));
+         MemBlobs = ci_dyn_array_new2(64, sizeof(struct shared_blob_data));
     }
     int blobs_number =  size / sizeof(ci_server_shared_blob_t) + ((size % sizeof(ci_server_shared_blob_t)) != 0 ? 1 : 0);
     int id = MemBlobsCount;
