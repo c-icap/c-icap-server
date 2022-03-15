@@ -120,29 +120,9 @@ int wait_for_queue(struct connections_queue *q)
 /*                                                                                 */
 /*  Children queue......                                                             */
 
-struct childs_queue *create_childs_queue(int size)
+static void attach_memory_to_childs_queue(struct childs_queue *q, void *mem)
 {
-    int ret, i;
-    struct childs_queue *q = malloc(sizeof(struct childs_queue));
-    if (!q) {
-        log_server(NULL, "Error allocation memory for children-queue data\n");
-        return NULL;
-    }
-    q->stats_block_size = ci_stat_memblock_size();
-
-    q->shared_mem_size = sizeof(child_shared_data_t) * size /*child shared data*/
-                         + q->stats_block_size * size /*child stats area*/
-                         + q->stats_block_size /*Server history  stats area*/
-                         + sizeof(struct server_statistics) /*Server general statistics*/
-                         + MemBlobsCount * sizeof(ci_server_shared_blob_t); /*Register blobs size*/
-    if ((q->childs =
-                ci_shared_mem_create(&(q->shmid), "kids-queue", q->shared_mem_size)) == NULL) {
-        log_server(NULL, "can't get shared memory!");
-        free(q);
-        return NULL;
-    }
-
-    q->size = size;
+    q->childs = mem;
     /*
       The memory area with statistics memory blocks where share statistics
       for c-icap server are stored is located after the q->childs array of
@@ -170,15 +150,41 @@ struct childs_queue *create_childs_queue(int size)
       exited children are accumulated, is located at:
           (q->stats_area + q->size * q->stats_block_size)
     */
-    q->stats_history = ci_stat_memblock_init((void *)(q->stats_area + q->size * q->stats_block_size), q->stats_block_size);
-    if (!q->stats_history) {
+    q->stats_history = (void *)(q->stats_area + q->size * q->stats_block_size);
+
+    q->srv_stats = (struct server_statistics *)(q->stats_area + q->size * q->stats_block_size + q->stats_block_size);
+}
+
+struct childs_queue *create_childs_queue(int size)
+{
+    int ret, i;
+    struct childs_queue *q = malloc(sizeof(struct childs_queue));
+    if (!q) {
+        log_server(NULL, "Error allocation memory for children-queue data\n");
+        return NULL;
+    }
+    q->size = size; /* the number of children*/
+    q->stats_block_size = ci_stat_memblock_size();
+
+    q->shared_mem_size = sizeof(child_shared_data_t) * size /*child shared data*/
+                         + q->stats_block_size * size /*child stats area*/
+                         + q->stats_block_size /*Server history  stats area*/
+                         + sizeof(struct server_statistics) /*Server general statistics*/
+                         + MemBlobsCount * sizeof(ci_server_shared_blob_t); /*Register blobs size*/
+    void *mem = ci_shared_mem_create(&(q->shmid), "kids-queue", q->shared_mem_size);
+    if (mem == NULL) {
+        log_server(NULL, "can't get shared memory!");
+        free(q);
+        return NULL;
+    }
+    attach_memory_to_childs_queue(q, mem);
+    if (!ci_stat_memblock_init(q->stats_history, q->stats_block_size)) {
         ci_shared_mem_destroy(&(q->shmid));
         log_server(NULL, "Failed to initialize statistics area (statistics history area)");
         free(q);
         return NULL;
     }
 
-    q->srv_stats = (struct server_statistics *)(q->stats_area + q->size * q->stats_block_size + q->stats_block_size);
     ci_debug_printf(2, "Create shared mem, qsize=%d stat_block_size=%d children shared data of size:%d\n",
                     q->size,  q->stats_block_size, (int)sizeof(child_shared_data_t) * q->size);
 
@@ -208,14 +214,12 @@ int attach_childs_queue(struct childs_queue *q)
     child_shared_data_t *c;
     ci_proc_mutex_lock(&(q->queue_mtx));       //Not really needed .........
 
-    if ((c =
-                (child_shared_data_t *) ci_shared_mem_attach(&(q->shmid))) == NULL) {
+    if ((c = (child_shared_data_t *) ci_shared_mem_attach(&(q->shmid))) == NULL) {
         log_server(NULL, "can't attach shared memory!");
         ci_proc_mutex_unlock(&(q->queue_mtx));
         return 0;
     }
-
-    q->childs = c;
+    attach_memory_to_childs_queue(q, c);
     ci_proc_mutex_unlock(&(q->queue_mtx));
     return 1;
 }
