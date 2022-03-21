@@ -125,19 +125,11 @@ void ci_service_add_xincludes(ci_service_xdata_t * srv_xdata,
                               char **xincludes)
 {
     int len, i;
-    len = 0;
-    i = 0;
     if (!xincludes)
         return;
     ci_thread_rwlock_wrlock(&srv_xdata->lock);
-    while (XINCLUDES_SIZE - len - 2 > 0 && xincludes[i]) {
-        if (len) {
-            strcat(srv_xdata->xincludes, ", ");
-            len += 2;
-        }
-        strncat(srv_xdata->xincludes, xincludes[i], XINCLUDES_SIZE - len);
-        len += strlen(xincludes[i]);
-        i++;
+    for (i = 0, len = 0; xincludes[i] != NULL && XINCLUDES_SIZE - len > 0; i++) {
+         len += snprintf(srv_xdata->xincludes + len, XINCLUDES_SIZE - len, "%s%s", (len > 0 ? ", ": ""), xincludes[i]);
     }
     ci_thread_rwlock_unlock(&srv_xdata->lock);
 }
