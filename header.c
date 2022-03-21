@@ -343,9 +343,9 @@ const char *ci_headers_copy_value(const ci_headers_list_t * h, const char *heade
         return NULL;
 
     /*skip spaces at the beginning*/
-    while (isspace(*pval) && pval < pend)
+    while (isspace((int)*pval) && pval < pend)
         pval++;
-    while (isspace(*pend) && pend > pval)
+    while (isspace((int)*pend) && pend > pval)
         pend--;
 
     /*copy value to buf*/

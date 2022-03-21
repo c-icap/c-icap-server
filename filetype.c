@@ -232,7 +232,7 @@ static int parse_record(char *line, struct ci_magic_record *record)
     s = line;
     errno = 0;
     record->blocks[record->blocks_num].offset = strtol(s, &end, 10);
-    while (*end && isspace(*end)) ++end;
+    while (*end && isspace((int)*end)) ++end;
     if (*end != ':' || errno != 0)
         return -1;
 
@@ -267,7 +267,7 @@ static int parse_record(char *line, struct ci_magic_record *record)
     }
     record->blocks[record->blocks_num].len = i;
     ++record->blocks_num;
-    while (*s && isspace(*s)) ++s;
+    while (*s && isspace((int)*s)) ++s;
     if (s >= end || *s != ':') {
         /*Unexpected end of the line, parse error */
         return -1;

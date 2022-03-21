@@ -355,7 +355,7 @@ void *acl_time_dup(const char *str, ci_mem_allocator_t *allocator)
     strncpy(buf, str, sizeof(buf));
     buf[sizeof(buf) - 1] = '\0';
     s = buf;
-    if (!isdigit(*s)) {
+    if (!isdigit((int)*s)) {
         do {
             if (*s == ',') ++s;
             for (i = 0; days[i].day != NULL; ++i) {
@@ -382,7 +382,7 @@ void *acl_time_dup(const char *str, ci_mem_allocator_t *allocator)
 
     /* Time region specification*/
     /*We are expecting hour region in the form 'HH:MM-HH:MM' */
-    if (!isdigit(*s)) {
+    if (!isdigit((int)*s)) {
         error = s;
         goto acl_time_dup_fail;
     }
@@ -392,7 +392,7 @@ void *acl_time_dup(const char *str, ci_mem_allocator_t *allocator)
         error = s;
         goto acl_time_dup_fail;
     }
-    if (*e != ':' || !isdigit(e[1])) {
+    if (*e != ':' || !isdigit((int)e[1])) {
         error = e;
         goto acl_time_dup_fail;
     }
@@ -402,7 +402,7 @@ void *acl_time_dup(const char *str, ci_mem_allocator_t *allocator)
         error = s;
         goto acl_time_dup_fail;
     }
-    if (*e != '-' || !isdigit(e[1])) {
+    if (*e != '-' || !isdigit((int)e[1])) {
         error = e;
         goto acl_time_dup_fail;
     }
@@ -413,7 +413,7 @@ void *acl_time_dup(const char *str, ci_mem_allocator_t *allocator)
         error = s;
         goto acl_time_dup_fail;
     }
-    if (*e != ':' || !isdigit(e[1])) {
+    if (*e != ':' || !isdigit((int)e[1])) {
         error = e;
         goto acl_time_dup_fail;
     }
@@ -1172,7 +1172,7 @@ void *get_http_req_method(ci_request_t *req, char *param)
         return NULL;
     eol = first_line + found_size;
 
-    for (e = first_line; e < eol && !isspace(*e); e++);
+    for (e = first_line; e < eol && !isspace((int)*e); e++);
     if (e == eol) /*No method found*/
         return NULL;
     found_size = e - first_line;

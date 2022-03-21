@@ -855,11 +855,11 @@ struct ci_conf_entry *find_action(char *str, char **arg)
 {
     char *end, *table, *s;
     end = str;
-    while (*end != '\0' && !isspace(*end))
+    while (*end != '\0' && !isspace((int)*end))
         end++;
     *end = '\0';               /*Mark the end of Variable...... */
     end++;                     /*... and continue.... */
-    while (*end != '\0' && isspace(*end))      /*Find the start of arguments ...... */
+    while (*end != '\0' && isspace((int)*end))      /*Find the start of arguments ...... */
         end++;
     *arg = end;
     if ((s = strchr(str, '.')) != NULL) {
@@ -895,7 +895,7 @@ char **split_args(char *args)
         } else {
             /*Support arguments in the form arg{a, b...}*/
             brkt = 0;
-            while (*end != '\0' && (!isspace(*end) || brkt)) {
+            while (*end != '\0' && (!isspace((int)*end) || brkt)) {
                 if (*end == '{') brkt = 1;
                 else if (brkt && *end == '}') brkt = 0;
                 end++;
@@ -914,7 +914,7 @@ char **split_args(char *args)
 
         if (*end == '"')
             end++;
-        while (*end != '\0' && isspace(*end))
+        while (*end != '\0' && isspace((int)*end))
             end++;
 
     } while (*end != '\0');
@@ -946,7 +946,7 @@ int process_line(char *orig_line)
     line[LINESIZE-1] = '\0';
 
     str = line;
-    while (*str != '\0' && isspace(*str))      /*Eat the spaces in the begging */
+    while (*str != '\0' && isspace((int)*str))      /*Eat the spaces in the begging */
         str++;
     if (*str == '\0' || *str == '#')   /*Empty line or comment */
         return 1;

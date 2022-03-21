@@ -115,7 +115,7 @@ void ci_str_trim(char *str)
 
     s = str;
     e = NULL;
-    while (isspace(*s)) {
+    while (isspace((int)*s)) {
         e = s;
         while (*e != '\0') {
             *e = *(e+1);
@@ -126,7 +126,7 @@ void ci_str_trim(char *str)
     /*if (e) e--;  else */
     e = str+strlen(str);
     e--;
-    while (isspace(*e) && e >= str) {*e = '\0'; --e;};
+    while (isspace((int)*e) && e >= str) {*e = '\0'; --e;};
 }
 
 char *ci_str_trim2(char *s)
@@ -136,10 +136,10 @@ char *ci_str_trim2(char *s)
     if (!s)
         return NULL;
 
-    while (isspace(*s)) ++s;
+    while (isspace((int)*s)) ++s;
     e = s + strlen(s);
     e--;
-    while (isspace(*e) && e >= s) {*e = '\0'; --e;};
+    while (isspace((int)*e) && e >= s) {*e = '\0'; --e;};
     return s;
 }
 

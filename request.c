@@ -517,7 +517,7 @@ static int parse_header(ci_request_t * req)
     for (i = 1; i < h->used && request_status == EC_100; i++) {
         if (strncasecmp("Preview:", h->headers[i], 8) == 0) {
             val = h->headers[i] + 8;
-            for (; isspace(*val) && *val != '\0'; ++val);
+            for (; isspace((int)*val) && *val != '\0'; ++val);
             errno = 0;
             result = strtol(val, NULL, 10);
             if (errno != EINVAL && errno != ERANGE) {
@@ -529,7 +529,7 @@ static int parse_header(ci_request_t * req)
             request_status = process_encapsulated(req, h->headers[i]);
         else if (strncasecmp("Connection:", h->headers[i], 11) == 0) {
             val = h->headers[i] + 11;
-            for (; isspace(*val) && *val != '\0'; ++val);
+            for (; isspace((int)*val) && *val != '\0'; ++val);
             /*             if(strncasecmp(val,"keep-alive",10)==0)*/
             if (strncasecmp(val, "close", 5) == 0)
                 req->keepalive = 0;

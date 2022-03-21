@@ -349,8 +349,8 @@ static txtTemplate_t *templateLoadText(const ci_request_t * req, const char *ser
         ci_debug_printf(4, "templateLoadText: Languages are: '%s'\n", s);
 
         while ( *s != '\0') {
-            while (*s != '\0' && isspace(*s)) s++; /* eat spaces*/
-            for (i = 0; *s != '\0' && *s != ',' && *s != ';' && !isspace(*s) && i < sizeof(preferred) - 1; i++,s++)
+            while (*s != '\0' && isspace((int)*s)) s++; /* eat spaces*/
+            for (i = 0; *s != '\0' && *s != ',' && *s != ';' && !isspace((int)*s) && i < sizeof(preferred) - 1; i++,s++)
                 preferred[i] = *s; /*Copy the language part*/
             preferred[i] = '\0';
             ci_debug_printf(6, "Try load the error message on language:%s\n", preferred);

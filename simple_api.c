@@ -312,7 +312,7 @@ int ci_http_request_url2(ci_request_t * req, char *buf, int buf_size, int flags)
         /*Looks like a transparent proxy, we do not know the protocol lets try
           to preserve the major part of the url....
          */
-        for (i = 0; (i < buf_size-1) && !header_end(host[i]) && !isspace(host[i]); i++) {
+        for (i = 0; (i < buf_size-1) && !header_end(host[i]) && !isspace((int)host[i]); i++) {
             buf[i] = host[i];
         }
         buf += i;
@@ -322,10 +322,10 @@ int ci_http_request_url2(ci_request_t * req, char *buf, int buf_size, int flags)
 
     /*copy the url...*/
     if (flags & CI_HTTP_REQUEST_URL_ARGS)
-        for (i = 0; (i < buf_size-1) && !header_end(str[i]) && !isspace(str[i]); i++)
+        for (i = 0; (i < buf_size-1) && !header_end(str[i]) && !isspace((int)str[i]); i++)
             buf[i] = str[i];
     else
-        for (i = 0; (i < buf_size-1) && !header_end(str[i]) && !isspace(str[i]) && str[i] != '?'; i++)
+        for (i = 0; (i < buf_size-1) && !header_end(str[i]) && !isspace((int)str[i]) && str[i] != '?'; i++)
             buf[i] = str[i];
 
     buf[i] = '\0';
