@@ -20,6 +20,7 @@
 #include "common.h"
 #include "c-icap.h"
 #include "proc_threads_queues.h"
+#include "request.h"
 #include <w32api/windows.h>
 
 char *logformat_fmt(const char *name)
@@ -170,14 +171,13 @@ void * ci_server_shared_memblob_byname(const char *name)
     return NULL;
 }
 
-void ci_http_server_register_service(const char *path, const char *descr, int (*handler)(ci_request_t *req), unsigned)
+void ci_http_server_register_service(const char *path, const char *descr, int (*handler)(ci_request_t *req), unsigned flags)
 {
     typedef void (*CS)(const char *, const char *, int (*)(ci_request_t *req), unsigned);
     CS fn;
     fn = (CS)GetProcAddress(GetModuleHandle(NULL), "ci_http_server_register_service");
     if (fn)
-        return (*fn)(name);
+        return (*fn)(path, descr, handler, flags);
 
     fprintf(stderr, "Can not execute ci_http_server_register_service\n");
-    return NULL;
 }
