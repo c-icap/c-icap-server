@@ -16,7 +16,7 @@ ACLOCAL_AMFLAGS = -I m4
 
 SUBDIRS =  . utils modules services tests docs
 
-CFLAGS += -fdiagnostics-color=always
+CFLAGS += -fdiagnostics-color=always -Werror
 
 lib_LTLIBRARIES=libicapapi.la
 bin_PROGRAMS = c-icap
