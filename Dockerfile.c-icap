@@ -1,0 +1,59 @@
+ARG DEPS_IMAGE=deps_cache
+
+################################################################################
+# Dependencies Stage
+################################################################################
+FROM alpine:3.15 as deps_cache
+
+ARG builddeps=" \
+    autoconf \
+    automake \
+    bzip2 \
+    g++ \
+    gcc \
+    libtool \
+    make \
+    tar \
+    zlib \
+    zlib-dev \
+    "
+
+ARG deps=" \
+    bzip2-dev \
+    dumb-init \
+    "
+
+RUN apk --update --no-cache add ${deps} && \
+    apk --update --no-cache add --virtual build-deps ${builddeps}
+
+################################################################################
+# Building Stage
+################################################################################
+# Build a docker image for meta's censor c-icap
+FROM ${DEPS_IMAGE} AS builder
+
+ARG TEMP=/tmp/install
+ARG C_ICAP_DIR=/opt/c-icap
+
+WORKDIR /
+
+ADD . /build_icap
+
+RUN mkdir -p /var/log/c-icap/ && \
+    mkdir -p ${TEMP} && \
+    cp -r /build_icap ${TEMP} && \
+    cd ${TEMP}/build_icap && \
+    echo "unversioned" > VERSION.m4 && \
+    autoreconf -i && \
+    ./configure --quiet --prefix=${C_ICAP_DIR} --enable-large-files && \
+    make -j$(awk '/^processor/{n+=1}END{print n}' /proc/cpuinfo) && \
+    make install && \
+    make clean && \
+    make distclean && \
+    cd - && \
+    rm -rf ${TEMP} && \
+    apk del --purge build-deps && \
+    addgroup -S c-icap && adduser -S c-icap -G c-icap && \
+    chown -R c-icap:c-icap ${C_ICAP_DIR} /var/log/c-icap /var/run/c-icap
+
+USER c-icap
