@@ -150,6 +150,7 @@ char * ci_strerror(int error, char *buf, size_t buflen)
 #elif defined(HAVE_STRERROR_R)
     if (strerror_r(error,  buf, buflen) == 0)
         return buf;
+    return NULL;
 #else
     snprintf(buf, buflen, "%d", error);
     return buf;
