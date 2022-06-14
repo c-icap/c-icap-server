@@ -80,7 +80,7 @@ void log_server(ci_request_t * req, const char *format, ...)
     va_start(ap, format);
     if (default_logger) {
         if (MY_PROC_PID)
-            snprintf(prefix, 64, "%u/%u", (unsigned int)MY_PROC_PID, (unsigned int)ci_thread_self());
+            snprintf(prefix, 64, "%u/%lu", (unsigned int)MY_PROC_PID, (unsigned long int)ci_thread_self());
         else /*probably the main process*/
             strcpy(prefix, "main proc");
 

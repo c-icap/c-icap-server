@@ -155,13 +155,13 @@ int ci_regex_apply(const ci_regex_t regex, const char *str, int len, int recurs,
     do {
         if ((retcode = regexec(regex, str, 10, pmatch, 0)) == 0) {
             ++count;
-            ci_debug_printf(9, "Match pattern (pos:%d-%d): '%.*s'\n", pmatch[0].rm_so, pmatch[0].rm_eo, pmatch[0].rm_eo - pmatch[0].rm_so, str+pmatch[0].rm_so);
+            ci_debug_printf(9, "Match pattern (pos:%ld-%ld): '%.*s'\n", pmatch[0].rm_so, pmatch[0].rm_eo, (int)(pmatch[0].rm_eo - pmatch[0].rm_so), str+pmatch[0].rm_so);
 
             if (matches) {
                 parts.user_data = user_data;
                 memset(parts.matches, 0, sizeof(ci_regex_matches_t));
                 for (i = 0; i < 10 && pmatch[i].rm_eo > pmatch[i].rm_so; ++i) {
-                    ci_debug_printf(9, "\t sub-match pattern (pos:%d-%d): '%.*s'\n", pmatch[i].rm_so, pmatch[i].rm_eo, pmatch[i].rm_eo - pmatch[i].rm_so, str+pmatch[i].rm_so);
+                    ci_debug_printf(9, "\t sub-match pattern (pos:%ld-%ld): '%.*s'\n", pmatch[i].rm_so, pmatch[i].rm_eo, (int)(pmatch[i].rm_eo - pmatch[i].rm_so), str+pmatch[i].rm_so);
                     parts.matches[i].s = pmatch[i].rm_so;
                     parts.matches[i].e = pmatch[i].rm_eo;
                 }
