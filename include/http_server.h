@@ -48,6 +48,13 @@ static inline ci_headers_list_t *ci_http_server_request_headers(ci_request_t *re
     return req->request_header;
 }
 
+static inline const char *ci_http_server_request_get_header(ci_request_t *req, const char *header) {
+    _CI_ASSERT(req);
+    if (!req->request_header)
+        return NULL;
+    return ci_headers_search(req->request_header, header);
+}
+
 static inline void ci_http_server_response_set_status(ci_request_t *req, int status) {
     _CI_ASSERT(req);
     req->return_code = status;

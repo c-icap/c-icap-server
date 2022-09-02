@@ -299,6 +299,17 @@ void ci_dyn_array_destroy(ci_dyn_array_t *array)
         ci_mem_allocator_destroy(array->alloc);
 }
 
+ci_dyn_array_t  * ci_dyn_array_rebuild(ci_dyn_array_t *old)
+{
+    _CI_ASSERT(old);
+    old->count = 0;
+    ci_mem_allocator_t *packer;
+    _CI_ASSERT(old->alloc);
+    packer = old->alloc;
+    packer->reset(packer);
+    return old;
+}
+
 const ci_array_item_t * ci_dyn_array_add(ci_dyn_array_t *array, const char *name, const void *value, size_t size)
 {
     ci_array_item_t *item;

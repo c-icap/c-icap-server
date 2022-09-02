@@ -310,6 +310,155 @@ typedef struct ci_stat_value {
     };
 } ci_stat_value_t;
 
+/**
+ \defgroup HISTOGRAMS Histograms
+ \ingroup STAT
+ * Api for building and updating histograms. The c-icap histograms are stored
+ * in shared memory as c-icap global objects, they are not accounted on a per
+ * kid/process base.
+ */
+
+/**
+ * Builds a simple histogram with equal sized bins. The size of each bin
+ * computed as (bin_max-bin_min)/bins_number
+ \ingroup HISTOGRAMS
+ \param label A name to identify the histogram
+ \param data_descr Short description of accounted data
+ \param bins_number The number of bins to use
+ \param bin_min The minimum bin value
+ \param bin_max The maximum bin value
+ */
+CI_DECLARE_FUNC(int) ci_stat_histo_create(const char *label, const char *data_descr, int bins_number, uint64_t bin_min, uint64_t bin_max);
+
+/**
+ * Builds a histogram where the range of each bin is computed using the
+ * natural log function.
+ \ingroup HISTOGRAMS
+ \param label A name to identify the histogram
+ \param data_descr Short description of accounted data
+ \param bins_number The number of bins to use
+ \param bin_min The minimum bin value
+ \param bin_max The maximum bin value
+ */
+CI_DECLARE_FUNC(int) ci_stat_histo_create_log(const char *label, const char *data_descr, int bins_number, uint64_t min, uint64_t max);
+
+/**
+ * Builds a histogram where the range of each bin is given by the caller.
+ \ingroup HISTOGRAMS
+ \param label A name to identify the histogram
+ \param data_descr Short description of accounted data
+ \param bins_array An unsigned array with the maximum value of each bin
+ \param bins_number The number of bins (size of bins_array)
+ */
+CI_DECLARE_FUNC(int) ci_stat_histo_create_custom_bins(const char *label, const char *data_descr, const uint64_t *bins_array, int bins_number);
+
+/**
+ * Builds a histogram where the range of each bin is "1" and has as minimum
+ * bin the "0" and as maximum the (bins_number - 1).
+ \ingroup HISTOGRAMS
+ \param data_descr Short description of accounted data
+ \param label A name to identify the histogram
+ \param labels An array with labels to use for each bin
+ \param bins_number The number of bins
+ *
+ * Example usage:
+ \code
+ enum MethodsId {mGET, mPOST};
+ const char *Methods[] = {"GET", "POST"};
+ ...
+ int HST_METHODS = 0;
+ ...
+ HST_METHODS = ci_stat_histo_create_enum("my_service::methods", (const char **)Methods, 2);
+ ...
+ if (strcmp(http_request_method, "GET") == 0)
+    ci_stat_histo_update(HST_METHODS, mGET);
+ else if(strcmp(http_request_method, "POST") == 0)
+    ci_stat_histo_update(HST_METHODS, mPOST);
+ else // use a huge value out of MethodIds enum range
+    ci_stat_histo_update(HST_METHODS, 0xFFFF);
+\endcode
+ */
+CI_DECLARE_FUNC(int) ci_stat_histo_create_enum(const char *label, const char *data_descr, const char **labels, int bins_number);
+
+/**
+ * Retrieve the histogram id using its name
+ \ingroup HISTOGRAMS
+*/
+CI_DECLARE_FUNC(int) ci_stat_histo_get_id(const char *name);
+
+/**
+ * Retrieves the histogram data description
+ \ingroup HITOGRAMS
+*/
+CI_DECLARE_FUNC(const char *) ci_stat_histo_data_descr(int id);
+
+/**
+ * Histogram flags
+ \ingroup HISTOGRAMS
+ */
+typedef enum ci_histo_flag {
+    CI_HISTO_IGNORE_COUNT_ZERO = 0x01 /*!< Ignore zero bins when displaying histogram. Only for use with enum histograms */
+} ci_histo_flag_t;
+
+/**
+ * Sets histogram flags.
+ \ingroup HISTOGRAMS
+ \param id The histogram id.
+ \param flags The flags to set.
+ */
+CI_DECLARE_FUNC(void) ci_stat_histo_set_flag(int id, unsigned flags);
+
+/**
+ * Clear(unset) the histogram flags.
+ \ingroup HISTOGRAMS
+ \param id The histogram id.
+ \param flags The flags to clear.
+ */
+CI_DECLARE_FUNC(void) ci_stat_histo_clear_flag(int id, unsigned flags);
+
+/**
+ * Updates the histogram with a new value
+ \ingroup HISTOGRAMS
+ \param id The histogram id.
+ \param value Update the histogram bin associated to the given value.
+ */
+CI_DECLARE_FUNC(void) ci_stat_histo_update(int id, uint64_t value);
+
+/**
+ * Iterate over the given histogram bins
+ \ingroup HISTOGRAMS
+ \param id The histogram id
+ \param data User data to pass to the callback
+ \param fn The user callback function to call for each histogram bin.
+           The fn callback accepts as input the user data passed by the caller,
+           the bin interval value, and bin counter.
+ */
+CI_DECLARE_FUNC(void) ci_stat_histo_raw_bins_iterate(int id, void *data, void (*fn)(void *data, double bin_raw, uint64_t count));
+
+/**
+ * Iterate over the given histogram bins
+ \ingroup HISTOGRAMS
+ \param id The histogram id
+ \param data User data to pass to the callback
+ \param fn The user callback function to call for each histogram bin.
+           The fn callback accepts as input the user data passed by the caller,
+           a string label for bin, and bin counter.
+ */
+CI_DECLARE_FUNC(void) ci_stat_histo_bins_iterate(int id, void *data, void (*fn)(void *data, const char *bin_label, uint64_t count));
+
+/**
+ * The number of histogram bins
+ \ingroup HISTOGRAMS
+ \param id The histogram id
+*/
+CI_DECLARE_FUNC(int) ci_stat_histo_bins_number(int id);
+
+/*Histogram functions for c-icap internal use*/
+CI_DECLARE_FUNC(void) ci_stat_histo_iterate(void *data, int (*fn)(void *data, const char *name, int id));
+CI_DECLARE_FUNC(size_t) ci_stat_histo_mem_size();
+CI_DECLARE_FUNC(int) ci_stat_histo_mem_initialize(void *histos, size_t size);
+
+
 typedef struct ci_stat {
     ci_stat_type_t type;
     ci_stat_value_t value;
@@ -328,7 +477,7 @@ CI_DECLARE_FUNC(ci_stat_memblock_t *) ci_stat_memblock_get(void);
 
 CI_DECLARE_FUNC(void) ci_stat_entry_release_lists();
 
-CI_DECLARE_FUNC(int) ci_stat_attach_mem(void *mem, int size,void (*release_mem)(void *));
+CI_DECLARE_FUNC(int) ci_stat_attach_mem(void *mem, size_t size, void *histos_mem, size_t histos_size, void (*release_mem)(void *));
 
 CI_DECLARE_FUNC(void) ci_stat_allocate_mem();
 

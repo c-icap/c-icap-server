@@ -440,6 +440,17 @@ CI_DECLARE_FUNC(ci_dyn_array_t *) ci_dyn_array_new2(size_t items, size_t item_si
 CI_DECLARE_FUNC(void) ci_dyn_array_destroy(ci_dyn_array_t *array);
 
 /**
+ * Creates a new empty dynamic array on the existing ci_dyn_array_t object.
+ * The stored info on the old object is lost.
+ * The ci_dyn_array_destroy function MUST not used on the old ci_dyn_array_t
+ * object even if this function returns NULL.
+ \ingroup DYNAMIC_ARRAYS
+ \param old the old ci_dyn_array_t object to reuse for the new empty array
+ \return a new empty array on success, or NULL on failure
+ */
+CI_DECLARE_FUNC(ci_dyn_array_t  *) ci_dyn_array_rebuild(ci_dyn_array_t *old);
+
+/**
  * Add an name/value pair item to a dynamic array.
  \ingroup DYNAMIC_ARRAYS
  \param array a pointer to the ci_dyn_array_t object

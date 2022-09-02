@@ -99,6 +99,8 @@ struct childs_queue {
     int stats_block_size;
     void  *stats_area;
     ci_stat_memblock_t *stats_history;
+    void *histo_area;
+    size_t histo_size;
     ci_shared_mem_id_t shmid;
     ci_proc_mutex_t queue_mtx;
     struct server_statistics *srv_stats;

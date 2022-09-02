@@ -19,8 +19,10 @@
 
 
 #include "common.h"
+#include "array.h"
 #include "debug.h"
 #include "stats.h"
+#include <math.h>
 
 struct stat_entry {
     char *label;
@@ -51,12 +53,15 @@ struct stat_groups_list STAT_GROUPS = {NULL, 0, 0};
 struct stat_area {
     void (*release_mem)(void *);
     ci_stat_memblock_t *mem_block;
+    size_t mem_block_size;
+    void *histos;
+    size_t histos_size;
 };
 struct stat_area *STATS = NULL;
 
 #define STEP 128
 
-static struct stat_area * ci_stat_area_construct(void *mem_block, int size, void (*release_mem)(void *));
+static struct stat_area * ci_stat_area_construct(void *mem_block, size_t size, void *histos, size_t histos_size, void (*release_mem)(void *));
 static void ci_stat_area_destroy(struct stat_area  *area);
 
 int ci_stat_memblock_size(void)
@@ -242,12 +247,12 @@ void ci_stat_entry_release_lists()
     stat_entry_release_list(&STAT_STATS);
 }
 
-int ci_stat_attach_mem(void *mem_block, int size, void (*release_mem)(void *))
+int ci_stat_attach_mem(void *mem_block, size_t size, void *histos_mem, size_t histos_size, void (*release_mem)(void *))
 {
     if (STATS)
         return 1;
 
-    STATS = ci_stat_area_construct(mem_block, size, release_mem);
+    STATS = ci_stat_area_construct(mem_block, size, histos_mem, histos_size, release_mem);
     return (STATS != NULL);
 }
 
@@ -256,7 +261,10 @@ void ci_stat_allocate_mem()
     size_t mem_size = ci_stat_memblock_size();
     void *mem = malloc(mem_size);
     _CI_ASSERT(mem);
-    ci_stat_attach_mem(mem, mem_size, free);
+    size_t histo_size = ci_stat_histo_mem_size();
+    void *histo_mem = histo_size > 0 ? malloc(histo_size) : NULL;
+    _CI_ASSERT(ci_stat_histo_mem_initialize(histo_mem, histo_size));
+    ci_stat_attach_mem(mem, mem_size, histo_mem, histo_size, free);
 }
 
 void ci_stat_release()
@@ -413,10 +421,13 @@ void ci_stat_statistics_iterate(void *data, int groupId, int (*stat_call)(void *
 /***********************************************
    Low level functions
 */
-struct stat_area *ci_stat_area_construct(void *mem_block, int size, void (*release_mem)(void *))
+struct stat_area *ci_stat_area_construct(void *mem_block, size_t size, void *histo, size_t histo_size, void (*release_mem)(void *))
 {
     struct stat_area  *area = NULL;
     if (size < ci_stat_memblock_size() )
+        return NULL;
+
+    if (histo_size < ci_stat_histo_mem_size())
         return NULL;
 
     area = malloc(sizeof(struct stat_area));
@@ -424,14 +435,20 @@ struct stat_area *ci_stat_area_construct(void *mem_block, int size, void (*relea
         return NULL;
 
     area->mem_block = ci_stat_memblock_init(mem_block, size);
+    area->mem_block_size = size;
+    area->histos = histo;
+    area->histos_size = histo_size;
     area->release_mem = release_mem;
     return area;
 }
 
 void ci_stat_area_destroy(struct stat_area  *area)
 {
-    if (area->release_mem)
+    if (area->release_mem) {
         area->release_mem(area->mem_block);
+        if (area->histos)
+            area->release_mem(area->histos);
+    }
     free(area);
 }
 
@@ -492,3 +509,419 @@ void ci_stat_memblock_merge(ci_stat_memblock_t *to_block, const ci_stat_memblock
     }
 }
 
+typedef enum ci_histo_type {
+    CI_HISTO_DEFAULT = 0,
+    CI_HISTO_LINEAR = CI_HISTO_DEFAULT,
+    CI_HISTO_LOG,
+    CI_HISTO_ENUM,
+    CI_HISTO_CUSTOM_BINS,
+    CI_HISTO_END
+} ci_histo_type_t;
+
+typedef struct ci_stat_histo_spec {
+    unsigned int id;
+    char data_descr[64];
+    int items;
+    ci_histo_type_t histo_type;
+    ci_stat_type_t data_type;
+    uint64_t min;
+    uint64_t max;
+    size_t size;
+    double step;
+    unsigned int flags;
+    //TODO: recheck if labels and custom_bins attached correctly to
+    //      shared memory segments and used correctly.
+    const char **labels;
+    const uint64_t *custom_bins;
+} ci_stat_histo_spec_t;
+
+#define CI_HISTO_SIG 0xEAEA
+typedef struct ci_stat_histogram {
+    unsigned int sig;
+    ci_stat_histo_spec_t header;
+    _CI_ATOMIC_TYPE uint64_t other;
+    _CI_ATOMIC_TYPE uint64_t bins[];
+} ci_stat_histogram_t;
+
+static ci_dyn_array_t *Histos = NULL;
+static int HistoCount = 0;
+static size_t HistoPos = 0;
+
+size_t ci_stat_histo_mem_size()
+{
+    return HistoPos;
+}
+
+int ci_stat_histo_register(const char *label, const char *data_descr, int items, ci_histo_type_t type, uint64_t min, uint64_t max)
+{
+    if (!Histos)
+        Histos = ci_dyn_array_new2(64, sizeof(ci_stat_histo_spec_t));
+    unsigned int id = (unsigned int)HistoPos;
+    if (items > (max - min))
+        items = max - min;
+    double step;
+    if (type == CI_HISTO_LOG)
+        step = ((double) (items - 1) / log((double) (max - min)));
+    else {
+        step = ((double) (items - 1) / (double) (max - min));
+        _CI_ASSERT(step <= 1);
+    }
+    size_t size = sizeof(ci_stat_histogram_t) + items * sizeof(ci_stat_value_t);
+    ci_stat_histo_spec_t histo = {id: id,
+                                        data_descr: "\0",
+                                        items: items,
+                                        histo_type: type,
+                                        data_type: CI_STAT_INT64_T,
+                                        min: min,
+                                        max: max,
+                                        size: size,
+                                        step: step,
+                                        flags: 0,
+                                        labels: NULL,
+                                        custom_bins: NULL
+    };
+    snprintf(histo.data_descr, sizeof(histo.data_descr), "%s", data_descr);
+    _CI_ASSERT(ci_dyn_array_add(Histos, label, &histo, sizeof(ci_stat_histo_spec_t)));
+    HistoCount++;
+    HistoPos += size;
+    return id;
+}
+
+int ci_stat_histo_mem_initialize(void *histos, size_t size)
+{
+    if (size < ci_stat_histo_mem_size())
+        return 0;
+    if (!Histos)
+        return 1; /*Nothing to do*/
+    int i;
+    for (i = 0; i < ci_dyn_array_size(Histos); i++) {
+        const ci_stat_histo_spec_t *spec = ci_dyn_array_value(Histos, i);
+        _CI_ASSERT(spec->id < (unsigned int)size);
+        ci_stat_histogram_t *histo = (ci_stat_histogram_t *)(histos + spec->id);
+        histo->sig = CI_HISTO_SIG;
+        memcpy(&histo->header, spec, sizeof(ci_stat_histo_spec_t));
+        memset(histo->bins, 0, spec->items * sizeof(ci_stat_value_t));
+    }
+    return 1;
+}
+
+static ci_stat_histogram_t *ci_stat_histo_get_histo(int id)
+{
+    if (!STATS || !STATS->histos)
+        return NULL;
+    if (id >= STATS->histos_size)
+        return NULL; /* assert or at least warn? */
+    ci_stat_histogram_t *histo = (ci_stat_histogram_t *)(STATS->histos + id);
+    _CI_ASSERT(histo->sig == CI_HISTO_SIG);
+    return histo;
+}
+
+void ci_stat_histo_set_flag(int id, unsigned flags)
+{
+    ci_stat_histogram_t *histo = ci_stat_histo_get_histo(id);
+    if (histo)
+        histo->header.flags |= flags;
+}
+
+void ci_stat_histo_clear_flag(int id, unsigned flags)
+{
+    ci_stat_histogram_t *histo = ci_stat_histo_get_histo(id);
+    if (histo)
+        histo->header.flags &= ~flags;
+}
+
+const char * ci_stat_histo_data_descr(int id)
+{
+    ci_stat_histogram_t *histo = ci_stat_histo_get_histo(id);
+    if (histo)
+        return histo->header.data_descr;
+    return "-";
+}
+
+static inline double fix_bin(double value)
+{
+    // currently we are supporting only integer data types
+    return trunc(value);
+}
+
+/*
+  This is builds a simple c-icap histogram
+*/
+int ci_stat_histo_create(const char *label, const char *data_descr, int items, uint64_t min, uint64_t max)
+{
+    return ci_stat_histo_register(label, data_descr, items, CI_HISTO_DEFAULT, min, max);
+}
+
+static void ci_stat_histo_update_linear(ci_stat_histogram_t *histo, uint64_t value)
+{
+    if (value <= histo->header.min)
+        ci_atomic_add_u64(&histo->bins[0], 1);
+    else {
+        value -= histo->header.min;
+        const unsigned int bin = (unsigned int)floor((histo->header.step * (double)value) + 1.0);
+        if (bin >= histo->header.items) {
+            ci_atomic_add_u64(&histo->other, 1);
+        } else
+            ci_atomic_add_u64(&histo->bins[bin], 1);
+    }
+}
+
+double ci_stat_histo_get_bin_value_linear(ci_stat_histogram_t *histo, unsigned pos)
+{
+    double value = histo->header.min + ((double)pos) / histo->header.step;
+    value = fix_bin(value);
+    if (value > (double)(histo->header.max))
+        return (double) -1;
+    return value;
+}
+
+char *ci_stat_histo_get_bin_label_linear(ci_stat_histogram_t *histo, unsigned pos, char *buf, size_t buf_size, double *bin)
+{
+    *bin = ci_stat_histo_get_bin_value_linear(histo, pos);
+    *bin = fix_bin(*bin);
+    if (*bin >= 0)
+        snprintf(buf, buf_size, "%.0f", *bin);
+    else
+        snprintf(buf, buf_size, "Infinity");
+    return buf;
+}
+
+/*Log based histograms*/
+int ci_stat_histo_create_log(const char *label, const char *data_descr, int items, uint64_t min, uint64_t max)
+{
+    return ci_stat_histo_register(label, data_descr, items, CI_HISTO_LOG, min, max);
+}
+
+static void ci_stat_histo_update_log(ci_stat_histogram_t *histo, uint64_t value)
+{
+    if (value <= histo->header.min)
+        ci_atomic_add_u64(&histo->bins[0], 1);
+    else {
+        value -= histo->header.min;
+        const unsigned int bin = (unsigned int)floor((histo->header.step * log((double)value)) + 1.0);
+        if (bin >= histo->header.items) {
+            ci_atomic_add_u64(&histo->other, 1);
+        } else
+            ci_atomic_add_u64(&histo->bins[bin], 1);
+    }
+}
+
+double ci_stat_histo_get_bin_value_log(ci_stat_histogram_t *histo, unsigned pos)
+{
+    double value = histo->header.min + exp((double)(pos) / histo->header.step);
+    value = fix_bin(value);
+    if (value > (double)(histo->header.max))
+        return (double) -1;
+    return value;
+}
+
+char *ci_stat_histo_get_bin_label_log(ci_stat_histogram_t *histo, unsigned pos, char *buf, size_t buf_size, double *bin)
+{
+    *bin = ci_stat_histo_get_bin_value_log(histo, pos);
+    *bin = fix_bin(*bin);
+    if (*bin >= 0)
+        snprintf(buf, buf_size, "%.0f", *bin);
+    else
+        snprintf(buf, buf_size, "Infinity");
+    return buf;
+}
+
+/*Enum values based histogram*/
+int ci_stat_histo_create_enum(const char *label, const char *data_descr, const char **labels, int items)
+{
+    int id = ci_stat_histo_register(label, data_descr, items, CI_HISTO_ENUM, 0, items);
+    if (id < 0)
+        return id;
+#if 0
+    /* Faster ... */
+    const ci_array_item_t *ai = ci_dyn_array_get_item(Histos, HistoCount - 1);
+    _CI_ASSERT(ai);
+    ci_stat_histo_spec_t *histo = ai->value;
+#else
+    /* ... but we do not care for speed. */
+    ci_stat_histo_spec_t *histo = (ci_stat_histo_spec_t *)ci_dyn_array_search(Histos, label);
+#endif
+    _CI_ASSERT(histo);
+    histo->labels = labels;
+    return id;
+}
+
+static void ci_stat_histo_update_enum(ci_stat_histogram_t *histo, uint64_t value)
+{
+    if (value >= histo->header.max)
+        ci_atomic_add_u64(&histo->other, 1);
+    else
+        ci_atomic_add_u64(&histo->bins[value], 1);
+}
+
+double ci_stat_histo_get_bin_value_enum(ci_stat_histogram_t *histo, unsigned pos)
+{
+    if (pos >= (double)(histo->header.max))
+        return (double) -1;
+    return (double)pos;
+}
+
+char *ci_stat_histo_get_bin_label_enum(ci_stat_histogram_t *histo, unsigned pos, char *buf, size_t buf_size, double *bin)
+{
+    if (pos < (double)(histo->header.max)) {
+        const char *label = histo->header.labels[pos];
+        if (label) {
+            *bin = pos;
+            snprintf(buf, buf_size, "%s", label);
+            return buf;
+        }
+    }
+    *bin = -1;
+    snprintf(buf, buf_size, "Other");
+    return buf;
+}
+
+/*Custom bins histograms*/
+int ci_stat_histo_create_custom_bins(const char *label, const char *data_descr, const uint64_t *bins_array, int bins_number)
+{
+    const uint64_t min = bins_array[0]; /*Should be configured?*/
+    const uint64_t max = bins_array[bins_number -1];
+    int i;
+    /* Check array order */
+    for (i = 1; i < bins_number; ++i)
+        _CI_ASSERT((bins_array[i] > bins_array[i -1]) && "custom array bins is not ordered");
+
+    int id = ci_stat_histo_register(label, data_descr, bins_number, CI_HISTO_CUSTOM_BINS, min, max);
+    if (id < 0)
+        return id;
+    ci_stat_histo_spec_t *histo = (ci_stat_histo_spec_t *)ci_dyn_array_search(Histos, label);
+    histo->custom_bins = bins_array;
+    return id;
+}
+
+static void ci_stat_histo_update_custom_bins(ci_stat_histogram_t *histo, uint64_t value)
+{
+    if (value >= histo->header.max)
+        ci_atomic_add_u64(&histo->other, 1);
+    else{
+        int i;
+        for(i = 0; i < histo->header.items; ++i) {
+            if (histo->header.custom_bins[i] >= value)
+                break;
+        }
+        /* _CI_ASSERT(i <=  histo->header.items); */
+        ci_atomic_add_u64(&histo->bins[i], 1);
+    }
+}
+
+double ci_stat_histo_get_bin_value_custom_bins(ci_stat_histogram_t *histo, unsigned pos)
+{
+    if (pos >= (double)(histo->header.max))
+        return (double) -1;
+    return (double)histo->header.custom_bins[pos];
+}
+
+char *ci_stat_histo_get_bin_label_custom_bins(ci_stat_histogram_t *histo, unsigned pos, char *buf, size_t buf_size, double *bin)
+{
+    *bin = ci_stat_histo_get_bin_value_custom_bins(histo, pos);
+    if (*bin >= 0) {
+        snprintf(buf, buf_size, "%.0f", *bin);
+    } else
+        snprintf(buf, buf_size, "Infinity");
+    return buf;
+}
+
+struct _histo_operator {
+    ci_histo_type_t type;
+    void (*update)(ci_stat_histogram_t *histo, uint64_t value);
+    double (*get_bin_value)(ci_stat_histogram_t *histo, unsigned pos);
+    char *(*get_bin_label)(ci_stat_histogram_t *histo, unsigned pos, char *buf, size_t buf_size, double *bin);
+} ci_histo_operators[] = {
+    {CI_HISTO_LINEAR, ci_stat_histo_update_linear, ci_stat_histo_get_bin_value_linear, ci_stat_histo_get_bin_label_linear},
+    {CI_HISTO_LOG, ci_stat_histo_update_log, ci_stat_histo_get_bin_value_log, ci_stat_histo_get_bin_label_log},
+    {CI_HISTO_ENUM, ci_stat_histo_update_enum, ci_stat_histo_get_bin_value_enum, ci_stat_histo_get_bin_label_enum},
+    {CI_HISTO_CUSTOM_BINS,ci_stat_histo_update_custom_bins, ci_stat_histo_get_bin_value_custom_bins, ci_stat_histo_get_bin_label_custom_bins}
+};
+
+void ci_stat_histo_update(int id, uint64_t value)
+{
+    ci_stat_histogram_t *histo = ci_stat_histo_get_histo(id);
+    if (histo) {
+        _CI_ASSERT(histo->header.histo_type >= CI_HISTO_DEFAULT && histo->header.histo_type < CI_HISTO_END);
+        ci_histo_operators[histo->header.histo_type].update(histo, value);
+    }
+}
+
+void ci_stat_histo_iterate(void *data, int (*fn)(void *data, const char *name, int id))
+{
+    int i;
+    if (!Histos)
+        return;
+    for (i = 0; i < ci_dyn_array_size(Histos); i++) {
+        const ci_array_item_t *ai = ci_dyn_array_get_item(Histos, i);
+        const char *name = ai->name;
+        const ci_stat_histo_spec_t *spec = ai->value;
+        if (fn(data, name, spec->id))
+            return; /*abort*/
+    }
+}
+
+void ci_stat_histo_raw_bins_iterate(int id, void *data, void (*fn)(void *data, double bin_raw, uint64_t count))
+{
+    int i;
+    double lastbin = -1;
+    ci_stat_histogram_t *histo = ci_stat_histo_get_histo(id);
+    if (!histo)
+        return;
+    for(i = 0; i < histo->header.items; i++) {
+        double bin = ci_histo_operators[histo->header.histo_type].get_bin_value(histo, i);
+        uint64_t count = histo->bins[i];
+        if (i > 0 && lastbin == bin) {
+            _CI_ASSERT(count == 0); /*Else we have to merge with the lastbin*/
+            continue;
+        }
+        if (histo->header.histo_type == CI_HISTO_ENUM && histo->header.flags & CI_HISTO_IGNORE_COUNT_ZERO && count == 0)
+            continue;
+        fn(data, bin, count);
+        lastbin = bin;
+    }
+    fn(data, (double)-1, histo->other);
+}
+
+
+void ci_stat_histo_bins_iterate(int id, void *data, void (*fn)(void *data, const char *bin_label, uint64_t count))
+{
+    char buf[128];
+    int i;
+    double lastbin = -1, raw_bin = -1;
+    ci_stat_histogram_t *histo = ci_stat_histo_get_histo(id);
+    if (!histo)
+        return;
+    for(i = 0; i < histo->header.items; i++) {
+        const char *bin = ci_histo_operators[histo->header.histo_type].get_bin_label(histo, i, buf, sizeof(buf), &raw_bin);
+        uint64_t count = histo->bins[i];
+        if (i > 0 && raw_bin == lastbin) {
+            _CI_ASSERT(count == 0); /*Else we have to merge with the lastbin*/
+            continue;
+        }
+        if (histo->header.histo_type == CI_HISTO_ENUM && histo->header.flags & CI_HISTO_IGNORE_COUNT_ZERO && count == 0)
+            continue;
+        fn(data, bin, count);
+        lastbin = raw_bin;
+    }
+    const char *other_bin = ci_histo_operators[histo->header.histo_type].get_bin_label(histo, (histo->header.max + 1), buf, sizeof(buf), &raw_bin);
+    fn(data, other_bin, histo->other);
+}
+
+int ci_stat_histo_get_id(const char *name)
+{
+    if (!Histos)
+        return -1;
+    const ci_stat_histo_spec_t *spec = ci_dyn_array_search(Histos, name);
+    if (spec)
+        return spec->id;
+    return -1;
+}
+
+CI_DECLARE_FUNC(int) ci_stat_histo_bins_number(int id)
+{
+    ci_stat_histogram_t *histo = ci_stat_histo_get_histo(id);
+    if (!histo)
+        return 0;
+    return histo->header.items;
+}
