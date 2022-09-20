@@ -515,6 +515,7 @@ int release_services()
                 ci_list_destroy(service_extra_data_list[i].option_handlers);
                 service_extra_data_list[i].option_handlers = NULL;
             }
+            free(service_data(service_list[i]));
         }
     }
 
