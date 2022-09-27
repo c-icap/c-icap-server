@@ -144,7 +144,7 @@ ci_stat_memblock_t *ci_server_stat_get_all_stats(uint32_t flags)
         return (*fn)(flags);
 
     fprintf(stderr, "Can not execute ci_server_stat_get_all_stats\n");
-    return -1;
+    return NULL;
 }
 
 void ci_server_stat_free_all_stats(ci_stat_memblock_t *blk)
@@ -153,14 +153,14 @@ void ci_server_stat_free_all_stats(ci_stat_memblock_t *blk)
     CS fn;
     fn = (CS)GetProcAddress(GetModuleHandle(NULL), "ci_server_stat_free_all_stats");
     if (fn)
-        return (*fn)(blk);
+        (*fn)(blk);
 
     fprintf(stderr, "Can not execute ci_server_stat_free_all_stats\n");
 }
 
 const ci_stat_memblock_t *ci_server_stat_get_child_stats(process_pid_t pid, uint32_t flags)
 {
-    typedef void (*CS)(process_pid_t, uint32_t);
+    typedef const ci_stat_memblock_t *(*CS)(process_pid_t, uint32_t);
     CS fn;
     fn = (CS)GetProcAddress(GetModuleHandle(NULL), "ci_server_stat_get_child_stats");
     if (fn)
@@ -172,7 +172,7 @@ const ci_stat_memblock_t *ci_server_stat_get_child_stats(process_pid_t pid, uint
 
 const ci_stat_memblock_t *ci_server_stat_get_history_stats(uint32_t flags)
 {
-    typedef void (*CS)(uint32_t);
+    typedef const ci_stat_memblock_t *(*CS)(uint32_t);
     CS fn;
     fn = (CS)GetProcAddress(GetModuleHandle(NULL), "ci_server_stat_get_history_stats");
     if (fn)
