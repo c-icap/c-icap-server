@@ -22,16 +22,6 @@
 #define __C_ICAP_PROC_MUTEX_H
 
 #include "c-icap.h"
-#if defined (USE_SYSV_IPC_MUTEX)
-#include <sys/ipc.h>
-#include <sys/sem.h>
-#endif
-#if defined (USE_POSIX_SEMAPHORES)
-#include <semaphore.h>
-#endif
-#if defined (USE_POSIX_FILE_LOCK)
-#include <fcntl.h>
-#endif
 #if defined (_WIN32)
 #include <windows.h>
 #endif

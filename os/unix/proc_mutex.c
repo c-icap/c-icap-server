@@ -27,6 +27,17 @@
 #include <sys/stat.h>
 #include <pthread.h>
 
+#if defined (USE_SYSV_IPC_MUTEX)
+#include <sys/ipc.h>
+#include <sys/sem.h>
+#endif
+#if defined (USE_POSIX_SEMAPHORES)
+#include <semaphore.h>
+#endif
+#if defined (USE_POSIX_FILE_LOCK)
+#include <fcntl.h>
+#endif
+
 #if defined(USE_SYSV_IPC_MUTEX)
 
 struct sysv_data{
