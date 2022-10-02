@@ -32,6 +32,14 @@
 #define __CI_COMPAT
 #endif
 
+#if 1
+#define __SYS_TYPES_H_EXISTS
+#endif
+
+#if 1
+#define __INTTYPES_H_EXISTS
+#endif
+
 #define CI_SIZEOF_OFF_T 8
 
 /* Define to `long int' if <sys/types.h> does not define. */
