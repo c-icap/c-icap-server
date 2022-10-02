@@ -735,7 +735,13 @@ int cfg_include_config_file(const char *directive, const char **argv, void *setd
         return 0;
     }
     cfg_file = argv[0];
-    if (cfg_file[0] != '/') {  /*Win32 code? */
+#ifdef _WIN32
+     if (cfg_file[0] != '\\' && cfg_file[1] != ':') {
+#elif defined __CYGWIN__
+     if (cfg_file[0] != '/' && cfg_file[0] != '\\' && cfg_file[1] != ':') {
+#else
+    if (cfg_file[0] != '/') {
+#endif
         snprintf(path, CI_MAX_PATH, CI_CONFDIR "/%s", cfg_file);
         cfg_file = path;
     }

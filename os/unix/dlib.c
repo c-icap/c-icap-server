@@ -29,7 +29,11 @@ void *ci_module_load(const char *module_file, const char *default_path)
     char path[CI_MAX_PATH];
     void *handle;
     int requiredLen;
-    if (module_file[0] != '/' && default_path)
+#if defined __CYGWIN__
+     if (default_path && module_file[0] != '/' && module_file[0] != '\\' && module_file[1] != ':')
+#else
+    if (default_path && module_file[0] != '/')
+#endif
         requiredLen = snprintf(path, CI_MAX_PATH, "%s/%s", default_path, module_file);
     else
         requiredLen = snprintf(path, sizeof(path), "%s", module_file);
