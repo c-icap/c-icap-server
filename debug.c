@@ -26,11 +26,7 @@
 int CI_DEBUG_LEVEL = 1;
 int CI_DEBUG_STDOUT = 0;
 
-
-#ifndef _WIN32
 void (*__log_error) (void *req, const char *format, ...) = NULL;
-
-#else
 void (*__vlog_error) (void *req, const char *format, va_list ap) = NULL;
 void __ldebug_printf(int i, const char *format, ...)
 {
@@ -45,7 +41,6 @@ void __ldebug_printf(int i, const char *format, ...)
         va_end(ap);
     }
 }
-#endif
 
 void ci_debug_abort(const char *file, int line, const char *function, const char *mesg)
 {
