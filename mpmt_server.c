@@ -1253,8 +1253,8 @@ int start_server()
     child_data->stats_size = ci_stat_memblock_size();
     child_data->stats = malloc(child_data->stats_size);
     assert(child_data->stats != NULL);
-    child_data->histo_size = ci_stat_histo_mem_size();
-    child_data->histo_area = histo_size > 0 ? malloc(child_data->histo_size) : NULL
+    childs_queue->histo_size = ci_stat_histo_mem_size();
+    childs_queue->histo_area = childs_queue->histo_size > 0 ? malloc(childs_queue->histo_size) : NULL;
     child_main(0);
     ci_proc_mutex_destroy(&accept_mutex);
     destroy_childs_queue(childs_queue);
