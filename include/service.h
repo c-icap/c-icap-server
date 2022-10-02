@@ -67,7 +67,7 @@ struct ci_list;
 
 typedef struct  ci_service_module ci_service_module_t;
 
-enum SERVICE_STATUS {CI_SERVICE_NOT_INITIALIZED = -1,
+enum CI_SERVICE_STATUS {CI_SERVICE_NOT_INITIALIZED = -1,
                      CI_SERVICE_OK = 0,
                      CI_SERVICE_ERROR = 1
                     };
