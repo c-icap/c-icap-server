@@ -1028,6 +1028,63 @@ ci_membuf_t *ci_simple_file_to_membuf(ci_simple_file_t *body, unsigned int flags
     return ci_membuf_from_content(body->mmap_addr, body->mmap_size, body->endpos, memflags);
 }
 
+/*Utility functions*/
+static int do_open_existing(const char *pathname, int flags)
+{
+    int fd;
+    errno = 0;
+    do {
+#if defined (_MSC_VER)
+        fd = _open(pathname, flags, S_IREAD|S_IWRITE);
+#else
+        fd = open(pathname, flags, S_IREAD|S_IWRITE|S_IRGRP|S_IROTH);
+#endif
+    } while (fd < 0 && errno == EINTR);
+
+    return fd;
+}
+
+// This is will not work
+ci_simple_file_t *ci_simple_file_existing_new(const char *filename)
+{
+    if (!filename)
+        return NULL;
+
+    ci_simple_file_t *body = NULL;
+
+    if (!(body = (ci_simple_file_t *)ci_object_pool_alloc(SIMPLE_FILE_POOL)))
+        return NULL;
+    memset(body, 0, sizeof(ci_simple_file_t));
+    body->fd = -1;
+
+    int fd = do_open_existing(filename, O_RDWR);
+    if (fd < 0) {
+        ci_debug_printf(2, "Open failed for file %s!\n", filename);
+        ci_simple_file_destroy(body);
+        return NULL;
+    }
+
+    struct stat statBuf;
+    if (fstat(fd, &statBuf) < 0) {
+        char buf[512];
+#if defined (_MSC_VER)
+        snprintf(buf, sizeof(buf), "%s", strerror(errno));
+#else
+        if (strerror_r(errno, buf, sizeof(buf)) != 0)
+            snprintf(buf, sizeof(buf), "unknown error");
+#endif
+        ci_debug_printf(2, "fstat failed for fd %d file %s: %s\n", fd, filename, buf);
+        ci_simple_file_destroy(body);
+        return NULL;
+    }
+    body->fd = fd;
+    snprintf(body->filename, CI_FILENAME_LEN, "%s", filename);
+    body->endpos = statBuf.st_size;
+    body->flags |= CI_FILE_HAS_EOF;
+    ci_debug_printf(5, "simple_file_existing_new: Use file %s\n", body->filename);
+    return body;
+}
+
 /*******************************************************************/
 /*ring memory buffer implementation                                */
 

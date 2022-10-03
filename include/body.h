@@ -147,6 +147,7 @@ CI_DECLARE_FUNC(int) ci_simple_file_truncate(ci_simple_file_t *body, ci_off_t ne
 CI_DECLARE_FUNC(ci_membuf_t *) ci_simple_file_to_membuf(ci_simple_file_t *body, unsigned int flags);
 CI_DECLARE_FUNC(const char *) ci_simple_file_to_const_string(ci_simple_file_t *body);
 CI_DECLARE_FUNC(const char *) ci_simple_file_to_const_raw_data(ci_simple_file_t *body, size_t *data_size);
+CI_DECLARE_FUNC(ci_simple_file_t *)ci_simple_file_existing_new(const char *filename);
 
 CI_DECLARE_FUNC(void) ci_simple_file_lock_all(ci_simple_file_t *body);
 CI_DECLARE_FUNC(void) ci_simple_file_unlock(ci_simple_file_t *body, ci_off_t len);
