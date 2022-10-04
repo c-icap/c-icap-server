@@ -20,6 +20,11 @@
 
 #include "c-icap.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 /**
  * Decodes a base64 encoded string.
  \ingroup UTILITY
@@ -351,5 +356,9 @@ CI_DECLARE_FUNC(int) ci_brdeflate_to_simple_file(const char *inbuf, size_t inlen
  *       allocated memory.
  */
 CI_DECLARE_FUNC(char *) ci_base64_decode_dup(const char *str);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // __C_ICAP_ENCODING_H
