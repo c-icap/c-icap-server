@@ -645,7 +645,11 @@ void release_c_handler();
 
 service_handler_module_t c_service_handler = {
     "C_handler",
+#if defined(_WIN32)|| defined(__CYGWIN__)
+    ".dll,.Dll,.DLL",
+#else
     ".so,.sa,.a",
+#endif
     NULL,                      /*init */
     NULL,                      /*post_init */
     release_c_handler,
