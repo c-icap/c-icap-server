@@ -3,7 +3,7 @@
 #ifndef __C_ICAP_CONF_H
 #define __C_ICAP_CONF_H
 
-#define C_ICAP_HEX_VERSION 0xF000000590AB
+#define C_ICAP_HEX_VERSION @C_ICAP_HEX_VERSION@
 
 /* Define USE_IPV6 if we are supporting ipv6 */
 #if 0
