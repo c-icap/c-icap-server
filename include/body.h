@@ -154,7 +154,11 @@ CI_DECLARE_FUNC(void) ci_simple_file_unlock(ci_simple_file_t *body, ci_off_t len
 CI_DECLARE_FUNC(void) ci_simple_file_unlock_all(ci_simple_file_t *body);
 CI_DECLARE_FUNC(ci_off_t) ci_simple_file_size(ci_simple_file_t *body);
 CI_DECLARE_FUNC(int) ci_simple_file_haseof(ci_simple_file_t *body);
-
+CI_DECLARE_FUNC(const char *)ci_simple_file_filename(ci_simple_file_t *body);
+CI_DECLARE_FUNC(int) ci_simple_file_fd(ci_simple_file_t *body);
+CI_DECLARE_FUNC(int) ci_simple_file_max_size(ci_simple_file_t *body);
+CI_DECLARE_FUNC(int) ci_simple_file_attr_add(ci_simple_file_t *body, const char *attr, const void *val, size_t val_size);
+CI_DECLARE_FUNC(const void *) ci_simple_file_attr_get(ci_simple_file_t *body, const char *attr);
 /*******************************************************************/
 /*ring memory buffer functions and structures                      */
 

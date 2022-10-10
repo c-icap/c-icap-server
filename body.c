@@ -783,10 +783,48 @@ ci_off_t ci_simple_file_size(ci_simple_file_t *body)
     return body->endpos;
 }
 
+const char *ci_simple_file_filename(ci_simple_file_t *body)
+{
+    _CI_ASSERT(body);
+    return body->filename;
+}
+
+int ci_simple_file_fd(ci_simple_file_t *body)
+{
+    _CI_ASSERT(body);
+    return body->fd;
+}
+
+int ci_simple_file_max_size(ci_simple_file_t *body)
+{
+    _CI_ASSERT(body);
+    return body->max_store_size;
+}
+
 int ci_simple_file_haseof(ci_simple_file_t *body)
 {
     _CI_ASSERT(body);
     return (body->flags & CI_FILE_HAS_EOF);
+}
+
+int ci_simple_file_attr_add(ci_simple_file_t *body,const char *attr, const void *val, size_t val_size)
+{
+    assert(body);
+    if (!body->attributes)
+        body->attributes = ci_array_new(BODY_ATTRS_SIZE);
+
+    if (body->attributes)
+        return (ci_array_add(body->attributes, attr, val, val_size) != NULL);
+
+    return 0;
+}
+
+const void * ci_simple_file_attr_get(ci_simple_file_t *body,const char *attr)
+{
+    assert(body);
+    if (body->attributes)
+        return ci_array_search(body->attributes, attr);
+    return NULL;
 }
 
 int ci_simple_file_write(ci_simple_file_t * body, const char *buf, size_t len, int iseof)
