@@ -500,6 +500,11 @@ CI_DECLARE_FUNC(void) ci_stat_groups_iterate(void *data, int (*group_call)(void 
 CI_DECLARE_FUNC(void) ci_stat_statistics_iterate(void *data, int groupID, int (*stat_call)(void *data, const char *label, int ID, int gId, const ci_stat_t *stat));
 
 /*Stats memblocks low level functions*/
+/* 
+   TODO: provide both inlined and non-inlined versions of the following
+         of the inlined functions. This is REQUIRED if the following
+         functions considered as part of c-icap library API functions.
+*/
 CI_DECLARE_FUNC(void) ci_stat_memblock_merge(ci_stat_memblock_t *to_block, const ci_stat_memblock_t *from_block, int history, int existing_instances);
 CI_DECLARE_FUNC(void) ci_stat_memblock_reset(ci_stat_memblock_t *block);
 

@@ -285,6 +285,44 @@ int ci_membuf_truncate(struct ci_membuf *body, size_t new_size)
     return 1;
 }
 
+void ci_membuf_lock_all(ci_membuf_t *body)
+{
+    _CI_ASSERT(body);
+    body->flags |= CI_MEMBUF_LOCKED;
+    body->unlocked = 0;
+}
+
+void  ci_membuf_unlock(ci_membuf_t *body, size_t len)
+{
+    _CI_ASSERT(body);
+    body->unlocked = ((body->readpos) > len ? (body->readpos) : len);
+}
+
+void ci_membuf_unlock_all(ci_membuf_t *body)
+{
+    _CI_ASSERT(body);
+    body->flags &= ~CI_MEMBUF_LOCKED;
+    body->unlocked = 0;
+}
+
+const char *ci_membuf_raw(ci_membuf_t *body)
+{
+    _CI_ASSERT(body);
+    return body->buf;
+}
+
+int ci_membuf_size(ci_membuf_t *body)
+{
+    _CI_ASSERT(body);
+    return body->endpos;
+}
+
+int ci_membuf_flag(ci_membuf_t *body, unsigned int flag)
+{
+    _CI_ASSERT(body);
+    return body->flags & flag;
+}
+
 /****/
 /*To be removed after ci_cached_file removed*/
 static int do_write_old(int fd, const void *buf, size_t count)
@@ -719,6 +757,37 @@ void ci_simple_file_release(ci_simple_file_t * body)
     ci_object_pool_free(body);
 }
 
+void ci_simple_file_lock_all(ci_simple_file_t *body)
+{
+    _CI_ASSERT(body);
+    body->flags |= CI_FILE_USELOCK;
+    body->unlocked = 0;
+}
+
+void ci_simple_file_unlock(ci_simple_file_t *body, ci_off_t len)
+{
+    _CI_ASSERT(body);
+    body->unlocked = ((body->readpos) > len ? (body->readpos) : len);
+}
+
+void ci_simple_file_unlock_all(ci_simple_file_t *body)
+{
+    _CI_ASSERT(body);
+    body->flags &= ~CI_FILE_USELOCK;
+    body->unlocked = 0;
+}
+
+ci_off_t ci_simple_file_size(ci_simple_file_t *body)
+{
+    _CI_ASSERT(body);
+    return body->endpos;
+}
+
+int ci_simple_file_haseof(ci_simple_file_t *body)
+{
+    _CI_ASSERT(body);
+    return (body->flags & CI_FILE_HAS_EOF);
+}
 
 int ci_simple_file_write(ci_simple_file_t * body, const char *buf, size_t len, int iseof)
 {

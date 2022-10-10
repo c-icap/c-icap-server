@@ -126,7 +126,7 @@ static int client_create_request(ci_request_t * req, char *servername, char *ser
 
     req->type = reqtype;
     snprintf(buf, sizeof(buf), "%s icap://%s/%s ICAP/1.0",
-             ci_method_string(reqtype), servername, service);
+             ci_method_string_inline(reqtype), servername, service);
     ci_headers_add(req->request_header, buf);
     snprintf(buf, sizeof(buf), "Host: %s", servername);
     ci_headers_add(req->request_header, buf);

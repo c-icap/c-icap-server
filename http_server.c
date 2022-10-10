@@ -93,6 +93,12 @@ void ci_http_server_register_service(const char *path, const char *descr, int (*
     ci_array_add(ServiceHandlers, path, &service_handler, sizeof(struct http_service_handler));
 }
 
+void ci_http_server_response_set_status(ci_request_t *req, int status)
+{
+    _CI_ASSERT(req);
+    req->return_code = status;
+}
+
 static int http_server_response_send(ci_request_t *req)
 {
     char buf[256];
@@ -102,7 +108,7 @@ static int http_server_response_send(ci_request_t *req)
     ci_headers_reset(req->response_header);
     /*ICAP status codes matches HTTP codes:*/
     snprintf(buf, sizeof(buf), "HTTP/1.1 %d %s",
-             ci_error_code(req->return_code), ci_error_code_string(req->return_code));
+             ci_status_code(req->return_code), ci_status_code_string(req->return_code));
     ci_headers_add(req->response_header, buf);
     ci_headers_add(req->response_header, "Server: C-ICAP/" VERSION);
 

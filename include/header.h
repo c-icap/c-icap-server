@@ -39,10 +39,6 @@ extern "C"
 #define ICAP_RESPMOD   0x04
 #define CI_METHOD_ALL (ICAP_OPTIONS | ICAP_REQMOD | ICAP_RESPMOD)
 
-CI_DECLARE_DATA extern const char *ci_methods[];
-static inline const char *ci_method_string(int method) {
-    return (method > 0 && method <= ICAP_RESPMOD ? ci_methods[method]: "UNKNOWN");
-}
 
 enum ci_error_codes { EC_100, EC_200, EC_204, EC_206,
                       EC_400, EC_401, EC_403, EC_404, EC_405, EC_407, EC_408,
@@ -50,31 +46,10 @@ enum ci_error_codes { EC_100, EC_200, EC_204, EC_206,
                       EC_MAX
                     };
 
-typedef struct ci_error_code {
-    int code;
-    char *str;
-} ci_error_code_t;
-
-CI_DECLARE_DATA extern const struct ci_error_code ci_error_codes[];
-
-static inline int ci_error_code(int ec) {
-    return ((ec >= EC_100 && ec < EC_MAX ) ? ci_error_codes[ec].code : 1000);
-}
-
-static inline const char *ci_error_code_string(int ec) {
-    return ((ec >= EC_100 && ec<EC_MAX) ? ci_error_codes[ec].str : "UNKNOWN ERROR CODE");
-}
-
-
 enum ci_encapsulated_entities {ICAP_REQ_HDR, ICAP_RES_HDR,
                                ICAP_REQ_BODY, ICAP_RES_BODY,
                                ICAP_NULL_BODY,ICAP_OPT_BODY
                               };
-CI_DECLARE_DATA extern const char *ci_encaps_entities[];
-
-static inline const char *ci_encaps_entity_string(int e) {
-    return (e <= ICAP_OPT_BODY && e >= ICAP_REQ_HDR ? ci_encaps_entities[e] : "UNKNOWN");
-}
 
 /**
  \typedef ci_headers_list_t
@@ -106,8 +81,27 @@ typedef struct ci_encaps_entity {
 #define HEADSBUFSIZE     BUFSIZE
 #define MAX_HEADER_SIZE  1023
 
-static inline int ci_headers_not_empty(const ci_headers_list_t *h) { return h && h->used; }
-static inline int ci_headers_is_empty(const ci_headers_list_t *h) { return !h || h->used == 0; }
+static inline int ci_headers_empty_inline(const ci_headers_list_t *h) {
+    return !h || h->used == 0;
+}
+
+CI_DECLARE_FUNC(int) ci_headers_empty_non_inline(const ci_headers_list_t *h);
+
+static inline int ci_headers_empty(const ci_headers_list_t *h) {
+#if defined CI_USE_INLINE_OBJECT_METHODS
+    return ci_headers_empty_inline(h);
+#else
+    return ci_headers_empty_non_inline(h);
+#endif
+}
+
+static inline int ci_headers_is_empty(const ci_headers_list_t *h) {
+    return ci_headers_empty(h);
+}
+
+static inline int ci_headers_not_empty(const ci_headers_list_t *h) {
+    return !(ci_headers_empty(h));
+}
 
 /**
  * Allocate memory for a ci_headers_list_t object and initialize it.
@@ -304,7 +298,9 @@ CI_DECLARE_FUNC(ci_headers_list_t *) ci_headers_clone(const ci_headers_list_t *h
 /*compatibility macro*/
 #define ci_headers_copy_header_bytes ci_headers_pack_to_buffer
 
+
 /*The following headers are only used internally */
+
 CI_DECLARE_FUNC(void) ci_headers_pack(ci_headers_list_t *heads);
 CI_DECLARE_FUNC(int)  ci_headers_unpack(ci_headers_list_t *heads);
 CI_DECLARE_FUNC(int)  sizeofheader(const ci_headers_list_t *heads);
@@ -313,6 +309,77 @@ CI_DECLARE_FUNC(ci_encaps_entity_t) *mk_encaps_entity(int type,int val);
 CI_DECLARE_FUNC(void) destroy_encaps_entity(ci_encaps_entity_t *e);
 CI_DECLARE_FUNC(int) get_encaps_type(const char *buf,int *val,char **endpoint);
 CI_DECLARE_FUNC(int)  sizeofencaps(const ci_encaps_entity_t *e);
+
+CI_DECLARE_DATA extern const char *ci_methods[];
+static inline const char *ci_method_string_inline(int method) {
+    return (method > 0 && method <= ICAP_RESPMOD ? ci_methods[method]: "UNKNOWN");
+}
+
+typedef struct ci_status_code {
+    int code;
+    char *str;
+} ci_status_code_t;
+
+// TODO: rename to ci_status_codes
+CI_DECLARE_DATA extern const struct ci_status_code ci_error_codes[];
+
+static inline int ci_status_code_inline(int ec) {
+    return ((ec >= EC_100 && ec < EC_MAX ) ? ci_error_codes[ec].code : 1000);
+}
+
+static inline const char *ci_status_code_string_inline(int ec) {
+    return ((ec >= EC_100 && ec<EC_MAX) ? ci_error_codes[ec].str : "UNKNOWN ERROR CODE");
+}
+
+CI_DECLARE_DATA extern const char *ci_encaps_entities[];
+static inline const char *ci_encaps_entity_string_inline(int e) {
+    return (e <= ICAP_OPT_BODY && e >= ICAP_REQ_HDR ? ci_encaps_entities[e] : "UNKNOWN");
+}
+
+CI_DECLARE_FUNC(const char *)ci_method_string_non_inline(int method);
+CI_DECLARE_FUNC(int) ci_status_code_non_inline(int ec);
+CI_DECLARE_FUNC(const char *) ci_status_code_string_non_inline(int ec);
+CI_DECLARE_FUNC(const char *) ci_encaps_entity_string_non_inline(int e);
+
+static inline const char *ci_method_string(int method) {
+#if defined CI_USE_INLINE_OBJECT_METHODS
+    return ci_method_string_inline(method);
+#else
+    return ci_method_string_non_inline(method);
+#endif
+}
+
+static inline int ci_status_code(int ec) {
+#if defined CI_USE_INLINE_OBJECT_METHODS
+    return ci_status_code_inline(ec);
+#else
+    return ci_status_code_non_inline(ec);
+#endif
+}
+/*backward compatibility, should deprecated*/
+static inline int ci_error_code(int ec) {
+    return ci_status_code(ec);
+}
+
+static inline const char *ci_status_code_string(int ec) {
+#if defined CI_USE_INLINE_OBJECT_METHODS
+    return ci_status_code_string_inline(ec);
+#else
+    return ci_status_code_string_non_inline(ec);
+#endif
+}
+
+static inline const char *ci_error_code_string(int ec) {
+    return ci_status_code_string(ec);
+}
+
+static inline const char *ci_encaps_entity_string(int e) {
+#if defined CI_USE_INLINE_OBJECT_METHODS
+    return ci_encaps_entity_string_inline(e);
+#else
+    return ci_encaps_entity_string_non_inline(e);
+#endif
+}
 
 #ifdef __CI_COMPAT
 #define ci_headers_make ci_header_create

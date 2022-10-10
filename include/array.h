@@ -65,30 +65,21 @@ typedef struct ci_array {
  \ingroup SIMPLE_ARRAYS
  \return the value of item on position 'pos'
  */
-static inline void *ci_array_value(const ci_array_t *array, unsigned int pos)  {
-    _CI_ASSERT(array);
-    return (pos < array->count ?  array->items[pos].value : NULL);
-}
+CI_DECLARE_FUNC(void *) ci_array_value(const ci_array_t *array, unsigned int pos);
 
 /**
  *
  \ingroup SIMPLE_ARRAYS
  \return the name of item on position 'pos'
  */
-static inline const char *ci_array_name(const ci_array_t *array, unsigned int pos) {
-    _CI_ASSERT(array);
-    return (pos < array->count ?  array->items[pos].name : NULL);
-}
+CI_DECLARE_FUNC(const char *) ci_array_name(const ci_array_t *array, unsigned int pos);
 
 /**
  *
  \ingroup SIMPLE_ARRAYS
  \return the size of array 'array'
  */
-static inline unsigned int ci_array_size(const ci_array_t *array) {
-    _CI_ASSERT(array);
-    return array->count;
-}
+CI_DECLARE_FUNC(unsigned int) ci_array_size(const ci_array_t *array);
 
 /**
  * Allocate the required memory and initialize an ci_array_t object
@@ -171,10 +162,7 @@ CI_DECLARE_FUNC(void) ci_array_iterate(const ci_array_t *array, void *data, int 
  \param pos The position of the item in array
  \return a pointer to the array item on success, NULL otherwise
  */
-static inline const ci_array_item_t *ci_array_get_item(const ci_array_t *array, unsigned int pos) {
-    _CI_ASSERT(array);
-    return (pos >= array->count) ? NULL : &(array->items[pos]);
-}
+CI_DECLARE_FUNC(const ci_array_item_t *) ci_array_get_item(const ci_array_t *array, unsigned int pos);
 
 /**
  \defgroup STR_ARRAYS   Arrays of strings related API
@@ -382,37 +370,25 @@ typedef struct ci_dyn_array {
  \ingroup DYNAMIC_ARRAYS
  * Return the ci_array_item_t item on position 'pos'
  */
-static inline const ci_array_item_t *ci_dyn_array_get_item(const ci_dyn_array_t *array, unsigned int pos) {
-    _CI_ASSERT(array);
-    return (pos < array->count ? array->items[pos] : NULL);
-}
+CI_DECLARE_FUNC(const ci_array_item_t *)ci_dyn_array_get_item(const ci_dyn_array_t *array, unsigned int pos);
 
 /**
  \ingroup DYNAMIC_ARRAYS
  * Return the value of item on position 'pos'
  */
-static inline void *ci_dyn_array_value(const ci_dyn_array_t *array, unsigned int pos) {
-    _CI_ASSERT(array);
-    return ((pos < array->count && array->items[pos] != NULL) ?  array->items[pos]->value : NULL);
-}
+CI_DECLARE_FUNC(void *) ci_dyn_array_value(const ci_dyn_array_t *array, unsigned int pos);
 
 /**
  \ingroup DYNAMIC_ARRAYS
  * Return the name of item on position 'pos'
  */
-static inline const char *ci_dyn_array_name(const ci_dyn_array_t *array, unsigned int pos) {
-    _CI_ASSERT(array);
-    return ((pos < array->count && array->items[pos] != NULL) ?  array->items[pos]->name : NULL);
-}
+CI_DECLARE_FUNC(const char *) ci_dyn_array_name(const ci_dyn_array_t *array, unsigned int pos);
 
 /**
  \ingroup DYNAMIC_ARRAYS
  * Return the size of array 'array'
  */
-static inline unsigned int ci_dyn_array_size(const ci_dyn_array_t *array) {
-    _CI_ASSERT(array);
-    return array->count;
-}
+CI_DECLARE_FUNC(unsigned int) ci_dyn_array_size(const ci_dyn_array_t *array);
 
 /**
  * Allocate the required memory and initialize an ci_dyn_array_t object
@@ -612,19 +588,13 @@ CI_DECLARE_FUNC(void *) ci_vector_pop(ci_vector_t *vector);
  \ingroup VECTORS
  * Return a pointer to the i item of the vector
  */
-static inline const void *ci_vector_get(const ci_vector_t *vector, unsigned int i){
-    _CI_ASSERT(vector);
-    return (i < vector->count ? (const void *)vector->items[i]:  (const void *)NULL);
-}
+CI_DECLARE_FUNC(const void *) ci_vector_get(const ci_vector_t *vector, unsigned int i);
 
 /**
  \ingroup VECTORS
  * Return the number of the vector items
  */
-static inline int ci_vector_size(const ci_vector_t *vector){
-    _CI_ASSERT(vector);
-    return vector->count;
-}
+CI_DECLARE_FUNC(int) ci_vector_size(const ci_vector_t *vector);
 
 CI_DECLARE_FUNC(const void **) ci_vector_cast_to_voidvoid(ci_vector_t *vector);
 CI_DECLARE_FUNC(ci_vector_t *)ci_vector_cast_from_voidvoid(const void **p);
@@ -654,9 +624,7 @@ static inline void ci_str_vector_destroy(ci_str_vector_t *vector) {
 
 CI_DECLARE_FUNC(const char *)ci_str_vector_add(ci_str_vector_t *vect, const char *string);
 
-static inline const char *ci_str_vector_get(ci_str_vector_t *vector, unsigned int i) {
-    return (i < vector->count ? (const char *)vector->items[i]:  (const char *)NULL);
-}
+CI_DECLARE_FUNC(const char *)ci_str_vector_get(ci_str_vector_t *vector, unsigned int i);
 
 static inline const char *ci_str_vector_pop(ci_str_vector_t *vect) {
     return (const char *)ci_vector_pop((ci_vector_t *)(vect));
@@ -782,13 +750,7 @@ CI_DECLARE_FUNC(ci_list_t *) ci_list_create(size_t init_size, size_t obj_size);
  \param list  a pointer to the ci_list_t object
  \return The first item if exist, NULL otherwise
  */
-static inline void *ci_list_first(ci_list_t *list) {
-    if (list && list->items) {
-        list->cursor = list->items->next;
-        return list->items->item;
-    }
-    return NULL;
-}
+CI_DECLARE_FUNC(void *)ci_list_first(ci_list_t *list);
 
 /**
  * Return the next item of the list and updates the list cursor to the next
@@ -800,13 +762,7 @@ static inline void *ci_list_first(ci_list_t *list) {
  \param list  a pointer to the ci_list_t object
  \return The next item if exist, NULL otherwise
 */
-static inline void *ci_list_next(ci_list_t *list) {
-    if ((list->tmp = list->cursor) != NULL) {
-        list->cursor = list->cursor->next;
-        return list->tmp->item;
-    }
-    return NULL;
-}
+CI_DECLARE_FUNC(void *) ci_list_next(ci_list_t *list);
 
 /**
  \typedef ci_list_iterator_t
@@ -827,13 +783,7 @@ typedef ci_list_item_t *  ci_list_iterator_t;
  \param it an iterator object to use to iterate
  \return The first item if exist, NULL otherwise
  */
-static inline void *ci_list_iterator_first(const ci_list_t *list, ci_list_iterator_t *it) {
-    _CI_ASSERT(list);
-    _CI_ASSERT(it);
-    if ((*it = list->items))
-        return (*it)->item;
-    return NULL;
-}
+CI_DECLARE_FUNC(void *) ci_list_iterator_first(const ci_list_t *list, ci_list_iterator_t *it);
 
 /**
  * Updates the passed ci_list_iterator_t object to point to the next item.
@@ -845,38 +795,26 @@ static inline void *ci_list_iterator_first(const ci_list_t *list, ci_list_iterat
  \param it the iterator object
  \return the current item if exist, NULL otherwise
  */
-static inline void *ci_list_iterator_next(ci_list_iterator_t *it) {
-    _CI_ASSERT(it);
-    if ((*it) && (*it = ((*it)->next)))
-        return (*it)->item;
-    return NULL;
-}
+CI_DECLARE_FUNC(void *) ci_list_iterator_next(ci_list_iterator_t *it);
 
 /**
  * Retrieves the list item where the given iterator points.
  *
  \ingroup LISTS
  */
-static inline void *ci_list_iterator_value(const ci_list_iterator_t *it) {
-    _CI_ASSERT(it);
-    return (*it) ? (*it)->item : NULL;
-}
+CI_DECLARE_FUNC(void *) ci_list_iterator_value(const ci_list_iterator_t *it);
 
 /**
  \ingroup LISTS
  * Return the head of the list
  */
-static inline void *ci_list_head(const ci_list_t *list) {
-    return (list && list->items != NULL ? list->items->item : NULL);
-}
+    CI_DECLARE_FUNC(void *) ci_list_head(const ci_list_t *list);
 
 /**
  \ingroup LISTS
  * Return last item of the list.
  */
-static inline void *ci_list_tail(const ci_list_t *list) {
-    return (list && list->last != NULL ? list->last->item : NULL);
-}
+CI_DECLARE_FUNC(void *) ci_list_tail(const ci_list_t *list);
 
 /**
  * Destroy an ci_list_t object

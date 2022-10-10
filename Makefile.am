@@ -58,7 +58,7 @@ c_icap_SOURCES = aserver.c request.c cfg_param.c \
 
 
 # libicapapi ......
-libicapapi_la_CFLAGS= $(INVISIBILITY_CFLAG) -I$(srcdir)/include/ -Iinclude/ @ZLIB_ADD_FLAG@ @OPENSSL_ADD_FLAG@ @BZLIB_ADD_FLAG@ @BROTLI_ADD_FLAG@ @PCRE_ADD_FLAG@ -DCI_BUILD_LIB
+libicapapi_la_CFLAGS= $(INVISIBILITY_CFLAG) -I$(srcdir)/include/ -Iinclude/ @ZLIB_ADD_FLAG@ @OPENSSL_ADD_FLAG@ @BZLIB_ADD_FLAG@ @BROTLI_ADD_FLAG@ @PCRE_ADD_FLAG@ -DCI_BUILD_LIB -DCI_USE_INLINE_OBJECT_METHODS
 
 libicapapi_la_LIBADD = @ZLIB_ADD_LDADD@ @BZLIB_ADD_LDADD@ @BROTLI_ADD_LDADD@ @PCRE_ADD_LDADD@ @DL_ADD_FLAG@ @THREADS_LDADD@ @OPENSSL_ADD_LDADD@
 libicapapi_la_LDFLAGS= -shared -version-info @CICAPLIB_VERSION@ @LIBS_LDFLAGS@ @THREADS_LDFLAGS@
@@ -77,7 +77,7 @@ c_icap_DEPENDENCIES=libicapapi.la
 c_icap_CFLAGS= $(INVISIBILITY_CFLAG) -I$(top_srcdir)/include/ -I$(top_builddir)/include/ \
                         -DCI_CONFDIR=\"$(CONFIGDIR)\" -DCI_MODSDIR=\"$(MODULESDIR)\" \
                         -DCI_SERVDIR=\"$(SERVICESDIR)\" -DCI_LOGDIR=\"$(LOGDIR)\"  \
-                        -DCI_DATADIR=\"$(DATADIR)\" @OPENSSL_ADD_FLAG@
+                        -DCI_DATADIR=\"$(DATADIR)\" -DCI_USE_INLINE_OBJECT_METHODS @OPENSSL_ADD_FLAG@
 
 c_icap_LDADD = libicapapi.la @DL_ADD_FLAG@ @THREADS_LDADD@ $(EXT_PROGRAMS_MKLIB)
 c_icap_LDFLAGS = -rdynamic $(RPATH_FLAG) @THREADS_LDFLAGS@

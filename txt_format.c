@@ -358,7 +358,7 @@ int fmt_icapmethod(ci_request_t *req, char *buf,int len, const char *param)
         return snprintf(buf, len, "HTTP_%s", s);
     }
     int i;
-    const char *s = ci_method_string(req->type);
+    const char *s = ci_method_string_inline(req->type);
     for (i = 0; i < len && *s; i++,s++)
         buf[i] = *s;
     return i;
@@ -435,7 +435,7 @@ int fmt_gmttime(ci_request_t *req, char *buf,int len, const char *param)
 
 int fmt_icapstatus(ci_request_t *req, char *buf,int len, const char *param)
 {
-    return snprintf(buf, len, "%d", ci_error_code(req->return_code));
+    return snprintf(buf, len, "%d", ci_status_code(req->return_code));
 }
 
 int fmt_seconds(ci_request_t *req, char *buf,int len, const char *param)

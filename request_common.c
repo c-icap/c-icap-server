@@ -85,6 +85,12 @@ int ci_buf_reset_size(struct ci_buf *buf, int req_size)
     return ci_buf_reset_and_resize(buf, (size_t)req_size);
 }
 
+void *ci_service_data(const ci_request_t *req)
+{
+    _CI_ASSERT(req);
+    return req->service_data;
+}
+
 static void ci_request_t_pack(ci_request_t * req, int is_request)
 {
     ci_encaps_entity_t **elist, *e;
@@ -121,7 +127,7 @@ static void ci_request_t_pack(ci_request_t * req, int is_request)
             added += snprintf(buf + added, sizeof(buf) - added,
                               "%s%s=%d",
                               (i != 0 ? ", " : ""),
-                              ci_encaps_entity_string(elist[i]->type),
+                              ci_encaps_entity_string_inline(elist[i]->type),
                               elist[i]->start);
     }
     if (is_request)
