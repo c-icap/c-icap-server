@@ -225,6 +225,9 @@ struct file_data {
 } file_data;
 
 #define CI_MUTEX_FILE_TEMPLATE "/tmp/icap_lock"
+#if defined(__CYGWIN__)
+#define CI_MUTEX_FILE_TEMPLATE_2 "\\tmp\\icap_lock"
+#endif
 
 /*NOTE: mkstemp does not exists for some platforms */
 static int file_proc_mutex_init(ci_proc_mutex_t * mutex, const char *name)
@@ -232,6 +235,11 @@ static int file_proc_mutex_init(ci_proc_mutex_t * mutex, const char *name)
     int fd;
     snprintf(mutex->name, CI_PROC_MUTEX_NAME_SIZE, "%s_%s.XXXXXX", CI_MUTEX_FILE_TEMPLATE, name);
     if ((fd = mkstemp(mutex->name)) < 0) {
+#if defined(__CYGWIN__)
+        /*Maybe runs under cmd*/
+        snprintf(mutex->name, CI_PROC_MUTEX_NAME_SIZE, "%s_%s.XXXXXX", CI_MUTEX_FILE_TEMPLATE_2, name);
+        if ((fd = mkstemp(mutex->name)) < 0)
+#endif
         return 0;
     }
     struct file_data *file = (struct file_data *)calloc(1, sizeof(struct file_data));

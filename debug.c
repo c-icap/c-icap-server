@@ -26,11 +26,7 @@
 int CI_DEBUG_LEVEL = 1;
 int CI_DEBUG_STDOUT = 0;
 
-
-#ifndef _WIN32
 void (*__log_error) (void *req, const char *format, ...) = NULL;
-
-#else
 void (*__vlog_error) (void *req, const char *format, va_list ap) = NULL;
 void __ldebug_printf(int i, const char *format, ...)
 {
@@ -45,7 +41,6 @@ void __ldebug_printf(int i, const char *format, ...)
         va_end(ap);
     }
 }
-#endif
 
 void ci_debug_abort(const char *file, int line, const char *function, const char *mesg)
 {
@@ -86,7 +81,7 @@ void debug_print_request(ci_request_t *req){
      i = 0;
      while(req->entities[i] != NULL){
       ci_debug_printf(1,"\t %s header at %d\n",
-               ci_encaps_entity_string(req->entities[i]->type),req->entities[i]->start);
+               ci_encaps_entity_string_inline(req->entities[i]->type),req->entities[i]->start);
       if(req->entities[i]->type<ICAP_REQ_BODY){
            ci_headers_list_t *h=(ci_headeris_list_t *)req->entities[i]->entity;
            ci_debug_printf(1,"\t\t HEADERS : \n");

@@ -40,107 +40,6 @@ extern "C"
  * Utility functions
  */
 
-/*The following defines are request related and should be moved to request.h include file*/
-/**
- \ingroup REQUEST
- * Lock a ci_request_t object. After called the c-icap server stops sending
- * body data to the ICAP client.
- */
-static inline void ci_req_lock_data(ci_request_t *req) {
-    _CI_ASSERT(req);
-    req->data_locked = 1;
-}
-
-/**
- \ingroup REQUEST
- * Unlock a ci_request_t object. When called the c-icap server will start
- * sending body data to the ICAP client.
- */
-static inline void ci_req_unlock_data(ci_request_t *req) {
-    _CI_ASSERT(req);
-    req->data_locked = 0;
-}
-
-/**
- \ingroup REQUEST
- \param req pointer to the ci_request_t object
- \return true (non zero int) if the ICAP request contains body data else zero
- */
-static inline int ci_req_hasbody(const ci_request_t *req) {
-    _CI_ASSERT(req);
-    return req->hasbody;
-}
-
-/**
- \ingroup REQUEST
- \return  ICAP_OPTIONS, ICAP_REQMOD or ICAP_RESPMOD if the ICAP request is
- * options, request modification or response modification ICAP request
- */
-static inline int ci_req_type(const ci_request_t *req) {
-    _CI_ASSERT(req);
-    return req->type;
-}
-
-/**
- \ingroup REQUEST
- \param req  is pointer to an object of type ci_request_t
- \return -1 if preview is not supported else the ICAP preview size
- */
-static inline int ci_req_preview_size(const ci_request_t *req) {
-    _CI_ASSERT(req);
-    return req->preview;
-}
-
-/**
- \ingroup REQUEST
- \return True (non zero int) if the ICAP request supports "Allow 204"
- */
-static inline int ci_req_allow204(const ci_request_t *req) {
-    _CI_ASSERT(req);
-    return req->allow204;
-}
-
-/**
- \ingroup REQUEST
- \return True (non zero int) if the ICAP request supports "Allow 206"
- */
-static inline int ci_req_allow206(const ci_request_t *req) {
-    _CI_ASSERT(req);
-    return req->allow206;
-}
-
-/**
- \ingroup REQUEST
- \return True (non zero int) if the ICAP request supports "Allow 206" outside
- *       preview requests
- */
-static inline int ci_req_allow206_outside_preview(const ci_request_t *req) {
-    _CI_ASSERT(req);
-    return (req->allow206 && req->allow204);
-}
-
-
-/**
- \ingroup REQUEST
- \param req  is pointer to the ci_request_t object
- \return True (non zero int) if the c-icap server has send data to the client
- */
-static inline int ci_req_sent_data(const ci_request_t *req) {
-    _CI_ASSERT(req);
-    return req->status;
-}
-
-/**
- \ingroup REQUEST
- \param req is pointer to the ci_request_t object
- \return True (non zero int) if the ICAP client has sent all the data
- *       (headers and body data) to the ICAP server
- */
-static inline int ci_req_hasalldata(const ci_request_t *req) {
-    _CI_ASSERT(req);
-    return req->eof_received;
-}
-
 /**
  \ingroup HTTP
  The HTTP ptotocol methods
@@ -415,10 +314,7 @@ CI_DECLARE_FUNC(int) ci_icap_append_xheaders(ci_request_t *req, ci_headers_list_
  \param req is a pointer to the current ICAP request object.
  \return Pointer to the ICAP request headers.
 */
-static inline ci_headers_list_t *ci_icap_request_headers(ci_request_t *req)
-{
-    return req ? req->request_header : NULL;
-}
+CI_DECLARE_FUNC(ci_headers_list_t *)ci_icap_request_headers(ci_request_t *req);
 
 /**
  \ingroup REQUEST
@@ -426,10 +322,7 @@ static inline ci_headers_list_t *ci_icap_request_headers(ci_request_t *req)
  \param req is a pointer to the current ICAP request object.
  \return Pointer to the ICAP response headers or NULL if thy are not build yet.
 */
-static inline ci_headers_list_t *ci_icap_response_headers(ci_request_t *req)
-{
-    return req ? req->response_header : NULL;
-}
+CI_DECLARE_FUNC(ci_headers_list_t *) ci_icap_response_headers(ci_request_t *req);
 
 /**
  \ingroup REQUEST
@@ -448,6 +341,200 @@ CI_DECLARE_FUNC(const char *) ci_icap_request_get_header(ci_request_t *req, cons
  \return A string with the header value on success NULL otherwise
 */
 CI_DECLARE_FUNC(const char *) ci_icap_response_get_header(ci_request_t *req, const char *header);
+
+/*Inlined functions*/
+static inline void ci_req_lock_data_inline(ci_request_t *req) {
+    _CI_ASSERT(req);
+    req->data_locked = 1;
+}
+
+static inline void ci_req_unlock_data_inline(ci_request_t *req) {
+    _CI_ASSERT(req);
+    req->data_locked = 0;
+}
+
+static inline int ci_req_hasbody_inline(const ci_request_t *req) {
+    _CI_ASSERT(req);
+    return req->hasbody;
+}
+
+static inline int ci_req_type_inline(const ci_request_t *req) {
+    _CI_ASSERT(req);
+    return req->type;
+}
+
+static inline int ci_req_preview_size_inline(const ci_request_t *req) {
+    _CI_ASSERT(req);
+    return req->preview;
+}
+
+static inline int ci_req_allow204_inline(const ci_request_t *req) {
+    _CI_ASSERT(req);
+    return req->allow204;
+}
+
+static inline int ci_req_allow206_inline(const ci_request_t *req) {
+    _CI_ASSERT(req);
+    return req->allow206;
+}
+
+static inline int ci_req_allow206_outside_preview_inline(const ci_request_t *req) {
+    _CI_ASSERT(req);
+    return (req->allow206 && req->allow204);
+}
+
+static inline int ci_req_sent_data_inline(const ci_request_t *req) {
+    _CI_ASSERT(req);
+    return req->status;
+}
+
+static inline int ci_req_hasalldata_inline(const ci_request_t *req) {
+    _CI_ASSERT(req);
+    return req->eof_received;
+}
+
+/*non inline versions of inlined functions*/
+CI_DECLARE_FUNC(void) ci_req_lock_data_non_inline(ci_request_t *req);
+CI_DECLARE_FUNC(void) ci_req_unlock_data_non_inline(ci_request_t *req);
+CI_DECLARE_FUNC(int) ci_req_hasbody_non_inline(const ci_request_t *req);
+CI_DECLARE_FUNC(int) ci_req_type_non_inline(const ci_request_t *req);
+CI_DECLARE_FUNC(int) ci_req_preview_size_non_inline(const ci_request_t *req);
+CI_DECLARE_FUNC(int) ci_req_allow204_non_inline(const ci_request_t *req);
+CI_DECLARE_FUNC(int) ci_req_allow206_non_inline(const ci_request_t *req);
+CI_DECLARE_FUNC(int) ci_req_allow206_outside_preview_non_inline(const ci_request_t *req);
+CI_DECLARE_FUNC(int) ci_req_sent_data_non_inline(const ci_request_t *req);
+CI_DECLARE_FUNC(int) ci_req_hasalldata_non_inline(const ci_request_t *req);
+
+#define CI_IMPLEMENT_OBJECT_METHOD(ext, method, req) return method ## ext (req);
+
+/**
+ \ingroup REQUEST
+ * Lock a ci_request_t object. After called the c-icap server stops sending
+ * body data to the ICAP client.
+ */
+static inline void ci_req_lock_data(ci_request_t *req) {
+#if defined CI_USE_INLINE_OBJECT_METHODS
+    return ci_req_lock_data_inline(req);
+#else
+    return ci_req_lock_data_non_inline(req);
+#endif
+}
+
+/**
+ \ingroup REQUEST
+ * Unlock a ci_request_t object. When called the c-icap server will start
+ * sending body data to the ICAP client.
+ */
+static inline void ci_req_unlock_data(ci_request_t *req) {
+#if defined CI_USE_INLINE_OBJECT_METHODS
+    return ci_req_unlock_data_inline(req);
+#else
+    return ci_req_unlock_data_non_inline(req);
+#endif
+}
+
+/**
+ \ingroup REQUEST
+ \param req pointer to the ci_request_t object
+ \return true (non zero int) if the ICAP request contains body data else zero
+ */
+static inline int ci_req_hasbody(const ci_request_t *req) {
+#if defined CI_USE_INLINE_OBJECT_METHODS
+    return ci_req_hasbody_inline(req);
+#else
+    return ci_req_hasbody_non_inline(req);
+#endif
+}
+
+/**
+ \ingroup REQUEST
+ \return  ICAP_OPTIONS, ICAP_REQMOD or ICAP_RESPMOD if the ICAP request is
+ * options, request modification or response modification ICAP request
+ */
+static inline int ci_req_type(const ci_request_t *req) {
+#if defined CI_USE_INLINE_OBJECT_METHODS
+    return ci_req_type_inline(req);
+#else
+    return ci_req_type_non_inline(req);
+#endif
+}
+
+/**
+ \ingroup REQUEST
+ \param req  is pointer to an object of type ci_request_t
+ \return -1 if preview is not supported else the ICAP preview size
+ */
+static inline int ci_req_preview_size(const ci_request_t *req) {
+#if defined CI_USE_INLINE_OBJECT_METHODS
+    return ci_req_preview_size_inline(req);
+#else
+    return ci_req_preview_size_non_inline(req);
+#endif
+}
+
+/**
+ \ingroup REQUEST
+ \return True (non zero int) if the ICAP request supports "Allow 204"
+ */
+static inline int ci_req_allow204(const ci_request_t *req) {
+#if defined CI_USE_INLINE_OBJECT_METHODS
+    return ci_req_allow204_inline(req);
+#else
+    return ci_req_allow204_non_inline(req);
+#endif
+}
+
+/**
+ \ingroup REQUEST
+ \return True (non zero int) if the ICAP request supports "Allow 206"
+ */
+static inline int ci_req_allow206(const ci_request_t *req) {
+#if defined CI_USE_INLINE_OBJECT_METHODS
+    return ci_req_allow206_inline(req);
+#else
+    return ci_req_allow206_non_inline(req);
+#endif
+}
+
+/**
+ \ingroup REQUEST
+ \return True (non zero int) if the ICAP request supports "Allow 206" outside
+ *       preview requests
+ */
+static inline int ci_req_allow206_outside_preview(const ci_request_t *req) {
+#if defined CI_USE_INLINE_OBJECT_METHODS
+    return ci_req_allow206_outside_preview_inline(req);
+#else
+    return ci_req_allow206_outside_preview_non_inline(req);
+#endif
+}
+
+/**
+ \ingroup REQUEST
+ \param req  is pointer to the ci_request_t object
+ \return True (non zero int) if the c-icap server has send data to the client
+ */
+static inline int ci_req_sent_data(const ci_request_t *req) {
+#if defined CI_USE_INLINE_OBJECT_METHODS
+    return ci_req_sent_data_inline(req);
+#else
+    return ci_req_sent_data_non_inline(req);
+#endif
+}
+
+/**
+ \ingroup REQUEST
+ \param req is pointer to the ci_request_t object
+ \return True (non zero int) if the ICAP client has sent all the data
+ *       (headers and body data) to the ICAP server
+ */
+static inline int ci_req_hasalldata(const ci_request_t *req) {
+#if defined CI_USE_INLINE_OBJECT_METHODS
+    return ci_req_hasalldata_inline(req);
+#else
+    return ci_req_hasalldata_non_inline(req);
+#endif
+}
 
 #ifdef __CI_COMPAT
 #define ci_respmod_headers           ci_http_response_headers

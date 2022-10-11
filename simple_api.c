@@ -270,18 +270,78 @@ int ci_icap_append_xheaders(ci_request_t *req,ci_headers_list_t *headers)
     return ci_headers_addheaders(req->xheaders, headers);
 }
 
-CI_DECLARE_FUNC(const char *) ci_icap_request_get_header(ci_request_t *req, const char *header)
+const char * ci_icap_request_get_header(ci_request_t *req, const char *header)
 {
     if (req && req->request_header)
         return ci_headers_value(req->request_header, header);
     return NULL;
 }
 
-CI_DECLARE_FUNC(const char *) ci_icap_response_get_header(ci_request_t *req, const char *header)
+const char * ci_icap_response_get_header(ci_request_t *req, const char *header)
 {
     if (req && req->response_header)
         return ci_headers_value(req->response_header, header);
     return NULL;
+}
+
+ci_headers_list_t *ci_icap_request_headers(ci_request_t *req)
+{
+    return req ? req->request_header : NULL;
+}
+
+ci_headers_list_t *ci_icap_response_headers(ci_request_t *req)
+{
+    return req ? req->response_header : NULL;
+}
+
+void ci_req_lock_data_non_inline(ci_request_t *req) {
+    return ci_req_lock_data_inline(req);
+}
+
+void ci_req_unlock_data_non_inline(ci_request_t *req)
+{
+    return ci_req_unlock_data_inline(req);
+}
+
+int ci_req_hasbody_non_inline(const ci_request_t *req)
+{
+    return ci_req_hasbody_inline(req);
+}
+
+int ci_req_type_non_inline(const ci_request_t *req)
+{
+    return ci_req_type_inline(req);
+}
+
+int ci_req_preview_size_non_inline(const ci_request_t *req)
+{
+    return ci_req_preview_size_inline(req);
+}
+
+int ci_req_allow204_non_inline(const ci_request_t *req)
+{
+    return ci_req_allow204_inline(req);
+}
+
+int ci_req_allow206_non_inline(const ci_request_t *req)
+{
+    return ci_req_allow206_inline(req);
+}
+
+int ci_req_allow206_outside_preview_non_inline(const ci_request_t *req)
+{
+    return ci_req_allow206_outside_preview_inline(req);
+}
+
+int ci_req_sent_data_non_inline(const ci_request_t *req)
+{
+    return ci_req_sent_data_inline(req);
+
+}
+
+int ci_req_hasalldata_non_inline(const ci_request_t *req)
+{
+    return ci_req_hasalldata_inline(req);
 }
 
 #define header_end(e) (e == '\0' || e == '\n' || e == '\r')

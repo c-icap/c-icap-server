@@ -193,13 +193,8 @@ CI_DECLARE_FUNC(void)  ci_buf_mem_free(struct ci_buf *buf);
 CI_DECLARE_FUNC(int)   ci_buf_write(struct ci_buf *buf, char *data, size_t len);
 CI_DECLARE_FUNC(int)   ci_buf_reset_and_resize(struct ci_buf *buf, size_t req_size);
 
-/***************/
-/*API defines */
-static inline void *ci_service_data(const ci_request_t *req) {
-    _CI_ASSERT(req);
-    return req->service_data;
-}
 /*API functions ......*/
+CI_DECLARE_FUNC(void *)ci_service_data(const ci_request_t *req);
 CI_DECLARE_FUNC(ci_request_t *)  ci_request_alloc(ci_connection_t *connection);
 CI_DECLARE_FUNC(void)         ci_request_reset(ci_request_t *req);
 CI_DECLARE_FUNC(void)         ci_request_destroy(ci_request_t *req);

@@ -3,6 +3,8 @@
 #ifndef __C_ICAP_CONF_H
 #define __C_ICAP_CONF_H
 
+#define C_ICAP_HEX_VERSION 0xF0000000FFFF
+
 /* Define USE_IPV6 if we are supporting ipv6 */
 #if 0
 #define USE_IPV6
@@ -30,6 +32,14 @@
 
 #if 0
 #define __CI_COMPAT
+#endif
+
+#if 1
+#define __SYS_TYPES_H_EXISTS
+#endif
+
+#if 1
+#define __INTTYPES_H_EXISTS
 #endif
 
 #define CI_SIZEOF_OFF_T 8

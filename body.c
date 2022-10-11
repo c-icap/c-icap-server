@@ -285,6 +285,44 @@ int ci_membuf_truncate(struct ci_membuf *body, size_t new_size)
     return 1;
 }
 
+void ci_membuf_lock_all(ci_membuf_t *body)
+{
+    _CI_ASSERT(body);
+    body->flags |= CI_MEMBUF_LOCKED;
+    body->unlocked = 0;
+}
+
+void  ci_membuf_unlock(ci_membuf_t *body, size_t len)
+{
+    _CI_ASSERT(body);
+    body->unlocked = ((body->readpos) > len ? (body->readpos) : len);
+}
+
+void ci_membuf_unlock_all(ci_membuf_t *body)
+{
+    _CI_ASSERT(body);
+    body->flags &= ~CI_MEMBUF_LOCKED;
+    body->unlocked = 0;
+}
+
+const char *ci_membuf_raw(ci_membuf_t *body)
+{
+    _CI_ASSERT(body);
+    return body->buf;
+}
+
+int ci_membuf_size(ci_membuf_t *body)
+{
+    _CI_ASSERT(body);
+    return body->endpos;
+}
+
+int ci_membuf_flag(ci_membuf_t *body, unsigned int flag)
+{
+    _CI_ASSERT(body);
+    return body->flags & flag;
+}
+
 /****/
 /*To be removed after ci_cached_file removed*/
 static int do_write_old(int fd, const void *buf, size_t count)
@@ -719,6 +757,75 @@ void ci_simple_file_release(ci_simple_file_t * body)
     ci_object_pool_free(body);
 }
 
+void ci_simple_file_lock_all(ci_simple_file_t *body)
+{
+    _CI_ASSERT(body);
+    body->flags |= CI_FILE_USELOCK;
+    body->unlocked = 0;
+}
+
+void ci_simple_file_unlock(ci_simple_file_t *body, ci_off_t len)
+{
+    _CI_ASSERT(body);
+    body->unlocked = ((body->readpos) > len ? (body->readpos) : len);
+}
+
+void ci_simple_file_unlock_all(ci_simple_file_t *body)
+{
+    _CI_ASSERT(body);
+    body->flags &= ~CI_FILE_USELOCK;
+    body->unlocked = 0;
+}
+
+ci_off_t ci_simple_file_size(ci_simple_file_t *body)
+{
+    _CI_ASSERT(body);
+    return body->endpos;
+}
+
+const char *ci_simple_file_filename(ci_simple_file_t *body)
+{
+    _CI_ASSERT(body);
+    return body->filename;
+}
+
+int ci_simple_file_fd(ci_simple_file_t *body)
+{
+    _CI_ASSERT(body);
+    return body->fd;
+}
+
+int ci_simple_file_max_size(ci_simple_file_t *body)
+{
+    _CI_ASSERT(body);
+    return body->max_store_size;
+}
+
+int ci_simple_file_haseof(ci_simple_file_t *body)
+{
+    _CI_ASSERT(body);
+    return (body->flags & CI_FILE_HAS_EOF);
+}
+
+int ci_simple_file_attr_add(ci_simple_file_t *body,const char *attr, const void *val, size_t val_size)
+{
+    assert(body);
+    if (!body->attributes)
+        body->attributes = ci_array_new(BODY_ATTRS_SIZE);
+
+    if (body->attributes)
+        return (ci_array_add(body->attributes, attr, val, val_size) != NULL);
+
+    return 0;
+}
+
+const void * ci_simple_file_attr_get(ci_simple_file_t *body,const char *attr)
+{
+    assert(body);
+    if (body->attributes)
+        return ci_array_search(body->attributes, attr);
+    return NULL;
+}
 
 int ci_simple_file_write(ci_simple_file_t * body, const char *buf, size_t len, int iseof)
 {
@@ -957,6 +1064,63 @@ ci_membuf_t *ci_simple_file_to_membuf(ci_simple_file_t *body, unsigned int flags
     if (flags & CI_MEMBUF_NULL_TERMINATED)
         memflags |= CI_MEMBUF_NULL_TERMINATED;
     return ci_membuf_from_content(body->mmap_addr, body->mmap_size, body->endpos, memflags);
+}
+
+/*Utility functions*/
+static int do_open_existing(const char *pathname, int flags)
+{
+    int fd;
+    errno = 0;
+    do {
+#if defined (_MSC_VER)
+        fd = _open(pathname, flags, S_IREAD|S_IWRITE);
+#else
+        fd = open(pathname, flags, S_IREAD|S_IWRITE|S_IRGRP|S_IROTH);
+#endif
+    } while (fd < 0 && errno == EINTR);
+
+    return fd;
+}
+
+// This is will not work
+ci_simple_file_t *ci_simple_file_existing_new(const char *filename)
+{
+    if (!filename)
+        return NULL;
+
+    ci_simple_file_t *body = NULL;
+
+    if (!(body = (ci_simple_file_t *)ci_object_pool_alloc(SIMPLE_FILE_POOL)))
+        return NULL;
+    memset(body, 0, sizeof(ci_simple_file_t));
+    body->fd = -1;
+
+    int fd = do_open_existing(filename, O_RDWR);
+    if (fd < 0) {
+        ci_debug_printf(2, "Open failed for file %s!\n", filename);
+        ci_simple_file_destroy(body);
+        return NULL;
+    }
+
+    struct stat statBuf;
+    if (fstat(fd, &statBuf) < 0) {
+        char buf[512];
+#if defined (_MSC_VER)
+        snprintf(buf, sizeof(buf), "%s", strerror(errno));
+#else
+        if (strerror_r(errno, buf, sizeof(buf)) != 0)
+            snprintf(buf, sizeof(buf), "unknown error");
+#endif
+        ci_debug_printf(2, "fstat failed for fd %d file %s: %s\n", fd, filename, buf);
+        ci_simple_file_destroy(body);
+        return NULL;
+    }
+    body->fd = fd;
+    snprintf(body->filename, CI_FILENAME_LEN, "%s", filename);
+    body->endpos = statBuf.st_size;
+    body->flags |= CI_FILE_HAS_EOF;
+    ci_debug_printf(5, "simple_file_existing_new: Use file %s\n", body->filename);
+    return body;
 }
 
 /*******************************************************************/

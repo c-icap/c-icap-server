@@ -633,7 +633,7 @@ static void ec_responce_simple(ci_request_t * req, int ec)
     char buf[256];
     int len;
     snprintf(buf, sizeof(buf), "ICAP/1.0 %d %s\r\n\r\n",
-             ci_error_code(ec), ci_error_code_string(ec));
+             ci_status_code(ec), ci_status_code_string(ec));
     len = strlen(buf);
     ci_clock_time_get(&req->start_w_t);
     ci_connection_write(req->connection, buf, len, TIMEOUT);
@@ -656,7 +656,7 @@ static int ec_responce(ci_request_t * req, int ec)
         ec = EC_200;
     }
     snprintf(buf, sizeof(buf), "ICAP/1.0 %d %s",
-             ci_error_code(ec), ci_error_code_string(ec));
+             ci_status_code(ec), ci_status_code_string(ec));
     ci_headers_add(req->response_header, buf);
     ci_headers_add(req->response_header, "Server: C-ICAP/" VERSION);
     if (req->keepalive)
@@ -711,7 +711,7 @@ static int mk_responce_header(ci_request_t * req)
     head = req->response_header;
     assert(req->return_code >= EC_100 && req->return_code < EC_MAX);
     snprintf(buf, sizeof(buf), "ICAP/1.0 %d %s",
-             ci_error_code(req->return_code), ci_error_code_string(req->return_code));
+             ci_status_code(req->return_code), ci_status_code_string(req->return_code));
     ci_headers_add(head, buf);
     ci_headers_add(head, "Server: C-ICAP/" VERSION);
     if (req->keepalive)

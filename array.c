@@ -97,6 +97,30 @@ void ci_array_destroy(ci_array_t *array)
     ci_buffer_free(buffer);
 }
 
+void *ci_array_value(const ci_array_t *array, unsigned int pos)
+{
+    _CI_ASSERT(array);
+    return (pos < array->count ?  array->items[pos].value : NULL);
+}
+
+const char *ci_array_name(const ci_array_t *array, unsigned int pos)
+{
+    _CI_ASSERT(array);
+    return (pos < array->count ?  array->items[pos].name : NULL);
+}
+
+unsigned int ci_array_size(const ci_array_t *array)
+{
+    _CI_ASSERT(array);
+    return array->count;
+}
+
+const ci_array_item_t *ci_array_get_item(const ci_array_t *array, unsigned int pos)
+{
+    _CI_ASSERT(array);
+    return (pos >= array->count) ? NULL : &(array->items[pos]);
+}
+
 const ci_array_item_t * ci_array_add(ci_array_t *array, const char *name, const void *value, size_t size)
 {
     ci_array_item_t *item;
@@ -310,6 +334,31 @@ ci_dyn_array_t  * ci_dyn_array_rebuild(ci_dyn_array_t *old)
     return old;
 }
 
+const ci_array_item_t *ci_dyn_array_get_item(const ci_dyn_array_t *array, unsigned int pos)
+{
+    _CI_ASSERT(array);
+    return (pos < array->count ? array->items[pos] : NULL);
+}
+
+void *ci_dyn_array_value(const ci_dyn_array_t *array, unsigned int pos)
+{
+    _CI_ASSERT(array);
+    return ((pos < array->count && array->items[pos] != NULL) ?  array->items[pos]->value : NULL);
+}
+
+const char *ci_dyn_array_name(const ci_dyn_array_t *array, unsigned int pos)
+{
+    _CI_ASSERT(array);
+    return ((pos < array->count && array->items[pos] != NULL) ?  array->items[pos]->name : NULL);
+}
+
+unsigned int ci_dyn_array_size(const ci_dyn_array_t *array)
+{
+    _CI_ASSERT(array);
+    return array->count;
+}
+
+
 const ci_array_item_t * ci_dyn_array_add(ci_dyn_array_t *array, const char *name, const void *value, size_t size)
 {
     ci_array_item_t *item;
@@ -454,6 +503,18 @@ void ci_vector_destroy(ci_vector_t *vector)
     ci_buffer_free(buffer);
 }
 
+const void *ci_vector_get(const ci_vector_t *vector, unsigned int i)
+{
+    _CI_ASSERT(vector);
+    return (i < vector->count ? (const void *)vector->items[i]:  (const void *)NULL);
+}
+
+int ci_vector_size(const ci_vector_t *vector)
+{
+    _CI_ASSERT(vector);
+    return vector->count;
+}
+
 const void * ci_vector_add(ci_vector_t *vector, const void *value, size_t size)
 {
     void *item, **indx;
@@ -512,6 +573,12 @@ void ci_vector_iterate(const ci_vector_t *vector, void *data, int (*fn)(void *da
 
 
 /*ci_str_vector functions */
+const char *ci_str_vector_get(ci_str_vector_t *vector, unsigned int i)
+{
+    _CI_ASSERT(vector);
+    return (i < vector->count ? (const char *)vector->items[i]:  (const char *)NULL);
+}
+
 const char *ci_str_vector_add(ci_str_vector_t *vect, const char *string)
 {
     return (const char *)ci_vector_add((ci_vector_t *)vect, string, strlen(string) + 1);
@@ -594,6 +661,57 @@ void ci_list_destroy(ci_list_t *list)
     _CI_ASSERT(list);
     ci_mem_allocator_t *alloc = list->alloc;
     ci_mem_allocator_destroy(alloc);
+}
+
+void * ci_list_first(ci_list_t *list)
+{
+    if (list && list->items) {
+        list->cursor = list->items->next;
+        return list->items->item;
+    }
+    return NULL;
+}
+
+void * ci_list_next(ci_list_t *list)
+{
+    if ((list->tmp = list->cursor) != NULL) {
+        list->cursor = list->cursor->next;
+        return list->tmp->item;
+    }
+    return NULL;
+}
+
+void * ci_list_iterator_first(const ci_list_t *list, ci_list_iterator_t *it)
+{
+    _CI_ASSERT(list);
+    _CI_ASSERT(it);
+    if ((*it = list->items))
+        return (*it)->item;
+    return NULL;
+}
+
+void * ci_list_iterator_next(ci_list_iterator_t *it)
+{
+    _CI_ASSERT(it);
+    if ((*it) && (*it = ((*it)->next)))
+        return (*it)->item;
+    return NULL;
+}
+
+void * ci_list_iterator_value(const ci_list_iterator_t *it)
+{
+    _CI_ASSERT(it);
+    return (*it) ? (*it)->item : NULL;
+}
+
+void * ci_list_head(const ci_list_t *list)
+{
+    return (list && list->items != NULL ? list->items->item : NULL);
+}
+
+void * ci_list_tail(const ci_list_t *list)
+{
+    return (list && list->last != NULL ? list->last->item : NULL);
 }
 
 void ci_list_cmp_handler(ci_list_t *list, int (*cmp_func)(const void *obj, const void *user_data, size_t user_data_size))

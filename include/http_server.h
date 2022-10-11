@@ -37,6 +37,7 @@ extern "C"
 #endif
 
 CI_DECLARE_FUNC(void) ci_http_server_register_service(const char *path, const char *descr, int (*handler)(ci_request_t *req), unsigned);
+CI_DECLARE_FUNC(void) ci_http_server_response_set_status(ci_request_t *req, int status);
 
 static inline ci_membuf_t *ci_http_server_response_body(ci_request_t *req) {
     _CI_ASSERT(req);
@@ -45,19 +46,14 @@ static inline ci_membuf_t *ci_http_server_response_body(ci_request_t *req) {
 
 static inline ci_headers_list_t *ci_http_server_request_headers(ci_request_t *req) {
     _CI_ASSERT(req);
-    return req->request_header;
+    return ci_icap_request_headers(req);
 }
 
 static inline const char *ci_http_server_request_get_header(ci_request_t *req, const char *header) {
-    _CI_ASSERT(req);
-    if (!req->request_header)
+    ci_headers_list_t *req_header = ci_http_server_request_headers(req);
+    if (!req_header)
         return NULL;
-    return ci_headers_search(req->request_header, header);
-}
-
-static inline void ci_http_server_response_set_status(ci_request_t *req, int status) {
-    _CI_ASSERT(req);
-    req->return_code = status;
+    return ci_headers_search(req_header, header);
 }
 
 static inline const char *ci_http_server_response_add_header(ci_request_t *req, const char *header) {

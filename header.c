@@ -31,7 +31,7 @@ const char *ci_methods[] = {
     "RESPMOD"                  /*0x04 */
 };
 
-const struct ci_error_code ci_error_codes[] = {
+const struct ci_status_code ci_error_codes[] = {
     {100, "Continue"},         /*Continue after ICAP Preview */
     {200, "OK"},
     {204, "No Content"},       /*No modifications needed */
@@ -65,6 +65,26 @@ const char *ci_encaps_entities[] = {
     "null-body",
     "opt-body"
 };
+
+const char *ci_method_string_non_inline(int method)
+{
+    return ci_method_string_inline(method);
+}
+
+int ci_status_code_non_inline(int ec)
+{
+    return ci_status_code_inline(ec);
+}
+
+const char * ci_status_code_string_non_inline(int ec)
+{
+    return ci_status_code_string_inline(ec);
+}
+
+int ci_headers_empty_non_inline(const ci_headers_list_t *h)
+{
+    return ci_headers_empty_inline(h);
+}
 
 ci_headers_list_t *ci_headers_create2(int num, size_t buf_size)
 {

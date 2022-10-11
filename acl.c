@@ -53,7 +53,7 @@ void *get_service(ci_request_t *req, char *param)
 
 void *get_reqtype(ci_request_t *req, char *param)
 {
-    return (void *)ci_method_string(req->type);
+    return (void *)ci_method_string_inline(req->type);
 }
 
 void *get_protocol(ci_request_t *req, char *param)
