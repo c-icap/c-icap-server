@@ -116,6 +116,9 @@ extern char *REMOTE_PROXY_USER_HEADER;
 extern int ALLOW_REMOTE_PROXY_USERS;
 extern int REMOTE_PROXY_USER_HEADER_ENCODED;
 
+#ifdef USE_OPENSSL
+char *TLS_PASSPHRASE;
+#endif
 
 /*Functions declaration */
 int parse_file(const char *conf_file);
@@ -170,10 +173,10 @@ static struct ci_conf_entry conf_variables[] = {
     {"Port", &CI_CONF.PORTS, cfg_set_port, NULL},
 #ifdef USE_OPENSSL
     {"TlsPort", &CI_CONF.PORTS, cfg_set_port, NULL},
-    {"TlsPassphrase", &CI_CONF.TLS_PASSPHRASE, intl_cfg_set_str, NULL},
+    {"TlsPassphrase", &TLS_PASSPHRASE, intl_cfg_set_str, NULL},
     /*The Ssl* alias of Tls* cfg params*/
     {"SslPort", &CI_CONF.PORTS, cfg_set_port, NULL},
-    {"SslPassphrase", &CI_CONF.TLS_PASSPHRASE, intl_cfg_set_str, NULL},
+    {"SslPassphrase", &TLS_PASSPHRASE, intl_cfg_set_str, NULL},
 #endif
     {"User", &CI_CONF.RUN_USER, intl_cfg_set_str, NULL},
     {"Group", &CI_CONF.RUN_GROUP, intl_cfg_set_str, NULL},
@@ -960,13 +963,29 @@ static struct ci_options_entry options[] = {
     {NULL, NULL, NULL, NULL}
 };
 
+void init_config()
+{
+    /*Compilers on windows platform report problems when someone try to
+      initialize static arrays or structures with references of variables
+      exists on external libraries. So we have to declare local variables
+      and set library variables on run-time code.
+    */
+}
 
+void post_config()
+{
+#ifdef USE_OPENSSL
+    if (CI_CONF.TLS_ENABLED)
+        ci_tls_set_passphrase_script(TLS_PASSPHRASE);
+#endif
+}
 
 int config(int argc, char **argv)
 {
     ARGC = argc;
     ARGV = argv;
     ci_cfg_lib_init();
+    init_config();
     if (!ci_args_apply(argc, argv, options)) {
         ci_debug_printf(1, "Error in command line options\n");
         ci_args_usage(argv[0], options);
@@ -982,6 +1001,8 @@ int config(int argc, char **argv)
         ci_debug_printf(1, "Error opening/parsing config file\n");
         exit(0);
     }
+
+    post_config();
     return 1;
 }
 
@@ -1007,6 +1028,7 @@ int reconfig()
                         "Error opening/parsing config file, while reconfiguring!\n");
         return 0;
     }
+    post_config();
     return 1;
 
 }
@@ -1044,9 +1066,6 @@ void system_shutdown()
     ci_magic_db_free();
     CI_CONF.MAGIC_DB = NULL;
     ci_txt_template_close();
-#ifdef USE_OPENSSL
-    ci_tls_cleanup();
-#endif
 }
 
 int system_reconfigure()

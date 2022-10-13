@@ -67,7 +67,6 @@ struct ci_server_conf {
     int MAX_SPARE_THREADS;
 
 #ifdef USE_OPENSSL
-    char *TLS_PASSPHRASE;
     int TLS_ENABLED;
 #endif
 };
