@@ -76,7 +76,6 @@ struct ci_server_conf CI_CONF = {
 
 #ifdef USE_OPENSSL
     ,
-    NULL ,                    /*TLS_PASSPHRASE*/
     0                         /*TLS_ENABLED, set by TLSPort*/
 #endif
 };
@@ -120,6 +119,10 @@ extern access_control_module_t **used_access_controllers;
 extern char *REMOTE_PROXY_USER_HEADER;
 extern int ALLOW_REMOTE_PROXY_USERS;
 extern int REMOTE_PROXY_USER_HEADER_ENCODED;
+
+#ifdef USE_OPENSSL
+char *TLS_PASSPHRASE;
+#endif
 
 /*Functions declaration */
 int parse_file(const char *conf_file);
@@ -180,10 +183,10 @@ static struct ci_conf_entry conf_variables[] = {
     {"Port", &CI_CONF.PORTS, cfg_set_port, NULL},
 #ifdef USE_OPENSSL
     {"TlsPort", &CI_CONF.PORTS, cfg_set_port, NULL},
-    {"TlsPassphrase", &CI_CONF.TLS_PASSPHRASE, intl_cfg_set_str, NULL},
+    {"TlsPassphrase", &TLS_PASSPHRASE, intl_cfg_set_str, NULL},
     /*The Ssl* alias of Tls* cfg params*/
     {"SslPort", &CI_CONF.PORTS, cfg_set_port, NULL},
-    {"SslPassphrase", &CI_CONF.TLS_PASSPHRASE, intl_cfg_set_str, NULL},
+    {"SslPassphrase", &TLS_PASSPHRASE, intl_cfg_set_str, NULL},
 #endif
     {"HttpPort", &CI_CONF.PORTS, cfg_set_port, NULL},
     {"HttpsPort", &CI_CONF.PORTS, cfg_set_port, NULL},
@@ -1043,13 +1046,52 @@ static struct ci_options_entry options[] = {
     {NULL, NULL, NULL, NULL}
 };
 
+void init_config()
+{
+    /*Compilers on windows platform report problems when someone try to
+      initialize static arrays or structures with references of variables
+      exists on external libraries. So we have to declare local variables
+      and set library variables on run-time code.
+    */
+#ifdef HAVE_BROTLI
+    cfg_default_value_store(&CI_BROTLI_QUALITY, &CI_BROTLI_QUALITY, sizeof(int));
+    cfg_default_value_store(&CI_BROTLI_MAX_INPUT_BLOCK, &CI_BROTLI_MAX_INPUT_BLOCK, sizeof(int));
+    cfg_default_value_store(&CI_BROTLI_WINDOW, &CI_BROTLI_WINDOW, sizeof(int));
+#endif
+#ifdef HAVE_ZLIB
+    cfg_default_value_store(&CI_ZLIB_WINDOW_SIZE, &CI_ZLIB_WINDOW_SIZE, sizeof(int));
+    cfg_default_value_store(&CI_ZLIB_MEMLEVEL, &CI_ZLIB_MEMLEVEL, sizeof(int));
+#endif
+}
 
+void post_config()
+{
+#ifdef HAVE_BROTLI
+    if (BROTLI_QUALITY != -1)
+        CI_BROTLI_QUALITY = BROTLI_QUALITY;
+    if (BROTLI_MAX_INPUT_BLOCK != -1)
+        CI_BROTLI_MAX_INPUT_BLOCK = BROTLI_MAX_INPUT_BLOCK;
+    if (BROTLI_WINDOW != -1)
+        CI_BROTLI_WINDOW = BROTLI_WINDOW;
+#endif
+#ifdef HAVE_ZLIB
+    if (ZLIB_WINDOW_SIZE > 0)
+        CI_ZLIB_WINDOW_SIZE = ZLIB_WINDOW_SIZE;
+    if (ZLIB_MEMLEVEL > 0)
+        CI_ZLIB_MEMLEVEL = ZLIB_MEMLEVEL;
+#endif
+#ifdef USE_OPENSSL
+    if (CI_CONF.TLS_ENABLED)
+        ci_tls_set_passphrase_script(TLS_PASSPHRASE);
+#endif
+}
 
 int config(int argc, char **argv)
 {
     ARGC = argc;
     ARGV = argv;
     ci_cfg_lib_init();
+    init_config();
     if (!ci_args_apply(argc, argv, options)) {
         ci_debug_printf(1, "Error in command line options\n");
         ci_args_usage(argv[0], options);
@@ -1066,30 +1108,7 @@ int config(int argc, char **argv)
         exit(0);
     }
 
-    /*Compilers on windows platform report problems when someone try to
-      initialize static arrays or structures with references of variables
-      exists on external libraries. So we have to declare local variables
-      and set library variables on run-time code.
-     */
-#ifdef HAVE_BROTLI
-    cfg_default_value_store(&CI_BROTLI_QUALITY, &CI_BROTLI_QUALITY, sizeof(int));
-    cfg_default_value_store(&CI_BROTLI_MAX_INPUT_BLOCK, &CI_BROTLI_MAX_INPUT_BLOCK, sizeof(int));
-    cfg_default_value_store(&CI_BROTLI_WINDOW, &CI_BROTLI_WINDOW, sizeof(int));
-    if (BROTLI_QUALITY != -1)
-        CI_BROTLI_QUALITY = BROTLI_QUALITY;
-    if (BROTLI_MAX_INPUT_BLOCK != -1)
-        CI_BROTLI_MAX_INPUT_BLOCK = BROTLI_MAX_INPUT_BLOCK;
-    if (BROTLI_WINDOW != -1)
-        CI_BROTLI_WINDOW = BROTLI_WINDOW;
-#endif
-#ifdef HAVE_ZLIB
-    cfg_default_value_store(&CI_ZLIB_WINDOW_SIZE, &CI_ZLIB_WINDOW_SIZE, sizeof(int));
-    cfg_default_value_store(&CI_ZLIB_MEMLEVEL, &CI_ZLIB_MEMLEVEL, sizeof(int));
-    if (ZLIB_WINDOW_SIZE > 0)
-        CI_ZLIB_WINDOW_SIZE = ZLIB_WINDOW_SIZE;
-    if (ZLIB_MEMLEVEL > 0)
-        CI_ZLIB_MEMLEVEL = ZLIB_MEMLEVEL;
-#endif
+    post_config();
     return 1;
 }
 
@@ -1115,6 +1134,7 @@ int reconfig()
                         "Error opening/parsing config file, while reconfiguring!\n");
         return 0;
     }
+    post_config();
     return 1;
 
 }
@@ -1153,9 +1173,6 @@ void system_shutdown()
     ci_magic_db_free();
     CI_CONF.MAGIC_DB = NULL;
     ci_txt_template_close();
-#ifdef USE_OPENSSL
-    ci_tls_cleanup();
-#endif
 }
 
 int system_reconfigure()

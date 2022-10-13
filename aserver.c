@@ -27,6 +27,9 @@
 #include "cfg_param.h"
 #include "filetype.h"
 #include "acl.h"
+#if defined(USE_OPENSSL)
+#include "net_io_ssl.h"
+#endif
 #include "txtTemplate.h"
 #include "commands.h"
 #include "atomic.h"
@@ -161,6 +164,10 @@ int main(int argc, char **argv)
     config(argc, argv);
     compute_my_hostname();
     ci_debug_printf(2, "My hostname is: %s\n", MY_HOSTNAME);
+
+#ifdef USE_OPENSSL
+    ci_tls_init();
+#endif
 
 #if ! defined(_WIN32)
     /* Change the file mode mask */

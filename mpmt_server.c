@@ -189,6 +189,10 @@ void thread_signals(int islistener)
 static void exit_normaly()
 {
     system_shutdown();
+#ifdef USE_OPENSSL
+    ci_tls_cleanup();
+#endif
+
 #ifdef MULTICHILD
     config_destroy();
     commands_destroy();
@@ -1067,13 +1071,6 @@ int init_server()
         ci_debug_printf(1, "No ports configured!\n");
         return 0;
     }
-
-#ifdef USE_OPENSSL
-    if (CI_CONF.TLS_ENABLED) {
-        ci_tls_init();
-        ci_tls_set_passphrase_script(CI_CONF.TLS_PASSPHRASE);
-    }
-#endif
 
     for (i = 0; (p = (ci_port_t *)ci_vector_get(CI_CONF.PORTS, i)); ++i) {
         if (p->configured)
