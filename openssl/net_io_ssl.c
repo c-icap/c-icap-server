@@ -386,6 +386,14 @@ void ci_tls_init()
         return;
     }
 
+    if ( global_client_context ) {
+        SSL_CTX_free(global_client_context);
+    }
+    ci_tls_client_options_t opts;
+    memset((void *)&opts, 0, sizeof(ci_tls_client_options_t));
+    opts.verify = 1;
+    global_client_context = ci_tls_create_context(&opts);
+
     OPENSSL_LOADED = 1;
 }
 
@@ -813,14 +821,6 @@ int ci_tls_connect_nonblock(ci_connection_t *connection, const char *servername,
         if (use_ctx)
             ctx = use_ctx;
         else {
-            if ( global_client_context ) {
-                SSL_CTX_free(global_client_context);
-            }
-            ci_tls_client_options_t opts;
-            memset((void *)&opts, 0, sizeof(ci_tls_client_options_t));
-            opts.verify = 1;
-            /*We need to store to global_client_context to release ctx after exit*/
-            global_client_context = ci_tls_create_context(&opts);
             ctx = global_client_context;
         }
 
