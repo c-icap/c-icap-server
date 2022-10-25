@@ -12,14 +12,14 @@
 int init_dnsbl_tables(struct ci_server_conf *server_conf);
 void release_dnsbl_tables();
 
-CI_DECLARE_MOD_DATA common_module_t module = {
+static common_module_t dnsbl_module = {
     "dnsbl_tables",
     init_dnsbl_tables,
     NULL,
     release_dnsbl_tables,
     NULL,
 };
-
+_CI_DECLARE_COMMON_MODULE(dnsbl_module)
 
 
 void *dnsbl_table_open(struct ci_lookup_table *table);

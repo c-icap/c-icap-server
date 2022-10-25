@@ -29,8 +29,14 @@
 #include "dlib.h"
 #include "cfg_param.h"
 
+#define FLAG_MOD_STATIC 0x1
+struct module_entry {
+    void *module;
+    uint64_t flags;
+};
+
 struct modules_list {
-    void **modules;
+    struct module_entry *modules;
     int modules_num;
     int list_size;
 };
@@ -66,8 +72,9 @@ static struct modules_list *modules_lists_table[] = {   /*Must follows the 'enum
 };
 
 
-void *load_module(const char *module_file, const char *argv[])
+static void *load_module(const char *module_file, const char *argv[], int *static_declaration, int mod_type)
 {
+    common_module_t *(*module_builder)() = NULL;
     void *module = NULL;
     CI_DLIB_HANDLE module_handle;
     int forceUnload = 1;
@@ -81,7 +88,37 @@ void *load_module(const char *module_file, const char *argv[])
     module_handle = ci_module_load(module_file, CI_CONF.MODULES_DIR);
     if (!module_handle)
         return NULL;
-    module = ci_module_sym(module_handle, "module");
+
+    int cicap_release_ok = 1;
+    void *build_for = ci_module_sym(module_handle, "__ci_build_for");
+    if (build_for) {
+        uint64_t module_cicap_version = *(uint64_t *) build_for;
+        if (!C_ICAP_VERSION_MAJOR_CHECK(module_cicap_version)) {
+            ci_debug_printf(1, "ERROR: Module is build with wrong c-icap release\n");
+            cicap_release_ok = 0;
+        }
+    } else if (mod_type == COMMON) {
+        ci_debug_printf(1, "WARNING: Can not check the used c-icap release to build service %s\n", module_file);
+    }
+    *static_declaration = 0;
+    if (cicap_release_ok) {
+        module = ci_module_sym(module_handle, "module");
+        if (module) {
+            *static_declaration = 1;
+            ci_debug_printf(2, "Use old static module initialization\n");
+        } else {
+            if ((module_builder = ci_module_sym(module_handle, "__ci_module_build"))) {
+                ci_debug_printf(3, "New c-icap modules initialization procedure\n");
+                if ((module = (*module_builder)()) == NULL) {
+                    ci_debug_printf(1, "ERROR: \"__ci_module_build\" return failed/nil\n");
+                }
+            }
+        }
+        if (!module) {
+            ci_debug_printf(1, "No symbol \"module\" or \"__ci_module_build\" found in library\n");
+        }
+    }
+
     if (!module) {
         ci_debug_printf(1,
                         "Symbol \"module\" not found in library; unload it\n");
@@ -101,24 +138,24 @@ void *load_module(const char *module_file, const char *argv[])
   Must called only in initialization procedure.
   It is not thread-safe!
 */
-
-
-void *add_to_modules_list(struct modules_list *mod_list, void *module)
+static void *add_to_modules_list(struct modules_list *mod_list, void *module, int isStatic)
 {
     if (mod_list->modules == NULL) {
         mod_list->list_size = STEP;
-        mod_list->modules = malloc(mod_list->list_size * sizeof(void *));
+        mod_list->modules = malloc(mod_list->list_size * sizeof(struct module_entry));
     } else if (mod_list->modules_num == mod_list->list_size) {
         mod_list->list_size += STEP;
         mod_list->modules =
-            realloc(mod_list->modules, mod_list->list_size * sizeof(void *));
+            realloc(mod_list->modules, mod_list->list_size * sizeof(struct module_entry));
     }
 
     if (mod_list->modules == NULL) {
         //log an error......and...
         exit(-1);
     }
-    mod_list->modules[mod_list->modules_num++] = module;
+    mod_list->modules[mod_list->modules_num].module = module;
+    mod_list->modules[mod_list->modules_num].flags = (isStatic ? 0x1 : 0);
+    mod_list->modules_num++;
     return module;
 }
 
@@ -142,67 +179,34 @@ static int module_type(const char *type)
     return UNKNOWN;
 }
 
+#define INIT_MODULE(module, mod_type, INIT_METHOD)                      \
+    if (((mod_type *) module)->INIT_METHOD)                             \
+        ret = ((mod_type *) module)->INIT_METHOD(&CI_CONF);             \
+    if (((mod_type *) module)->conf_table)                              \
+        register_conf_table(((mod_type *) module)->name,                \
+                            ((mod_type *) module)->conf_table, MAIN_TABLE);
 
 static int init_module(void *module, enum module_type type)
 {
     int ret = 0;
     switch (type) {
     case SERVICE_HANDLER:
-        if (((service_handler_module_t *) module)->init_service_handler)
-            ret =
-                ((service_handler_module_t *) module)->
-                init_service_handler(&CI_CONF);
-        if (((service_handler_module_t *) module)->conf_table)
-            register_conf_table(((service_handler_module_t *) module)->name,
-                                ((service_handler_module_t *) module)->
-                                conf_table, MAIN_TABLE);
+        INIT_MODULE(module, service_handler_module_t, init_service_handler);
         break;
     case LOGGER:
-        if (((logger_module_t *) module)->init_logger)
-            ret = ((logger_module_t *) module)->init_logger(&CI_CONF);
-        if (((logger_module_t *) module)->conf_table)
-            register_conf_table(((logger_module_t *) module)->name,
-                                ((logger_module_t *) module)->conf_table,
-                                MAIN_TABLE);
-
+        INIT_MODULE(module, logger_module_t, init_logger);
         break;
     case ACCESS_CONTROLLER:
-        if (((access_control_module_t *) module)->init_access_controller)
-            ret =
-                ((access_control_module_t *) module)->
-                init_access_controller(&CI_CONF);
-        if (((access_control_module_t *) module)->conf_table)
-            register_conf_table(((access_control_module_t *) module)->name,
-                                ((access_control_module_t *) module)->
-                                conf_table, MAIN_TABLE);
+        INIT_MODULE(module, access_control_module_t, init_access_controller);
         break;
     case AUTH_METHOD:
-        if (((http_auth_method_t *) module)->init_auth_method)
-            ret = ((http_auth_method_t *) module)->init_auth_method(&CI_CONF);
-        if (((http_auth_method_t *) module)->conf_table)
-            register_conf_table(((http_auth_method_t *) module)->name,
-                                ((http_auth_method_t *) module)->conf_table,
-                                MAIN_TABLE);
+        INIT_MODULE(module, http_auth_method_t, init_auth_method);
         break;
-
     case AUTHENTICATOR:
-        if (((authenticator_module_t *) module)->init_authenticator)
-            ret =
-                ((authenticator_module_t *) module)->
-                init_authenticator(&CI_CONF);
-        if (((authenticator_module_t *) module)->conf_table)
-            register_conf_table(((authenticator_module_t *) module)->name,
-                                ((authenticator_module_t *) module)->
-                                conf_table, MAIN_TABLE);
+        INIT_MODULE(module, authenticator_module_t, init_authenticator);
         break;
     case COMMON:
-        if (((common_module_t *) module)->init_module)
-            ret = ((common_module_t *) module)->init_module(&CI_CONF);
-        if (((common_module_t *) module)->conf_table)
-            register_conf_table(((common_module_t *) module)->name,
-                                ((common_module_t *) module)->conf_table,
-                                MAIN_TABLE);
-
+        INIT_MODULE(module, common_module_t, init_module);
         break;
     default:
         return 0;
@@ -216,7 +220,7 @@ logger_module_t *find_logger(const char *name)
     logger_module_t *sh;
     int i;
     for (i = 0; i < loggers.modules_num; i++) {
-        sh = (logger_module_t *) loggers.modules[i];
+        sh = (logger_module_t *) loggers.modules[i].module;
         if (sh->name && strcmp(sh->name, name) == 0)
             return sh;
     }
@@ -229,7 +233,7 @@ access_control_module_t *find_access_controller(const char *name)
     access_control_module_t *sh;
     int i;
     for (i = 0; i < access_controllers.modules_num; i++) {
-        sh = (access_control_module_t *) access_controllers.modules[i];
+        sh = (access_control_module_t *) access_controllers.modules[i].module;
         if (sh->name && strcmp(sh->name, name) == 0)
             return sh;
     }
@@ -241,7 +245,7 @@ common_module_t *find_common(const char *name)
     common_module_t *m;
     int i;
     for (i = 0; i < common_modules.modules_num; i++) {
-        m = (common_module_t *) common_modules.modules[i];
+        m = (common_module_t *) common_modules.modules[i].module;
         if (m->name && strcmp(m->name, name) == 0)
             return m;
     }
@@ -260,8 +264,8 @@ http_auth_method_t *find_auth_method(const char *method)
     for (i = 0; i < auth_methods.modules_num; i++) {
         if (strcmp
                 (method,
-                 ((http_auth_method_t *) auth_methods.modules[i])->name) == 0)
-            return (http_auth_method_t *) auth_methods.modules[i];
+                 ((http_auth_method_t *) auth_methods.modules[i].module)->name) == 0)
+            return (http_auth_method_t *) auth_methods.modules[i].module;
     }
     return NULL;
 }
@@ -279,9 +283,9 @@ http_auth_method_t *find_auth_method_id(const char *method, int *method_id)
     for (i = 0; i < auth_methods.modules_num; i++) {
         if (strcasecmp
                 (method,
-                 ((http_auth_method_t *) auth_methods.modules[i])->name) == 0) {
+                 ((http_auth_method_t *) auth_methods.modules[i].module)->name) == 0) {
             *method_id = i;
-            return (http_auth_method_t *) auth_methods.modules[i];
+            return (http_auth_method_t *) auth_methods.modules[i].module;
         }
     }
     return NULL;
@@ -294,9 +298,9 @@ authenticator_module_t *find_authenticator(const char *name)
     for (i = 0; i < authenticators.modules_num; i++) {
         if (strcmp
                 (name,
-                 ((authenticator_module_t *) authenticators.modules[i])->name) ==
+                 ((authenticator_module_t *) authenticators.modules[i].module)->name) ==
                 0) {
-            return (authenticator_module_t *) authenticators.modules[i];
+            return (authenticator_module_t *) authenticators.modules[i].module;
         }
     }
     return NULL;
@@ -308,7 +312,7 @@ service_handler_module_t *find_servicehandler(const char *name)
     service_handler_module_t *sh;
     int i;
     for (i = 0; i < service_handlers.modules_num; i++) {
-        sh = (service_handler_module_t *) service_handlers.modules[i];
+        sh = (service_handler_module_t *) service_handlers.modules[i].module;
         if (sh->name && strcmp(sh->name, name) == 0)
             return sh;
     }
@@ -364,7 +368,8 @@ void *register_module(const char *module_file, const char *type, const char *arg
     if (l == NULL)
         return NULL;
 
-    module = load_module(module_file, argv);
+    int isStatic = 0;
+    module = load_module(module_file, argv, &isStatic, mod_type);
     if (!module) {
         ci_debug_printf(3, "Error while loading  module %s\n",
                         module_file);
@@ -379,7 +384,7 @@ void *register_module(const char *module_file, const char *type, const char *arg
 
     init_module(module, mod_type);
 
-    add_to_modules_list(l, module);
+    add_to_modules_list(l, module, isStatic);
     return module;
 }
 
@@ -391,7 +396,7 @@ service_handler_module_t *find_servicehandler_by_ext(const char *extension)
     int i, len_extension, len_s = 0, found = 0;
     len_extension = strlen(extension);
     for (i = 0; i < service_handlers.modules_num; i++) {
-        sh = (service_handler_module_t *) service_handlers.modules[i];
+        sh = (service_handler_module_t *) service_handlers.modules[i].module;
         s = sh->extensions;
 
         do {
@@ -582,22 +587,22 @@ int init_modules()
     init_auth_hash(&authenticators_hash);
 
     default_service_handler = &c_service_handler;
-    add_to_modules_list(&service_handlers, default_service_handler);
+    add_to_modules_list(&service_handlers, default_service_handler, 1);
 
     default_logger = &file_logger;
     /*     init_module(default_logger,LOGGER); Must be called, if default module has conf table
                                                or init_service_handler. */
 
-    add_to_modules_list(&loggers, default_logger);
+    add_to_modules_list(&loggers, default_logger, 1);
 
     init_module(&default_acl, ACCESS_CONTROLLER);
-    add_to_modules_list(&access_controllers, &default_acl);
+    add_to_modules_list(&access_controllers, &default_acl, 1);
 
     init_module(&basic_auth, AUTH_METHOD);
-    add_to_modules_list(&auth_methods, &basic_auth);
+    add_to_modules_list(&auth_methods, &basic_auth, 1);
 
     init_module(&basic_simple_db, AUTHENTICATOR);
-    add_to_modules_list(&authenticators, &basic_simple_db);
+    add_to_modules_list(&authenticators, &basic_simple_db, 1);
 
     return 1;
 }
@@ -609,17 +614,17 @@ int post_init_modules()
 
     /*     common modules */
     for (i = 0; i < common_modules.modules_num ; i++) {
-        if (((common_module_t *) common_modules.modules[i])->
+        if (((common_module_t *) common_modules.modules[i].module)->
                 post_init_module != NULL)
-            ((common_module_t *) common_modules.modules[i])->
+            ((common_module_t *) common_modules.modules[i].module)->
             post_init_module(&CI_CONF);
     }
 
     /*     service_handlers */
     for (i = 0; i < service_handlers.modules_num; i++) {
-        if (((service_handler_module_t *) service_handlers.modules[i])->
+        if (((service_handler_module_t *) service_handlers.modules[i].module)->
                 post_init_service_handler != NULL)
-            ((service_handler_module_t *) service_handlers.modules[i])->
+            ((service_handler_module_t *) service_handlers.modules[i].module)->
             post_init_service_handler(&CI_CONF);
     }
 
@@ -628,9 +633,9 @@ int post_init_modules()
 
     /*     access_controllers */
     for (i = 0; i < access_controllers.modules_num; i++) {
-        if (((access_control_module_t *) access_controllers.modules[i])->
+        if (((access_control_module_t *) access_controllers.modules[i].module)->
                 post_init_access_controller != NULL)
-            ((access_control_module_t *) access_controllers.modules[i])->
+            ((access_control_module_t *) access_controllers.modules[i].module)->
             post_init_access_controller(&CI_CONF);
     }
 
@@ -638,17 +643,17 @@ int post_init_modules()
 
     /*     auth_methods */
     for (i = 0; i < auth_methods.modules_num; i++) {
-        if (((http_auth_method_t *) auth_methods.modules[i])->
+        if (((http_auth_method_t *) auth_methods.modules[i].module)->
                 post_init_auth_method != NULL)
-            ((http_auth_method_t *) auth_methods.modules[i])->
+            ((http_auth_method_t *) auth_methods.modules[i].module)->
             post_init_auth_method(&CI_CONF);
     }
 
     /*     authenticators */
     for (i = 0; i < authenticators.modules_num; i++) {
-        if (((authenticator_module_t *) authenticators.modules[i])->
+        if (((authenticator_module_t *) authenticators.modules[i].module)->
                 post_init_authenticator != NULL)
-            ((authenticator_module_t *) authenticators.modules[i])->
+            ((authenticator_module_t *) authenticators.modules[i].module)->
             post_init_authenticator(&CI_CONF);
     }
 
@@ -658,8 +663,19 @@ int post_init_modules()
 int access_reset();
 void log_reset();
 
-#define RELEASE_MOD_LIST(mod) \
-    free(mod.modules); mod.modules = NULL; mod.list_size = 0; mod.modules_num=0;
+#define RELEASE_MOD_LIST(modlist, mod_type, RELEASE_HANDLER)            \
+    for (i = 0; i < modlist.modules_num; i++) {                         \
+    mod_type *mod = (mod_type *) modlist.modules[i].module;             \
+    if (mod->RELEASE_HANDLER != NULL)                                   \
+        mod->RELEASE_HANDLER();                                         \
+    if (!(modlist.modules[i].flags & FLAG_MOD_STATIC)) {                \
+        if (mod->conf_table)                                            \
+            ci_cfg_conf_table_release(mod->conf_table);                 \
+        free(mod);                                                      \
+    }                                                                   \
+    modlist.modules[i].module = NULL;                                   \
+    }                                                                   \
+    free(modlist.modules); modlist.modules = NULL; modlist.list_size = 0; modlist.modules_num=0;
 
 int release_modules()
 {
@@ -668,57 +684,22 @@ int release_modules()
     log_reset();               /*resetting logs- we are going to release loggers ... */
     access_reset();
 
-    /*     service_handlers */
-    for (i = 0; i < service_handlers.modules_num; i++) {
-        if (((service_handler_module_t *) service_handlers.modules[i])->
-                release_service_handler != NULL)
-            ((service_handler_module_t *) service_handlers.modules[i])->
-            release_service_handler();
-    }
-    RELEASE_MOD_LIST(service_handlers);
-
-    /*     loggers? loggers do not have post init handlers .... */
-    for (i = 0; i < loggers.modules_num; i++) {
-        if (((logger_module_t *) loggers.modules[i])->log_close != NULL)
-            ((logger_module_t *) loggers.modules[i])->log_close();
-    }
-    RELEASE_MOD_LIST(loggers);
-
-    /*     access_controllers */
-    for (i = 0; i < access_controllers.modules_num; i++) {
-        if (((access_control_module_t *) access_controllers.modules[i])->
-                release_access_controller != NULL)
-            ((access_control_module_t *) access_controllers.modules[i])->
-            release_access_controller(&CI_CONF);
-    }
-    RELEASE_MOD_LIST(access_controllers);
-
-    /*     auth_methods */
-    for (i = 0; i < auth_methods.modules_num; i++) {
-        if (((http_auth_method_t *) auth_methods.modules[i])->
-                close_auth_method != NULL)
-            ((http_auth_method_t *) auth_methods.modules[i])->
-            close_auth_method(&CI_CONF);
-    }
-    RELEASE_MOD_LIST(auth_methods);
-
-    /*     authenticators */
-    for (i = 0; i < authenticators.modules_num; i++) {
-        if (((authenticator_module_t *) authenticators.modules[i])->
-                close_authenticator != NULL)
-            ((authenticator_module_t *) authenticators.modules[i])->
-            close_authenticator(&CI_CONF);
-    }
-    RELEASE_MOD_LIST(authenticators);
-
-    /*     common modules */
-    for (i = common_modules.modules_num-1; i >= 0 ; i--) {
-        if (((common_module_t *) common_modules.modules[i])->
-                close_module != NULL)
-            ((common_module_t *) common_modules.modules[i])->
-            close_module(&CI_CONF);
-    }
-    RELEASE_MOD_LIST(common_modules);
-
+    RELEASE_MOD_LIST(service_handlers, service_handler_module_t, release_service_handler);
+    RELEASE_MOD_LIST(loggers, logger_module_t, log_close);
+    RELEASE_MOD_LIST(access_controllers, access_control_module_t, release_access_controller);
+    RELEASE_MOD_LIST(auth_methods, http_auth_method_t, close_auth_method);
+    RELEASE_MOD_LIST(authenticators, authenticator_module_t, close_authenticator);
+    RELEASE_MOD_LIST(common_modules, common_module_t, close_module);
     return 1;
+}
+
+common_module_t * ci_common_module_build(const char *name, int (*init_module)(struct ci_server_conf *server_conf), int (*post_init_module)(struct ci_server_conf *server_conf), void (*close_module)(), struct ci_conf_entry *conf_table)
+{
+    common_module_t *mod = malloc(sizeof(common_module_t));
+    mod->name = name;
+    mod->init_module = init_module;
+    mod->post_init_module = post_init_module;
+    mod->close_module = close_module;
+    mod->conf_table = conf_table;
+    return mod;
 }

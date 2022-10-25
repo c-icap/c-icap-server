@@ -502,20 +502,26 @@ int release_services()
     for (i = 0; i < services_num; i++) {
         if (service_list[i]->mod_close_service != NULL) {
             service_list[i]->mod_close_service();
-            ci_thread_rwlock_destroy(&service_extra_data_list[i].lock);
-            table = unregister_conf_table(service_list[i]->mod_name);
-            if (table!=service_extra_data_list[i].intl_srv_conf_table) {
-                ci_debug_printf(1, "Error unregistering service %s configuration table\n",
-                                service_list[i]->mod_name);
-            }
-            if (table)
-                free(table);
-            service_extra_data_list[i].intl_srv_conf_table = NULL;
-            if (service_extra_data_list[i].option_handlers) {
-                ci_list_destroy(service_extra_data_list[i].option_handlers);
-                service_extra_data_list[i].option_handlers = NULL;
-            }
         }
+        ci_thread_rwlock_destroy(&service_extra_data_list[i].lock);
+        table = unregister_conf_table(service_list[i]->mod_name);
+        if (table != service_extra_data_list[i].intl_srv_conf_table) {
+            ci_debug_printf(1, "Error unregistering service %s configuration table\n",
+                            service_list[i]->mod_name);
+        } else
+            free(table);
+        service_extra_data_list[i].intl_srv_conf_table = NULL;
+        if (service_extra_data_list[i].option_handlers) {
+            ci_list_destroy(service_extra_data_list[i].option_handlers);
+            service_extra_data_list[i].option_handlers = NULL;
+        }
+        if (service_list[i]->mod_data == (void *)0x1){
+            ci_debug_printf(3, "Will release service structures for service %s\n", service_list[i]->mod_name);
+            if (service_list[i]->mod_conf_table)
+                ci_cfg_conf_table_release(service_list[i]->mod_conf_table);
+            free(service_list[i]);
+        }
+        service_list[i] = NULL;
     }
 
     free(service_list);
@@ -659,6 +665,7 @@ service_handler_module_t c_service_handler = {
 
 ci_service_module_t *load_c_service(const char *service_file, const char *argv[])
 {
+    ci_service_module_t *(*service_builder)() = NULL;
     ci_service_module_t *service = NULL;
     CI_DLIB_HANDLE service_handle;
     int forceUnload = 1;
@@ -670,10 +677,36 @@ ci_service_module_t *load_c_service(const char *service_file, const char *argv[]
     service_handle = ci_module_load(service_file, CI_CONF.SERVICES_DIR);
     if (!service_handle)
         return NULL;
-    service = ci_module_sym(service_handle, "service");
+    int cicap_release_ok = 1;
+    void *build_for = ci_module_sym(service_handle, "__ci_build_for");
+    if (build_for) {
+        uint64_t service_cicap_version = *(uint64_t *) build_for;
+        if (!C_ICAP_VERSION_MAJOR_CHECK(service_cicap_version)) {
+            ci_debug_printf(1, "ERROR: Service is build with wrong c-icap release\n");
+            cicap_release_ok = 0;
+        }
+    } else {
+        ci_debug_printf(1, "WARNING: Can not check the used c-icap release to build service %s\n", service_file);
+    }
+
+    if (cicap_release_ok) {
+        service = ci_module_sym(service_handle, "service");
+        if (!service) {
+            if ((service_builder = ci_module_sym(service_handle, "__ci_service_build"))) {
+                ci_debug_printf(3, "New c-icap service initialization procedure\n");
+                if ((service = service_builder()) != NULL) {
+                    service->mod_data = (void *)0x1;
+                } else {
+                    ci_debug_printf(1, "ERROR: \"__ci_service_build\" return failed/nil\n");
+                }
+            }
+        }
+        if (!service) {
+            ci_debug_printf(1, "ERROR: Not symbol \"service\" or \"__ci_service_build\" found in library\n");
+        }
+    }
+
     if (!service) {
-        ci_debug_printf(1,
-                        "Not found symbol \"service\" in library, unload it\n");
         ci_module_unload(service_handle, service_file);
         return NULL;
     }

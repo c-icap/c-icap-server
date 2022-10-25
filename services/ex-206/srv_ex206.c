@@ -37,7 +37,7 @@ int ex206_io(char *wbuf, int *wlen, char *rbuf, int *rlen, int iseof,
              ci_request_t * req);
 
 
-CI_DECLARE_MOD_DATA ci_service_module_t service = {
+static ci_service_module_t ex206_service = {
     "ex206",                         /* mod_name, The module name */
     "Ex206 demo service",            /* mod_short_descr,  Module short description */
     ICAP_RESPMOD | ICAP_REQMOD,     /* mod_type, The service type is responce or request modification */
@@ -53,6 +53,7 @@ CI_DECLARE_MOD_DATA ci_service_module_t service = {
     NULL,
     NULL
 };
+_CI_DECLARE_SERVICE(ex206_service);
 
 /*
   The ex206_req_data structure will store the data required to serve an ICAP request.

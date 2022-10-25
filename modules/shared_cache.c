@@ -11,13 +11,14 @@
 static int init_shared_cache(struct ci_server_conf *server_conf);
 static void release_shared_cache();
 
-CI_DECLARE_MOD_DATA common_module_t module = {
+static common_module_t scache_module = {
     "shared_cache",
     init_shared_cache,
     NULL,
     release_shared_cache,
     NULL,
 };
+_CI_DECLARE_COMMON_MODULE(scache_module);
 
 struct ci_cache_type ci_shared_cache;
 static int init_shared_cache(struct ci_server_conf *server_conf)

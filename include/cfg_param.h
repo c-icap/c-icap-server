@@ -89,7 +89,7 @@ struct ci_server_conf {
  * integer variable can be set from the c-icap configuration file using the
  * directive "AService.Aparameter"
  */
-struct ci_conf_entry {
+typedef struct ci_conf_entry {
     /**
      * The configuration directive
      */
@@ -113,7 +113,7 @@ struct ci_conf_entry {
      * A description message
      */
     const char *msg;
-};
+} ci_conf_entry_t;
 
 /* Command line options implementation structure */
 struct ci_options_entry {
@@ -280,6 +280,21 @@ CI_DECLARE_FUNC(int) ci_cfg_build_info(const char *directive, const char **argv,
 CI_DECLARE_FUNC(void) ci_args_usage(const char *progname,struct ci_options_entry *options);
 CI_DECLARE_FUNC(int)  ci_args_apply(int argc, char *argv[],struct ci_options_entry *options);
 
+CI_DECLARE_FUNC(ci_conf_entry_t *)ci_cfg_conf_table_allocate(int entries);
+CI_DECLARE_FUNC(void) ci_cfg_conf_table_release(ci_conf_entry_t *table);
+CI_DECLARE_FUNC(void) ci_cfg_conf_table_push(ci_conf_entry_t *table, int entries, const char *name, void *data, int (*action)(const char *, const char **argv, void *), const char *msg );
+CI_DECLARE_FUNC(int) ci_cfg_conf_table_configure(ci_conf_entry_t *table, const char *table_name, const char *varname, const char **argv);
+
+static inline ci_conf_entry_t *ci_cfg_conf_table_dup(ci_conf_entry_t *table) {
+    int i, entries;
+    if (!table)
+        return NULL;
+    for (entries = 0; table[entries].name != NULL; ++entries);
+    ci_conf_entry_t *new_table = ci_cfg_conf_table_allocate(entries);
+    for (i = 0; table[i].name != NULL; ++i)
+        ci_cfg_conf_table_push(new_table, entries, table[i].name, table[i].data, table[i].action, table[i].msg);
+    return new_table;
+}
 
 #ifdef __CI_COMPAT
 #define  icap_server_conf   ci_server_conf

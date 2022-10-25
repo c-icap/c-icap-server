@@ -21,14 +21,14 @@ static void release_ldap_pools();
 int init_ldap_module(struct ci_server_conf *server_conf);
 void release_ldap_module();
 
-CI_DECLARE_MOD_DATA common_module_t module = {
+static common_module_t ldap_module = {
     "ldap_module",
     init_ldap_module,
     NULL,
     release_ldap_module,
     NULL,
 };
-
+_CI_DECLARE_COMMON_MODULE(ldap_module);
 
 
 void *ldap_table_open(struct ci_lookup_table *table);

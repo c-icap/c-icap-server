@@ -300,10 +300,12 @@ struct  ci_service_module {
      */
     struct ci_conf_entry *mod_conf_table;
 
+    /* The mod_data now has the value 0x1 for services registered with
+       _CI_DECLARE_SERVICE */
     /**
      \brief NULL pointer
      *
-     * This field does not used. Set it to NULL.
+     * This field used internally by c-icap. Set it to NULL.
      */
     void *mod_data;
 };
@@ -509,6 +511,49 @@ CI_DECLARE_FUNC(void) ci_service_add_xincludes(ci_service_xdata_t *srv_xdata, ch
   \param handler the handler
 */
 CI_DECLARE_FUNC(void) ci_service_add_option_handler(ci_service_xdata_t *srv_xdata, const char *name, int (*handler)(struct ci_request *));
+
+CI_DECLARE_FUNC(ci_service_module_t *) ci_service_build(
+    const char *mod_name,
+    const char *mod_short_descr,
+    int  mod_type,
+    int (*mod_init_service)(ci_service_xdata_t *, struct ci_server_conf *),
+    int (*mod_post_init_service)(ci_service_xdata_t *,struct ci_server_conf *),
+    void (*mod_close_service)(),
+    void *(*mod_init_request_data)(struct ci_request *),
+    void (*mod_release_request_data)(void *),
+    int (*mod_check_preview_handler)(char *, int , struct ci_request *),
+    int (*mod_end_of_data_handler)(struct ci_request *),
+    int (*mod_service_io)(char *, int *, char *, int *, int, struct ci_request *),
+    struct ci_conf_entry *mod_conf_table
+    );
+
+/*Needs to be inlined. Undocumented, not need to included in API*/
+static inline ci_service_module_t *ci_service_dup_to(ci_service_module_t *ssrv, ci_service_module_t **dsrv) {
+    _CI_ASSERT(ssrv);
+    if (!(*dsrv)) // It is not already set;
+        *dsrv = ci_service_build(
+            ssrv->mod_name,
+            ssrv->mod_short_descr,
+            ssrv->mod_type,
+            ssrv->mod_init_service,
+            ssrv->mod_post_init_service,
+            ssrv->mod_close_service,
+            ssrv->mod_init_request_data,
+            ssrv->mod_release_request_data,
+            ssrv->mod_check_preview_handler,
+            ssrv->mod_end_of_data_handler,
+            ssrv->mod_service_io,
+            ci_cfg_conf_table_dup(ssrv->mod_conf_table)
+            );
+    return *dsrv;
+}
+
+#define _CI_DECLARE_SERVICE(srv)                                        \
+    CI_DECLARE_MOD_DATA  const uint64_t __ci_build_for = C_ICAP_HEX_VERSION; \
+    static ci_service_module_t *__ci_service_handle = NULL;                    \
+    CI_DECLARE_MOD_DATA ci_service_module_t *__ci_service_build() {     \
+        return ci_service_dup_to(&srv, &__ci_service_handle);           \
+    }
 
 #ifdef __CI_COMPAT
 #define service_module_t ci_service_module_t

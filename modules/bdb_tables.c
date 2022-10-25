@@ -11,14 +11,14 @@
 int init_bdb_tables(struct ci_server_conf *server_conf);
 void release_bdb_tables();
 
-CI_DECLARE_MOD_DATA common_module_t module = {
+static common_module_t bdb_module = {
     "bdb_tables",
     init_bdb_tables,
     NULL,
     release_bdb_tables,
     NULL,
 };
-
+_CI_DECLARE_COMMON_MODULE(bdb_module)
 
 
 void *bdb_table_open(struct ci_lookup_table *table);

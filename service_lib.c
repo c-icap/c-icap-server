@@ -23,6 +23,38 @@
 #include "service.h"
 #include "debug.h"
 
+ci_service_module_t * ci_service_build(
+    const char *mod_name,
+    const char *mod_short_descr,
+    int  mod_type,
+    int (*mod_init_service)(ci_service_xdata_t *, struct ci_server_conf *),
+    int (*mod_post_init_service)(ci_service_xdata_t *,struct ci_server_conf *),
+    void (*mod_close_service)(),
+    void *(*mod_init_request_data)(struct ci_request *),
+    void (*mod_release_request_data)(void *),
+    int (*mod_check_preview_handler)(char *, int , struct ci_request *),
+    int (*mod_end_of_data_handler)(struct ci_request *),
+    int (*mod_service_io)(char *, int *, char *, int *, int, struct ci_request *),
+    struct ci_conf_entry *mod_conf_table
+    )
+{
+    ci_service_module_t *srv = (ci_service_module_t *)malloc(sizeof(ci_service_module_t));
+    srv->mod_name = mod_name;
+    srv->mod_short_descr = mod_short_descr;
+    srv->mod_type = mod_type;
+    srv->mod_init_service = mod_init_service;
+    srv->mod_post_init_service = mod_post_init_service;
+    srv->mod_close_service = mod_close_service;
+    srv->mod_init_request_data = mod_init_request_data;
+    srv->mod_release_request_data = mod_release_request_data;
+    srv->mod_check_preview_handler = mod_check_preview_handler;
+    srv->mod_end_of_data_handler = mod_end_of_data_handler;
+    srv->mod_service_io = mod_service_io;
+    srv->mod_conf_table = mod_conf_table;
+    srv->mod_data = NULL;
+    return srv;
+}
+
 void ci_service_data_read_lock(ci_service_xdata_t * srv_xdata)
 {
     ci_thread_rwlock_rdlock(&srv_xdata->lock);

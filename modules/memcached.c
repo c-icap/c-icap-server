@@ -63,13 +63,14 @@ static struct ci_conf_entry mc_conf_variables[] = {
 static int mc_module_init(struct ci_server_conf *server_conf);
 static int mc_module_post_init(struct ci_server_conf *server_conf);
 static void mc_module_release();
-CI_DECLARE_MOD_DATA common_module_t module = {
+static common_module_t mc_module = {
     "memcached",
     mc_module_init,
     mc_module_post_init,
     mc_module_release,
     mc_conf_variables,
 };
+_CI_DECLARE_COMMON_MODULE(mc_module);
 
 #define MC_DOMAINLEN 32
 #define MC_MAXKEYLEN 250

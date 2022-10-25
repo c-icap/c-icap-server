@@ -334,25 +334,13 @@ struct ci_conf_entry *unregister_conf_table(const char *name)
     return NULL;
 }
 
-struct ci_conf_entry *search_variables(char *table, char *varname)
+struct ci_conf_entry *conf_table_find(char *table)
 {
     int i;
-    if (table == NULL)
-        return search_conf_table(conf_variables, varname);
-
-    ci_debug_printf(3, "Going to search variable %s in table %s\n", varname,
-                    table);
-
-    if (!extra_conf_tables)    /*Not really needed........ */
-        return NULL;
-
     for (i = 0; i < conf_tables_num; i++) {
-        if (extra_conf_tables[i].name && strcmp(table, extra_conf_tables[i].name) == 0) {
-            return search_conf_table(extra_conf_tables[i].conf_table,
-                                     varname);
-        }
+        if (extra_conf_tables[i].name && strcmp(table, extra_conf_tables[i].name) == 0)
+            return extra_conf_tables[i].conf_table;
     }
-    ci_debug_printf(1, "Variable %s or table %s not found!\n", varname, table);
     return NULL;
 }
 
@@ -859,29 +847,6 @@ int fread_line(FILE * f_conf, char *line)
     return 1;
 }
 
-
-struct ci_conf_entry *find_action(char *str, char **arg)
-{
-    char *end, *table, *s;
-    end = str;
-    while (*end != '\0' && !isspace((int)*end))
-        end++;
-    *end = '\0';               /*Mark the end of Variable...... */
-    end++;                     /*... and continue.... */
-    while (*end != '\0' && isspace((int)*end))      /*Find the start of arguments ...... */
-        end++;
-    *arg = end;
-    if ((s = strchr(str, '.')) != NULL) {
-        table = str;
-        str = s + 1;
-        *s = '\0';
-    } else
-        table = NULL;
-
-//     return search_conf_table(conf_variables,str);
-    return search_variables(table, str);
-}
-
 char **split_args(char *args)
 {
     int len, i = 0, brkt;
@@ -944,36 +909,57 @@ void free_args(char **argv)
     free(argv);
 }
 
+void parse_line(char *str, char **table, char **param, char ***argv)
+{
+    char *end, *s, *arg;
+    *table = NULL;
+    *param = NULL;
+    *argv = NULL;
+    end = str;
+    while (*end != '\0' && !isspace((int)*end))
+        end++;
+    *end = '\0';               /*Mark the end of Variable...... */
+    end++;                     /*... and continue.... */
+    while (*end != '\0' && isspace((int)*end))      /*Find the start of arguments ...... */
+        end++;
+    arg = end;
+    *argv = split_args(arg);
+    if ((s = strchr(str, '.')) != NULL) {
+        *table = str;
+        *s = '\0';
+        *param = s + 1;
+    } else {
+        *table = NULL;
+        *param = str;
+    }
+}
+
 int process_line(char *orig_line)
 {
-    char *str, *args, **argv = NULL;
+    char *str, *table_name = NULL, *param = NULL, **argv = NULL;
     int ret = 1;
-    struct ci_conf_entry *entry;
+    struct ci_conf_entry *table;
     char line[LINESIZE];
 
     strncpy(line, orig_line, LINESIZE);
     line[LINESIZE-1] = '\0';
 
     str = line;
-    while (*str != '\0' && isspace((int)*str))      /*Eat the spaces in the begging */
-        str++;
+    while (*str != '\0' && isspace((int)*str)) str++; /*trim*/
     if (*str == '\0' || *str == '#')   /*Empty line or comment */
         return 1;
-
-    entry = find_action(str, &args);
-//   ci_debug_printf(10,"Line %s (Args:%s)\n",entry->name,args);
-
-    if (entry && entry->action) {
-        argv = split_args(args);
-        if ((*(entry->action)) (entry->name, (const char **)argv, entry->data) == 0)
-            ret = 0;
-        free_args(argv);
-        return ret;
+    parse_line(str, &table_name, &param, &argv);
+    if (!param || !param[0])
+        return 0;
+    table = table_name && table_name[0] ? conf_table_find(table_name) : conf_variables;
+    if (!table) {
+        ci_debug_printf(1, "Variable %s.%s: configuration table %s not found!\n", table_name, param, table_name);
+        return 0;
     }
-    /*OK*/
-    /*Else parse error.......
-       Log an error..... */
-    return 0;
+    ret = ci_cfg_conf_table_configure(table, table_name, param, (const char **)argv);
+    if (argv)
+        free_args(argv);
+    return ret;
 }
 
 static int PARSE_LEVEL = 0;

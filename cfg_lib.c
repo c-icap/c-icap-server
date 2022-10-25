@@ -58,6 +58,51 @@ const char *ci_lib_version_string() {
     return VERSION;
 }
 
+/*ci_conf_table functions*/
+ci_conf_entry_t *ci_cfg_conf_table_allocate(int entries)
+{
+    ci_conf_entry_t *table = (ci_conf_entry_t *)calloc(entries + 1, sizeof(ci_conf_entry_t));
+    return table;
+}
+
+void ci_cfg_conf_table_release(ci_conf_entry_t *table)
+{
+    if (table)
+        free(table);
+}
+
+void ci_cfg_conf_table_push(ci_conf_entry_t *table, int entries, const char *name, void *data, int (*action)(const char *, const char **argv, void *), const char *msg )
+{
+    int i;
+    if (!table)
+        return;
+    for(i = 0; i < entries; i++) {
+        if (table[i].name == NULL) {
+            table[i].name = name;
+            table[i].data = data;
+            table[i].action = action;
+            table[i].msg = msg;
+            return;
+        }
+    }
+}
+
+int ci_cfg_conf_table_configure(ci_conf_entry_t *table, const char *table_name, const char *varname, const char **argv)
+{
+    ci_conf_entry_t *entry = NULL;
+    int i;
+    for (i = 0; table[i].name != NULL; i++) {
+        if (0 == strcmp(varname, table[i].name))
+            entry = &table[i];
+    }
+
+    if (!entry) {
+        ci_debug_printf(1, "Variable %s%s%s not found!\n", table_name, ((table_name && table_name[0]) ? "." : "" ),varname);
+        return 0;
+    }
+    return entry->action(entry->name, argv, entry->data);
+}
+
 /****************************************************************/
 /* Command line options implementation, function and structures */
 

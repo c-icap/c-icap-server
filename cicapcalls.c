@@ -228,3 +228,14 @@ void ci_http_server_register_service(const char *path, const char *descr, int (*
 
     fprintf(stderr, "Can not execute ci_http_server_register_service\n");
 }
+
+common_module_t * ci_common_module_build(const char *name, int (*init_module)(struct ci_server_conf *server_conf), int (*post_init_module)(struct ci_server_conf *server_conf), void (*close_module)(), struct ci_conf_entry *conf_table)
+{
+    typedef common_module_t * (*CS)(const char *, int (*)(struct ci_server_conf *), int (*)(struct ci_server_conf *), void (*)(), struct ci_conf_entry *);
+    CS fn;
+    fn = (CS)GetProcAddress(GetModuleHandle(NULL), "ci_common_module_build");
+    if (fn)
+        return (*fn)(name, init_module, post_init_module, close_module, conf_table);
+    fprintf(stderr, "Can not execute ci_common_module_build\n");
+    return NULL;
+}
