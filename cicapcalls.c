@@ -21,6 +21,7 @@
 #include "c-icap.h"
 #include "proc_threads_queues.h"
 #include "request.h"
+#include "module.h"
 #include <w32api/windows.h>
 
 char *logformat_fmt(const char *name)
