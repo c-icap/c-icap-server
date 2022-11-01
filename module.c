@@ -589,11 +589,8 @@ int init_modules()
     default_service_handler = &c_service_handler;
     add_to_modules_list(&service_handlers, default_service_handler, 1);
 
-    default_logger = &file_logger;
-    /*     init_module(default_logger,LOGGER); Must be called, if default module has conf table
-                                               or init_service_handler. */
-
-    add_to_modules_list(&loggers, default_logger, 1);
+    init_module(&file_logger,LOGGER);
+    add_to_modules_list(&loggers, &file_logger, 1);
 
     init_module(&default_acl, ACCESS_CONTROLLER);
     add_to_modules_list(&access_controllers, &default_acl, 1);

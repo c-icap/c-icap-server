@@ -113,7 +113,6 @@ extern char *ACCESS_LOG_FILE;
 extern char *ACCESS_LOG_FORMAT;
 /*extern char *LOGS_DIR;*/
 
-extern logger_module_t *default_logger;
 extern access_control_module_t **used_access_controllers;
 
 extern char *REMOTE_PROXY_USER_HEADER;
@@ -196,7 +195,7 @@ static struct ci_conf_entry conf_variables[] = {
     {"ServerAdmin", &CI_CONF.SERVER_ADMIN, intl_cfg_set_str, NULL},
     {"ServerName", &CI_CONF.SERVER_NAME, intl_cfg_set_str, NULL},
     {"LoadMagicFile", NULL, cfg_load_magicfile, NULL},
-    {"Logger", &default_logger, cfg_set_logger, NULL},
+    {"Logger", NULL, cfg_set_logger, NULL},
     {"ServerLog", &SERVER_LOG_FILE, intl_cfg_set_str, NULL},
     {"AccessLog", NULL, cfg_set_accesslog, NULL},
     {"LogFormat", NULL, cfg_set_logformat, NULL},
@@ -605,7 +604,8 @@ int cfg_set_accesslog(const char *directive, const char **argv, void *setdata)
 }
 
 
-extern logger_module_t file_logger;
+void log_add_logger(logger_module_t *logger);
+void log_disable_logs();
 int cfg_set_logger(const char *directive, const char **argv, void *setdata)
 {
     logger_module_t *logger;
@@ -613,11 +613,19 @@ int cfg_set_logger(const char *directive, const char **argv, void *setdata)
         ci_debug_printf(1, "Missing arguments in directive\n");
         return 0;
     }
-
-    if (!(logger = find_logger(argv[0])))
-        return 0;
-    default_logger = logger;
-    ci_debug_printf(2, "Setting parameter: %s=%s\n", directive, argv[0]);
+    int i;
+    for (i = 0; argv[i] != NULL; ++i) {
+        if (strcasecmp(argv[i], "none")) {
+            log_disable_logs();
+            continue;
+        }
+        if (!(logger = find_logger(argv[i]))) {
+            ci_debug_printf(1, "WARNING: setting '%s': Logger '%s' is not defined\n", directive, argv[i]);
+            continue;
+        }
+        log_add_logger(logger);
+        ci_debug_printf(2, "Adding logger: %s ...\n", argv[i]);
+    }
     return 1;
 }
 

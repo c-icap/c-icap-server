@@ -32,33 +32,75 @@
 #include "acl.h"
 #include "proc_threads_queues.h"
 #include "commands.h"
+#include "array.h"
 #include <errno.h>
 #include <assert.h>
 
-logger_module_t *default_logger = NULL;
-
+static ci_list_t *default_loggers = NULL;
+static int disable_logs = 0;
 
 void logformat_release();
+static void log_file_logger_makedefault();
+
+void log_add_logger(logger_module_t *logger)
+{
+    if (!default_loggers) {
+        default_loggers = ci_list_create(1024, sizeof(logger_module_t *));
+    }
+    ci_list_push_back(default_loggers, &logger);
+    disable_logs = 0;
+}
+
+void log_disable_logs()
+{
+    disable_logs = 1;
+    if (default_loggers) {
+        ci_list_destroy(default_loggers);
+        default_loggers = NULL;
+    }
+}
 
 int log_open()
 {
-    if (default_logger)
-        return default_logger->log_open();
-    return 0;
+    int ok = 0;
+
+    if (!default_loggers && !disable_logs)
+        log_file_logger_makedefault();
+
+    if (default_loggers) {
+        logger_module_t **logger = NULL;
+        ci_list_iterator_t it;
+        int ret = 0;
+        for (logger = ci_list_iterator_first(default_loggers, &it); logger != NULL; logger = ci_list_iterator_next(&it)) {
+            if (!(ret = (*logger)->log_open())) {
+                ci_debug_printf(1, "WARNING: log_open: logger '%s' can not be initialized\n", (*logger)->name);
+            } else
+                ok = ret;
+        }
+        return ok;
+    }
+    return 1;
 }
 
 
 void log_close()
 {
-    if (default_logger) {
-        default_logger->log_close();
+    if (default_loggers) {
+        logger_module_t **logger = NULL;
+        ci_list_iterator_t it;
+        for (logger = ci_list_iterator_first(default_loggers, &it); logger != NULL; logger = ci_list_iterator_next(&it)) {
+            (*logger)->log_close();
+        }
     }
 }
 
 void log_reset()
 {
     logformat_release();
-    default_logger = NULL;
+    if (default_loggers) {
+        ci_list_destroy(default_loggers);
+        default_loggers = NULL;
+    }
 }
 
 void log_access(ci_request_t * req, int status)
@@ -67,34 +109,51 @@ void log_access(ci_request_t * req, int status)
     if (!req)
         return;
 
-    if (default_logger)
-        default_logger->log_access(req);
+    if (default_loggers) {
+        logger_module_t **logger = NULL;
+        ci_list_iterator_t it;
+        for (logger = ci_list_iterator_first(default_loggers, &it); logger != NULL; logger = ci_list_iterator_next(&it)) {
+            (*logger)->log_access(req);
+        }
+    }
 }
 
 extern process_pid_t MY_PROC_PID;
+static const char *log_prefix(char *buf, size_t buf_size)
+{
+    if (MY_PROC_PID)
+        snprintf(buf, buf_size, "%" PRIu64 "/%" PRIu64, (uint64_t)MY_PROC_PID, (uint64_t)ci_thread_self());
+    else
+        snprintf(buf, buf_size, "main proc");
+    return buf;
+}
+
 void log_server(ci_request_t * req, const char *format, ...)
 {
     /*req can be NULL......... */
     va_list ap;
-    char prefix[64];
+    char buf[64];
     va_start(ap, format);
-    if (default_logger) {
-        if (MY_PROC_PID)
-            snprintf(prefix, sizeof(prefix), "%" PRIu64 "/%" PRIu64, (uint64_t)MY_PROC_PID, (uint64_t)ci_thread_self());
-        else { /*probably the main process*/
-            strncpy(prefix, "main proc", sizeof(prefix));
-            prefix[sizeof(prefix) - 1] = '\0';
+    if (default_loggers) {
+        logger_module_t **logger = NULL;
+        ci_list_iterator_t it;
+        for (logger = ci_list_iterator_first(default_loggers, &it); logger != NULL; logger = ci_list_iterator_next(&it)) {
+            (*logger)->log_server(log_prefix(buf, sizeof(buf)), format, ap);
         }
-
-        default_logger->log_server(prefix, format, ap);    /*First argument must be changed..... */
     }
     va_end(ap);
 }
 
 void vlog_server(ci_request_t * req, const char *format, va_list ap)
 {
-    if (default_logger)
-        default_logger->log_server("", format, ap);
+    char buf[64];
+    if (default_loggers) {
+        logger_module_t **logger = NULL;
+        ci_list_iterator_t it;
+        for (logger = ci_list_iterator_first(default_loggers, &it); logger != NULL; logger = ci_list_iterator_next(&it)) {
+            (*logger)->log_server(log_prefix(buf, sizeof(buf)), format, ap);
+        }
+    }
 }
 
 /*************************************************************/
@@ -417,4 +476,9 @@ int file_log_addlogfile(const char *file, const char *format, const char **acls)
     }
 
     return 1;
+}
+
+void log_file_logger_makedefault()
+{
+    log_add_logger(&file_logger);
 }

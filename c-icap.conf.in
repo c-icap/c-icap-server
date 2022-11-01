@@ -722,14 +722,18 @@ ServerLog @prefix@/var/log/server.log
 AccessLog @prefix@/var/log/access.log
 
 # TAG: Logger
-# Format: Logger LoggerName
+# Format: Logger LoggerName ...
 # Description:
-#	Specify wich logger to use. By default uses the build in "file_logger" which
-#	uses files for access and server logging.
+#	Specify wich loggers to use. By default the c-icap uses the
+#	build in "file_logger" logger, which uses files for access
+#	and server logging.
+#	If the word "none" is used instead of a logger name then the
+#	logs are disabled.
+#	It can be called more than once to specify multiple loggers.
 # Default:
 #	Logger file_logger
 # Example:
-#	Logger sys_logger
+#	Logger file_logger sys_logger
 
 # TAG: Module
 # Format: Module Type ModuleFile [forceUnload=off]
