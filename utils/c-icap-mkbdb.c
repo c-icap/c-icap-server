@@ -151,7 +151,7 @@ int dump_db()
     memset(&db_data, 0, sizeof(db_data));
     memset(&db_key, 0, sizeof(db_key));
 
-    if ((ret = dbc->c_get(dbc, &db_key, &db_data, DB_SET_RANGE)) != 0) {
+    if ((ret = dbc->c_get(dbc, &db_key, &db_data, DB_FIRST)) != 0) {
         ci_debug_printf(1, "error getting first element of DB : %s\n", db_strerror(ret));
         dbc->c_close(dbc);
         return 0;
