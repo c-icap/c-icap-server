@@ -140,13 +140,8 @@ int bdb_table_do_real_open(struct ci_lookup_table *table)
         ci_debug_printf(1, "db_create failed to set cache size: %s\n", db_strerror(ret));
     }
 
-#if (DB_VERSION_MAJOR > 4) || (DB_VERSION_MAJOR == 4 && DB_VERSION_MINOR >= 1)
     if ((ret = dbdata->db->open( dbdata->db, NULL, table->path, NULL,
-                                 DB_BTREE, DB_RDONLY|DB_THREAD, 0)) != 0) {
-#else
-    if ((ret = dbdata->db->open( dbdata->db, table->path, NULL,
-                                 DB_BTREE, DB_RDONLY, 0)) != 0) {
-#endif
+                                 DB_UNKNOWN, DB_RDONLY|DB_THREAD, 0)) != 0) {
         ci_debug_printf(1, "open db %s: %s\n", table->path, db_strerror(ret));
         dbdata->db->close(dbdata->db, 0);
         dbdata->db = NULL;
@@ -227,7 +222,7 @@ void *bdb_table_search(struct ci_lookup_table *table, void *key, void ***vals)
 
     db_data.flags = DB_DBT_USERMEM;
     db_data.data = ci_buffer_alloc(DATA_SIZE);
-    db_data.size = DATA_SIZE;
+    db_data.ulen = DATA_SIZE;
 
     if ((ret = dbdata->db->get(dbdata->db, NULL, &db_key, &db_data, 0)) != 0) {
         ci_debug_printf(5, "db_entry_exists does not exists: %s\n", db_strerror(ret));
