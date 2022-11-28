@@ -21,6 +21,7 @@ const ci_type_ops_t *val_ops = &ci_str_ops;
 char *txtfile = NULL;
 char *dbfile = NULL;
 int DUMP_MODE = 0;
+int ERASE_MODE = 0;
 int VERSION_MODE = 0;
 int USE_DBTREE = 0;
 long int DB_PAGE_SIZE;
@@ -41,7 +42,7 @@ static struct ci_options_entry options[] = {
     },
     {
         "-o", "file.db", &dbfile, ci_cfg_set_str,
-        "The database to be created"
+        "The database to be modified or created"
     },
     {
         "-t", "string|int|ip",NULL, cfg_set_type,
@@ -62,6 +63,10 @@ static struct ci_options_entry options[] = {
     {
         "--dump", NULL, &DUMP_MODE, ci_cfg_enable,
         "Do not update the database just dump it to the screen"
+    },
+    {
+        "--erase", NULL, &ERASE_MODE, ci_cfg_enable,
+        "Erase the keys/items listed in input file instead of add them"
     },
     {NULL, NULL, NULL, NULL}
 };
@@ -306,6 +311,19 @@ void store_db(void *key, int keysize, void *val, int  valsize)
                         db_strerror(ret), keysize, valsize);
 }
 
+void erase_from_db(void *key, int keysize)
+{
+    DBT db_key;
+    int ret;
+    memset(&db_key, 0, sizeof(db_key));
+    db_key.data = key;
+    db_key.size = keysize;
+
+    ret = db->del(db, NULL, &db_key, 0);
+    if (ret!=0)
+        ci_debug_printf(1, "erase_from_db: %s (key size:%d)\n",
+                        db_strerror(ret), keysize);
+}
 
 int cfg_set_type(const char *directive, const char **argv, void *setdata)
 {
@@ -417,8 +435,16 @@ int main(int argc, char **argv)
             if (!record_extract(line, &key, &keysize, &val, &valsize)) {
                 ci_debug_printf(1, "Error parsing line : %s\n", line);
                 break;
-            } else if (key) /*if it is not comment or blank line */
-                store_db(key, keysize, val, valsize);
+            } else if (key) { /*if it is not comment or blank line */
+                if (ERASE_MODE)
+                    erase_from_db(key, keysize);
+                else
+                    store_db(key, keysize, val, valsize);
+                if (key)
+                    allocator->free(allocator, key);
+                if (val)
+                    allocator->free(allocator, val);
+            }
         }
         fclose(f);
     }
