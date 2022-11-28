@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include "c-icap.h"
+#include "commands.h"
 #include "dlib.h"
 #include "module.h"
 #include "mem.h"
@@ -10,12 +11,23 @@
 #include "cache.h"
 #include "debug.h"
 #include "ci_threads.h"
+#include "util.h"
 
 
 void init_internal_lookup_tables();
 
 char *path;
-char **keys = NULL;
+
+struct KeyList{
+    char **indx;
+    int num;
+    int max;
+} keys = {
+    NULL,
+    0,
+    0
+};
+
 int threadsnum = 0;
 int queries_max_num = 0;
 char *keysfile;
@@ -31,6 +43,17 @@ void log_errors(void *unused, const char *format, ...)
     va_start(ap, format);
     vfprintf(stderr, format, ap);
     va_end(ap);
+}
+
+common_module_t * ci_common_module_build(const char *name, int (*init_module)(struct ci_server_conf *server_conf), int (*post_init_module)(struct ci_server_conf *server_conf), void (*close_module)(), struct ci_conf_entry *conf_table)
+{
+    common_module_t *mod = malloc(sizeof(common_module_t));
+    mod->name = name;
+    mod->init_module = init_module;
+    mod->post_init_module = post_init_module;
+    mod->close_module = close_module;
+    mod->conf_table = conf_table;
+    return mod;
 }
 
 
@@ -50,6 +73,13 @@ int load_module(const char *directive,const char **argv,void *setdata)
     }
 
     module = ci_module_sym(lib, "module");
+    if (!module) {
+        common_module_t *(*module_builder)() = NULL;
+        if ((module_builder = ci_module_sym(lib, "__ci_module_build"))) {
+            ci_debug_printf(2, "New c-icap modules initialization procedure\n");
+            module = (*module_builder)();
+        }
+    }
 
     if (!module) {
         printf("Error opening module %s: can not find symbol module\n",argv[0]);
@@ -64,10 +94,42 @@ int load_module(const char *directive,const char **argv,void *setdata)
     return 1;
 }
 
-int cfg_set_str_list(const char *directive, const char **argv, void *setdata)
+/*
+  Some lookup tables implementations uses commands to register initialization
+  handler at c-icap kids startup. Implement basic commands for testing.
+*/
+ci_command_t Commands[128];
+int CommandsNum = 0;
+
+void ci_command_register_action(const char *name, int type, void *data, void (*command_action) (const char *name, int type, void *data))
+{
+    if (CommandsNum >= 128)
+        return; /*Do Nothing*/
+    strncpy(Commands[CommandsNum].name, name, sizeof(Commands[CommandsNum].name) - 1);
+    Commands[CommandsNum].type = type;
+    Commands[CommandsNum].command_action_extend = command_action;
+    Commands[CommandsNum].data = data;
+    CommandsNum++;
+}
+
+void execute_commands(int type)
 {
     int i;
-    char ***list = (char ***)setdata;
+    for (i = 0; i < CommandsNum; i++) {
+        if (!(type & Commands[i].type))
+            continue;
+        if (type & CI_CMD_CHILD_START) {
+            ci_debug_printf(2, "Exec CI_CMD_CHILD_START command: %s\n", Commands[i].name);
+            Commands[i].command_action_extend(Commands[i].name, type, Commands[i].data);
+        }
+    }
+}
+
+
+#define MAX_LIST_SIZE 1024
+int cfg_set_str_list(const char *directive, const char **argv, void *setdata)
+{
+    struct KeyList *list = (struct KeyList*)setdata;
     if (setdata == NULL)
         return 0;
 
@@ -75,14 +137,38 @@ int cfg_set_str_list(const char *directive, const char **argv, void *setdata)
         return 0;
     }
 
-    if (!*list)
-        *list = calloc(1024, sizeof(char *));
+    assert(list);
+    assert(list->indx);
+    if (list->num >= list->max)
+        return 0;
 
-    for (i = 0; i < 1023 && (*list)[i]; ++i);
-    if ((*list)[i] == NULL)
-        (*list)[i] = strdup(argv[0]);
+    list->indx[list->num] = strdup(argv[0]);
+    list->num++;
+
     ci_debug_printf(2, "Setting parameter: %s=%s\n", directive, argv[0]);
     return 1;
+}
+
+void load_keys_from_file(struct KeyList *list, const char *name)
+{
+    FILE *f;
+    if ((f = fopen(name, "r+")) == NULL) {
+        ci_debug_printf(1, "Error opening file: %s\n", name);
+        return;
+    }
+    char line[1024];
+    while (fgets(line, sizeof(line), f)) {
+        line[sizeof(line) - 1] = '\0';
+        ci_str_trim(line);
+        printf("add line : %s\n", line);
+        if (line[0] == '#' || line[0] == '\0')
+            continue;
+        if (list->num >= list->max)
+            break;
+        list->indx[list->num++] = strdup(line);
+    }
+    fclose(f);
+    ci_debug_printf(2, "%d keys loaded for testing\n", list->num);
 }
 
 static struct ci_options_entry options[] = {
@@ -123,24 +209,28 @@ void run_test()
     void *e,*v,**vals;
     char *key;
     int i, k;
+    if (!keys.num)
+        return;
     do {
-        for (k = 0; keys[k] != NULL && k < 1024 && queries_num < queries_max_num; ++k) {
+        for (k = 0; k < keys.num && queries_num < queries_max_num; ++k) {
             ci_thread_mutex_lock(&mtx);
             int reqId = ++queries_num;
             ci_thread_mutex_unlock(&mtx);
 
-            key = keys[k];
-            e = table->search(table,key,&vals);
+            key = keys.indx[k];
+            e = table->search(table, key, &vals);
             if (e) {
-                printf("Result %d :\n\t%s:",reqId, key);
+                char valuesStr[1024];
                 if (vals) {
+                    size_t written = 0;
                     for (v = vals[0], i = 0; v != NULL; v = vals[++i]) {
-                        printf("%s ",(char *)v);
+                        if (written < sizeof(valuesStr))
+                            written += snprintf(valuesStr + written, sizeof(valuesStr) - written, "%s ", (char *)v);
                     }
                 }
-                printf("\n\n");
+                ci_debug_printf(2, "Result %d :\n\t%s: %s\n", reqId, key, valuesStr);
             } else {
-                printf("Result %d: Key '%s' not found\n\n", reqId, key);
+                ci_debug_printf(2, "Result %d: Key '%s' is not found\n\n", reqId, key);
             }
         }
     } while (queries_num < queries_max_num);
@@ -154,7 +244,13 @@ int main(int argc,char *argv[])
 
     __log_error = (void (*)(void *, const char *,...)) log_errors;     /*set c-icap library log  function */
 
-    if (!ci_args_apply(argc, argv, options) || !path || !keys) {
+    if (!keys.indx) {
+        keys.indx = calloc(MAX_LIST_SIZE, sizeof(char *));
+        keys.max = MAX_LIST_SIZE;
+        keys.num = 0;
+    }
+
+    if (!ci_args_apply(argc, argv, options) || !path || (!keys.indx && !keysfile)) {
         ci_args_usage(argv[0], options);
         exit(-1);
     }
@@ -163,7 +259,10 @@ int main(int argc,char *argv[])
         CI_DEBUG_LEVEL = USE_DEBUG_LEVEL;
 
     if (queries_max_num <= 0)
-        while(keys[queries_max_num] !=0) queries_max_num++;
+        queries_max_num = keys.num;
+
+    if (keysfile)
+        load_keys_from_file(&keys, keysfile);
 
     ci_thread_mutex_init(&mtx);
 
@@ -177,6 +276,7 @@ int main(int argc,char *argv[])
         printf("Error opening table\n");
         return -1;
     }
+    execute_commands(CI_CMD_CHILD_START);
     if (threadsnum <= 1) {
         run_test();
     } else {
@@ -198,10 +298,12 @@ int main(int argc,char *argv[])
         }
         free(threads);
     }
-    int i;
-    for (i = 0; keys[i] != NULL; ++i)
-        free(keys[i]);
-    free(keys);
+    if (keys.indx) {
+        int i;
+        for (i = 0; i < keys.num; ++i)
+            free(keys.indx[i]);
+        free(keys.indx);
+    }
     ci_lookup_table_destroy(table);
     ci_thread_mutex_destroy(&mtx);
     return 0;
