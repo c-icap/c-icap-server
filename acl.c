@@ -716,13 +716,13 @@ ci_acl_data_t *ci_acl_spec_new_data(ci_acl_spec_t *spec, const char *val)
         return NULL;
 
     ops = spec->type->type;
-    data = ops->dup(val, default_allocator);
+    data = ops->dup(val, ci_os_allocator);
     if (!data)
         return NULL;
 
     new_data = malloc(sizeof(ci_acl_data_t));
     if (!new_data) {
-        ops->free(data, default_allocator);
+        ops->free(data, ci_os_allocator);
         return NULL;
     }
     new_data->data = data;
@@ -763,7 +763,7 @@ void ci_acl_spec_release(ci_acl_spec_t *cur)
     while (dhead) {
         dtmp = dhead;
         dhead = dhead->next;
-        ops->free(dtmp->data, default_allocator);
+        ops->free(dtmp->data, ci_os_allocator);
         free(dtmp);
     }
 }

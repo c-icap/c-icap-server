@@ -40,8 +40,8 @@ typedef struct ci_mem_allocator {
     int must_free;
 } ci_mem_allocator_t;
 
-
-CI_DECLARE_DATA extern ci_mem_allocator_t *default_allocator;
+CI_DECLARE_DATA extern ci_mem_allocator_t *ci_os_allocator;
+CI_DECLARE_DATA extern ci_mem_allocator_t *default_allocator; /* Deprecated */
 
 CI_DECLARE_FUNC(void) ci_mem_allocator_destroy(ci_mem_allocator_t *allocator);
 CI_DECLARE_FUNC(ci_mem_allocator_t *) ci_create_os_allocator();

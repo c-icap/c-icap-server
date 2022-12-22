@@ -25,29 +25,29 @@ int check_ip_ops()
 {
     int i, ret = 1;
     char ip_buf[128];
-    ci_ip_t *ip1 = ci_ip_ops.dup("192.168.1.1/255.255.255.248", default_allocator);
+    ci_ip_t *ip1 = ci_ip_ops.dup("192.168.1.1/255.255.255.248", ci_os_allocator);
     for (i = 1; i < 8 && ret; ++i) {
         snprintf(ip_buf, sizeof(ip_buf), "192.168.1.%d", i);
-        ci_ip_t *ip2 = ci_ip_ops.dup(ip_buf, default_allocator);
+        ci_ip_t *ip2 = ci_ip_ops.dup(ip_buf, ci_os_allocator);
         printf("IP network address: %s\n", str_ip(ip1));
         printf("IP check address: %s\n", str_ip(ip2));
         ret = ci_ip_ops.equal(ip1, ip2);
         printf("Check result: %d\n\n", ret);
-        ci_ip_ops.free(ip2, default_allocator);
+        ci_ip_ops.free(ip2, ci_os_allocator);
     }
 
     for (i = 8; i < 16 && ret; ++i) {
         snprintf(ip_buf, sizeof(ip_buf), "192.168.1.%d", i);
-        ci_ip_t *ip2 = ci_ip_ops.dup(ip_buf, default_allocator);
+        ci_ip_t *ip2 = ci_ip_ops.dup(ip_buf, ci_os_allocator);
         printf("IP network address: %s\n", str_ip(ip1));
         printf("IP check address: %s\n", str_ip(ip2));
         ret = ci_ip_ops.equal(ip1, ip2);
         printf("Check result: %d\n\n", ret);
         ret = !ret;
-        ci_ip_ops.free(ip2, default_allocator);
+        ci_ip_ops.free(ip2, ci_os_allocator);
     }
 
-    ci_ip_ops.free(ip1, default_allocator);
+    ci_ip_ops.free(ip1, ci_os_allocator);
     return ret;
 }
 

@@ -505,6 +505,25 @@ ci_mem_allocator_t *ci_create_os_allocator()
     return allocator;
 }
 
+/*Static declaration of an os allocator*/
+ci_mem_allocator_t os_allocator_local = {
+    os_allocator_alloc,
+    os_allocator_free,
+    os_allocator_reset,
+    os_allocator_destroy,
+    NULL,
+    "ci_os_allocator",
+    OS_ALLOC,
+    0 /*must_free*/
+};
+
+/*
+  The ci_mem_allocator objects can not be const, because their operations
+  may modify their self.
+  TODO: check how they can be const
+*/
+ci_mem_allocator_t *ci_os_allocator = &os_allocator_local;
+
 /************************************************************/
 /* The serial allocator implementation                      */
 typedef struct serial_allocator {
