@@ -21,6 +21,7 @@
 #define __C_ICAP_UTIL_H
 
 #include "array.h"
+#include "types_ops.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -62,6 +63,9 @@ CI_DECLARE_FUNC(char *) ci_str_trim2(char *s);
 CI_DECLARE_FUNC(char *) ci_strerror(int error, char *buf, size_t buflen);
 
 CI_DECLARE_FUNC(ci_dyn_array_t *) ci_parse_key_value_list(const char *str, char sep);
+
+CI_DECLARE_FUNC(int) ci_parse_key_mvalues(const char *line, char key_sep, char vals_sep, const ci_type_ops_t *key_type, const ci_type_ops_t *val_type, void **key, size_t *keysize, ci_vector_t **values);
+
 #ifdef __cplusplus
 }
 #endif

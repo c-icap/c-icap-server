@@ -191,3 +191,82 @@ ci_dyn_array_t *ci_parse_key_value_list(const char *str, char sep)
     free(s);
     return args_array;
 }
+
+int ci_parse_key_mvalues(const char *line, char key_sep, char vals_sep, const ci_type_ops_t *key_type, const ci_type_ops_t *val_type, void **key, size_t *keysize,  ci_vector_t **values)
+{
+    ci_mem_allocator_t *allocator = ci_os_allocator;
+    int row_cols = 0;
+    const char *s, *e, *v;
+
+    *key = NULL;
+    *values = NULL;
+    *keysize = 0;
+
+    s = line;
+    while (isspace(*s)) s++;
+    if (*s == '#') /*it is a comment*/
+        return 1;
+
+    if (*s == '\0') /*it is a blank line*/
+        return 1;
+
+    if (!(e = strchr(s, key_sep))) {
+        row_cols = 1;
+        e = s + strlen(s);
+    } else {
+        row_cols = 2;
+        const char *cs = e;
+        while ((cs = strchr(cs, vals_sep))) row_cols++, cs++;
+        if (row_cols > 256)
+            return -1; /*Too many columns*/
+    }
+    v = e; /*save the pos of key separator*/
+    e--; /*points at the end of key*/
+    while(isspace(*e)) e--;
+    e++;
+    char tmp[32768];
+    if ((e - s) > sizeof(tmp) - 1)
+        return -2;
+    memcpy(tmp, s, e - s);
+    tmp[e - s] = '\0';
+    (*key) = key_type->dup(tmp, allocator);
+    (*keysize) = key_type->size(*key);
+    if (row_cols <= 1)
+        return 1; /*done, only key without values*/
+
+    /*Allocate a enough mem for storing the values*/
+    (*values) = ci_vector_create(65535);
+    s = v + 1; /*point after the key separator*/
+    int i;
+    for (i = 0; *s != '\0' && i< row_cols-1; i++) { /*we have vals*/
+        while (isspace(*s)) s++; /*find the start of the string*/
+        v = s;
+        e = s;
+        while (*e != vals_sep && *e != '\0') e++;
+        s = (*e == '\0' ? e : e + 1); /*Next start or the end*/
+        e--;
+        while (isspace(*e)) e--;
+        if ((e - v) > (sizeof(tmp) - 1)) {
+            ci_vector_destroy(*values);
+            *values = NULL;
+            allocator->free(allocator, *key);
+            *key = NULL;
+            return -2;
+        }
+        e++;
+        memcpy(tmp, v, e - v);
+        tmp[e - v] = '\0';
+        void *avalue = val_type->dup(tmp, allocator);
+        size_t avalue_size = val_type->size(avalue);
+        if (!ci_vector_add((*values), avalue, avalue_size)) {
+            ci_vector_destroy(*values);
+            *values = NULL;
+            allocator->free(allocator, *key);
+            *key = NULL;
+            allocator->free(allocator, avalue);
+            return -3;
+        }
+        allocator->free(allocator, avalue);
+    }
+    return 1;
+}
