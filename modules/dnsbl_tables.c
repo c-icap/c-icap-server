@@ -48,7 +48,7 @@ void release_dnsbl_tables()
 }
 
 /***********************************************************/
-/*  bdb_table_type inmplementation                         */
+/*  bdb_table_type implementation                         */
 
 struct dnsbl_data {
     char check_domain[CI_MAXHOSTNAMELEN+1];
@@ -120,7 +120,7 @@ void *dnsbl_table_open(struct ci_lookup_table *table)
 
     table->data = dnsbl_data;
 
-    /*Must released before exit, we have pointes pointing on args array items*/
+    /*Must released before exit, we have pointers pointing on args array items*/
     if (args)
         ci_dyn_array_destroy(args);
     return table->data;
