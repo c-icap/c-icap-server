@@ -47,7 +47,7 @@ void release_bdb_tables()
 }
 
 /***********************************************************/
-/*  bdb_table_type inmplementation                         */
+/*  bdb_table_type implementation                         */
 
 struct bdb_data {
     DB_ENV *env_db;
@@ -193,7 +193,7 @@ void  bdb_table_close(struct ci_lookup_table *table)
 }
 
 #define DATA_SIZE 32768
-#define BDB_MAX_COLS 1024 /*Shound be: BDB_MAX_COLS*sizeof(void *) < DATA_SIZE */
+#define BDB_MAX_COLS 1024 /*Should be: BDB_MAX_COLS*sizeof(void *) < DATA_SIZE */
 
 void *bdb_table_search(struct ci_lookup_table *table, void *key, void ***vals)
 {
