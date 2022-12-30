@@ -234,12 +234,18 @@ static int file_proc_mutex_init(ci_proc_mutex_t * mutex, const char *name)
 {
     int fd;
     snprintf(mutex->name, CI_PROC_MUTEX_NAME_SIZE, "%s_%s.XXXXXX", CI_MUTEX_FILE_TEMPLATE, name);
-    if ((fd = mkstemp(mutex->name)) < 0) {
+    fd = mkstemp(mutex->name);
 #if defined(__CYGWIN__)
+    if (fd < 0) {
         /*Maybe runs under cmd*/
         snprintf(mutex->name, CI_PROC_MUTEX_NAME_SIZE, "%s_%s.XXXXXX", CI_MUTEX_FILE_TEMPLATE_2, name);
-        if ((fd = mkstemp(mutex->name)) < 0)
+        fd = mkstemp(mutex->name);
+    }
 #endif
+    if (fd < 0) {
+        char buf[512];
+        ci_strerror(errno, buf, sizeof(buf));
+        ci_debug_printf(1, "Error creating temporary file for mutex, errno:%d - %s\n", errno, buf);
         return 0;
     }
     struct file_data *file = (struct file_data *)calloc(1, sizeof(struct file_data));
