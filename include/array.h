@@ -58,6 +58,7 @@ typedef struct ci_array {
     size_t max_size;
     unsigned int count;
     ci_mem_allocator_t *alloc;
+    unsigned int flags;
 } ci_array_t;
 
 /**
@@ -364,6 +365,7 @@ typedef struct ci_dyn_array {
     unsigned int count;
     unsigned int max_items;
     ci_mem_allocator_t *alloc;
+    unsigned int flags;
 } ci_dyn_array_t;
 
 /**
@@ -539,6 +541,7 @@ typedef struct ci_vector {
     size_t max_size;
     unsigned int count;
     ci_mem_allocator_t *alloc;
+    unsigned int flags;
 } ci_vector_t;
 
 /**
@@ -555,6 +558,15 @@ CI_DECLARE_FUNC(ci_vector_t *) ci_vector_create(size_t max_size);
  \param vector a pointer to ci_vector_t object to be destroyed
  */
 CI_DECLARE_FUNC(void) ci_vector_destroy(ci_vector_t *vector);
+
+/**
+ * Enable or disable memory alignment of items stored in a ci_vector_t object
+ \ingroup VECTORS
+ * The vector must be empty, else this function does not have any effect.
+ \param vector a pointer to ci_vector_t object
+ \param onoff enables or disables the alignment
+ */
+CI_DECLARE_FUNC(void) ci_vector_set_align(ci_vector_t *vector, int onoff);
 
 /**
  * Add an  item to the vector.
@@ -592,6 +604,15 @@ CI_DECLARE_FUNC(const void *) ci_vector_get(const ci_vector_t *vector, unsigned 
 
 /**
  \ingroup VECTORS
+ * Return a pointer to the i item of the vector
+ * Similar to ci_vector_get but also return the size of stored item. The
+ * size of stored object may appear as larger than the real object size
+ * due to alignment requirements.
+ */
+CI_DECLARE_FUNC(const void *) ci_vector_get2(const ci_vector_t *vector, unsigned int i, size_t *size);
+
+/**
+ \ingroup VECTORS
  * Return the number of the vector items
  */
 CI_DECLARE_FUNC(int) ci_vector_size(const ci_vector_t *vector);
@@ -614,9 +635,7 @@ CI_DECLARE_FUNC(ci_vector_t *)ci_vector_cast_from_voidvoid(const void **p);
  * functions.
  */
 typedef ci_vector_t ci_str_vector_t;
-static inline ci_str_vector_t *ci_str_vector_create(size_t max_size) {
-    return ci_vector_create(max_size);
-}
+CI_DECLARE_FUNC(ci_str_vector_t *) ci_str_vector_create(size_t max_size);
 
 static inline void ci_str_vector_destroy(ci_str_vector_t *vector) {
     ci_vector_destroy(vector);

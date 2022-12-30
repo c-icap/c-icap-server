@@ -53,6 +53,7 @@ ci_array_t * ci_array_new(size_t size)
     array->items = NULL;
     array->mem = buffer;
     array->alloc = packer;
+    array->flags = 0;
     return array;
 }
 
@@ -310,6 +311,7 @@ ci_dyn_array_t * ci_dyn_array_new2(size_t items, size_t item_size)
     array->items = ci_buffer_alloc(items*sizeof(ci_array_item_t *));
     array->count = 0;
     array->alloc = packer;
+    array->flags = 0;
     return array;
 }
 
@@ -437,6 +439,10 @@ const ci_array_item_t * ci_ptr_dyn_array_add(ci_ptr_dyn_array_t *array, const ch
 /**************/
 /* Vectors API */
 
+typedef enum {
+    CI_VECTOR_MEM_ALIGN = 0x0001
+} ci_vector_flags_t;
+
 ci_vector_t * ci_vector_create(size_t max_size)
 {
     ci_vector_t *vector;
@@ -470,8 +476,17 @@ ci_vector_t * ci_vector_create(size_t max_size)
     vector->last = indx;
     vector->count = 0;
     vector->alloc = packer;
+    vector->flags = CI_VECTOR_MEM_ALIGN;
     return vector;
+}
 
+void ci_vector_set_align(ci_vector_t *vector, int onoff)
+{
+    _CI_ASSERT(vector);
+    if (onoff)
+        vector->flags |= CI_VECTOR_MEM_ALIGN;
+    else
+        vector->flags &= ~CI_VECTOR_MEM_ALIGN;
 }
 
 const void **ci_vector_cast_to_voidvoid(ci_vector_t *vector)
@@ -509,6 +524,23 @@ const void *ci_vector_get(const ci_vector_t *vector, unsigned int i)
     return (i < vector->count ? (const void *)vector->items[i]:  (const void *)NULL);
 }
 
+const void * ci_vector_get2(const ci_vector_t *vector, unsigned int i, size_t *size)
+{
+    _CI_ASSERT(vector);
+    if (i >= vector->count)
+        return (const void *)NULL;
+    const void *item = (const void *)vector->items[i];
+    if (size) {
+        if (i > 0)
+            *size = vector->items[i - 1] - vector->items[i];
+        else {
+            void *vector_data_end = vector->mem + vector->max_size;
+            *size = vector_data_end - vector->items[0];
+        }
+    }
+    return item;
+}
+
 int ci_vector_size(const ci_vector_t *vector)
 {
     _CI_ASSERT(vector);
@@ -523,7 +555,8 @@ const void * ci_vector_add(ci_vector_t *vector, const void *value, size_t size)
     _CI_ASSERT(vector->alloc);
     packer = vector->alloc;
     indx = ci_pack_allocator_alloc_unaligned(packer, array_item_size(void *));
-    item = ci_pack_allocator_alloc_from_rear(packer, size);
+    int align = (vector->flags & CI_VECTOR_MEM_ALIGN);
+    item = ci_pack_allocator_alloc_from_rear2(packer, size, align);
     if (!item || !indx) {
         ci_debug_printf(2, "Not enough space to add the new item to vector!\n");
         return NULL;
@@ -573,6 +606,13 @@ void ci_vector_iterate(const ci_vector_t *vector, void *data, int (*fn)(void *da
 
 
 /*ci_str_vector functions */
+ci_str_vector_t *ci_str_vector_create(size_t max_size)
+{
+    ci_vector_t *v = ci_vector_create(max_size);
+    v->flags &=  ~CI_VECTOR_MEM_ALIGN;
+    return (ci_str_vector_t *)v;
+}
+
 const char *ci_str_vector_get(ci_str_vector_t *vector, unsigned int i)
 {
     _CI_ASSERT(vector);

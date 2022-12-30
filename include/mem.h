@@ -56,7 +56,9 @@ CI_DECLARE_FUNC(void) ci_pack_allocator_free(ci_mem_allocator_t *allocator,void 
 CI_DECLARE_FUNC(ci_mem_allocator_t *)ci_create_pack_allocator_on_memblock(char *memblock, size_t size);
 CI_DECLARE_FUNC(size_t)  ci_pack_allocator_required_size();
 CI_DECLARE_FUNC(void *) ci_pack_allocator_alloc_unaligned(ci_mem_allocator_t *allocator, size_t size);
+CI_DECLARE_FUNC(void *) ci_pack_allocator_alloc_from_rear2(ci_mem_allocator_t *allocator, int size, int align);
 CI_DECLARE_FUNC(void *) ci_pack_allocator_alloc_from_rear(ci_mem_allocator_t *allocator, int size);
+CI_DECLARE_FUNC(void *) ci_pack_allocator_alloc_from_rear_unaligned(ci_mem_allocator_t *allocator, int size);
 CI_DECLARE_FUNC(void) ci_pack_allocator_set_start_pos(ci_mem_allocator_t *allocator, void *p);
 CI_DECLARE_FUNC(void) ci_pack_allocator_set_end_pos(ci_mem_allocator_t *allocator, void *p);
 

@@ -672,7 +672,7 @@ void *ci_pack_allocator_alloc(ci_mem_allocator_t *allocator,size_t size)
     return ci_pack_allocator_alloc_unaligned(allocator, size);
 }
 
-void  *ci_pack_allocator_alloc_from_rear(ci_mem_allocator_t *allocator, int size)
+void  *ci_pack_allocator_alloc_from_rear2(ci_mem_allocator_t *allocator, int size, int align)
 {
     int max_size;
     char *mem;
@@ -684,7 +684,8 @@ void  *ci_pack_allocator_alloc_from_rear(ci_mem_allocator_t *allocator, int size
     if (!pack_alloc)
         return NULL;
 
-    size = _CI_ALIGN(size); /*round size to a correct alignment size*/
+    if (align)
+        size = _CI_ALIGN(size); /*round size to a correct alignment size*/
     max_size = pack_alloc->endpos - pack_alloc->curpos;
 
     if (size > max_size)
@@ -693,6 +694,16 @@ void  *ci_pack_allocator_alloc_from_rear(ci_mem_allocator_t *allocator, int size
     pack_alloc->endpos -= size; /*Allocate block from the end of memory block*/
     mem = pack_alloc->endpos;
     return (void *)mem;
+}
+
+void  *ci_pack_allocator_alloc_from_rear(ci_mem_allocator_t *allocator, int size)
+{
+    return ci_pack_allocator_alloc_from_rear2(allocator, size, 1);
+}
+
+void  *ci_pack_allocator_alloc_from_rear_unaligned(ci_mem_allocator_t *allocator, int size)
+{
+    return ci_pack_allocator_alloc_from_rear2(allocator, size, 0);
 }
 
 void ci_pack_allocator_free(ci_mem_allocator_t *allocator,void *p)
