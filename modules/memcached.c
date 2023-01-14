@@ -324,7 +324,11 @@ const void *mc_cache_search(struct ci_cache *cache, const void *key, void **val,
 
     if (dup_from_cache && value) {
         *val = dup_from_cache(value, value_len, data);
+#if USE_CI_BUFFERS
         ci_buffer_free(value);
+#else
+        free(value);
+#endif
         value = NULL;
     } else {
 #if USE_CI_BUFFERS
