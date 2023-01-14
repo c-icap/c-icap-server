@@ -13,6 +13,17 @@
 #include "debug.h"
 #include "cfg_param.h"
 
+common_module_t * ci_common_module_build(const char *name, int (*init_module)(struct ci_server_conf *server_conf), int (*post_init_module)(struct ci_server_conf *server_conf), void (*close_module)(), struct ci_conf_entry *conf_table)
+{
+    common_module_t *mod = malloc(sizeof(common_module_t));
+    mod->name = name;
+    mod->init_module = init_module;
+    mod->post_init_module = post_init_module;
+    mod->close_module = close_module;
+    mod->conf_table = conf_table;
+    return mod;
+}
+
 int load_module(const char *directive,const char **argv,void *setdata)
 {
     CI_DLIB_HANDLE lib;
@@ -29,7 +40,13 @@ int load_module(const char *directive,const char **argv,void *setdata)
     }
 
     module = ci_module_sym(lib, "module");
-
+    if (!module) {
+        common_module_t *(*module_builder)() = NULL;
+        if ((module_builder = ci_module_sym(lib, "__ci_module_build"))) {
+            ci_debug_printf(2, "New c-icap modules initialization procedure\n");
+            module = (*module_builder)();
+        }
+    }
     if (!module) {
         printf("Error opening module %s: can not find symbol module\n",argv[0]);
         return 0;
