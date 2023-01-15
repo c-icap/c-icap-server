@@ -604,6 +604,15 @@ void ci_vector_iterate(const ci_vector_t *vector, void *data, int (*fn)(void *da
         ret = (*fn)(data, vector->items[i]);
 }
 
+size_t ci_vector_data_size(ci_vector_t *v)
+{
+    _CI_ASSERT(v);
+    const void *vector_data_start = (const void *)(v->items[v->count -1]);
+    const void *vector_data_end = v->mem + v->max_size;
+    /*compute the required memory for storing the vector*/
+    size_t vector_data_size = vector_data_end - vector_data_start;
+    return vector_data_size;
+}
 
 /*ci_str_vector functions */
 ci_str_vector_t *ci_str_vector_create(size_t max_size)
@@ -1018,4 +1027,191 @@ void ci_list_sort2(ci_list_t *list, int (*cmp_func)(const void *obj1, const void
     }
     list->items = sortedHead;
     list->last = sortedTail;
+}
+
+/*Flat arrays functions*/
+size_t ci_flat_array_build_from_vector_to(ci_vector_t *v, void *buf, size_t buf_size)
+{
+    _CI_ASSERT(v);
+    const void *vector_data_start = (const void *)(v->items[v->count -1]);
+    const void *vector_data_end = v->mem + v->max_size;
+    /*compute the required memory for storing the vector*/
+    size_t vector_data_size = vector_data_end - vector_data_start;
+    size_t vector_indx_size = (v->count + 1) * sizeof(void *);
+    const size_t flat_size = sizeof(void *) + vector_indx_size + vector_data_size;
+    if (!buf)
+        return flat_size;
+
+    if (flat_size > buf_size)
+        return 0;
+
+    void **ppvoid = (void **)buf;
+    ppvoid[0] = (void *)flat_size;
+    void **data_indx = ppvoid + 1;
+    void *data = buf + sizeof(void *) + vector_indx_size;
+    memcpy(data, vector_data_start, vector_data_size);
+    int i;
+    for (i = 0; v->items[i]!= NULL; i++) {
+        data_indx[i] = (void *)((void *)v->items[i] - vector_data_start + vector_indx_size + sizeof(void *));
+        _CI_ASSERT(data_indx[i] <= (void *)flat_size);
+    }
+    data_indx[i] = NULL;
+
+    return flat_size;
+}
+
+void *ci_flat_array_build_from_vector(ci_vector_t *v)
+{
+    const size_t flat_size = ci_vector_data_size(v) + (ci_vector_size(v) + 1) * sizeof(void *) + sizeof(void *);
+    void *flat = ci_buffer_alloc(flat_size);
+    int ret = ci_flat_array_build_from_vector_to(v, flat, flat_size);
+    if (!ret) {
+        ci_buffer_free(flat);
+        return NULL;
+    }
+    return flat;
+}
+
+int ci_flat_array_copy_to_ci_vector_t(const void *flat, ci_vector_t *v)
+{
+    const void *item = NULL;
+    size_t item_size = 0;
+    int i;
+    for(i = 0; (item = ci_flat_array_item(flat, i, &item_size)) != NULL; i++) {
+        if (!ci_vector_add(v, item, item_size))
+            return 0; /*Not enough space? abort*/
+    }
+    return 1;
+}
+
+ci_vector_t * ci_flat_array_to_ci_vector_t(const void *flat)
+{
+    size_t flat_size = ci_flat_array_size(flat);
+    /*A vector needs space for data plus index like the flat arrays and also
+      some space for vector structures. About 1024 bytes for the last should
+      be enough.*/
+    ci_vector_t *v = ci_vector_create(flat_size + 1024);
+    if (!ci_flat_array_copy_to_ci_vector_t(flat, v)) {
+        ci_vector_destroy(v);
+        ci_debug_printf(1, "Failed to build a ci_vector_t from flat array\n");
+        return NULL;
+    }
+    return v;
+}
+
+void **ci_flat_array_to_ppvoid(void *flat, size_t *data_size)
+{
+    /*First item of flat is the size of flat array.
+      We are going to remove it to allow release the
+      generated 'void **' pointer with a single *free function.
+    */
+    void **ppvoid = (void **)flat;
+    size_t flat_size = (size_t)ppvoid[0];
+    void **data_indx = ppvoid + 1;
+    int i;
+    for (i = 0; data_indx[i] != NULL; i++) {
+        _CI_ASSERT(data_indx[i] <= (void *)flat_size);
+        /*The data_indx has the pos of the array item inside the array.
+          convert it to pointer.
+         */
+        ppvoid[i] = (flat + (size_t)data_indx[i]);
+    }
+    ppvoid[i] = NULL;
+    if (data_size)
+        *data_size = flat_size;
+    return ppvoid;
+}
+
+int ci_flat_array_check(const void *flat)
+{
+    void **ppvoid = (void **)flat;
+    size_t flat_size = (size_t)ppvoid[0];
+    void **data_indx = ppvoid + 1;
+    int i;
+    if (data_indx[0] > (void *)flat_size)
+        return 0;
+    for (i = 1; data_indx[i] != NULL; i++) {
+        if (data_indx[i] > data_indx[i - 1])
+            return 0;
+    }
+    return 1;
+}
+
+const void *ci_flat_array_item(const void *flat, int indx, size_t *data_size)
+{
+    _CI_ASSERT(flat);
+    void **ppvoid = (void **)flat;
+    size_t flat_size = (size_t)ppvoid[0];
+    void **data_indx = ppvoid + 1;
+    if (data_indx[indx]) {
+        const size_t end_pos = (indx == 0 ? flat_size : (size_t)data_indx[indx - 1]);
+        _CI_ASSERT((size_t)data_indx[indx] <= end_pos);
+        if (data_size)
+            *data_size = (end_pos - (size_t)data_indx[indx]);
+        return flat + (size_t)data_indx[indx];
+    }
+    return NULL;
+}
+
+static size_t flat_required_size(const void *items[], size_t item_sizes[])
+{
+    int i;
+    size_t flat_size = 0;
+    for (i = 0; items[i] != NULL; i++) {
+        flat_size += item_sizes[i];
+    }
+    flat_size += (i + 1) * sizeof(void *)/*null terminated items index*/ + sizeof(void *) /*array size*/;
+    return flat_size;
+}
+
+static void flat_build(const void *items[], size_t item_sizes[], void *flat, size_t flat_size)
+{
+    int i;
+    void **indx = (void **)flat;
+    indx[0] = (void *) flat_size;
+    indx++;
+    void *store = flat + flat_size;
+    for(i = 0; items[i] != NULL; i++) {
+        store -= item_sizes[i];
+        _CI_ASSERT((flat + (i + 1) * sizeof(void *)) < store);
+        memcpy(store, items[i], item_sizes[i]);
+        indx[i] = (void *)(store - flat);
+    }
+    indx[i] = NULL;
+}
+
+int ci_flat_array_build_to(const void *items[], size_t item_sizes[], void *buffer, size_t buffer_size)
+{
+    size_t flat_size = flat_required_size(items, item_sizes);
+    if (buffer_size < flat_size)
+        return 0;
+    flat_build(items, item_sizes, buffer, buffer_size);
+    return 1;
+}
+
+void * ci_flat_array_build(const void *items[], size_t item_sizes[])
+{
+    size_t flat_size = flat_required_size(items, item_sizes);
+    void *flat = ci_buffer_alloc(flat_size);
+    if (flat)
+        flat_build(items, item_sizes, flat, flat_size);
+    return flat;
+}
+
+int ci_flat_array_strings_build_to(const char *items[], void *buffer, size_t buffer_size)
+{
+    size_t items_sizes[1024]; /*Assume a maximum of 1024 items*/
+    int i;
+    for (i = 0; items[i] != NULL && i < 1024; i++)
+        items_sizes[i] = strlen(items[i]) + 1;
+    return ci_flat_array_build_to((const void **)items, items_sizes, buffer, buffer_size);
+}
+
+void * ci_flat_array_strings_build(const char *items[])
+{
+    size_t items_sizes[1024]; /*Assume a maximum of 1024 items*/
+    int i;
+    for (i = 0; items[i] != NULL && i < 1024; i++)
+        items_sizes[i] = strlen(items[i]) + 1;
+    return ci_flat_array_build((const void **)items, items_sizes);
 }

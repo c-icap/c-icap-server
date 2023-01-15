@@ -617,6 +617,14 @@ CI_DECLARE_FUNC(const void *) ci_vector_get2(const ci_vector_t *vector, unsigned
  */
 CI_DECLARE_FUNC(int) ci_vector_size(const ci_vector_t *vector);
 
+/**
+ * Return the size of the data stored in the given vector
+ \ingroup VECTORS
+ * It may used to compute the required size to store vector data to a database,
+ * or to a shared memory segment.
+ */
+CI_DECLARE_FUNC(size_t) ci_vector_data_size(ci_vector_t *v);
+
 CI_DECLARE_FUNC(const void **) ci_vector_cast_to_voidvoid(ci_vector_t *vector);
 CI_DECLARE_FUNC(ci_vector_t *)ci_vector_cast_from_voidvoid(const void **p);
 
@@ -955,6 +963,121 @@ CI_DECLARE_FUNC(void) ci_list_sort2(ci_list_t *list, int (*cmp_func)(const void 
 CI_DECLARE_FUNC(void) ci_list_cmp_handler(ci_list_t *list, int (*cmp_func)(const void *obj, const void *user_data, size_t user_data_size));
 CI_DECLARE_FUNC(void) ci_list_copy_handler(ci_list_t *list, int (*copy_func)(void *newObj, const void *oldObj));
 CI_DECLARE_FUNC(void) ci_list_free_handler(ci_list_t *list, void (*free_func)(void *obj));
+
+/**
+ \defgroup FLAT_ARRAYS flat arrays API
+ * Arrays of objects packed in a single  memory block
+ \ingroup ARRAYS
+ * The items of these arrays are stored as follows in memory:
+ *   [array_size][item1_pos]...[itemNpos][NULL][itemN]...[item1]
+ * The [array_size] is an unsigned integer of size 'sizeof(void *)'
+ * The [itemN_pos] are unsigned integers of size 'sizeof(void *)'
+ * The items are stored in reverse order.
+ */
+
+/**
+ * Build a flat array
+ * The flat array must released using the ci_buffer_free function
+ \ingroup FLAT_ARRAYS
+ \param items A NULL terminated array of objects
+ \param item_sizes An array with the sizes of objects stored in items
+ \return The memory segment where the flat array is stored
+ */
+CI_DECLARE_FUNC(void *) ci_flat_array_build(const void *items[], size_t item_sizes[]);
+
+/**
+ * Build a flat array on the given buffer
+ \ingroup FLAT_ARRAYS
+ * If the buffer is not enough big to hold the flat array '0' is returned
+ \param buffer The memory segment to store the flat array
+ \param buffer_size The size of buffer
+ \param items A NULL terminated array of objects
+ \param item_sizes An array with the sizes of objects stored in items
+ \return 0 on error or positive number on success
+ */
+CI_DECLARE_FUNC(int) ci_flat_array_build_to(const void *items[], size_t item_sizes[], void *buffer, size_t buffer_size);
+
+/**
+ * Gets a flat array item
+ \ingroup FLAT_ARRAYS
+ \param flat the flat array
+ \param indx the index of requested item
+ \param data_size if it is not NULL the size of requested item is stored.
+ \return The requested item or NULL on error
+ */
+CI_DECLARE_FUNC(const void *) ci_flat_array_item(const void *flat, int indx, size_t *data_size);
+
+/**
+ * The size of the given flat array
+ \ingroup FLAT_ARRAYS
+ */
+static inline size_t ci_flat_array_size(const void *flat)
+{
+    void **p = (void **)flat;
+    return (size_t)((*p));
+}
+
+/**
+ * Check if the given flat array looks OK
+ \ingroup FLAT_ARRAYS
+ \return 1 if array is consistent or 0 otherwise
+ */
+CI_DECLARE_FUNC(int) ci_flat_array_check(const void *flat);
+
+/**
+ * Converts a flat array to a C array of "void *".
+ \ingroup FLAT_ARRAYS
+ * The new "void **" array is stored on the flat array memory segment. This
+ * memory segment however does not represent/holds a flat array any more.
+ \param flat The flat array to be converted
+ \param data_size If it is not NULL the size of memory segment is stored here
+ \return NULL on error or a pointer to the new array.
+ */
+CI_DECLARE_FUNC(void **) ci_flat_array_to_ppvoid(void *flat, size_t *data_size);
+
+/**
+   Similar to the ci_flat_array_build but accepts as parameter an array of strings
+   \ingroup FLAT_ARRAYS
+ */
+CI_DECLARE_FUNC(void *) ci_flat_array_strings_build(const char *items[]);
+
+/**
+ * Similar to the ci_flat_array_build_to but accepts as parameter an array of strings
+ \ingroup FLAT_ARRAYS
+ */
+CI_DECLARE_FUNC(int) ci_flat_array_strings_build_to(const char *items[], void *buffer, size_t buffer_size);
+
+/**
+ * Build a flat array on the given buffer from a vector
+ \ingroup FLAT_ARRAYS
+ * If the buf parameter is NULL then it just returns the required size
+ * of the flat array.
+ \param buf The memory segment to store the flat array.
+ \param buf_size The memory segment size.
+ \return The flat array size or 0 on error.
+ */
+CI_DECLARE_FUNC(size_t) ci_flat_array_build_from_vector_to(ci_vector_t *v, void *buf, size_t buf_size);
+
+/**
+ * Build a flat array from a vector
+   \ingroup FLAT_ARRAYS
+*/
+CI_DECLARE_FUNC(void *) ci_flat_array_build_from_vector(ci_vector_t *v);
+
+/**
+ * Build a ci_vector_t object from a flat array
+ \ingroup FLAT_ARRAYS
+ \return A pointer to a new ci_vector_t object or NULL on failure
+*/
+CI_DECLARE_FUNC(ci_vector_t *) ci_flat_array_to_ci_vector_t(const void *flat);
+
+/**
+ * Copy flat array items to a ci_vector_t object
+ \ingroup FLAT_ARRAYS
+ \param flat A pointer to flat array
+ \param v the ci_vector_t object to copy the flat array items
+*/
+CI_DECLARE_FUNC(int) ci_flat_array_copy_to_ci_vector_t(const void *flat, ci_vector_t *v);
 
 #ifdef __cplusplus
 }
