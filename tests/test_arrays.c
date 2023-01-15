@@ -172,7 +172,30 @@ int main(int argc,char *argv[])
     ci_dyn_array_destroy(dyn_arr);
     ci_debug_printf(1, "\nEnd of dynamic arrays test\n");
     dyn_arr = NULL;
-    ci_dyn_array_destroy(dyn_arr);
 
+    ci_debug_printf(1, "\nTest flat arrays\n");
+    char *strings[1024];
+    for (i = 0; i < 1023; ++i) {
+        snprintf(name, sizeof(name), "name%d", i);
+        strings[i] = strdup(name);
+    }
+    strings[i] = NULL;
+    void *flat = ci_flat_array_strings_build((const char **)strings);
+    for (i = 0; i < 1023; i++) {
+        size_t str_len;
+        const char *str = ci_flat_array_item(flat, i, &str_len);
+        if ((strlen(str) + 1) != str_len) {
+            ci_debug_printf(1, "Flat arrays failure: %s (%d <> %d)\n", str, (int)(strlen(str) + 1), (int)str_len);
+            return -1;
+        }
+        if (strcmp(str, strings[i]) != 0) {
+            ci_debug_printf(1, "Flat arrays failure: inds %d %s <> %s\n", i, str, strings[i]);
+            return -1;
+        }
+    }
+    ci_buffer_free(flat);
+    for (i = 0; i < 1023; i++)
+        free(strings[i]);
+    ci_debug_printf(1, "Test flat arrays done\n");
     return 0;
 }
