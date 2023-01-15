@@ -431,87 +431,31 @@ struct ci_cache *ci_cache_build( const char *name,
 
 size_t ci_cache_store_vector_size(ci_vector_t *v)
 {
-    int  vector_data_size, vector_indx_size;
-    const char *vector_data_start;
-    const char *vector_data_end;
-    if (!v)
-        return 0;
-    /*The vector data stored in a continue memory block which filled from
-      bottom to up. So the last elements stored at the beggining of the
-      memory block. */
-    vector_data_start = (const char *)(v->items[v->count - 1]);
-    vector_data_end = v->mem + v->max_size;
-    /*Assert that the vector stored in one memory block (eg it is not a ci_ptr_vector_t object)*/
-    assert(vector_data_start < vector_data_end && vector_data_start > v->mem);
-
-    /*compute the required memory for storing the vector*/
-    vector_data_size = vector_data_end - vector_data_start;
-    vector_indx_size = (v->count+1) * sizeof(void *);
-    return sizeof(size_t) + vector_indx_size + vector_data_size ;
+    return ci_flat_array_build_from_vector_to(v, NULL, 0);
 }
 
 void *ci_cache_store_vector_val(void *buf, const void *val, size_t buf_size)
 {
-    int  vector_data_size, vector_indx_size, i;
-    const char *vector_data_start;
-    const char *vector_data_end;
-    void *data, **data_indx;
     ci_vector_t *v = (ci_vector_t *)val;
-
-    if (!val || !buf) /*Maybe look for error?*/
-        return NULL;
-
-    /*The vector data stored in a continue memory block which filled from
-      bottom to up. So the last elements stored at the beggining of the
-      memory block. */
-    vector_data_start = (const char *)(v->items[v->count -1]);
-    vector_data_end = v->mem + v->max_size;
-    /*Assert that the vector stored in one memory block (eg it is not a ci_ptr_vector_t object)*/
-    assert(vector_data_start < vector_data_end && vector_data_start > v->mem);
-
-    /*compute the required memory for storing the vector*/
-    vector_data_size = vector_data_end - vector_data_start;
-    vector_indx_size = (v->count+1) * sizeof(void *);
-    assert(buf_size >= sizeof(size_t) + vector_indx_size + vector_data_size);
-
-    data = buf;
-
-    /*store the size of vector*/
-    memcpy(data, &(v->max_size), sizeof(size_t));
-    data_indx = (void **)((char *)data + sizeof(size_t));
-    memcpy(data_indx + vector_indx_size, vector_data_start, vector_data_size);
-
-    /*Store the relative position of the vector item to the index part*/
-    for (i = 0; v->items[i]!= NULL; i++)
-        data_indx[i] = (void *)((char *)v->items[i] - vector_data_start + vector_indx_size);
-    data_indx[i] = NULL;
-
-    return data;
+    size_t ret = ci_flat_array_build_from_vector_to(v, buf, buf_size);
+    if (!ret) {
+        ci_debug_printf(2, "Error storing vector %p do buffer of size %d\n", val, (int)buf_size);
+        return NULL; /*Print an error*/
+    }
+    return buf;
 }
 
 void *ci_cache_read_vector_val(const void *val, size_t val_size, void *o)
 {
-    size_t vector_size, item_size;
-    int i;
-    ci_vector_t *v;
-    const void **data_indx;
-
-    if (!val)
+    const void *flat = val;
+    if (ci_flat_array_size(flat) > val_size || !ci_flat_array_check(flat)) {
+        ci_debug_printf(2, "ci_cache_read_vector_val: corrupted stored value? (%d >< %d)\n",  (int)val_size, (int)ci_flat_array_size(flat));
         return NULL;
-
-    data_indx = (const void **)((const char *)val + sizeof(size_t));
-    vector_size = *((size_t *)val);
-    v= ci_vector_create(vector_size);
-
-    /*The items stores from bottom to top.
-      Compute the size of first item, which stored at the end of *val*/
-    item_size = val_size - sizeof(size_t) - (size_t)data_indx[0];
-    for (i = 0; data_indx[i] != NULL; i++) {
-        ci_vector_add(v, (const void *)((const char *)data_indx + (size_t)data_indx[i]), item_size);
-        /*compute the item size of the next item*/
-        item_size = (const char *)data_indx[i] - (const char *)data_indx[i+1];
     }
-
+    ci_vector_t *v = ci_flat_array_to_ci_vector_t(flat);
+    if (!v) {
+        ci_debug_printf(2, "ci_cache_read_vector_val: failed to convert flat array to vector object. Corrupted stored value?\n");
+    }
     return v;
 }
 
