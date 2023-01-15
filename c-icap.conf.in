@@ -895,6 +895,22 @@ Service echo srv_echo.so
 
 # End module: bdb_tables
 
+# Module: lmdb_tables
+# Description:
+#	Add support for LMDB based lookup tables. The format for
+#	lmdb path of the lookup table is:
+#		lmdb:/path/to/lmdb_dabase_dir/[{param1=val, ...}]
+#	lmdb table parameters can be one or more of the followings:
+#	    name=A_NAME
+#	        The database name to use. Default is nil.
+#	    readers=num
+#	        The maximum number of readers to support
+#	Use the c-icap-mklmdb utility to build LMDB c-icap lookup tables
+# Example:
+#	Module common lmdb_tables.so
+
+# End module: lmdb_tables
+
 # Module: dnsbl_tables
 # Description:
 #	Add support for dns lookup tables. Can be used to access

@@ -597,6 +597,41 @@ if test "a$libdb" != "ano"; then
    ICFG_STATE_ROLLBACK
 fi
 
+# Detect LMDB library
+liblmdb="yes"
+liblmdbpath=""
+AC_ARG_WITH(lmdb,
+[  --with-lmdb        Where to find LMDB library ],
+[ case "$withval" in
+    yes)
+         liblmdb="yes"
+    ;;
+    no )
+         liblmdb="no"
+    ;;
+    * )
+        liblmdb="yes"
+        liblmdbpath=$withval
+    ;;
+  esac
+],
+)
+
+if test a"$liblmdb" != "ano"; then
+   ICFG_STATE_SAVE(LDAP)
+   if test "a$liblmdbpath" != "a"; then
+      CFLAGS="-I$liblmdbpath/include $CFLAGS"
+      LDFLAGS="-L$liblmdbpath/lib $LDFLAGS"
+   fi
+   AC_CHECK_LIB(lmdb, mdb_version, [liblmdb="yes"], [liblmdb="no"])
+   ICFG_STATE_ROLLBACK
+
+   if test a"$liblmdb" = "ayes"; then
+      AC_DEFINE(HAVE_LMDB, 1, [Define HAVE_LMDB if the LMDB library is installed])
+      ICFG_BUILD_FLAGS(LMDB, $liblmdbpath, "-llmdb")
+   fi
+fi
+
 libldap="yes"
 AC_ARG_WITH(ldap,
 [  --with-ldap        Where to find LDAP libraries ],
@@ -1116,6 +1151,7 @@ AM_CONDITIONAL(USE_OPENSSL, [test a"$openssl" != "ano"])
 AM_CONDITIONAL(USE_REGEX, [test a"$pcre" = "ayes" -o a"$posix_regex" = "ayes"])
 AM_CONDITIONAL(USEPERL,[test a"$perlcore" != a])
 AM_CONDITIONAL(USEBDB,   [test a"$libdb" != ano])
+AM_CONDITIONAL(USELMDB,   [test a"$liblmdb" != ano])
 AM_CONDITIONAL(USELDAP, [test a"$libldap" != ano])
 AM_CONDITIONAL(USEMEMCACHED, [test a"$libmemcached" != ano])
 AM_CONDITIONAL(USE_RPATH, [test "a$enable_rpath" != "ano"])

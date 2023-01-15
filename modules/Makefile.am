@@ -19,6 +19,10 @@ if USEMEMCACHED
 pkglib_LTLIBRARIES += memcached_cache.la
 endif
 
+if USELMDB
+pkglib_LTLIBRARIES += lmdb_tables.la
+endif
+
 AM_CPPFLAGS=-I$(top_srcdir)/ -I$(top_srcdir)/include/ -I$(top_builddir)/include/
 
 if ISCYGWIN
@@ -47,6 +51,11 @@ bdb_tables_la_LIBADD = $(MODS_LIB_ADD) @BDB_ADD_LDADD@
 bdb_tables_la_CFLAGS=  @MODULES_CFLAGS@ @BDB_ADD_FLAG@
 bdb_tables_la_LDFLAGS= -module -avoid-version @LIBS_LDFLAGS@
 bdb_tables_la_SOURCES = bdb_tables.c
+
+lmdb_tables_la_LIBADD = $(MODS_LIB_ADD) @LMDB_ADD_LDADD@
+lmdb_tables_la_CFLAGS=  @MODULES_CFLAGS@ @LMDB_ADD_FLAG@
+lmdb_tables_la_LDFLAGS= -module -avoid-version @LIBS_LDFLAGS@
+lmdb_tables_la_SOURCES = lmdb_tables.c
 
 ldap_module_la_LIBADD = $(MODS_LIB_ADD) @LDAP_ADD_LDADD@
 ldap_module_la_CFLAGS=  @MODULES_CFLAGS@ @LDAP_ADD_FLAG@
