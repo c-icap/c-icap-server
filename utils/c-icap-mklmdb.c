@@ -13,12 +13,14 @@ const ci_type_ops_t *val_type = &ci_str_ops;
 
 #define MAXLINE 65535
 
+int FATAL = 0;
 char *INFILE = NULL;
 char *DBNAME = NULL;
 char *DBPATH = NULL;
 int ERASE_MODE = 0;
 int DUMP_MODE = 0;
 int VERSION_MODE = 0;
+int CONTINUE_ON_ERROR = 0;
 
 #if CI_SIZEOF_VOID_P < 8
 /*For 32bit systems use 64MB maximum size*/
@@ -63,6 +65,10 @@ static struct ci_options_entry options[] = {
     {
         "-M", "max_size", &DB_MAX_SIZE, ci_cfg_size_long,
         "The maximum database size to use for the database"
+    },
+    {
+        "-C", NULL, &CONTINUE_ON_ERROR, ci_cfg_enable,
+        "Do not abort on error"
     },
     {
         "--dump", NULL, &DUMP_MODE, ci_cfg_enable,
@@ -185,13 +191,16 @@ int dump_db()
     return 1;
 }
 
-int store_db(void *key, int keysize, void *val, int  valsize)
+int store_db(MDB_txn *useTxn, void *key, int keysize, void *val, int  valsize)
 {
     MDB_val db_key, db_data;
     int ret;
     MDB_txn *txn;
-    if ((ret = mdb_txn_begin(env_db, NULL, 0, &txn)) != 0) {
+    if (useTxn) {
+        txn = useTxn;
+    } else if ((ret = mdb_txn_begin(env_db, NULL, 0, &txn)) != 0) {
         ci_debug_printf(1, "Can not create a transaction to store data\n");
+        FATAL = 1;
         return 0;
     }
 
@@ -204,31 +213,53 @@ int store_db(void *key, int keysize, void *val, int  valsize)
     db_data.mv_size = valsize;
 
     ret = mdb_put(txn, db, &db_key, &db_data, MDB_NODUPDATA );
-    if (ret != 0)
-        ci_debug_printf(1, "mdb_put: %s (key size:%d, val size:%d)\n",
-                        mdb_strerror(ret), keysize, valsize);
-    mdb_txn_commit(txn);
-    return 1;
+    if (ret != 0) {
+        ci_debug_printf(1, "mdb_put: %s (key %.*s key size:%d, val size:%d)\n",
+                        mdb_strerror(ret), keysize, (key_type == &ci_str_ops ? (const char *) key : "-"), keysize, valsize);
+        if (ret != MDB_KEYEXIST && !CONTINUE_ON_ERROR) {
+            FATAL = 1;
+        }
+    }
+    if (!useTxn) {
+        if (ret == 0)
+            mdb_txn_commit(txn);
+        else
+            mdb_txn_abort(txn);
+    }
+    return (ret == 0 ? 1 : 0);
 }
 
-void erase_from_db(void *key, int keysize)
+int erase_from_db(MDB_txn *useTxn, void *key, int keysize)
 {
     MDB_val db_key;
     int ret;
     MDB_txn *txn;
-    if ((ret = mdb_txn_begin(env_db, NULL, 0, &txn)) != 0) {
+    if (useTxn) {
+        txn = useTxn;
+    } else if ((ret = mdb_txn_begin(env_db, NULL, 0, &txn)) != 0) {
         ci_debug_printf(1, "Can not create transaction for deleting data\n");
-        return;
+        FATAL = 1;
+        return 0;
     }
 
     memset(&db_key, 0, sizeof(db_key));
     db_key.mv_data = key;
     db_key.mv_size = keysize;
     ret = mdb_del(txn, db, &db_key, NULL);
-    if (ret != 0)
-        ci_debug_printf(1, "erase_from_db/mdb_del: %s (key size:%d)\n",
-                        mdb_strerror(ret), keysize);
-    mdb_txn_commit(txn);
+    if (ret != 0) {
+        ci_debug_printf(1, "erase_from_db/mdb_del: %s (key %.*s key size:%d)\n",
+                        mdb_strerror(ret), keysize, (key_type == &ci_str_ops ? (const char *) key : "-"), keysize);
+        if (ret != MDB_NOTFOUND && !CONTINUE_ON_ERROR) {
+            FATAL = 1;
+        }
+    }
+    if (!useTxn) {
+        if (ret == 0)
+            mdb_txn_commit(txn);
+        else
+            mdb_txn_abort(txn);
+    }
+    return (ret == 0 ? 1 : 0);
 }
 
 int cfg_set_type(const char *directive, const char **argv, void *setdata)
@@ -321,8 +352,14 @@ int main(int argc, char **argv)
             return -1;
         }
 
-        unsigned lines = 0, stored = 0, parse_fails = 0, store_fails = 0, removed = 0;
-        while (fgets(line,MAXLINE,f)) {
+        MDB_txn *txn = NULL;
+        int ret = mdb_txn_begin(env_db, NULL, 0, &txn);
+        if (ret != 0) {
+            ci_debug_printf(1, "Can not create transaction to %s data\n", ERASE_MODE ? "erase" : "add");
+            return -1;
+        }
+        unsigned lines = 0, stored = 0, parse_fails = 0, store_fails = 0, removed = 0, removed_fails = 0;
+        while (!FATAL && fgets(line,MAXLINE,f)) {
             lines++;
             line[MAXLINE-1]='\0';
             ci_vector_t *values = NULL;
@@ -332,11 +369,13 @@ int main(int argc, char **argv)
                 break;
             } else if (key) {
                 if (ERASE_MODE) {
-                    erase_from_db(key, keysize);
-                    removed++;
+                    if ((ret = erase_from_db(txn, key, keysize)))
+                        removed++;
+                    else
+                        removed_fails++;
                 } else {
                     val = ci_flat_array_build_from_vector(values);
-                    if (val && store_db(key, keysize, val, ci_flat_array_size(val)))
+                    if (val && (ret = store_db(txn, key, keysize, val, ci_flat_array_size(val))))
                         stored++;
                     else
                         store_fails++;
@@ -352,11 +391,16 @@ int main(int argc, char **argv)
             }
         }
         fclose(f);
+        if (FATAL)
+            mdb_txn_abort(txn);
+        else
+            mdb_txn_commit(txn);
         ci_debug_printf(1, "Lines processed %u\n", lines);
         ci_debug_printf(1, "Lines ignored (comments, blank lines, parse errors etc) %u\n", parse_fails);
         ci_debug_printf(1, "Stored keys %u\n", stored);
         ci_debug_printf(1, "Removed keys %u\n", removed);
         ci_debug_printf(1, "Failed to store keys %u\n", store_fails);
+        ci_debug_printf(1, "Failed to removed keys %u\n", removed_fails);
     }
     close_db();
     ci_mem_allocator_destroy(allocator);
