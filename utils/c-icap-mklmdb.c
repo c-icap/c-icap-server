@@ -162,7 +162,8 @@ int dump_db()
     memset(&db_key, 0, sizeof(db_key));
 
     if ((ret = mdb_cursor_get(dbc, &db_key, &db_data, MDB_FIRST)) != 0) {
-        ci_debug_printf(1, "error getting first element of DB : %s\n", mdb_strerror(ret));
+        /*Empty DB?*/
+        ci_debug_printf(3, "error getting first element of DB : %s\n", mdb_strerror(ret));
         mdb_cursor_close(dbc);
         mdb_txn_abort(txn);
         return 0;
@@ -170,8 +171,12 @@ int dump_db()
 
     do {
         printf("%s :", (char *)db_key.mv_data);
-        if (db_data.mv_data) {
+        if (db_data.mv_size && db_data.mv_data) {
             flat = db_data.mv_data;
+            if (!ci_flat_array_check(flat)) {
+                ci_debug_printf(1, "Invalid DB data: %s. Is DB corrupted? (key: %s, keysize: %d)\n", mdb_strerror(ret), (char *)db_key.mv_data, (int)db_key.mv_size);
+                continue;
+            }
             size_t item_size;
             const void *item;
             for (i = 0; (item = ci_flat_array_item(flat, i, &item_size)) != NULL; i++) {
@@ -307,7 +312,7 @@ int main(int argc, char **argv)
     FILE *f = NULL;
     char line[MAXLINE];
     void *key, *val;
-    size_t keysize;
+    size_t keysize, valsize;
 
     CI_DEBUG_LEVEL = 1;
     ci_mem_init();
@@ -374,8 +379,9 @@ int main(int argc, char **argv)
                     else
                         removed_fails++;
                 } else {
-                    val = ci_flat_array_build_from_vector(values);
-                    if (val && (ret = store_db(txn, key, keysize, val, ci_flat_array_size(val))))
+                    val = values ? ci_flat_array_build_from_vector(values) : NULL;
+                    valsize = val ? ci_flat_array_size(val) : 0;
+                    if ((ret = store_db(txn, key, keysize, val, valsize)))
                         stored++;
                     else
                         store_fails++;
