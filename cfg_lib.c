@@ -109,14 +109,18 @@ int ci_args_apply(int argc, char *argv[], struct ci_options_entry *options)
             if (++i >= argc)
                 return 0;
             act_args[0] = argv[i];
-            (*(entry->action)) (entry->name, act_args, entry->data);
+            if (!(*(entry->action)) (entry->name, act_args, entry->data))
+                return 0;
         } else {
             /*maybe is the "$$" directive ....*/
             if (strcmp(entry->name, "$$") == 0) {
                 act_args[0] = argv[i];
-                (*(entry->action)) (entry->name, act_args, entry->data);
-            } else
-                (*(entry->action)) (entry->name, NULL, entry->data);
+                if (!(*(entry->action)) (entry->name, act_args, entry->data))
+                    return 0;
+            } else {
+                if (!(*(entry->action)) (entry->name, NULL, entry->data))
+                    return 0;
+            }
         }
     }
     return 1;
