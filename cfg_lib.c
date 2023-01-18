@@ -265,6 +265,8 @@ int ci_cfg_enable(const char *directive, const char **argv, void *setdata)
     return 1;
 }
 
+#define getUnits(suffix) ((suffix) == 'k' || (suffix) == 'K' ? 1024 : ((suffix) == 'm' || (suffix) == 'M' ? 1024 * 1024 : ((suffix) == 'g' || (suffix) == 'G' ? 1024 * 1024 * 1024 : 1)))
+
 int ci_cfg_size_off(const char *directive, const char **argv, void *setdata)
 {
     ci_off_t val = 0;
@@ -283,12 +285,7 @@ int ci_cfg_size_off(const char *directive, const char **argv, void *setdata)
 
     if ((val == 0 && errno != 0) || val < 0)
         return 0;
-
-    if (*end == 'k' || *end == 'K')
-        val = val * 1024;
-    else if (*end == 'm' || *end == 'M')
-        val = val * 1024 * 1024;
-
+    val = val * getUnits(*end);
     if (val > 0)
         *((ci_off_t *) setdata) = val;
     ci_debug_printf(2, "Setting parameter: %s=%" PRINTF_OFF_T "\n", directive,
@@ -315,15 +312,45 @@ int ci_cfg_size_long(const char *directive, const char **argv, void *setdata)
 
     if ((val == 0 && errno != 0) || val < 0)
         return 0;
-
-    if (*end == 'k' || *end == 'K')
-        val = val * 1024;
-    else if (*end == 'm' || *end == 'M')
-        val = val * 1024 * 1024;
-
+    val = val * getUnits(*end);
     if (val > 0)
         *((long int *) setdata) = val;
     ci_debug_printf(2, "Setting parameter: %s=%ld\n", directive, val);
+    return 1;
+}
+
+int ci_cfg_size_longlong(const char *directive, const char **argv, void *setdata)
+{
+    long long val = 0;
+    char *end;
+
+    if (setdata == NULL)
+        return 0;
+
+    if (argv == NULL || argv[0] == NULL) {
+        ci_debug_printf(1, "Missing arguments in directive: %s\n", directive);
+        return 0;
+    }
+
+    errno = 0;
+    val = strtoll(argv[0], &end, 10);
+
+    if ((val == 0 && errno != 0) || val < 0)
+        return 0;
+    val = val * getUnits(*end);
+    if (val > 0)
+        *((long int *) setdata) = val;
+    ci_debug_printf(2, "Setting parameter: %s=%lld\n", directive, val);
+    return 1;
+}
+
+int ci_cfg_size_size_t(const char *directive, const char **argv, void *setdata)
+{
+    long long val = 0;
+    int ret = ci_cfg_size_longlong(directive, argv, &val);
+    if (!ret)
+        return 0;
+    *((size_t *) setdata) = (size_t) val;
     return 1;
 }
 
@@ -392,7 +419,7 @@ int ci_cfg_set_double(const char *directive,const char **argv,void *setdata)
     errno = 0;
     val = strtod(argv[0], &end);
 
-    if ((val == 0 && errno != 0) || val < 0)
+    if (val == 0 && end == argv[0])
         return 0;
 
     *((double *) setdata) = val;
@@ -418,6 +445,53 @@ int ci_cfg_set_int_range(const char *directive, const char **argv, void *setdata
         return 0;
     }
     *range->data = tmpVal;
+    return 1;
+}
+
+int ci_cfg_set_double_range(const char *directive, const char **argv, void *setdata)
+{
+    if (!setdata)
+        return 0;
+
+    struct ci_cfg_double_range *range = (struct ci_cfg_double_range *)setdata;
+    if (!range->data)
+        return 0;
+
+    double tmpVal;
+    if (!ci_cfg_set_double(directive, argv, (void *)&tmpVal))
+        return 0;
+    if (tmpVal < range->start || tmpVal > range->end) {
+        ci_debug_printf(1, "Please use a double value between %f and %f for directive '%s'\n", range->start, range->end, directive);
+        return 0;
+    }
+    *range->data = tmpVal;
+    return 1;
+}
+
+int ci_cfg_set_str_set(const char *directive, const char **argv, void *setdata)
+{
+    if (!setdata)
+        return 0;
+
+    struct ci_cfg_string_set *set = (struct ci_cfg_string_set *)setdata;
+    if (!set->data)
+        return 0;
+
+    char *tmpVal;
+    if (!ci_cfg_set_str(directive, argv, (void *)&tmpVal))
+        return 0;
+    int i, found;
+    for (i = 0, found = 0; i < set->set_length; ++i) {
+        if (strcasecmp(tmpVal, set->set[i]) == 0) {
+            found = 1;
+            break;
+        }
+    }
+    if (!found) {
+        ci_debug_printf(1, "Not acceptable string value '%s' for directive '%s'\n", tmpVal, directive);
+        return 0;
+    }
+    *set->data = tmpVal;
     return 1;
 }
 

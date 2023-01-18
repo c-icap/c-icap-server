@@ -210,9 +210,24 @@ CI_DECLARE_FUNC(int) ci_cfg_size_off(const char *directive,const char **argv,voi
 
 /**
  * Sets a configuration parameter of type long.
+ * Accepts integer arguments with the units 'K', 'M' or 'G'.
  \ingroup CONFIG
  */
 CI_DECLARE_FUNC(int) ci_cfg_size_long(const char *directive,const char **argv,void *setdata);
+
+/**
+ * Sets a configuration parameter of type long long.
+ * Accepts integer arguments with the units 'K', 'M' or 'G'
+ \ingroup CONFIG
+ */
+CI_DECLARE_FUNC(int) ci_cfg_size_longlong(const char *directive, const char **argv, void *setdata);
+
+/**
+ * Sets a configuration parameter of type size_t.
+ * Accepts integer arguments with the units 'K', 'M' or 'G'
+ \ingroup CONFIG
+ */
+CI_DECLARE_FUNC(int) ci_cfg_size_size_t(const char *directive, const char **argv, void *setdata);
 
 /**
  * Sets a configuration parameter of type int to a value expressed in octal
@@ -263,6 +278,68 @@ struct ci_cfg_int_range {
  \endcode
  */
 CI_DECLARE_FUNC(int) ci_cfg_set_int_range(const char *directive, const char **argv, void *setdata);
+
+struct ci_cfg_double_range {
+    double *data;
+    double start;
+    double end;
+};
+
+/**
+ * Builds range specification for double variable VAR.
+ * For use with the  ci_cfg_set_double_range function.
+ \ingroup CONFIG
+ */
+#define CI_CFG_DOUBLE_RANGE(VAR, START, END) (&(struct ci_cfg_double_range){&VAR, START, END})
+
+/**
+ * Sets an double configuration parameter.
+ * The setdata is passed using the CI_CFG_DOUBLE_RANGE macro to define the
+ * range of accepted values.
+ \ingroup CONFIG
+ * example usage:
+ \code
+ double RangeParam = 0;
+ struct ci_conf_entry my_module_conf_variables[] = {
+ ...
+ {"RangeParameter", CI_CFG_DOUBLE_RANGE(RangeParam, 0.0, 1.0), ci_cfg_set_double_range, NULL},
+ ...
+ };
+ \endcode
+ */
+CI_DECLARE_FUNC(int) ci_cfg_set_double_range(const char *directive, const char **argv, void *setdata);
+
+struct ci_cfg_string_set {
+   char **data;
+   const char **set;
+   size_t set_length;
+};
+
+/**
+ * Builds a set of strings specification for the C string variable VAR.
+ * For use with the  ci_cfg_set_str_set function.
+ \ingroup CONFIG
+ */
+#define CI_CFG_STRING_LIST(VAR, STRARRAY) (&(struct ci_cfg_string_set){&VAR, STRARRAY, sizeof(STRARRAY)/sizeof(char *)})
+#define CI_CFG_STRING_LIST2(VAR, STRARRAY, STRARRAY_LEN) (&(struct ci_cfg_string_set){&VAR, STRARRAY, STRARRAY_LEN})
+
+/**
+ * Sets a C string configuration parameter.
+ * The setdata is passed using the CI_CFG_STRING_LIST macro to define the
+ * set of accepted values.
+ \ingroup CONFIG
+ * example usage:
+ \code
+ const char *StrParamAcceptedValues[] = {"value1", "value2"};
+ char *StrParam = 0;
+ struct ci_conf_entry my_module_conf_variables[] = {
+ ...
+ {"StrParameter", CI_CFG_STRING_LIST(StrParam, StrParamAcceptedValues), ci_cfg_set_string_set, NULL},
+ ...
+ };
+ \endcode
+ */
+CI_DECLARE_FUNC(int) ci_cfg_set_str_set(const char *directive, const char **argv, void *setdata);
 
 /**
  * Sets a configuration parameter of type int to 1 and prints c-icap version.

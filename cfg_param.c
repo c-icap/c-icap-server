@@ -1346,6 +1346,29 @@ int intl_cfg_set_int_range(const char *directive, const char **argv, void *setda
     return ci_cfg_set_int_range(directive, argv, setdata);
 }
 
+int intl_cfg_set_double_range(const char *directive, const char **argv, void *setdata)
+{
+    if (!setdata)
+        return 0;
+    struct ci_cfg_double_range *range = (struct ci_cfg_double_range *)setdata;
+    if (!range->data)
+        return 0;
+    cfg_default_value_store(range->data, range->data, sizeof(double));
+    return ci_cfg_set_double_range(directive, argv, setdata);
+}
+
+int intl_cfg_set_str_set(const char *directive, const char **argv, void *setdata)
+{
+    if (!setdata)
+        return 0;
+    struct ci_cfg_string_set *set = (struct ci_cfg_string_set *)setdata;
+    if (!set->data)
+        return 0;
+    cfg_default_value_store(set->data, set->data, sizeof(char *));
+    /*or better keep all string not just the pointer to default value? */
+    return ci_cfg_set_str_set(directive, argv, setdata);
+}
+
 int intl_cfg_onoff(const char *directive, const char **argv, void *setdata)
 {
     if (!setdata)
@@ -1384,4 +1407,20 @@ int intl_cfg_size_long(const char *directive, const char **argv, void *setdata)
         return 0;
     cfg_default_value_store(setdata, setdata, sizeof(long int));
     return ci_cfg_size_long(directive, argv, setdata);
+}
+
+int intl_cfg_size_longlong(const char *directive, const char **argv, void *setdata)
+{
+    if (!setdata)
+        return 0;
+    cfg_default_value_store(setdata, setdata, sizeof(long long));
+    return ci_cfg_size_longlong(directive, argv, setdata);
+}
+
+int intl_cfg_size_size_t(const char *directive, const char **argv, void *setdata)
+{
+    if (!setdata)
+        return 0;
+    cfg_default_value_store(setdata, setdata, sizeof(size_t));
+    return ci_cfg_size_size_t(directive, argv, setdata);
 }
