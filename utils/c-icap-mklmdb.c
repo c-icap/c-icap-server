@@ -19,6 +19,7 @@ char *DBNAME = NULL;
 char *DBPATH = NULL;
 int ERASE_MODE = 0;
 int DUMP_MODE = 0;
+int INFO_MODE = 0;
 int VERSION_MODE = 0;
 int CONTINUE_ON_ERROR = 0;
 
@@ -78,19 +79,24 @@ static struct ci_options_entry options[] = {
         "--erase", NULL, &ERASE_MODE, ci_cfg_enable,
         "Erase the keys/items listed in input file"
     },
+    {
+        "--info", NULL, &INFO_MODE, ci_cfg_enable,
+        "Print information about database"
+    },
     {NULL, NULL, NULL, NULL}
 };
 
 int open_db()
 {
     int ret;
+    int rdOnly = DUMP_MODE || INFO_MODE;
     /* * Create an environment and initialize it for additional error * reporting. */
     if ((ret = mdb_env_create(&env_db)) != 0) {
         ci_debug_printf(1, "mb_env_create  failed\n");
         return 0;
     }
 
-    if (DB_MAX_SIZE) {
+    if (!rdOnly && DB_MAX_SIZE) {
         ret = mdb_env_set_mapsize(env_db, (size_t)DB_MAX_SIZE);
         if (ret != 0) {
             ci_debug_printf(1, "mb_env_set_mapsize  failed to set mapsize/maximum-size to %lld\n", (long long)DB_MAX_SIZE);
@@ -100,7 +106,7 @@ int open_db()
     ci_debug_printf(5, "mdb_env_create: Environment created OK.\n");
     mdb_env_set_maxdbs(env_db, 10);
     /* Open the environment  */
-    if ((ret = mdb_env_open(env_db, DBPATH, 0, S_IRUSR | S_IWUSR | S_IRGRP)) != 0) {
+    if ((ret = mdb_env_open(env_db, DBPATH, (rdOnly ? MDB_RDONLY : 0), S_IRUSR | S_IWUSR | S_IRGRP)) != 0) {
         ci_debug_printf(1, "mdb_env_open: Environment open failed: %s\n", mdb_strerror(ret));
         mdb_env_close(env_db);
         return 0;
@@ -108,13 +114,11 @@ int open_db()
     ci_debug_printf(5, "mdb_env_open: DB environment setup OK.\n");
 
     MDB_txn *txn;
-    if ((ret = mdb_txn_begin(env_db, NULL, 0, &txn)) != 0) {
-        ci_debug_printf(1, "Can not create transaction for dump data\n");
+    if ((ret = mdb_txn_begin(env_db, NULL, (rdOnly ? MDB_RDONLY : 0), &txn)) != 0) {
+        ci_debug_printf(1, "Can not create transaction to open database\n");
         return 0;
     }
-    unsigned int flags = 0;
-    if (!DUMP_MODE)
-        flags = MDB_CREATE;
+    unsigned int flags = rdOnly ? 0 : MDB_CREATE;
     if ((ret = mdb_dbi_open(txn, DBNAME, flags, &db)) != 0) {
         ci_debug_printf(1, "open lmdb database %s/%s: %s\n", DBPATH, DBNAME, mdb_strerror(ret));
         mdb_dbi_close(env_db, db);
@@ -130,6 +134,48 @@ void close_db()
 {
     mdb_dbi_close(env_db, db);
     mdb_env_close(env_db);
+}
+
+void printStat(MDB_stat *stat, char *label)
+{
+    if (!stat)
+        return;
+    printf("%s\n"
+           "   Page size %u\n"
+           "   Btree depth: %u\n"
+           "   Branch pages: %lld\n"
+           "   Leaf pages: %lld\n"
+           "   Overflow pages: %lld\n"
+           "   Entries: %lld\n",
+           label,
+           stat->ms_psize, stat->ms_depth,
+           (long long)stat->ms_branch_pages, (long long)stat->ms_leaf_pages, (long long)stat->ms_overflow_pages, (long long)stat->ms_entries
+        );
+}
+
+int info_db()
+{
+    MDB_envinfo info;
+    mdb_env_info(env_db, &info);
+    printf("Database environment info\n"
+           "   Mapsize: %lld\n"
+           "   Max readers: %d\n"
+           "   Readers: %d\n", (long long) info.me_mapsize, info.me_maxreaders, info.me_numreaders);
+    MDB_stat envstat;
+    mdb_env_stat(env_db, &envstat);
+    printStat(&envstat, "Database environment statistics");
+    MDB_stat dbstat;
+    MDB_txn *txn;
+    int ret;
+    if ((ret = mdb_txn_begin(env_db, NULL, MDB_RDONLY, &txn)) != 0) {
+        ci_debug_printf(1, "error creating cursor\n");
+        mdb_txn_abort(txn);
+        return 0;
+    }
+    mdb_stat(txn, db, &dbstat);
+    printStat(&dbstat, "Database statistics");
+    mdb_txn_abort(txn);
+    return 1;
 }
 
 int dump_db()
@@ -169,19 +215,23 @@ int dump_db()
         return 0;
     }
 
+    int records = 0;
+    int errors = 0;
     do {
+        records++;
         printf("%s :", (char *)db_key.mv_data);
         if (db_data.mv_size && db_data.mv_data) {
             flat = db_data.mv_data;
             if (!ci_flat_array_check(flat)) {
-                ci_debug_printf(1, "Invalid DB data: %s. Is DB corrupted? (key: %s, keysize: %d)\n", mdb_strerror(ret), (char *)db_key.mv_data, (int)db_key.mv_size);
-                continue;
-            }
-            size_t item_size;
-            const void *item;
-            for (i = 0; (item = ci_flat_array_item(flat, i, &item_size)) != NULL; i++) {
-                const char *val = (char *)(item);
-                printf("'%s' | ", val);
+                errors++;
+                printf(" unknown_data_of_size_%d", (int)db_data.mv_size);
+            } else {
+                size_t item_size;
+                const void *item;
+                for (i = 0; (item = ci_flat_array_item(flat, i, &item_size)) != NULL; i++) {
+                    const char *val = (char *)(item);
+                    printf("%s'%s'", (i > 0 ? "| " : ""), val);
+                }
             }
         }
         printf("\n");
@@ -190,6 +240,14 @@ int dump_db()
             ci_debug_printf(1, "Abort dump with the error: %s\n", mdb_strerror(ret));
         }
     } while (ret == 0);
+
+    if (errors) {
+        if (!DBNAME && errors == records) {
+            /*Probably unnamed database which include records with named databases, do not report anything*/
+        } else {
+            ci_debug_printf(1, "Not valid c-icap lookup table records %d from %d. Is the DB corrupted? \n", errors, records);
+        }
+    }
 
     mdb_cursor_close(dbc);
     mdb_txn_abort(txn);
@@ -318,7 +376,7 @@ int main(int argc, char **argv)
     ci_mem_init();
     ci_cfg_lib_init();
 
-    if (!ci_args_apply(argc, argv, options) || (!DBPATH && !DUMP_MODE && !VERSION_MODE)) {
+    if (!ci_args_apply(argc, argv, options) || (!DBPATH && !DUMP_MODE && !VERSION_MODE && !INFO_MODE)) {
         ci_args_usage(argv[0], options);
         exit(-1);
     }
@@ -336,8 +394,8 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    if (DUMP_MODE && !DBPATH) {
-        ci_debug_printf(1, "\nError: You need to specify the database to dump ('-o file.db')\n\n");
+    if ((INFO_MODE || DUMP_MODE) && !DBPATH) {
+        ci_debug_printf(1, "\nError: You need to specify the database ('-p file.db')\n\n");
         ci_args_usage(argv[0], options);
         exit(-1);
     }
@@ -349,7 +407,9 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    if (DUMP_MODE) {
+    if (INFO_MODE) {
+        info_db();
+    } else if (DUMP_MODE) {
         dump_db();
     } else {
         if ((f = fopen(INFILE, "r+")) == NULL) {
