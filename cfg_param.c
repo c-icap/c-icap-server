@@ -120,7 +120,7 @@ extern int ALLOW_REMOTE_PROXY_USERS;
 extern int REMOTE_PROXY_USER_HEADER_ENCODED;
 
 #ifdef USE_OPENSSL
-char *TLS_PASSPHRASE;
+char *TLS_PASSPHRASE = NULL;
 #endif
 
 /*Functions declaration */
