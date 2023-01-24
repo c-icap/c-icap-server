@@ -222,7 +222,7 @@ int dump_db()
         printf("%s :", (char *)db_key.mv_data);
         if (db_data.mv_size && db_data.mv_data) {
             flat = db_data.mv_data;
-            if (!ci_flat_array_check(flat)) {
+            if (ci_flat_array_size(flat) > db_data.mv_size || !ci_flat_array_check(flat)) {
                 errors++;
                 printf(" unknown_data_of_size_%d", (int)db_data.mv_size);
             } else {
@@ -453,6 +453,10 @@ int main(int argc, char **argv)
                 if (values) {
                     ci_vector_destroy(values);
                     values = NULL;
+                }
+                if (val) {
+                    ci_buffer_free(val);
+                    val = NULL;
                 }
             }
         }

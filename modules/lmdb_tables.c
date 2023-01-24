@@ -350,7 +350,7 @@ void *lmdb_table_search(struct ci_lookup_table *table, void *key, void ***vals)
 
     if (db_data.mv_size) {
         void *store = NULL;
-        if (ci_flat_array_check(db_data.mv_data)) {
+        if (ci_flat_array_size(db_data.mv_data) <= db_data.mv_size&& ci_flat_array_check(db_data.mv_data)) {
             store = ci_buffer_alloc(db_data.mv_size);
             _CI_ASSERT(store);
             memcpy(store, db_data.mv_data, db_data.mv_size);
