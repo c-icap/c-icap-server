@@ -1,6 +1,6 @@
 .TH c-icap-mkbdb 8 "@PACKAGE_STRING@"
 .SH NAME
-c-icap-mkbdb - simple ICAP clientutility to create Berkeley DB lookup tables
+c-icap-mkbdb - simple utility to create Berkeley DB lookup tables
 .SH SYNOPSIS
 .B c-icap-mkbdb
 [
@@ -29,7 +29,7 @@ c-icap-mkbdb - simple ICAP clientutility to create Berkeley DB lookup tables
 ]
 .SH DESCRIPTION
 .B c-icap-mkbdb
-utility can be used to create Berkeley DB databases which can be used as lookup tables by the c-icap server.
+utility can be used to create Berkeley DB based lookup tables for use with the c-icap server.
 .SH OPTIONS
 .IP "-V"
 Print version
