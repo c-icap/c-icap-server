@@ -549,7 +549,7 @@ static inline ci_service_module_t *ci_service_dup_to(ci_service_module_t *ssrv, 
 }
 
 #define _CI_DECLARE_SERVICE(srv)                                        \
-    CI_DECLARE_MOD_DATA  const uint64_t __ci_build_for = C_ICAP_HEX_VERSION; \
+    CI_DECLARE_MOD_DATA uint64_t __ci_build_for = C_ICAP_HEX_VERSION; \
     static ci_service_module_t *__ci_service_handle = NULL;                    \
     CI_DECLARE_MOD_DATA ci_service_module_t *__ci_service_build() {     \
         return ci_service_dup_to(&srv, &__ci_service_handle);           \
