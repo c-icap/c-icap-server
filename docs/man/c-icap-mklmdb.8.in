@@ -1,0 +1,87 @@
+.TH c-icap-mklmdb 8 "@PACKAGE_STRING@"
+.SH NAME
+c-icap-mklmdb - simple utility to create LMDB lookup tables
+.SH SYNOPSIS
+.B c-icap-mklmdb
+[
+.B \-V
+]
+[
+.B \-VV
+]
+[
+.B \-d debug_level
+]
+[
+.B \-i file.txt
+]
+[
+.B \-p db_directory
+]
+[
+.B \-n db_name
+]
+[
+.B \-t string|int|ip
+]
+[
+.B \-v string|int|ip
+]
+[
+.B \-\-dump
+]
+[
+.B \-\-erase
+]
+[
+.B \-\-info
+]
+.SH DESCRIPTION
+.B c-icap-mklmdb
+utility can be used to create LMDB based lookup tables for use with the c-icap server.
+.SH OPTIONS
+.IP "-V"
+Print version
+.IP "-VV"
+Print build informations
+.IP "-d debug_level"
+The debug level
+.IP "-i file.txt"
+The file contains the data (required). The line format of this file must be:
+.br
+.I "key: value1, value2, ...."
+.IP "-p db_directory"
+The database directory path
+.IP "-n db_name"
+A database name to use. Multiple LMDB databases can coexists in the same LMDB files
+.IP "-t string|int|ip"
+The type of the key. Select
+.B "string"
+for string keys,
+.B "int"
+for integer keys or
+.B "ip"
+for using IP addresses as keys. The "string" is the default.
+.IP "-v string|int|ip"
+The type of the values. The "string" is the default.
+.IP "--dump"
+Do not update the database just dump it to the screen.
+.IP "--erase"
+Erase from database the keys listed in the file given with the '-i' parameter
+.IP "--info"
+Print database informations
+.SH EXAMPLES
+.TP
+c-icap-mklmdb \-p /path/to/database \-i keys.txt
+It builds the an LMDB database under the path 'path/to/database', using string type for keys and values.
+.TP
+c-icap-mklmdb \-p /path/to/database \-\-dump
+Dump the contents of the given database
+.SH SEE ALSO
+.BR c-icap "(8)"
+.BR c-icap-client "(8)"
+.BR c-icap-stretch "(8)"
+.BR c-icap-config "(8)"
+.BR c-icap-libicapapi-config "(8)"
+.SH AUTHOR
+Tsantilas Christos
