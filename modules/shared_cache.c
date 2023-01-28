@@ -301,11 +301,13 @@ int ci_shared_cache_update(struct ci_cache *cache, const void *key, const void *
             slot->key_size = key_size;
             slot->value_size = val_size;
             memcpy(cache_key, key, key_size);
-            cache_val = (void *)(&slot->bytes[slot->key_size + 1]);
-            if (copy_to_cache)
-                copy_to_cache(cache_val, val, slot->value_size);
-            else
-                memcpy(cache_val, val, slot->value_size);
+            if (slot->value_size) {
+                cache_val = (void *)(&slot->bytes[slot->key_size + 1]);
+                if (copy_to_cache)
+                    copy_to_cache(cache_val, val, slot->value_size);
+                else
+                    memcpy(cache_val, val, slot->value_size);
+            }
             ret = 1;
             ++cache_data->stats->page[page].update_hits;
         } else
