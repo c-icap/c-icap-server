@@ -436,6 +436,14 @@ size_t ci_cache_store_vector_size(ci_vector_t *v)
 
 void *ci_cache_store_vector_val(void *buf, const void *val, size_t buf_size)
 {
+    if (!buf_size)
+        return NULL;
+
+    if (!val) {
+        ci_debug_printf(1, "Error storing NULL value, expected value of size %d\n", (int)buf_size);
+        return NULL;
+    }
+
     ci_vector_t *v = (ci_vector_t *)val;
     size_t ret = ci_flat_array_build_from_vector_to(v, buf, buf_size);
     if (!ret) {
@@ -447,6 +455,12 @@ void *ci_cache_store_vector_val(void *buf, const void *val, size_t buf_size)
 
 void *ci_cache_read_vector_val(const void *val, size_t val_size, void *o)
 {
+    if (!val_size)
+        return NULL;
+    if (!val) {
+        ci_debug_printf(1, "Error found stored a NULL value, expected value of size %d\n", (int)val_size);
+        return NULL;
+    }
     const void *flat = val;
     if (ci_flat_array_size(flat) > val_size || !ci_flat_array_check(flat)) {
         ci_debug_printf(2, "ci_cache_read_vector_val: corrupted stored value? (%d >< %d)\n",  (int)val_size, (int)ci_flat_array_size(flat));
