@@ -72,7 +72,7 @@ void print_headers(ci_request_t * req)
     }
 }
 
-void build_respmod_headers(int fd, ci_headers_list_t *headers)
+void build_respmod_headers(int fd, char *filename, ci_headers_list_t *headers)
 {
     struct stat filestat;
     char lbuf[512];
@@ -102,10 +102,14 @@ void build_respmod_headers(int fd, ci_headers_list_t *headers)
         ci_headers_add(headers, lbuf);
     }
 
+    if (filename) {
+        snprintf(lbuf, sizeof(lbuf), "X-C-ICAP-Client-Original-File: %s", filename);
+        ci_headers_add(headers, lbuf);
+    }
 }
 
 
-void build_reqmod_headers(char *url, const char *method, int fd, ci_headers_list_t *headers)
+void build_reqmod_headers(char *url, const char *method, int fd, char *filename, ci_headers_list_t *headers)
 {
     struct stat filestat;
     char lbuf[1024];
@@ -134,6 +138,11 @@ void build_reqmod_headers(char *url, const char *method, int fd, ci_headers_list
 
         if (!http_no_headers || !ci_str_vector_search(http_no_headers, "Content-Length")) {
             snprintf(lbuf, sizeof(lbuf), "Content-Length: %" PRId64, filesize);
+            ci_headers_add(headers, lbuf);
+        }
+
+        if (filename) {
+            snprintf(lbuf, sizeof(lbuf), "X-C-ICAP-Client-Original-File: %s", filename);
             ci_headers_add(headers, lbuf);
         }
     }
@@ -434,14 +443,14 @@ int main(int argc, char **argv)
 
         if (request_url) {
             req_headers = ci_headers_create();
-            build_reqmod_headers(request_url, method_str, fd_in, req_headers);
+            build_reqmod_headers(request_url, method_str, fd_in, input_file, req_headers);
             req->type = ICAP_REQMOD;
         } else if (send_headers) {
             resp_headers = ci_headers_create();
-            build_respmod_headers(fd_in, resp_headers);
+            build_respmod_headers(fd_in, input_file, resp_headers);
             if (resp_url) {
                 req_headers = ci_headers_create();
-                build_reqmod_headers(resp_url, method_str, 0, req_headers);
+                build_reqmod_headers(resp_url, method_str, 0, NULL, req_headers);
             }
         }
 
