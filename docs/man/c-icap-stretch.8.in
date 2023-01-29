@@ -42,6 +42,12 @@ c-icap-stretch - A simple utility for stretching ICAP servers
 [
 .B \-rhx "http-response-header"
 ]
+[
+.B \-O "OutputDirectory"
+]
+[
+.B \-\-max-requests-to-save, "requests-number"
+]
 .B file1 file2 ...
 .SH DESCRIPTION
 .B c-icap-stretch
@@ -73,6 +79,10 @@ Include the icap-header in icap request headers
 Include the http-request-header in http request headers
 .IP "-rhx http-response-header"
 Include the http-response-header in http response headers
+.IP "-O OutputDirectory"
+Output metadata (ICAP and HTTP headers) and HTTP responses body data under this directory.
+.IP "--max-requests-to-save files-number"
+Sets the maximum requests to save when the -O parameter is used. By default no more than 4096 requests are saved.
 .IP "file1 file2 ..."
 The files to use as body data to the ICAP requests.
 .SH SEE ALSO

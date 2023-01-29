@@ -58,7 +58,8 @@ char *URLS[MAX_URLS];
 int URLS_COUNT = 0;
 
 char *BASE_URL = NULL;
-
+static char *OUT_DIR = NULL;
+int OUT_FILES_NUM = 4096;
 time_t START_TIME = 0;
 int FILES_NUMBER = 0;
 char **FILES = NULL;
@@ -78,6 +79,7 @@ int pid_to_int(ci_thread_t id)
 }
 
 ci_thread_mutex_t filemtx;
+uint64_t RequestsCount = 0;
 int file_indx = 0;
 int requests_stats = 0;
 int failed_requests_stats = 0;
@@ -253,7 +255,7 @@ static char *xclient_header(struct thread_data *data)
     return xclient_headers[indx];
 }
 
-static void build_response_headers(int fd, ci_headers_list_t *headers)
+static void build_response_headers(int fd, const char *filename, ci_headers_list_t *headers)
 {
     struct stat filestat;
     int filesize;
@@ -282,7 +284,10 @@ static void build_response_headers(int fd, ci_headers_list_t *headers)
     ci_headers_add(headers, lbuf);
     if (http_resp_xheaders)
         ci_headers_addheaders(headers, http_resp_xheaders);
-
+    if (filename) {
+        snprintf(lbuf, sizeof(lbuf), "X-C-ICAP-Client-Original-File: %s", filename);
+        ci_headers_add(headers, lbuf);
+    }
 }
 
 static void build_request_headers(const char *url, const char *method, ci_headers_list_t *headers)
@@ -314,10 +319,20 @@ static int fileread(void *fd, char *buf, int len)
 
 static int filewrite(void *fd, char *buf, int len)
 {
+    if (*(int *)fd >= 0) {
+        ssize_t ret = write(*(int *) fd, buf, len);
+        if (ret != len) {
+            ci_debug_printf(1, "WARNING: Output truncated\n");
+            /* An error does not make sense to continue write*/
+            close(*(int *)fd);
+            *(int *)fd = -1;
+            /*But return len to allow stress test to be finished*/
+        }
+    }
     return len;
 }
 
-
+static int store_meta(uint64_t reqId, ci_request_t *req, ci_headers_list_t *request_headers, ci_headers_list_t *response_headers);
 static int do_req(ci_request_t *req, char *url, int *keepalive, int transparent)
 {
     int ret;
@@ -327,7 +342,10 @@ static int do_req(ci_request_t *req, char *url, int *keepalive, int transparent)
     char *s;
     ci_headers_list_t *headers;
     int fd_out = 0;
-
+    uint64_t reqId = 0;
+    ci_thread_mutex_lock(&filemtx);
+    reqId = RequestsCount++;
+    ci_thread_mutex_unlock(&filemtx);
     headers = ci_headers_create();
     printf("URl is: %s\n", url);
     if (transparent) {
@@ -390,6 +408,8 @@ static int do_req(ci_request_t *req, char *url, int *keepalive, int transparent)
         *keepalive = 0;
         return -1;
     }
+
+    store_meta(reqId, req, headers, NULL);
 
     *keepalive = req->keepalive;
 
@@ -482,7 +502,60 @@ static int threadjobreqmod(void *data)
     return 1;
 }
 
-static int do_file(struct thread_data *data, ci_request_t *req, char *input_file, int *keepalive)
+static int createOutFile(uint64_t reqId)
+{
+    char out_file[CI_MAX_PATH];
+    int fd_out = -1;
+    if (!OUT_DIR)
+        return -1;
+    if (reqId > OUT_FILES_NUM)
+        return -1;
+    snprintf(out_file, CI_MAX_PATH, "%s/%" PRIu64 ".data", OUT_DIR, reqId);
+    if ((fd_out = open(out_file, O_CREAT| O_RDWR | O_TRUNC, 0644)) < 0) {
+        ci_debug_printf(1, "Error opening file %s\n", out_file);
+        return -1;
+    }
+    return fd_out;
+}
+
+static int store_meta(uint64_t reqId, ci_request_t *req, ci_headers_list_t *request_headers, ci_headers_list_t *response_headers)
+{
+    char buf[65535];
+    char out_file[CI_MAX_PATH];
+    int fd_out = -1;
+    if (!OUT_DIR)
+        return 0;
+    if (reqId > OUT_FILES_NUM)
+        return 0;
+    snprintf(out_file, CI_MAX_PATH, "%s/%" PRIu64 ".meta", OUT_DIR, reqId);
+    if ((fd_out = open(out_file, O_CREAT| O_RDWR | O_TRUNC, 0644)) < 0) {
+        ci_debug_printf(1, "Error opening file %s\n", out_file);
+        return 0;
+    }
+    size_t len;
+    ci_headers_list_t *modified_request_headers = req->type == ICAP_REQMOD ? ci_http_request_headers(req) : NULL;
+    ci_headers_list_t *modified_response_headers = req->type == ICAP_RESPMOD ? ci_http_response_headers(req) : NULL;
+    ci_headers_list_t *out_headers[] = {request_headers, response_headers, modified_request_headers, modified_response_headers};
+    int i;
+    ci_headers_list_t *h;
+    for (i = 0 ; i < 4; ++i) {
+        h = out_headers[i];
+        if (!h)
+            continue;
+        len = ci_headers_pack_to_buffer(h, buf, sizeof(buf));
+        if (len) {
+            ssize_t wt = write(fd_out, buf, len);
+            if (wt != len) {
+                ci_debug_printf(1, "Error writing to meta file %s\n", out_file);
+                break; /*abort here*/
+            }
+        }
+    }
+    close(fd_out);
+    return 1;
+}
+
+static int do_file(struct thread_data *data, ci_request_t *req, uint64_t reqId, char *input_file, int *keepalive)
 {
     int fd_in,fd_out;
     int ret, arand;
@@ -508,10 +581,10 @@ static int do_file(struct thread_data *data, ci_request_t *req, char *input_file
         ci_debug_printf(1, "Error opening file %s\n", input_file);
         return 0;
     }
-    fd_out = 0;
+    fd_out = createOutFile(reqId);
 
     headers = ci_headers_create();
-    build_response_headers(fd_in, headers);
+    build_response_headers(fd_in, input_file, headers);
     if (useUrl) {
         request_headers = ci_headers_create();
         build_request_headers(useUrl, "GET", request_headers);
@@ -526,6 +599,8 @@ static int do_file(struct thread_data *data, ci_request_t *req, char *input_file
                                &fd_out,
                                (int (*)(void *, char *, int)) filewrite);
     close(fd_in);
+    if (fd_out >= 0)
+        close(fd_out);
 
     if (ret <=0 && req->bytes_out == 0) {
         ci_debug_printf(2, "Is the ICAP connection  closed?\n");
@@ -538,6 +613,7 @@ static int do_file(struct thread_data *data, ci_request_t *req, char *input_file
         *keepalive = 0;
         return -1;
     }
+    store_meta(reqId, req, request_headers, headers);
 
     *keepalive = req->keepalive;
 
@@ -564,6 +640,7 @@ static int threadjobsendfiles(void *data)
     char *xh;
     int indx, keepalive, ret;
     int arand;
+    uint64_t reqId = 0;
 
     struct thread_data *thread_data = (struct thread_data *)data;
     time_t start;
@@ -580,6 +657,7 @@ static int threadjobsendfiles(void *data)
 
         for (;;) {
             ci_thread_mutex_lock(&filemtx);
+            reqId = RequestsCount++;
             indx = file_indx;
             if (file_indx == (FILES_NUMBER - 1))
                 file_indx = 0;
@@ -598,7 +676,7 @@ static int threadjobsendfiles(void *data)
             req->preview = 512;
             req->allow206 = 1;
             req->allow204 = 1;
-            if ((ret = do_file(thread_data, req, FILES[indx], &keepalive)) <= 0) {
+            if ((ret = do_file(thread_data, req, reqId, FILES[indx], &keepalive)) <= 0) {
                 if (ret == 0)
                     ci_stat_uint64_inc(soft_failed_requests_stats, 1);
                 else
@@ -780,6 +858,8 @@ static struct ci_options_entry options[] = {
     {"-rhx", "xheader", &http_resp_xheaders, add_xheader, "Include xheader in http response headers"},
     {"-hcx", "X-Client-IP", &xclient_headers, add_xclient_headers, "Include this X-Client-IP header in request"},
 //     {"-w", "preview", &preview_size, ci_cfg_set_int, "Sets the maximum preview data size"},
+    {"-O", "OutputDirectory", &OUT_DIR, ci_cfg_set_str, "Output metadata and HTTP responses body data under this directory"},
+    {"--max-requests-to-save", "files-number", &OUT_FILES_NUM, ci_cfg_set_int, "maximum requests to save when the -O parameter is used (by default no more than 4096 requests are saved)"},
     {"$$", NULL, &FILES, cfg_files_to_use, "files to send"},
     {NULL, NULL, NULL, NULL}
 };
@@ -874,6 +954,7 @@ int main(int argc, char **argv)
     for (i = 0; i < threadsnum; i++)
         threads[i].id = 0;
 
+    ci_thread_mutex_init(&filemtx);
     if (DoReqmod) {
         for (i = 0; i < threadsnum; i++) {
             printf("Create thread %d\n", i);
@@ -883,8 +964,6 @@ int main(int argc, char **argv)
             sleep(1);
         }
     } else {
-        ci_thread_mutex_init(&filemtx);
-
         printf("Files to send:%d\n", FILES_NUMBER);
         for (i = 0; i < threadsnum; i++) {
             printf("Create thread %d\n", i);
