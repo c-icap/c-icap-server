@@ -322,6 +322,7 @@ struct ci_cfg_string_set {
  */
 #define CI_CFG_STRING_LIST(VAR, STRARRAY) (&(struct ci_cfg_string_set){&VAR, STRARRAY, sizeof(STRARRAY)/sizeof(char *)})
 #define CI_CFG_STRING_LIST2(VAR, STRARRAY, STRARRAY_LEN) (&(struct ci_cfg_string_set){&VAR, STRARRAY, STRARRAY_LEN})
+#define CI_BUILD_VAR_CFG_STRING_LIST(VARNAME, VAR, STRARRAY) struct ci_cfg_string_set VARNAME = {&VAR, STRARRAY, sizeof(STRARRAY)/sizeof(char *)}
 
 /**
  * Sets a C string configuration parameter.
@@ -334,7 +335,7 @@ struct ci_cfg_string_set {
  char *StrParam = 0;
  struct ci_conf_entry my_module_conf_variables[] = {
  ...
- {"StrParameter", CI_CFG_STRING_LIST(StrParam, StrParamAcceptedValues), ci_cfg_set_string_set, NULL},
+ {"StrParameter", CI_CFG_STRING_LIST(StrParam, StrParamAcceptedValues), ci_cfg_set_str_set, NULL},
  ...
  };
  \endcode

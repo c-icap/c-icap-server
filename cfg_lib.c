@@ -486,7 +486,7 @@ int ci_cfg_set_str_set(const char *directive, const char **argv, void *setdata)
         return 0;
     int i, found;
     for (i = 0, found = 0; i < set->set_length; ++i) {
-        if (strcasecmp(tmpVal, set->set[i]) == 0) {
+        if (set->set[i] && strcasecmp(tmpVal, set->set[i]) == 0) {
             found = 1;
             break;
         }
