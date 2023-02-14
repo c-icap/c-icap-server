@@ -17,7 +17,11 @@ ACLOCAL_AMFLAGS = -I m4
 SUBDIRS =  . utils modules services tests docs
 
 
-lib_LTLIBRARIES=libicapapi.la libcicap.la
+lib_LTLIBRARIES=libicapapi.la
+if ISCYGWIN
+lib_LTLIBRARIES += libcicap.la
+endif
+
 bin_PROGRAMS = c-icap
 
 bin_SCRIPTS = c-icap-config c-icap-libicapapi-config
