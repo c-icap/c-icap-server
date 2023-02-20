@@ -184,6 +184,24 @@ void ci_connection_reset(ci_connection_t *conn)
     conn->flags = 0;
 }
 
+int ci_host_canonical_name(const char *host, char *canonical_hostname, size_t canonical_hostname_len)
+{
+    struct addrinfo hints;
+    struct addrinfo *result = NULL;
+    int ok = 0;
+    memset(&hints, 0, sizeof(struct addrinfo));
+    hints.ai_flags = AI_CANONNAME;
+    if (getaddrinfo(host, NULL, &hints, &result) == 0) {
+        if (result && result->ai_canonname) {
+            snprintf(canonical_hostname, canonical_hostname_len, "%s", result->ai_canonname);
+            ok = 1;
+        }
+    }
+    if (result)
+        freeaddrinfo(result);
+    return ok;
+}
+
 int ci_host_to_sockaddr_t(const char *servername, ci_sockaddr_t * addr, int proto)
 {
     int ret = 0;

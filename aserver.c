@@ -61,19 +61,20 @@ void init_http_auth();
 
 void compute_my_hostname()
 {
-    char hostname[64];
-    struct hostent *hent;
     int ret;
-    ret = gethostname(hostname, 63);
+    if (CI_CONF.SERVER_NAME) {
+        snprintf(MY_HOSTNAME, sizeof(MY_HOSTNAME), "%s", CI_CONF.SERVER_NAME);
+        return;
+    }
+    char hostname[CI_MAXHOSTNAMELEN];
+    int ok = 0;
+    ret = gethostname(hostname, sizeof(hostname));
     if (ret == 0) {
-        hostname[63] = '\0';
-        if ((hent = gethostbyname(hostname)) != NULL) {
-            strncpy(MY_HOSTNAME, hent->h_name, CI_MAXHOSTNAMELEN);
-            MY_HOSTNAME[CI_MAXHOSTNAMELEN] = '\0';
-        } else
-            strcpy(MY_HOSTNAME, hostname);
-    } else
-        strcpy(MY_HOSTNAME, "localhost");
+        if (ci_host_canonical_name(hostname, MY_HOSTNAME, CI_MAXHOSTNAMELEN))
+            ok = 1;
+    }
+    if (!ok) /*Still not found, use localhost*/
+        snprintf(MY_HOSTNAME, sizeof(MY_HOSTNAME), "localhost");
 }
 
 #if ! defined(_WIN32)

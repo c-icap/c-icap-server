@@ -150,6 +150,7 @@ CI_DECLARE_FUNC(void) ci_sockaddr_set_port(ci_sockaddr_t *addr, int port);
 
 CI_DECLARE_FUNC(const char *) ci_sockaddr_t_to_host(ci_sockaddr_t *addr, char *hname, int maxhostlen);
 CI_DECLARE_FUNC(int) ci_host_to_sockaddr_t(const char *servername, ci_sockaddr_t * addr, int proto);
+CI_DECLARE_FUNC(int) ci_host_canonical_name(const char *host, char *canonical_hostname, size_t canonical_hostname_len);
 
 CI_DECLARE_FUNC(void) ci_copy_connection(ci_connection_t *dest, ci_connection_t *src);
 CI_DECLARE_FUNC(void) ci_connection_reset(ci_connection_t *conn);
