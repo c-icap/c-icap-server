@@ -63,19 +63,45 @@ void init_http_auth();
 
 void compute_my_hostname()
 {
-    char hostname[64];
-    struct hostent *hent;
     int ret;
-    ret = gethostname(hostname, 63);
+    if (CI_CONF.SERVER_NAME) {
+        snprintf(MY_HOSTNAME, sizeof(MY_HOSTNAME), "%s", CI_CONF.SERVER_NAME);
+        return;
+    }
+    char hostname[CI_MAXHOSTNAMELEN];
+    /*ServerName is not set try to retrieve servername from listening port */
+    if (CI_CONF.PORTS && ci_vector_size(CI_CONF.PORTS)) {
+        char port_hostname[CI_MAXHOSTNAMELEN];
+        int i;
+        int hostname_conflicts = 0;
+        const ci_port_t *p;
+        for (i = 0, p = (ci_port_t *)ci_vector_get(CI_CONF.PORTS, 0); !hostname_conflicts && (p = ci_vector_get(CI_CONF.PORTS, i)); ++i) {
+            if (p->proto != CI_PROTO_ICAP)
+                continue;
+            ci_sockaddr_t sa;
+            if (!p->address ||
+                !ci_ip_to_ci_sockaddr_t(p->address, &sa) ||
+                !ci_sockaddr_t_to_host(&sa, port_hostname, sizeof(port_hostname))) {
+                hostname_conflicts = 1;
+            } else if (i > 0 && strcmp(hostname, port_hostname) != 0)
+                hostname_conflicts = 1;
+            if (!hostname_conflicts)
+                strcpy(hostname, port_hostname);
+        }
+        if (!hostname_conflicts) {
+            snprintf(MY_HOSTNAME, sizeof(MY_HOSTNAME), "%s", hostname);
+            return;
+        }
+    }
+    int ok = 1;
+    /*Still we do not have any hostname. Try retrieve hostname*/
+    ret = gethostname(hostname, sizeof(hostname));
     if (ret == 0) {
-        hostname[sizeof(hostname) - 1] = '\0';
-        if ((hent = gethostbyname(hostname)) != NULL)
-            strncpy(MY_HOSTNAME, hent->h_name, CI_MAXHOSTNAMELEN);
-        else
-            strncpy(MY_HOSTNAME, hostname, CI_MAXHOSTNAMELEN);
-    } else
-        strncpy(MY_HOSTNAME, "localhost", CI_MAXHOSTNAMELEN);
-    MY_HOSTNAME[CI_MAXHOSTNAMELEN] = '\0';
+        if (ci_host_canonical_name(hostname, MY_HOSTNAME, CI_MAXHOSTNAMELEN))
+            ok = 1;
+    }
+    if (!ok) /*Still not found, use localhost*/
+        snprintf(MY_HOSTNAME, sizeof(MY_HOSTNAME), "localhost");
 }
 
 #if ! defined(_WIN32)
