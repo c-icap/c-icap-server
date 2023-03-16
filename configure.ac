@@ -1,8 +1,8 @@
 dnl Process this file with autoconf to produce a configure script.
 
 
-AC_INIT(c_icap,m4_normalize(m4_include([VERSION.m4])))
-dnl AC_INIT(c_icap,030606rc1)
+AC_INIT([c_icap], m4_normalize(m4_include([VERSION.m4])))
+dnl AC_INIT([c_icap], [030606rc1])
 CICAPLIB_VERSION=0:1:0
 AC_SUBST(CICAPLIB_VERSION)
 dnl CICAPLIB_VERSION is the libtool current[:revision[:age]] version info
@@ -14,7 +14,7 @@ dnl - interfaces have been removed  c:r:a => c:r:0
 
 AC_CONFIG_SRCDIR(aserver.c)
 AM_MAINTAINER_MODE
-AM_CONFIG_HEADER(autoconf.h)
+AC_CONFIG_HEADER(autoconf.h)
 
 AM_INIT_AUTOMAKE([subdir-objects])
 AC_CONFIG_MACRO_DIR([m4])
@@ -27,6 +27,7 @@ AC_PROG_AWK
 AC_PROG_CC
 AM_PROG_CC_C_O
 AC_PROG_CXX
+AM_PROG_AR
 
 WORDS_BIGENDIAN="0"
 WORDS_LITTLEENDIAN="0"
@@ -45,9 +46,7 @@ AC_SUBST(WORDS_BIGENDIAN)
 
 
 AC_DISABLE_STATIC
-AC_LIBTOOL_DLOPEN
-AC_LIBTOOL_WIN32_DLL
-AC_PROG_LIBTOOL
+LT_INIT(dlopen, win32-dll)
 AC_SUBST(LIBTOOL_DEPS)
 
 dnl Define c-icap version
@@ -902,22 +901,25 @@ AC_SUBST(POSIX_MAPPED_FILES)
 
 dnl Checking if union semun exists in this system.
 AC_MSG_CHECKING([if union semun defined])
-AC_TRY_COMPILE(
-[
+AC_COMPILE_IFELSE(
+[AC_LANG_SOURCE([
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/sem.h>
-],
-[union semun a_semun;],
-AC_DEFINE(HAVE_UNION_SEMUN,1,[Define HAVE_UNION_SEMUN if union semun defined in ipc])
-AC_MSG_RESULT(yes),
-AC_MSG_RESULT(no),
+int main(int argc, char *argv[])
+{
+   union semun a_semun;
+}
+]
+)],
+[AC_DEFINE(HAVE_UNION_SEMUN,1,[Define HAVE_UNION_SEMUN if union semun defined in ipc]) AC_MSG_RESULT(yes)],
+[AC_MSG_RESULT(no)]
 )
-
 
 dnl Checking if interprocess posix semaphores works....
 AC_CACHE_CHECK([if posix 1003.1b interprocess semaphores works], ac_cv_10031b_ipc_sem,
-   [AC_TRY_RUN([
+   [AC_RUN_IFELSE(
+   [AC_LANG_SOURCE([
    #include <semaphore.h>
    #include <sys/wait.h>
 
@@ -941,9 +943,10 @@ AC_CACHE_CHECK([if posix 1003.1b interprocess semaphores works], ac_cv_10031b_ip
          sem_destroy(&s);
          exit(0);
    }
-   ],
-   ac_cv_10031b_ipc_sem=yes,
-   ac_cv_10031b_ipc_sem=no,
+   ]
+   )],
+   [ac_cv_10031b_ipc_sem=yes],
+   [ac_cv_10031b_ipc_sem=no],
    [AC_MSG_ERROR([cross-compiling,
 	presetting ac_cv_10031b_ipc_sem=(yes|no) will help])]
         )
@@ -961,7 +964,8 @@ AC_SUBST(POSIX_SEMAPHORES)
 
 dnl Checking for file locking
 AC_CACHE_CHECK([if fcntl file locking works], ac_cv_fcntl,
-   [AC_TRY_RUN([
+   [AC_RUN_IFELSE(
+   [AC_LANG_SOURCE([
    #include <unistd.h>
    #include <fcntl.h>
 
@@ -984,9 +988,9 @@ AC_CACHE_CHECK([if fcntl file locking works], ac_cv_fcntl,
      close(fd);
      return 0;
    }
-   ],
-   ac_cv_fcntl=yes,
-   ac_cv_fcntl=no,
+   ])],
+   [ac_cv_fcntl=yes],
+   [ac_cv_fcntl=no],
    [AC_MSG_ERROR([cross-compiling,
 	presetting ac_cv_fcntl=(yes|no) will help])]
         )
@@ -1004,26 +1008,31 @@ AS_IF(
 AC_SUBST(POSIX_FILE_LOCK)
 
 AC_MSG_CHECKING([if posix shared mem works])
-AC_TRY_COMPILE(
+AC_COMPILE_IFELSE([AC_LANG_SOURCE(
 [
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-],
-[int fd = shm_open("foo", O_CREAT|O_RDWR, S_IRUSR | S_IWUSR);
+
+int main(int argc, char *argv[])
+{
+  int fd = shm_open("foo", O_CREAT|O_RDWR, S_IRUSR | S_IWUSR);
   if (fd < 0)
       return 0;
   if (shm_unlink("foo") < 0)
       return 0;
-],
+}
+])],
+[
 AC_DEFINE(HAVE_POSIX_SHARED_MEM, 1, [Define HAVE_POSIX_SHARED_MEM if shm_open/shm_unlink functions implemented])
-[AC_MSG_RESULT(yes)
+AC_MSG_RESULT(yes)
 POSIX_SHARED_MEM="1"
 ],
 [AC_MSG_RESULT(no)
 POSIX_SHARED_MEM="0"
 ],
 )
+
 if test a"$POSIX_SHARED_MEM" = "a1"; then
 # Linux and solaris define the shm_open in -rt library.
 # This library already included in LIBS for solaris
@@ -1040,12 +1049,19 @@ AC_SUBST(POSIX_SHARED_MEM)
 #pthread_rwlock
 PTHREADS_RWLOCK="0"
 AC_MSG_CHECKING([if have pthread_rwlock])
-AC_TRY_COMPILE(
-[#include <pthread.h>],
-[pthread_rwlock_t lock;],
+AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+[
+#include <pthread.h>
+int main(int argc, char *argv[])
+{
+  pthread_rwlock_t lock;
+}
+])],
+[
 AC_DEFINE(HAVE_PTHREADS_RWLOCK,1,[Define HAVE_PTHREADS_RWLOCK if pthreads library supports rwlocks])
 PTHREADS_RWLOCK="1"
-AC_MSG_RESULT(yes),
+AC_MSG_RESULT(yes)
+],
 AC_MSG_RESULT(no),
 )
 AC_SUBST(PTHREADS_RWLOCK)
@@ -1053,44 +1069,59 @@ AC_SUBST(PTHREADS_RWLOCK)
 # interprocess pthread mutexes
 PTHREADS_PROCESS_SHARED="0"
 AC_MSG_CHECKING([if have PTHREAD_PROCESS_SHARED])
-AC_TRY_COMPILE(
-[#include <pthread.h>],
+AC_COMPILE_IFELSE([AC_LANG_SOURCE(
 [
+#include <pthread.h>
+int main(int argc, char *argv[])
+{
    pthread_mutexattr_t mtx_attr;
    pthread_mutexattr_init(&mtx_attr);
    pthread_mutexattr_setpshared(&mtx_attr, PTHREAD_PROCESS_SHARED);
    pthread_mutexattr_setrobust(&mtx_attr, PTHREAD_MUTEX_ROBUST);
-],
+}
+])],
+[
 AC_DEFINE(HAVE_PTHREADS_PROCESS_SHARED,1,[Define HAVE_PTHREADS_PROCESS_SHARED if pthreads library supports interprocess shared mutexes])
 PTHREADS_PROCESS_SHARED="1"
-AC_MSG_RESULT(yes),
+AC_MSG_RESULT(yes)
+],
 AC_MSG_RESULT(no),
 )
 AC_SUBST(PTHREADS_PROCESS_SHARED)
 
 C11_ATOMICS="0"
 AC_MSG_CHECKING([if have c11 atomics])
-AC_TRY_COMPILE(
-[#include <stdatomic.h>],
+AC_COMPILE_IFELSE([AC_LANG_SOURCE(
 [
+#include <stdatomic.h>
+int main(int argc, char *argv[])
+{
    long long d = 0;
    atomic_fetch_add(&d, 1);
-],
+}
+])],
+[
 AC_DEFINE(HAVE_C11_ATOMICS,1,[Define HAVE_C11_ATOMICS if c11 atomics supported])
 C11_ATOMICS="1"
-AC_MSG_RESULT(yes),
+AC_MSG_RESULT(yes)
+],
 AC_MSG_RESULT(no)
 )
 
 AC_MSG_CHECKING([if have 128bit atomics])
-AC_TRY_COMPILE(
-[#include <stdatomic.h>],
+AC_COMPILE_IFELSE([AC_LANG_SOURCE(
 [
+#include <stdatomic.h>
+int main(int argc, char *argv[])
+{
    __int128 d = 0;
    atomic_fetch_add(&d, 1);
-],
+}
+])],
+[
 AC_DEFINE(HAVE_128BIT_ATOMICS,1,[Define HAVE_128BIT_ATOMICS if 128bit atomics supported])
-AC_MSG_RESULT(yes),
+AC_MSG_RESULT(yes)
+],
 AC_MSG_RESULT(no)
 )
 
@@ -1156,8 +1187,9 @@ AM_CONDITIONAL(USELDAP, [test a"$libldap" != ano])
 AM_CONDITIONAL(USEMEMCACHED, [test a"$libmemcached" != ano])
 AM_CONDITIONAL(USE_RPATH, [test "a$enable_rpath" != "ano"])
 
-AC_OUTPUT([
+AC_CONFIG_FILES([
 include/c-icap-conf.h include/c-icap-conf-w32.h Makefile utils/Makefile services/Makefile
 services/echo/Makefile services/ex-206/Makefile modules/Makefile tests/Makefile
 docs/Makefile docs/man/Makefile
 ])
+AC_OUTPUT

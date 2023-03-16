@@ -3,7 +3,7 @@ if test -d .git; then
 else
    echo "unversioned" > VERSION.m4
 fi
-autoreconf -f -i -v
+autoreconf -f -i -v -W all
 #aclocal
 #autoconf
 ##autoheader
