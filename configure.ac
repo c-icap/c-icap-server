@@ -1089,6 +1089,24 @@ AC_MSG_RESULT(no),
 )
 AC_SUBST(PTHREADS_PROCESS_SHARED)
 
+# check for ioctl/TIOCGWINZ/winsize
+AC_MSG_CHECKING([ioctl supports TIOCGWINSZ/winsize])
+AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+[
+#include <sys/ioctl.h>
+int main(int argc, char *argv[])
+{
+ struct winsize ws;
+ return ioctl(0, TIOCGWINSZ, &ws);
+}
+])],
+[
+AC_DEFINE(HAVE_TIOCGWINSZ,1,[Define HAVE_TIOCGWINSZ if ioctl supports TIOCGWINSZ/winsize])
+AC_MSG_RESULT(yes)
+],
+AC_MSG_RESULT(no),
+)
+
 C11_ATOMICS="0"
 AC_MSG_CHECKING([if have c11 atomics])
 AC_COMPILE_IFELSE([AC_LANG_SOURCE(

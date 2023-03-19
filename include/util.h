@@ -66,6 +66,8 @@ CI_DECLARE_FUNC(ci_dyn_array_t *) ci_parse_key_value_list(const char *str, char 
 
 CI_DECLARE_FUNC(int) ci_parse_key_mvalues(const char *line, char key_sep, char vals_sep, const ci_type_ops_t *key_type, const ci_type_ops_t *val_type, void **key, size_t *keysize, ci_vector_t **values);
 
+CI_DECLARE_FUNC(int) ci_screen_columns();
+
 #ifdef __cplusplus
 }
 #endif

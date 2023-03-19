@@ -214,3 +214,12 @@ char *asctime_r(const struct tm *ptm, char *buffer)
     return buffer - 8;
 }
 */
+
+int ci_screen_columns()
+{
+    CONSOLE_SCREEN_BUFFER_INFO csbiInfo;
+    if (GetConsoleScreenBufferInfo(GetStdHandle(STD_INPUT_HANDLE), &csbiInfo))
+        return sbiInfo.dwSize.X;
+    else
+        return 80;
+}

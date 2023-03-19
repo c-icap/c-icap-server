@@ -23,6 +23,8 @@
 #include "cfg_param.h"
 #include "mem.h"
 #include "debug.h"
+#include <util.h>
+#include <ctype.h>
 #if defined(HAVE_GNU_LIBC_VERSION_H)
 #include <gnu/libc-version.h>
 #endif
@@ -106,10 +108,43 @@ int ci_cfg_conf_table_configure(ci_conf_entry_t *table, const char *table_name, 
 /****************************************************************/
 /* Command line options implementation, function and structures */
 
+static char *wrap_msg(size_t first_line_pos, size_t ident_pos, int line_size, char *buf, size_t buf_size, const char *msg)
+{
+    const char *s = msg;
+    char *be = buf + buf_size - 1;
+    char *b = buf;
+    size_t line_pos = first_line_pos;
+    for (b = buf; b < be && *s != '\0'; s++) {
+        if (*s == '\n')
+            *b = *s;
+        else  if (isspace(*s)) {
+            // check if there is enough space in line for the next word:
+            size_t next_space;
+            for (next_space = 1; *(s + next_space) != '\0' && !isspace(*(s + next_space)); next_space++);
+            *b = ((next_space + line_pos) >= line_size) ? '\n' : ' ';
+        } else
+            *b = *s;
+
+        if (*b == '\n')
+            line_pos = 0;
+        else
+            line_pos++;
+        b++;
+        if (line_pos == 0) {
+            /*write spaces up to ident_pos*/
+            while (b < be && line_pos < ident_pos) *b = ' ', line_pos++, b++;
+        }
+    }
+    *b = '\0';
+    return buf;
+}
+
+#define max(x,y) ((x)>(y)?(x):(y))
+#define min(x,y) ((x)>(y)?(y):(x))
 void ci_args_usage(const char *progname, struct ci_options_entry *options)
 {
     int i;
-    printf("Usage : \n");
+    printf("Usage :\n");
     printf("%s", progname);
     for (i = 0; options[i].name != NULL; i++) {
         if (options[i].name[0] == '$')
@@ -118,14 +153,29 @@ void ci_args_usage(const char *progname, struct ci_options_entry *options)
             printf(" [%s %s]", options[i].name,
                    (options[i].parameter == NULL ? "" : options[i].parameter));
     }
-    printf("\n\n");
-    for (i = 0; options[i].name != NULL; i++)
-        if (options[i].name[0] == '$')
-            printf(" [file1] [file2] ...\t: %s\n", options[i].msg);
-        else
-            printf("%s %s\t\t: %s\n", options[i].name,
-                   (options[i].parameter == NULL ? "\t" : options[i].parameter),
-                   options[i].msg);
+    printf("\nOptions:\n");
+    /*Find the maximum string length of option/parameter pairs:*/
+    const char *files_opt_name = "[file1] [file2] ...";
+    size_t max_len = 0;
+    for (i = 0; options[i].name != NULL; i++) {
+        const char *pname = (options[i].name[0] == '$' ? files_opt_name : options[i].name);
+        const char *pval = (options[i].parameter == NULL ? "" : options[i].parameter);
+        const size_t param_len = snprintf(NULL, 0, "%s %s", pname, pval);
+        if (max_len < param_len)
+            max_len = param_len;
+    }
+    const size_t screen_cols = ci_screen_columns();
+    size_t ident_pos = min(max_len, screen_cols/3) + 2 /*at the beginning*/ + 1 /*before message*/;
+    for (i = 0; options[i].name != NULL; i++) {
+        char param[128];
+        char msg[1024];
+        const char *pname = (options[i].name[0] == '$' ? files_opt_name : options[i].name);
+        const char *pval = (options[i].parameter == NULL ? "" : options[i].parameter);
+        snprintf(param, sizeof(param), "  %s %s ", pname, pval);
+        size_t msg_start = max(ident_pos + 1, strlen(param) + 1);
+        printf("%-*s %s\n", (int)ident_pos, param,
+               wrap_msg(msg_start, ident_pos + 1, screen_cols,  msg, sizeof(msg), options[i].msg));
+    }
 }
 
 

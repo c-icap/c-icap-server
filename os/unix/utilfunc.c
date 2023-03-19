@@ -19,10 +19,14 @@
 
 #include "common.h"
 #include "c-icap.h"
-#include <stdio.h>
 #include "util.h"
+#include <fcntl.h>
+#include <stdio.h>
 #include <time.h>
 #include <assert.h>
+#if defined(HAVE_TIOCGWINSZ)
+#include <sys/ioctl.h>
+#endif
 
 static const char *days[] = {
     "Sun",
@@ -110,4 +114,18 @@ int ci_usleep(unsigned long usec)
     us.tv_nsec = usec * 1000;
     nanosleep(&us, &ur);
     return 0;
+}
+
+int ci_screen_columns()
+{
+    int cols = 80;
+#if defined(HAVE_TIOCGWINSZ)
+    struct winsize ws;
+    int fd;
+    fd = open("/dev/tty", O_RDWR);
+    if (fd >= 0 && ioctl(fd, TIOCGWINSZ, &ws) == 0)
+        cols = ws.ws_col;
+    close(fd); // dont forget to close files
+#endif
+    return cols;
 }
