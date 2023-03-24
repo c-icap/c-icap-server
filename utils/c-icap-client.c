@@ -252,10 +252,7 @@ int USE_DEBUG_LEVEL = -1;
 static struct ci_options_entry options[] = {
     {"-V", NULL, &VERSION_MODE, ci_cfg_version, "Print version and exits"},
     {"-VV", NULL, &VERSION_MODE, ci_cfg_build_info, "Print version and build informations and exits"},
-    {
-        "-i", "icap_servername", &icap_server, ci_cfg_set_str,
-        "The icap server name"
-    },
+    {"-i", "icap_servername", &icap_server, ci_cfg_set_str,"The icap server to use"},
     {"-p", "port", &port, ci_cfg_set_int, "The server port"},
     {"-s", "service", &service, ci_cfg_set_str, "The service name"},
 #if defined(USE_OPENSSL)
@@ -265,31 +262,31 @@ static struct ci_options_entry options[] = {
 #endif
     {
         "-f", "filename", &input_file, ci_cfg_set_str,
-        "Send this file to the icap server.\nDefault is to send an options request"
+        "Send this file as body data to the icap server. Default is to send an options request."
     },
     {
         "-o", "filename", &output_file, ci_cfg_set_str,
-        "Save output to this file.\nDefault is to send to stdout"
+        "Save output to this file. Default is to send to stdout."
     },
-    {"-method", "method", &method_str, ci_cfg_set_str,"Use 'method' as method of the request modification"},
-    {"-req","url",&request_url,ci_cfg_set_str,"Send a request modification instead of response modification"},
-    {"-resp","url",&resp_url,ci_cfg_set_str,"Send a responce modification request with request url the 'url'"},
+    {"-method", "method", &method_str, ci_cfg_set_str,"Use the 'method' as HTTP request method"},
+    {"-req","url",&request_url,ci_cfg_set_str,"Send a REQMOD ICAP request. By default send a RESPMOD request."},
+    {"-resp","url",&resp_url,ci_cfg_set_str,"Send a RESPMOD ICAP request, using the 'url' as HTTP request url"},
     {
         "-d", "level", &USE_DEBUG_LEVEL, ci_cfg_set_int,
         "debug level info to stdout"
     },
     {
         "-noreshdr", NULL, &send_headers, ci_cfg_disable,
-        "Do not send reshdr headers"
+        "Do not send HTTP response headers, when sends a RESPMOD ICAP request"
     },
     {"-nopreview", NULL, &send_preview, ci_cfg_disable, "Do not send preview data"},
     {"-no204", NULL, &allow204, ci_cfg_disable, "Do not allow204 outside preview"},
     {"-206", NULL, &allow206, ci_cfg_enable, "Support allow206"},
-    {"-x", "xheader", &xheaders, add_xheader, "Include xheader in icap request headers"},
-    {"-hx", "xheader", &http_xheaders, add_xheader, "Include xheader in http request headers"},
-    {"-no-h", "header-name", &http_no_headers, add_header_name, "Do not include header in http request headers"},
-    {"-rhx", "xheader", &http_resp_xheaders, add_xheader, "Include xheader in http response headers"},
-    {"-no-rh", "header-name", &http_no_resp_headers, add_header_name, "Do not include header in http response headers"},
+    {"-x", "xheader", &xheaders, add_xheader, "Include the 'xheader' in icap request headers"},
+    {"-hx", "xheader", &http_xheaders, add_xheader, "Include the 'xheader' in http request headers"},
+    {"-no-h", "header-name", &http_no_headers, add_header_name, "Do not include the header 'header-name' in http request headers"},
+    {"-rhx", "xheader", &http_resp_xheaders, add_xheader, "Include the 'xheader' in http response headers"},
+    {"-no-rh", "header-name", &http_no_resp_headers, add_header_name, "Do not include the header 'header-name' in http response headers"},
     {"-w", "preview", &preview_size, ci_cfg_set_int, "Sets the maximum preview data size"},
     {"-v", NULL, &verbose, ci_cfg_enable, "Print response headers"},
     {NULL, NULL, NULL, NULL}

@@ -22,6 +22,9 @@ c-icap-stretch - A simple utility for stretching ICAP servers
 .B \-urls "filename"
 ]
 [
+.B \-bU "base_url"
+]
+[
 .B \-req
 ]
 [
@@ -58,15 +61,19 @@ Print version
 .IP "-VV"
 Print build informations
 .IP "-i icap_servername"
-The hostname of the icap server. The default is localhost
+The hostname or the IP address of the ICAP server. The default is localhost
 .IP "-p port"
-The server port. The default port value is 1344
+The ICAP server port. The default port value is 1344
 .IP "-s service"
 The service name. The default service name is "echo"
 .IP "-urls filename"
-File with urls, one url per line, to use for stress test
+File with HTTP urls, one url per line, to use for stress test. The utility uses
+these  urs to construct random HTTP requests.
+.IP "-bU base_url"
+Base HTTP URL to use it as template to build HTTP requests. The final HTTP url
+is built using the base_url and the path of the file used as body data.
 .IP "-req"
-Send request modification requests
+Send ICAP request modification requests (reqmod)
 .IP "-m max-requests"
 The maximum requests to send
 .IP "-t threads-number"
@@ -74,11 +81,11 @@ The number of client threads to start
 .IP "-d level"
 debug level info to stdout
 .IP "-x icap-header"
-Include the icap-header in icap request headers
+Include the icap-header in ICAP request headers
 .IP "-hx http-request-header"
-Include the http-request-header in http request headers
+Include the http-request-header in HTTP request headers
 .IP "-rhx http-response-header"
-Include the http-response-header in http response headers
+Include the http-response-header in HTTP response headers
 .IP "-O OutputDirectory"
 Output metadata (ICAP and HTTP headers) and HTTP responses body data under this directory.
 .IP "--max-requests-to-save files-number"

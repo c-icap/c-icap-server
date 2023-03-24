@@ -816,10 +816,7 @@ static char *urls_file = NULL;
 static struct ci_options_entry options[] = {
     {"-V", NULL, &VERSION_MODE, ci_cfg_version, "Print version and exits"},
     {"-VV", NULL, &VERSION_MODE, ci_cfg_build_info, "Print version and build informations and exits"},
-    {
-        "-i", "icap_servername", &servername, ci_cfg_set_str,
-        "The ICAP server name"
-    },
+    {"-i", "icap_servername", &servername, ci_cfg_set_str, "The ICAP server to use"},
     {"-p", "port", &PORT, ci_cfg_set_int, "The ICAP server port"},
     {"-s", "service", &service, ci_cfg_set_str, "The service name"},
 #if defined(USE_OPENSSL)
@@ -830,7 +827,7 @@ static struct ci_options_entry options[] = {
 
     {
         "-urls", "filename", &urls_file, ci_cfg_set_str,
-        "File with urls to use for reqmod stress test"
+        "File with HTTP urls to use for stress test"
     },
     {
         "-bU", "base_url", &BASE_URL, ci_cfg_set_str,
@@ -853,13 +850,13 @@ static struct ci_options_entry options[] = {
         "debug level info to stdout"
     },
 //     {"-nopreview", NULL, &send_preview, ci_cfg_disable, "Do not send preview data"},
-    {"-x", "xheader", &xheaders, add_xheader, "Include xheader in icap request headers"},
-    {"-hx", "xheader", &http_xheaders, add_xheader, "Include xheader in http request headers"},
-    {"-rhx", "xheader", &http_resp_xheaders, add_xheader, "Include xheader in http response headers"},
+    {"-x", "xheader", &xheaders, add_xheader, "Include the 'xheader' in icap request headers"},
+    {"-hx", "xheader", &http_xheaders, add_xheader, "Include the 'xheader' in http request headers"},
+    {"-rhx", "xheader", &http_resp_xheaders, add_xheader, "Include the 'xheader' in http response headers"},
     {"-hcx", "X-Client-IP", &xclient_headers, add_xclient_headers, "Include this X-Client-IP header in request"},
 //     {"-w", "preview", &preview_size, ci_cfg_set_int, "Sets the maximum preview data size"},
     {"-O", "OutputDirectory", &OUT_DIR, ci_cfg_set_str, "Output metadata and HTTP responses body data under this directory"},
-    {"--max-requests-to-save", "files-number", &OUT_FILES_NUM, ci_cfg_set_int, "maximum requests to save when the -O parameter is used (by default no more than 4096 requests are saved)"},
+    {"--max-requests-to-save", "files-number", &OUT_FILES_NUM, ci_cfg_set_int, "The maximum requests to save when the -O parameter is used (by default no more than 4096 requests are saved)"},
     {"$$", NULL, &FILES, cfg_files_to_use, "files to send"},
     {NULL, NULL, NULL, NULL}
 };
