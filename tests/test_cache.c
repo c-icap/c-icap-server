@@ -4,6 +4,7 @@
 #include <time.h>
 #include "c-icap.h"
 #include "cache.h"
+#include "commands.h"
 #include "dlib.h"
 #include "mem.h"
 #include "module.h"
@@ -22,6 +23,16 @@ common_module_t * ci_common_module_build(const char *name, int (*init_module)(st
     mod->close_module = close_module;
     mod->conf_table = conf_table;
     return mod;
+}
+
+/*
+*/
+void ci_command_register_action(const char *name, int type, void *data, void (*command_action) (const char *name, int type, void *data))
+{
+    /* Nothing to do. The only cache in c-icap which requires is
+       the shared_cache which does not need it actually to run
+       in one process.
+    */
 }
 
 int load_module(const char *directive,const char **argv,void *setdata)
