@@ -1,4 +1,4 @@
-/*
+ /*
  *  Copyright (C) 2004-2021 Christos Tsantilas
  *
  *  This program is free software; you can redistribute it and/or
@@ -101,6 +101,20 @@ void ci_atomic_add_TYPELABEL(_CI_ATOMIC_TYPE TYPE *counter, TYPE add);
 void ci_atomic_sub_TYPELABEL(_CI_ATOMIC_TYPE TYPE *counter, TYPE sub);
 
 /**
+ * Adds atomically an amount "add" to the atomic "counter" of type TYPE
+ \return the value of atomic "counter" before the atomic operation
+ \ingroup ATOMICS
+ */
+TYPE ci_atomic_fetch_add_TYPELABEL(_CI_ATOMIC_TYPE TYPE *counter, TYPE add);
+
+/**
+ * Subtracts atomically an amount "sub" from the atomic "counter" of type TYPE.
+ \return the value of atomic "counter" before the atomic operation
+ \ingroup ATOMICS
+ */
+TYPE ci_atomic_fetch_sub_TYPELABEL(_CI_ATOMIC_TYPE TYPE *counter, TYPE sub);
+
+/**
  * Reads atomically the value from an inter-process atomic variable, of type TYPE.
  \ingroup ATOMICS
  */
@@ -123,6 +137,20 @@ void ci_atomic_add_TYPELABEL_gl(_CI_ATOMIC_TYPE TYPE *counter, TYPE add);
  \ingroup ATOMICS
  */
 void ci_atomic_sub_TYPELABEL_gl(_CI_ATOMIC_TYPE TYPE *counter, TYPE sub);
+
+/**
+ * Adds atomically an amount "add" to the inter-process atomic "counter" of type TYPE
+ \return the value of atomic "counter" before the atomic operation
+ \ingroup ATOMICS
+ */
+TYPE ci_atomic_fetch_add_TYPELABEL_gl(_CI_ATOMIC_TYPE TYPE *counter, TYPE add);
+
+/**
+ * Subtracts atomically an amount "sub" from the inter-process atomic "counter" of type TYPE.
+ \return the value of atomic "counter" before the atomic operation
+ \ingroup ATOMICS
+ */
+TYPE ci_atomic_fetch_sub_TYPELABEL_gl(_CI_ATOMIC_TYPE TYPE *counter, TYPE sub);
 
 #endif
 
@@ -170,56 +198,81 @@ CI_DECLARE_FUNC(void) ci_atomic_load_u32_non_inline(_CI_ATOMIC_TYPE const uint32
 CI_DECLARE_FUNC(void) ci_atomic_store_u32_non_inline(_CI_ATOMIC_TYPE uint32_t *counter, uint32_t value);
 CI_DECLARE_FUNC(void) ci_atomic_add_u32_non_inline(_CI_ATOMIC_TYPE uint32_t *counter, uint32_t add);
 CI_DECLARE_FUNC(void) ci_atomic_sub_u32_non_inline(_CI_ATOMIC_TYPE uint32_t *counter, uint32_t sub);
+CI_DECLARE_FUNC(uint32_t) ci_atomic_fetch_add_u32_non_inline(_CI_ATOMIC_TYPE uint32_t *counter, uint32_t add);
+CI_DECLARE_FUNC(uint32_t) ci_atomic_fetch_sub_u32_non_inline(_CI_ATOMIC_TYPE uint32_t *counter, uint32_t sub);
 CI_DECLARE_FUNC(void) ci_atomic_load_u32_non_inline_gl(_CI_ATOMIC_TYPE const uint32_t *counter, uint32_t *value);
 CI_DECLARE_FUNC(void) ci_atomic_store_u32_non_inline_gl(_CI_ATOMIC_TYPE uint32_t *counter, uint32_t value);
 CI_DECLARE_FUNC(void) ci_atomic_add_u32_non_inline_gl(_CI_ATOMIC_TYPE uint32_t *counter, uint32_t add);
 CI_DECLARE_FUNC(void) ci_atomic_sub_u32_non_inline_gl(_CI_ATOMIC_TYPE uint32_t *counter, uint32_t sub);
+CI_DECLARE_FUNC(uint32_t) ci_atomic_fetch_add_u32_non_inline_gl(_CI_ATOMIC_TYPE uint32_t *counter, uint32_t add);
+CI_DECLARE_FUNC(uint32_t) ci_atomic_fetch_sub_u32_non_inline_gl(_CI_ATOMIC_TYPE uint32_t *counter, uint32_t sub);
 
 CI_DECLARE_FUNC(void) ci_atomic_load_i32_non_inline(_CI_ATOMIC_TYPE const int32_t *counter, int32_t *value);
 CI_DECLARE_FUNC(void) ci_atomic_store_i32_non_inline(_CI_ATOMIC_TYPE int32_t *counter, int32_t value);
 CI_DECLARE_FUNC(void) ci_atomic_add_i32_non_inline(_CI_ATOMIC_TYPE int32_t *counter, int32_t add);
 CI_DECLARE_FUNC(void) ci_atomic_sub_i32_non_inline(_CI_ATOMIC_TYPE int32_t *counter, int32_t sub);
+CI_DECLARE_FUNC(int32_t) ci_atomic_fetch_add_i32_non_inline(_CI_ATOMIC_TYPE int32_t *counter, int32_t add);
+CI_DECLARE_FUNC(int32_t) ci_atomic_fetch_sub_i32_non_inline(_CI_ATOMIC_TYPE int32_t *counter, int32_t sub);
 CI_DECLARE_FUNC(void) ci_atomic_load_i32_non_inline_gl(_CI_ATOMIC_TYPE const int32_t *counter, int32_t *value);
 CI_DECLARE_FUNC(void) ci_atomic_store_i32_non_inline_gl(_CI_ATOMIC_TYPE int32_t *counter, int32_t value);
 CI_DECLARE_FUNC(void) ci_atomic_add_i32_non_inline_gl(_CI_ATOMIC_TYPE int32_t *counter, int32_t add);
 CI_DECLARE_FUNC(void) ci_atomic_sub_i32_non_inline_gl(_CI_ATOMIC_TYPE int32_t *counter, int32_t sub);
+CI_DECLARE_FUNC(int32_t) ci_atomic_fetch_add_i32_non_inline_gl(_CI_ATOMIC_TYPE int32_t *counter, int32_t add);
+CI_DECLARE_FUNC(int32_t) ci_atomic_fetch_sub_i32_non_inline_gl(_CI_ATOMIC_TYPE int32_t *counter, int32_t sub);
 
 CI_DECLARE_FUNC(void) ci_atomic_load_u64_non_inline(_CI_ATOMIC_TYPE const uint64_t *counter, uint64_t *value);
 CI_DECLARE_FUNC(void) ci_atomic_store_u64_non_inline(_CI_ATOMIC_TYPE uint64_t *counter, uint64_t value);
 CI_DECLARE_FUNC(void) ci_atomic_add_u64_non_inline(_CI_ATOMIC_TYPE uint64_t *counter, uint64_t add);
 CI_DECLARE_FUNC(void) ci_atomic_sub_u64_non_inline(_CI_ATOMIC_TYPE uint64_t *counter, uint64_t sub);
+CI_DECLARE_FUNC(uint64_t) ci_atomic_fetch_add_u64_non_inline(_CI_ATOMIC_TYPE uint64_t *counter, uint64_t add);
+CI_DECLARE_FUNC(uint64_t) ci_atomic_fetch_sub_u64_non_inline(_CI_ATOMIC_TYPE uint64_t *counter, uint64_t sub);
 CI_DECLARE_FUNC(void) ci_atomic_load_u64_non_inline_gl(_CI_ATOMIC_TYPE const uint64_t *counter, uint64_t *value);
 CI_DECLARE_FUNC(void) ci_atomic_store_u64_non_inline_gl(_CI_ATOMIC_TYPE uint64_t *counter, uint64_t value);
 CI_DECLARE_FUNC(void) ci_atomic_add_u64_non_inline_gl(_CI_ATOMIC_TYPE uint64_t *counter, uint64_t add);
 CI_DECLARE_FUNC(void) ci_atomic_sub_u64_non_inline_gl(_CI_ATOMIC_TYPE uint64_t *counter, uint64_t sub);
+CI_DECLARE_FUNC(uint64_t) ci_atomic_fetch_add_u64_non_inline_gl(_CI_ATOMIC_TYPE uint64_t *counter, uint64_t add);
+CI_DECLARE_FUNC(uint64_t) ci_atomic_fetch_sub_u64_non_inline_gl(_CI_ATOMIC_TYPE uint64_t *counter, uint64_t sub);
 
 CI_DECLARE_FUNC(void) ci_atomic_load_i64_non_inline(_CI_ATOMIC_TYPE const int64_t *counter, int64_t *value);
 CI_DECLARE_FUNC(void) ci_atomic_store_i64_non_inline(_CI_ATOMIC_TYPE int64_t *counter, int64_t value);
 CI_DECLARE_FUNC(void) ci_atomic_add_i64_non_inline(_CI_ATOMIC_TYPE int64_t *counter, int64_t add);
 CI_DECLARE_FUNC(void) ci_atomic_sub_i64_non_inline(_CI_ATOMIC_TYPE int64_t *counter, int64_t sub);
+CI_DECLARE_FUNC(int64_t) ci_atomic_fetch_add_i64_non_inline(_CI_ATOMIC_TYPE int64_t *counter, int64_t add);
+CI_DECLARE_FUNC(int64_t) ci_atomic_fetch_sub_i64_non_inline(_CI_ATOMIC_TYPE int64_t *counter, int64_t sub);
 CI_DECLARE_FUNC(void) ci_atomic_load_i64_non_inline_gl(_CI_ATOMIC_TYPE const int64_t *counter, int64_t *value);
 CI_DECLARE_FUNC(void) ci_atomic_store_i64_non_inline_gl(_CI_ATOMIC_TYPE int64_t *counter, int64_t value);
 CI_DECLARE_FUNC(void) ci_atomic_add_i64_non_inline_gl(_CI_ATOMIC_TYPE int64_t *counter, int64_t add);
 CI_DECLARE_FUNC(void) ci_atomic_sub_i64_non_inline_gl(_CI_ATOMIC_TYPE int64_t *counter, int64_t sub);
+CI_DECLARE_FUNC(int64_t) ci_atomic_fetch_add_i64_non_inline_gl(_CI_ATOMIC_TYPE int64_t *counter, int64_t add);
+CI_DECLARE_FUNC(int64_t) ci_atomic_fetch_sub_i64_non_inline_gl(_CI_ATOMIC_TYPE int64_t *counter, int64_t sub);
+
 
 #if defined(CI_ATOMICS_USE_128BIT)
 CI_DECLARE_FUNC(void) ci_atomic_load_u128_non_inline(_CI_ATOMIC_TYPE const unsigned __int128 *counter, unsigned __int128 *value);
 CI_DECLARE_FUNC(void) ci_atomic_store_u128_non_inline(_CI_ATOMIC_TYPE unsigned __int128 *counter, unsigned __int128 value);
 CI_DECLARE_FUNC(void) ci_atomic_add_u128_non_inline(_CI_ATOMIC_TYPE unsigned __int128 *counter, unsigned __int128 add);
 CI_DECLARE_FUNC(void) ci_atomic_sub_u128_non_inline(_CI_ATOMIC_TYPE unsigned __int128 *counter, unsigned __int128 sub);
+CI_DECLARE_FUNC(unsigned __int128) ci_atomic_fetch_add_u128_non_inline(_CI_ATOMIC_TYPE unsigned __int128 *counter, unsigned __int128 add);
+CI_DECLARE_FUNC(unsigned __int128) ci_atomic_fetch_sub_u128_non_inline(_CI_ATOMIC_TYPE unsigned __int128 *counter, unsigned __int128 sub);
 CI_DECLARE_FUNC(void) ci_atomic_load_u128_non_inline_gl(_CI_ATOMIC_TYPE const unsigned __int128 *counter, unsigned __int128 *value);
 CI_DECLARE_FUNC(void) ci_atomic_store_u128_non_inline_gl(_CI_ATOMIC_TYPE unsigned __int128 *counter, unsigned __int128 value);
 CI_DECLARE_FUNC(void) ci_atomic_add_u128_non_inline_gl(_CI_ATOMIC_TYPE unsigned __int128 *counter, unsigned __int128 add);
 CI_DECLARE_FUNC(void) ci_atomic_sub_u128_non_inline_gl(_CI_ATOMIC_TYPE unsigned __int128 *counter, unsigned __int128 sub);
+CI_DECLARE_FUNC(unsigned __int128) ci_atomic_fetch_add_u128_non_inline_gl(_CI_ATOMIC_TYPE unsigned __int128 *counter, unsigned __int128 add);
+CI_DECLARE_FUNC(unsigned __int128) ci_atomic_fetch_sub_u128_non_inline_gl(_CI_ATOMIC_TYPE unsigned __int128 *counter, unsigned __int128 sub);
 
 CI_DECLARE_FUNC(void) ci_atomic_load_i128_non_inline(_CI_ATOMIC_TYPE const __int128 *counter, __int128 *value);
 CI_DECLARE_FUNC(void) ci_atomic_store_i128_non_inline(_CI_ATOMIC_TYPE __int128 *counter, __int128 value);
 CI_DECLARE_FUNC(void) ci_atomic_add_i128_non_inline(_CI_ATOMIC_TYPE __int128 *counter, __int128 add);
 CI_DECLARE_FUNC(void) ci_atomic_sub_i128_non_inline(_CI_ATOMIC_TYPE __int128 *counter, __int128 sub);
+CI_DECLARE_FUNC(__int128) ci_atomic_fetch_add_i128_non_inline(_CI_ATOMIC_TYPE __int128 *counter, __int128 add);
+CI_DECLARE_FUNC(__int128) ci_atomic_fetch_sub_i128_non_inline(_CI_ATOMIC_TYPE __int128 *counter, __int128 sub);
 CI_DECLARE_FUNC(void) ci_atomic_load_i128_non_inline_gl(_CI_ATOMIC_TYPE const __int128 *counter, __int128 *value);
 CI_DECLARE_FUNC(void) ci_atomic_store_i128_non_inline_gl(_CI_ATOMIC_TYPE __int128 *counter, __int128 value);
 CI_DECLARE_FUNC(void) ci_atomic_add_i128_non_inline_gl(_CI_ATOMIC_TYPE __int128 *counter, __int128 add);
 CI_DECLARE_FUNC(void) ci_atomic_sub_i128_non_inline_gl(_CI_ATOMIC_TYPE __int128 *counter, __int128 sub);
+CI_DECLARE_FUNC(__int128) ci_atomic_fetch_add_i128_non_inline_gl(_CI_ATOMIC_TYPE __int128 *counter, __int128 add);
+CI_DECLARE_FUNC(__int128) ci_atomic_fetch_sub_i128_non_inline_gl(_CI_ATOMIC_TYPE __int128 *counter, __int128 sub);
 #endif
 
 #ifdef __cplusplus
@@ -239,6 +292,12 @@ CI_DECLARE_FUNC(void) ci_atomic_sub_i128_non_inline_gl(_CI_ATOMIC_TYPE __int128 
     spec void ci_atomic_sub_##name(_CI_ATOMIC_TYPE type *counter, type sub) {           \
         atomic_fetch_sub_explicit(counter, sub, memory_order_relaxed);  \
     }                                                                   \
+    spec type ci_atomic_fetch_add_##name(_CI_ATOMIC_TYPE type *counter, type add) { \
+        return atomic_fetch_add_explicit(counter, add, memory_order_seq_cst); \
+    }                                                                   \
+    spec type ci_atomic_fetch_sub_##name(_CI_ATOMIC_TYPE type *counter, type sub) { \
+        return atomic_fetch_sub_explicit(counter, sub, memory_order_relaxed); \
+    }                                                                   \
     spec void ci_atomic_load_##name ## _gl(_CI_ATOMIC_TYPE const type *counter, type *store) { \
         *store = atomic_load_explicit(counter, memory_order_relaxed);   \
     }                                                                   \
@@ -250,7 +309,14 @@ CI_DECLARE_FUNC(void) ci_atomic_sub_i128_non_inline_gl(_CI_ATOMIC_TYPE __int128 
     }                                                                   \
     spec void ci_atomic_sub_##name ## _gl(_CI_ATOMIC_TYPE type *counter, type sub) {    \
         atomic_fetch_sub_explicit(counter, sub, memory_order_relaxed);  \
+    }                                                                   \
+    spec type ci_atomic_fetch_add_##name ## _gl(_CI_ATOMIC_TYPE type *counter, type add) { \
+        return atomic_fetch_add_explicit(counter, add, memory_order_seq_cst); \
+    }                                                                   \
+    spec type ci_atomic_fetch_sub_##name ## _gl(_CI_ATOMIC_TYPE type *counter, type sub) { \
+        return atomic_fetch_sub_explicit(counter, sub, memory_order_relaxed); \
     }
+
 
 #define __ci_implement_atomic_ops_non_inline(spec, name, type)          \
     spec void ci_atomic_load_##name(_CI_ATOMIC_TYPE const type *counter, type *store) { \
@@ -265,6 +331,12 @@ CI_DECLARE_FUNC(void) ci_atomic_sub_i128_non_inline_gl(_CI_ATOMIC_TYPE __int128 
     spec void ci_atomic_sub_##name(_CI_ATOMIC_TYPE type *counter, type sub) {           \
         ci_atomic_sub_ ## name ## _non_inline(counter, sub);            \
     }                                                                   \
+    spec type ci_atomic_fetch_add_##name(_CI_ATOMIC_TYPE type *counter, type add) { \
+        return ci_atomic_fetch_add_ ## name ## _non_inline(counter, add);            \
+    }                                                                   \
+    spec type ci_atomic_fetch_sub_##name(_CI_ATOMIC_TYPE type *counter, type sub) { \
+        return ci_atomic_fetch_sub_ ## name ## _non_inline(counter, sub); \
+    }                                                                   \
     spec void ci_atomic_load_##name ## _gl(_CI_ATOMIC_TYPE const type *counter, type *store) { \
         ci_atomic_load_ ## name ## _non_inline_gl(counter, store);      \
     }                                                                   \
@@ -276,6 +348,12 @@ CI_DECLARE_FUNC(void) ci_atomic_sub_i128_non_inline_gl(_CI_ATOMIC_TYPE __int128 
     }                                                                   \
     spec void ci_atomic_sub_##name ## _gl(_CI_ATOMIC_TYPE type *counter, type sub) {    \
         ci_atomic_sub_ ## name ## _non_inline_gl(counter, sub);         \
+    }                                                                   \
+    spec void ci_atomic_fetch_add_##name ## _gl(_CI_ATOMIC_TYPE type *counter, type add) { \
+        return ci_atomic_fetch_add_ ## name ## _non_inline_gl(counter, add);         \
+    }                                                                   \
+    spec void ci_atomic_fetch_sub_##name ## _gl(_CI_ATOMIC_TYPE type *counter, type sub) { \
+        return ci_atomic_fetch_sub_ ## name ## _non_inline_gl(counter, sub); \
     }
 
 
@@ -331,6 +409,12 @@ __ci_implement_atomic_ops(static inline, i128, __int128);
     }                                                                   \
     spec void ci_atomic_sub_##name(type *counter, type sub) {           \
         std::atomic_fetch_sub_explicit(reinterpret_cast<std::atomic<type> *>(counter), sub, std::memory_order_relaxed); \
+    }                                                                   \
+    spec type ci_atomic_fetch_add_##name(type *counter, type add) {           \
+        return std::atomic_fetch_add_explicit(reinterpret_cast<std::atomic<type> *>(counter), add, std::memory_order_relaxed); \
+    }                                                                   \
+    spec type ci_atomic_fetch_sub_##name(type *counter, type sub) {     \
+        return std::atomic_fetch_sub_explicit(reinterpret_cast<std::atomic<type> *>(counter), sub, std::memory_order_relaxed); \
     }
 
 __ci_implement_atomic_ops_cplusplus(inline, u32, uint32_t);

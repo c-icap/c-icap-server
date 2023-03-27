@@ -80,6 +80,25 @@ static ci_proc_mutex_t proc_mtx[MTX_SIZE];
         *counter -= sub;                                                \
         ci_thread_mutex_unlock(mtx);                                    \
     }                                                                   \
+    type ci_atomic_fetch_add_##name(type *counter, type add) {          \
+        type old;                                                       \
+        ci_thread_mutex_t *mtx = get_mtx(thr_mtx, counter);             \
+        ci_thread_mutex_lock(mtx);                                      \
+        old = *counter;                                                 \
+        *counter += add;                                                \
+        ci_thread_mutex_unlock(mtx);                                    \
+        return old;                                                     \
+    }                                                                   \
+    type ci_atomic_fetch_sub_##name(type *counter, type sub) {          \
+        type old;                                                       \
+        ci_thread_mutex_t *mtx = get_mtx(thr_mtx, counter);             \
+        ci_thread_mutex_lock(mtx);                                      \
+        old = *counter;                                                 \
+        *counter -= sub;                                                \
+        ci_thread_mutex_unlock(mtx);                                    \
+        return old;                                                     \
+    }                                                                   \
+
     void ci_atomic_load_##name ## _gl(const type *counter, type *store) { \
         ci_proc_mutex_t *mtx = get_mtx(proc_mtx, counter);              \
         ci_proc_mutex_lock(mtx);                                        \
@@ -101,6 +120,22 @@ static ci_proc_mutex_t proc_mtx[MTX_SIZE];
     void ci_atomic_sub_##name ## _gl(type *counter, type sub) {         \
         ci_proc_mutex_t *mtx = get_mtx(proc_mtx, counter);              \
         ci_proc_mutex_lock(mtx);                                        \
+        *counter -= sub;                                                \
+        ci_proc_mutex_unlock(mtx);                                      \
+    }                                                                   \
+    type ci_atomic_fetch_add_##name ## _gl(type *counter, type add) {   \
+        type old;                                                       \
+        ci_proc_mutex_t *mtx = get_mtx(proc_mtx, counter);              \
+        ci_proc_mutex_lock(mtx);                                        \
+        old = *counter;                                                 \
+        *counter += add;                                                \
+        ci_proc_mutex_unlock(mtx);                                      \
+    }                                                                   \
+    type ci_atomic_fetch_sub_##name ## _gl(type *counter, type sub) {   \
+        type old;                                                       \
+        ci_proc_mutex_t *mtx = get_mtx(proc_mtx, counter);              \
+        ci_proc_mutex_lock(mtx);                                        \
+        old = *counter;                                                 \
         *counter -= sub;                                                \
         ci_proc_mutex_unlock(mtx);                                      \
     }
