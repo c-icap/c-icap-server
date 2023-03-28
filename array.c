@@ -979,12 +979,12 @@ const void * ci_list_search(const ci_list_t *list, const void *data)
     return ci_list_search2(list, data, cmp_func);
 }
 
-const void * ci_list_search2(const ci_list_t *list, const void *data, int (*cmp_func)(const void *obj, const void *user_data, size_t user_data_size))
+const void * ci_list_search2(const ci_list_t *list, const void *user_data, int (*cmp_func)(const void *obj, const void *user_data, size_t obj_size))
 {
     ci_list_item_t *it;
     _CI_ASSERT(list);
     for (it = list->items; it != NULL; it = it->next) {
-        if (cmp_func(it->item, data, list->obj_size) == 0)
+        if (cmp_func(it->item, user_data, list->obj_size) == 0)
             return it->item;
     }
     return NULL;

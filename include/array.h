@@ -923,7 +923,7 @@ CI_DECLARE_FUNC(int) ci_list_remove2(ci_list_t *list, const void *obj, int (*cmp
  * Return the first found item equal to the obj.
  \ingroup LISTS
  \param list a pointer to the ci_list_t object
- \param obj pointer to an object to remove
+ \param data pointer to an object to search for
  \return the found item on success, NULL otherwise
  */
 CI_DECLARE_FUNC(const void *) ci_list_search(const ci_list_t *list, const void *data);
@@ -935,11 +935,11 @@ CI_DECLARE_FUNC(const void *) ci_list_search(const ci_list_t *list, const void *
  * otherwise.
  \ingroup LISTS
  \param list a pointer to the ci_list_t object
- \param obj pointer to an object to remove
+ \param user_data pointer to user data to search for
  \param cmp_func the comparison function to use
  \return the found item on success, NULL otherwise
  */
-CI_DECLARE_FUNC(const void *) ci_list_search2(const ci_list_t *list, const void *data, int (*cmp_func)(const void *obj, const void *user_data, size_t user_data_size));
+CI_DECLARE_FUNC(const void *) ci_list_search2(const ci_list_t *list, const void *user_data, int (*cmp_func)(const void *obj, const void *user_data, size_t obj_size));
 
 /**
  * Sorts the list using as compare function the default.
