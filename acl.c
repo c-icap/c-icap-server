@@ -584,7 +584,7 @@ int ci_access_entry_add_acl_by_name(ci_access_entry_t *access_entry, const char 
     }
     acl = ci_acl_search(acl_name);
     if (!acl) {
-        ci_debug_printf(1, "The acl spec %s does not exists!\n", acl_name);
+        ci_debug_printf(2, "The acl spec %s does not exists!\n", acl_name);
         return 0;
     }
     if (ci_access_entry_add_acl(access_entry, acl, negate) == NULL) {

@@ -149,9 +149,12 @@ int cfg_default_acl_access(const char *directive, const char **argv, void *setda
             ci_debug_printf(1, "Only \"port\", \"src\" and \"srvip\" acl types allowed in client_access access list (given :%s)\n", acl_spec_name);
             error = 1;
         } else {
-            /*TODO: check return type.....*/
-            ci_access_entry_add_acl_by_name(access_entry, acl_spec_name);
-            ci_debug_printf(2,"\tAdding acl spec: %s\n", acl_spec_name);
+            if (ci_access_entry_add_acl_by_name(access_entry, acl_spec_name)) {
+                ci_debug_printf(2,"\tAdded acl spec: %s\n", acl_spec_name);
+            } else {
+                ci_debug_printf(1,"The required acl spec '%s' is missing\n", acl_spec_name);
+                error = 1;
+            }
         }
     }
     if (error)

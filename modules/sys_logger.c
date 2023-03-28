@@ -231,10 +231,11 @@ int cfg_syslog_access(const char *directive, const char **argv, void *setdata)
         acl_spec_name = argv[argc];
         /*TODO: check return type.....*/
         if (!ci_access_entry_add_acl_by_name(syslog_access_list, acl_spec_name)) {
-            ci_debug_printf(1,"Error adding acl spec: %s. Probably does not exist!\n", acl_spec_name);
+            ci_debug_printf(1,"Error adding acl spec: %s.\n", acl_spec_name);
             error = 1;
-        } else
+        } else {
             ci_debug_printf(5,"\tAdding acl spec: %s\n", acl_spec_name);
+        }
     }
 
     if (error)
