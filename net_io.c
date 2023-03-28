@@ -36,14 +36,12 @@ void ci_fill_sockaddr(ci_sockaddr_t * addr)
 {
     addr->ci_sin_family = addr->sockaddr.ss_family;
     if (addr->ci_sin_family == AF_INET6) {
-        addr->ci_sin_port =
-            ((struct sockaddr_in6 *) &(addr->sockaddr))->sin6_port;
+        addr->ci_sin_port = ntohs(((struct sockaddr_in6 *) &(addr->sockaddr))->sin6_port);
         addr->ci_sin_addr =
             &(((struct sockaddr_in6 *) &(addr->sockaddr))->sin6_addr);
         addr->ci_inaddr_len = sizeof(struct in6_addr);
     } else {
-        addr->ci_sin_port =
-            ((struct sockaddr_in *) &(addr->sockaddr))->sin_port;
+        addr->ci_sin_port = ntohs(((struct sockaddr_in *) &(addr->sockaddr))->sin_port);
         addr->ci_sin_addr =
             &(((struct sockaddr_in *) &(addr->sockaddr))->sin_addr);
         addr->ci_inaddr_len = sizeof(struct in_addr);
@@ -65,7 +63,7 @@ void ci_copy_sockaddr(ci_sockaddr_t * dest, const ci_sockaddr_t * src)
 void ci_fill_sockaddr(ci_sockaddr_t * addr)
 {
     addr->ci_sin_family = addr->sockaddr.sin_family;
-    addr->ci_sin_port = addr->sockaddr.sin_port;
+    addr->ci_sin_port = htons(addr->sockaddr.sin_port);
     addr->ci_sin_addr = &(addr->sockaddr.sin_addr);
     addr->ci_inaddr_len = sizeof(struct in_addr);
 }
@@ -98,12 +96,10 @@ void ci_sockaddr_set_port(ci_sockaddr_t * addr, int port)
 {
     if (addr->sockaddr.ss_family == AF_INET) {
         ((struct sockaddr_in *) &(addr->sockaddr))->sin_port = htons(port);
-        addr->ci_sin_port =
-            ((struct sockaddr_in6 *) &(addr->sockaddr))->sin6_port;
+        addr->ci_sin_port = port;
     } else {
         ((struct sockaddr_in6 *) &(addr->sockaddr))->sin6_port = htons(port);
-        addr->ci_sin_port =
-            ((struct sockaddr_in *) &(addr->sockaddr))->sin_port;
+        addr->ci_sin_port = port;
     }
 }
 
@@ -112,7 +108,7 @@ void ci_sockaddr_set_port(ci_sockaddr_t * addr, int port)
 void ci_sockaddr_set_port(ci_sockaddr_t * addr, int port)
 {
     addr->sockaddr.sin_port = htons(port);
-    addr->ci_sin_port = addr->sockaddr.sin_port;
+    addr->ci_sin_port = port;
 }
 #endif
 
