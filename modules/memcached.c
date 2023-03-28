@@ -25,6 +25,7 @@
 #include "md5.h"
 #include "mem.h"
 #include "module.h"
+#include "stats.h"
 
 #include <assert.h>
 #include <libmemcached/memcached.h>
@@ -87,6 +88,10 @@ static ci_thread_mutex_t mc_mtx;
 
 struct mc_cache_data {
     char domain[MC_DOMAINLEN + 1];
+    int stat_failures;
+    int stat_hit;
+    int stat_miss;
+    int stat_updates;
 };
 /*The list of mc caches. Objects of type mc_cache_data.*/
 static ci_list_t *mc_caches_list = NULL;
@@ -268,6 +273,17 @@ int mc_cache_init(struct ci_cache *cache, const char *domain)
     struct mc_cache_data *mc_data = malloc(sizeof(struct mc_cache_data));
     strncpy(mc_data->domain, useDomain, MC_DOMAINLEN);
     mc_data->domain[MC_DOMAINLEN] = '\0';
+
+    char buf[512];
+    snprintf(buf, sizeof(buf), "memcached(%s)_errors", mc_data->domain);
+    mc_data->stat_failures = ci_stat_entry_register(buf, CI_STAT_INT64_T, "memcached");
+    snprintf(buf, sizeof(buf), "memcached(%s)_hits", mc_data->domain);
+    mc_data->stat_hit = ci_stat_entry_register(buf, CI_STAT_INT64_T, "memcached");
+    snprintf(buf, sizeof(buf), "memcached(%s)_miss", mc_data->domain);
+    mc_data->stat_miss = ci_stat_entry_register(buf, CI_STAT_INT64_T, "memcached");
+    snprintf(buf, sizeof(buf), "memcached(%s)_updates", mc_data->domain);
+    mc_data->stat_updates = ci_stat_entry_register(buf, CI_STAT_INT64_T, "memcached");
+
     cache->cache_data = mc_data;
     ci_thread_mutex_lock(&mc_mtx);
     ci_list_push_back(mc_caches_list, mc_data);
@@ -297,12 +313,15 @@ const void *mc_cache_search(struct ci_cache *cache, const void *key, void **val,
     struct mc_cache_data *mc_data = (struct mc_cache_data *)cache->cache_data;
 
     mckeylen = computekey(mckey, sizeof(mckey), key, mc_data->domain);
-    if (mckeylen == 0)
+    if (mckeylen == 0) {
+        ci_stat_uint64_inc(mc_data->stat_failures, 1);
         return NULL;
+    }
 
     mlocal = memcached_pool_pop(MC_POOL, true, &rc);
     if (!mlocal) {
         ci_debug_printf(1, "Error getting memcached_st object from pool: %s\n", memcached_strerror(MC, rc));
+        ci_stat_uint64_inc(mc_data->stat_failures, 1);
         return NULL;
     }
 
@@ -312,13 +331,16 @@ const void *mc_cache_search(struct ci_cache *cache, const void *key, void **val,
         ci_debug_printf(5, "Failed to retrieve %s object from cache: %s\n",
                         mckey,
                         memcached_strerror(mlocal, rc));
+        ci_stat_uint64_inc(mc_data->stat_miss, 1);
     } else {
         ci_debug_printf(5, "The %s object retrieved from cache has size %d\n",  mckey, (int)value_len);
         found = 1;
+        ci_stat_uint64_inc(mc_data->stat_hit, 1);
     }
 
     if ((rc = memcached_pool_push(MC_POOL, mlocal)) != MEMCACHED_SUCCESS) {
         ci_debug_printf(1, "Failed to release memcached_st object (%s)!\n", memcached_strerror(MC, rc));
+        ci_stat_uint64_inc(mc_data->stat_failures, 1);
     }
 
     if (!found)
@@ -339,6 +361,7 @@ const void *mc_cache_search(struct ci_cache *cache, const void *key, void **val,
         if (value && value_len) {
             *val = ci_buffer_alloc(value_len);
             if (!*val) {
+                ci_stat_uint64_inc(mc_data->stat_failures, 1);
                 free(value);
                 return NULL;
             }
@@ -364,17 +387,22 @@ int mc_cache_update(struct ci_cache *cache, const void *key, const void *val, si
         return 0;
 
     if (copy_to_cache && val_size) {
-        if ((value = ci_buffer_alloc(val_size)) == NULL)
+        if ((value = ci_buffer_alloc(val_size)) == NULL) {
+            ci_stat_uint64_inc(mc_data->stat_failures, 1);
             return 0; /*debug message?*/
+        }
 
-        if (!copy_to_cache(value, val, val_size))
+        if (!copy_to_cache(value, val, val_size)) {
+            ci_stat_uint64_inc(mc_data->stat_failures, 1);
             return 0;  /*debug message?*/
+        }
     }
 
     mlocal = memcached_pool_pop(MC_POOL, true, &rc);
     if (!mlocal) {
         ci_debug_printf(1, "Error getting memcached_st object from pool: %s\n",
                         memcached_strerror(MC, rc));
+        ci_stat_uint64_inc(mc_data->stat_failures, 1);
         return 0;
     }
 
@@ -391,8 +419,10 @@ int mc_cache_update(struct ci_cache *cache, const void *key, const void *val, si
     if (memcached_pool_push(MC_POOL, mlocal) != MEMCACHED_SUCCESS) {
         ci_debug_printf(1, "Failed to release memcached_st object:%s\n",
                         memcached_strerror(MC, rc));
+        ci_stat_uint64_inc(mc_data->stat_failures, 1);
     }
 
+    ci_stat_uint64_inc(mc_data->stat_updates, 1);
     ci_debug_printf(5, "mc_cache_update: successfully update key '%s'\n", mckey);
     return 1;
 }

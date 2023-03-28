@@ -6,6 +6,7 @@
 #include "cache.h"
 #include "debug.h"
 #include "util.h"
+#include "stats.h"
 #include "common.h"
 
 
@@ -53,6 +54,10 @@ void release_dnsbl_tables()
 struct dnsbl_data {
     char check_domain[CI_MAXHOSTNAMELEN+1];
     ci_cache_t *cache;
+    int stat_failures;
+    int stat_hit;
+    int stat_miss;
+    int stat_cached;
 };
 
 void *dnsbl_table_open(struct ci_lookup_table *table)
@@ -118,6 +123,16 @@ void *dnsbl_table_open(struct ci_lookup_table *table)
     } else
         dnsbl_data->cache = NULL;
 
+    char buf[512];
+    snprintf(buf, sizeof(buf), "dnsbl(%s)_errors", dnsbl_data->check_domain);
+    dnsbl_data->stat_failures = ci_stat_entry_register(buf, CI_STAT_INT64_T, "dnsbl_lookup_table");
+    snprintf(buf, sizeof(buf), "dnsbl(%s)_hits", dnsbl_data->check_domain);
+    dnsbl_data->stat_hit = ci_stat_entry_register(buf, CI_STAT_INT64_T, "dnsbl_lookup_table");
+    snprintf(buf, sizeof(buf), "dnsbl(%s)_misses", dnsbl_data->check_domain);
+    dnsbl_data->stat_miss = ci_stat_entry_register(buf, CI_STAT_INT64_T, "dnsbl_lookup_table");
+    snprintf(buf, sizeof(buf), "dnsbl(%s)_cached", dnsbl_data->check_domain);
+    dnsbl_data->stat_cached = ci_stat_entry_register(buf, CI_STAT_INT64_T, "dnsbl_lookup_table");
+
     table->data = dnsbl_data;
 
     /*Must released before exit, we have pointes pointing on args array items*/
@@ -146,17 +161,21 @@ void *dnsbl_table_search(struct ci_lookup_table *table, void *key, void ***vals)
 
     if (table->key_ops != &ci_str_ops) {
         ci_debug_printf(1,"Only keys of type string allowed in this type of table:\n");
+        ci_stat_uint64_inc(dnsbl_data->stat_failures, 1);
         return NULL;
     }
     server = (char *)key;
 
     if (dnsbl_data->cache && ci_cache_search(dnsbl_data->cache, server, (void **)&v, NULL, &ci_cache_read_vector_val)) {
         ci_debug_printf(6,"dnsbl_table_search: cache hit for %s value %p\n", server,  v);
+        ci_stat_uint64_inc(dnsbl_data->stat_cached, 1);
         if (!v) {
             *vals = NULL;
+            ci_stat_uint64_inc(dnsbl_data->stat_miss, 1);
             return NULL;
         }
         *vals = (void **)ci_vector_cast_to_voidvoid(v);
+        ci_stat_uint64_inc(dnsbl_data->stat_hit, 1);
         return key;
     }
 
@@ -167,10 +186,13 @@ void *dnsbl_table_search(struct ci_lookup_table *table, void *key, void ***vals)
         ci_cache_update(dnsbl_data->cache, server, v, v_size, ci_cache_store_vector_val);
     }
 
-    if (!v)
+    if (!v) {
+        ci_stat_uint64_inc(dnsbl_data->stat_miss, 1);
         return NULL;
+    }
 
     *vals = (void **)ci_vector_cast_to_voidvoid(v);
+    ci_stat_uint64_inc(dnsbl_data->stat_hit, 1);
     return key;
 }
 

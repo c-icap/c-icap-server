@@ -52,6 +52,9 @@ void release_bdb_tables()
 struct bdb_data {
     DB_ENV *env_db;
     DB *db;
+    int stat_failures;
+    int stat_hit;
+    int stat_miss;
 };
 
 
@@ -167,6 +170,13 @@ void *bdb_table_open(struct ci_lookup_table *table)
         return NULL;
     dbdata->env_db = NULL;
     dbdata->db = NULL;
+    char buf[512];
+    snprintf(buf, sizeof(buf), "bdb(%s)_errors", table->path);
+    dbdata->stat_failures = ci_stat_entry_register(buf, CI_STAT_INT64_T, "bdb_lookup_table");
+    snprintf(buf, sizeof(buf), "bdb(%s)_hits", table->path);
+    dbdata->stat_hit = ci_stat_entry_register(buf, CI_STAT_INT64_T, "bdb_lookup_table");
+    snprintf(buf, sizeof(buf), "bdb(%s)_miss", table->path);
+    dbdata->stat_miss = ci_stat_entry_register(buf, CI_STAT_INT64_T, "bdb_lookup_table");
     table->data = dbdata;
 
     /*We can not fork a Berkeley DB table, so we have to
@@ -206,11 +216,13 @@ void *bdb_table_search(struct ci_lookup_table *table, void *key, void ***vals)
 
     if (!dbdata) {
         ci_debug_printf(1,"table %s is not initialized?\n", table->path);
+        ci_stat_uint64_inc(dbdata->stat_failures, 1);
         return NULL;
     }
 
     if (!dbdata->db) {
         ci_debug_printf(1,"table %s is not open?\n", table->path);
+        ci_stat_uint64_inc(dbdata->stat_failures, 1);
         return NULL;
     }
 
@@ -227,6 +239,7 @@ void *bdb_table_search(struct ci_lookup_table *table, void *key, void ***vals)
     if ((ret = dbdata->db->get(dbdata->db, NULL, &db_key, &db_data, 0)) != 0) {
         ci_debug_printf(5, "db_entry_exists does not exists: %s\n", db_strerror(ret));
         *vals = NULL;
+        ci_stat_uint64_inc(dbdata->stat_miss, 1);
         return NULL;
     }
 
@@ -242,9 +255,11 @@ void *bdb_table_search(struct ci_lookup_table *table, void *key, void ***vals)
         if (!parse_error)
             *vals = store;
         else {
+            ci_stat_uint64_inc(dbdata->stat_failures, 1);
             ci_debug_printf(1, "Error while parsing data in bdb_table_search.Is this a c-icap bdb table?\n");
         }
     }
+    ci_stat_uint64_inc(dbdata->stat_hit, 1); // This is includes parse errors
     return key;
 }
 

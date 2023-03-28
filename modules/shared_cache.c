@@ -48,7 +48,8 @@ struct ci_cache_type ci_shared_cache = {
 #define CACHE_PAGES 4
 
 struct shared_cache_stats {
-    int cache_users;
+    _CI_ATOMIC_TYPE int cache_users;
+    /*For debugging reasons, how the pages are used.*/
     struct page_stats {
         int64_t hits;
         int64_t searches;
@@ -69,8 +70,12 @@ struct shared_cache_data {
     int page_size;
     int page_shift_op;
     struct shared_cache_stats *stats;
-    ci_proc_mutex_t cache_mutex;
     ci_proc_mutex_t mutex[CACHE_PAGES];
+
+    int stat_failures;
+    int stat_hit;
+    int stat_miss;
+    int stat_updates;
 };
 
 struct shared_cache_slot {
@@ -117,9 +122,7 @@ void command_attach_shared_mem(const char *name, int type, void *data)
     shared_cache->stats = (struct shared_cache_stats *)shared_cache->mem_ptr;
     shared_cache->slots = (void *)(shared_cache->mem_ptr + sizeof(struct shared_cache_stats));
     ci_debug_printf(3, "Shared cache id:'%s' attached on address %p\n", ci_shared_mem_print_id(buf, sizeof(buf), &shared_cache->id), shared_cache->mem_ptr);
-    ci_proc_mutex_lock(&(shared_cache->cache_mutex));
-    ++shared_cache->stats->cache_users;
-    ci_proc_mutex_unlock(&(shared_cache->cache_mutex));
+    ci_atomic_add_i32_gl(&shared_cache->stats->cache_users, 1);
 }
 
 int ci_shared_cache_init(struct ci_cache *cache, const char *name)
@@ -157,7 +160,6 @@ int ci_shared_cache_init(struct ci_cache *cache, const char *name)
     for (i = 0; i < CACHE_PAGES; ++i) {
         ci_proc_mutex_init(&(data->mutex[i]), name);
     }
-    ci_proc_mutex_init(&(data->cache_mutex), name);
 
     data->page_size = data->entries / CACHE_PAGES;
     /* CACHE_PAGES can not be bigger than 64, the minimum entries value*/
@@ -170,6 +172,16 @@ int ci_shared_cache_init(struct ci_cache *cache, const char *name)
     assert(data->page_shift_op < 64);
 
     ci_debug_printf(1, "Shared mem %s created\nMax shared memory: %u (of the %u requested), max entry size: %u, maximum entries: %u\n", name, (unsigned int)data->shared_mem_size, (unsigned int)cache->mem_size, (unsigned int)data->entry_size, data->entries);
+
+    char buf[512];
+    snprintf(buf, sizeof(buf), "shared_cache(%s)_errors", name);
+    data->stat_failures = ci_stat_entry_register(buf, CI_STAT_INT64_T, "shared_cache");
+    snprintf(buf, sizeof(buf), "shared_cache(%s)_hits", name);
+    data->stat_hit = ci_stat_entry_register(buf, CI_STAT_INT64_T, "shared_cache");
+    snprintf(buf, sizeof(buf), "shared_cache(%s)_miss", name);
+    data->stat_miss = ci_stat_entry_register(buf, CI_STAT_INT64_T, "shared_cache");
+    snprintf(buf, sizeof(buf), "shared_cache(%s)_updates", name);
+    data->stat_updates = ci_stat_entry_register(buf, CI_STAT_INT64_T, "shared_cache");
 
     cache->cache_data = data;
     ci_command_register_action("shared_cache_attach_cmd", CHILD_START_CMD, data, command_attach_shared_mem);
@@ -208,8 +220,10 @@ const void *ci_shared_cache_search(struct ci_cache *cache, const void *key, void
     if (hash >= cache_data->entries)
         hash = cache_data->entries -1;
 
-    if (!rd_lock_page(cache_data, hash))
+    if (!rd_lock_page(cache_data, hash)) {
+        ci_stat_uint64_inc(cache_data->stat_failures, 1);
         return NULL;
+    }
     unsigned int page = (hash >> cache_data->page_shift_op);
     ++cache_data->stats->page[page].searches;
     unsigned int pos;
@@ -244,6 +258,13 @@ const void *ci_shared_cache_search(struct ci_cache *cache, const void *key, void
         ++cache_data->stats->page[page].hits;
 
     unlock_page(cache_data, hash);
+
+    if (cache_key)
+        ci_stat_uint64_inc(cache_data->stat_hit, 1);
+    else
+        ci_stat_uint64_inc(cache_data->stat_miss, 1);
+
+
     return cache_key;
 }
 
@@ -267,8 +288,10 @@ int ci_shared_cache_update(struct ci_cache *cache, const void *key, const void *
     current_time = ci_internal_time();
     expire_time = current_time + cache->ttl;
 
-    if (!rw_lock_page(cache_data, hash))
+    if (!rw_lock_page(cache_data, hash)) {
+        ci_stat_uint64_inc(cache_data->stat_failures, 1);
         return 0; /*not able to obtain a rw lock*/
+    }
 
     unsigned int page = (hash >> cache_data->page_shift_op);
     ++cache_data->stats->page[page].updates;
@@ -316,31 +339,25 @@ int ci_shared_cache_update(struct ci_cache *cache, const void *key, const void *
     }
 
     unlock_page(cache_data, hash);
+    if (ret)
+        ci_stat_uint64_inc(cache_data->stat_updates, 1);
     return ret;
 }
 
 void ci_shared_cache_destroy(struct ci_cache *cache)
 {
-    int i, users;
-    uint64_t updates, update_hits, searches, hits;
+    int i;
     struct shared_cache_data *data = cache->cache_data;
-    ci_proc_mutex_lock(&data->cache_mutex);
-    users = --data->stats->cache_users;
-    ci_proc_mutex_unlock(&data->cache_mutex);
-    if (users == 0) {
-        updates = update_hits = searches = hits = 0;
-        for (i = 0; i < CACHE_PAGES; ++i) {
-            updates += data->stats->page[i].updates;
-            update_hits += data->stats->page[i].update_hits;
-            searches += data->stats->page[i].searches;
-            hits += data->stats->page[i].hits;
-        }
+    int users = ci_atomic_fetch_sub_i32_gl(&data->stats->cache_users, 1);
+    assert(users > 0);
+    if (users == 1) {
         ci_debug_printf(3, "Last user, the cache will be destroyed\n");
-        ci_debug_printf(3, "Cache updates: %" PRIu64 ", update hits:%" PRIu64 ", searches: %" PRIu64 ", hits: %" PRIu64 "\n",
-                        updates, update_hits, searches, hits
-                       );
+        for (i = 0; i < CACHE_PAGES; ++i) {
+            ci_debug_printf(3, "Cache page %d updates: %" PRIu64 ", update hits:%" PRIu64 ", searches: %" PRIu64 ", hits: %" PRIu64 "\n", i,
+                            data->stats->page[i].updates, data->stats->page[i].update_hits, data->stats->page[i].searches, data->stats->page[i].hits
+                );
+        }
         ci_shared_mem_destroy(&data->id);
-        ci_proc_mutex_destroy(&data->cache_mutex);
         for (i = 0; i < CACHE_PAGES; ++i) {
             ci_proc_mutex_destroy(&data->mutex[i]);
         }
