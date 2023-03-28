@@ -286,6 +286,17 @@ void ci_stat_uint64_inc(int ID, uint64_t count)
     ci_atomic_add_u64(&(STATS->mem_block->stats[ID].counter), (uint64_t)count);
 }
 
+void ci_stat_uint64_dec(int ID, uint64_t count)
+{
+    if (!STATS || !STATS->mem_block)
+        return;
+
+    if (ID < 0 || ID > STATS->mem_block->stats_count)
+        return;
+
+    ci_atomic_sub_u64(&(STATS->mem_block->stats[ID].counter), (uint64_t)count);
+}
+
 void ci_stat_kbs_inc(int ID, uint64_t count)
 {
     if (!STATS || !STATS->mem_block)
