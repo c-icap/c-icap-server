@@ -951,6 +951,34 @@ int ci_list_remove2(ci_list_t *list, const void *obj, int (*cmp_func)(const void
     return 0;
 }
 
+int ci_list_remove3(ci_list_t *list, const void *user_data, void *store_removed, size_t store_removed_size, int (*cmp_func)(const void *obj, const void *user_data, size_t obj_size))
+{
+    _CI_ASSERT(list);
+    _CI_ASSERT(store_removed_size >= list->obj_size);
+    ci_list_item_t *it, *prev;
+    for (it = list->items, prev = NULL; it != NULL; prev = it,it = it->next) {
+        if (cmp_func(it->item, user_data, list->obj_size) == 0) {
+            memcpy(store_removed, it->item, list->obj_size);
+            if (list->copy_func)
+                list->copy_func(store_removed, it->item);
+            if (prev) {
+                prev->next = it->next;
+            } else { /*it is the first item*/
+                list->items = it->next;
+            }
+            if (list->cursor == it)
+                list->cursor = list->cursor->next;
+            it->next = list->trash;
+            list->trash = it;
+            if (list->free_func && list->obj_size)
+                list->free_func(it->item);
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
 int ci_list_remove(ci_list_t *list, const void *obj)
 {
     int (*cmp_func)(const void *, const void *, size_t);
