@@ -651,6 +651,8 @@ static inline void ci_str_vector_destroy(ci_str_vector_t *vector) {
 
 CI_DECLARE_FUNC(const char *)ci_str_vector_add(ci_str_vector_t *vect, const char *string);
 
+CI_DECLARE_FUNC(const char *)ci_str_vector_add2(ci_str_vector_t *vect, const char *string, size_t len);
+
 CI_DECLARE_FUNC(const char *)ci_str_vector_get(ci_str_vector_t *vector, unsigned int i);
 
 static inline const char *ci_str_vector_pop(ci_str_vector_t *vect) {

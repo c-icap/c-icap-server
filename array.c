@@ -633,6 +633,15 @@ const char *ci_str_vector_add(ci_str_vector_t *vect, const char *string)
     return (const char *)ci_vector_add((ci_vector_t *)vect, string, strlen(string) + 1);
 }
 
+const char *ci_str_vector_add2(ci_str_vector_t *vect, const char *string, size_t len)
+{
+    /* Allocate and store len + 1 to terminate string, just in case it
+       is not NULL terminated. */
+    char *val = (char *)ci_vector_add((ci_vector_t *)vect, string, len + 1);
+    *(val + len) = '\0';
+    return (const char *)val;
+}
+
 void ci_str_vector_iterate(const ci_str_vector_t *vector, void *data, int (*fn)(void *data, const char *))
 {
     ci_vector_iterate(vector, data, (int(*)(void *, const void *))fn);
