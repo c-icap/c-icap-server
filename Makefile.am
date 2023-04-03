@@ -26,11 +26,23 @@ bin_PROGRAMS = c-icap
 
 bin_SCRIPTS = c-icap-config c-icap-libicapapi-config
 
+UTIL_FLAGS=
+UTIL_LDADD=
 UTIL_LIB_SOURCES=net_io.c util.c os/unix/net_io.c os/unix/proc_mutex.c os/unix/shared_mem.c os/unix/threads.c os/unix/utilfunc.c os/unix/dlib.c
 if USE_OPENSSL
 UTIL_LIB_SOURCES += openssl/net_io_ssl.c
 endif
+
 if USE_REGEX
+if USE_PCRE2
+UTIL_FLAGS += @PCRE2_ADD_FLAG@
+UTIL_LDADD += @PCRE2_ADD_LDADD@
+endif
+if USE_PCRE
+UTIL_FLAGS += @PCRE_ADD_FLAG@
+UTIL_LDADD += @PCRE_ADD_LDADD@
+endif
+
 UTIL_LIB_SOURCES += regex.c
 endif
 UTIL_SOURCES=os/unix/proc_utils.c
@@ -62,9 +74,9 @@ c_icap_SOURCES = aserver.c request.c cfg_param.c \
 
 
 # libicapapi ......
-libicapapi_la_CFLAGS= $(INVISIBILITY_CFLAG) -I$(srcdir)/include/ -Iinclude/ @ZLIB_ADD_FLAG@ @OPENSSL_ADD_FLAG@ @BZLIB_ADD_FLAG@ @BROTLI_ADD_FLAG@ @PCRE_ADD_FLAG@ -DCI_BUILD_LIB -DCI_USE_INLINE_OBJECT_METHODS
+libicapapi_la_CFLAGS= $(INVISIBILITY_CFLAG) -I$(srcdir)/include/ -Iinclude/ @ZLIB_ADD_FLAG@ @OPENSSL_ADD_FLAG@ @BZLIB_ADD_FLAG@ @BROTLI_ADD_FLAG@ $(UTIL_FLAG) -DCI_BUILD_LIB -DCI_USE_INLINE_OBJECT_METHODS
 
-libicapapi_la_LIBADD = @ZLIB_ADD_LDADD@ @BZLIB_ADD_LDADD@ @BROTLI_ADD_LDADD@ @PCRE_ADD_LDADD@ @DL_ADD_FLAG@ @THREADS_LDADD@ @OPENSSL_ADD_LDADD@
+libicapapi_la_LIBADD = @ZLIB_ADD_LDADD@ @BZLIB_ADD_LDADD@ @BROTLI_ADD_LDADD@ $(UTIL_LDADD) @DL_ADD_FLAG@ @THREADS_LDADD@ @OPENSSL_ADD_LDADD@
 libicapapi_la_LDFLAGS= -shared -version-info @CICAPLIB_VERSION@ @LIBS_LDFLAGS@ @THREADS_LDFLAGS@
 
 if ISCYGWIN

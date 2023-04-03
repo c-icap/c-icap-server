@@ -33,6 +33,7 @@
 #include "txtTemplate.h"
 #include "commands.h"
 #include "atomic.h"
+#include "ci_regex.h"
 
 /*
 extern char *PIDFILE;
@@ -175,6 +176,7 @@ int main(int argc, char **argv)
     }
     ci_txt_template_init();
     ci_txt_template_set_dir(CI_DATADIR"templates");
+    ci_regex_memory_init();
     commands_init();
 
     if (!(CI_CONF.MAGIC_DB = ci_magic_db_load(CI_CONF.magics_file))) {

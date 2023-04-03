@@ -268,6 +268,7 @@ AC_ARG_ENABLE(rpath,
 #Routines used for checking libraries
 AC_DEFUN([ICFG_STATE_SAVE],[
 #save state
+ICFG_OLD_CPPFLAGS=$CPPFLAGS
 ICFG_OLD_CFLAGS=$CFLAGS
 ICFG_OLD_LDFLAGS=$LDFLAGS
 ICFG_OLD_LIBS=$LIBS
@@ -275,7 +276,8 @@ ICFG_OLD_LIBS=$LIBS
 
 #Routines used for checking libraries
 AC_DEFUN([ICFG_STATE_ROLLBACK],[
-#save state
+#rollback saved state
+CPPFLAGS=$ICFG_OLD_CPPFLAGS
 CFLAGS=$ICFG_OLD_CFLAGS
 LDFLAGS=$ICFG_OLD_LDFLAGS
 LIBS=$ICFG_OLD_LIBS
@@ -707,6 +709,45 @@ if test a"$libmemcached" != "ano"; then
     ICFG_STATE_ROLLBACK
 fi
 
+# Check for PCRE2 regex library
+AC_ARG_WITH(pcre2,
+[       --with-pcre2     Path to PCRE2 library],
+[
+case "$withval" in
+     yes)
+        pcre2=yes;
+     ;;
+     no)
+        pcre2=no;
+     ;;
+     *)
+        pcre2=yes;
+        pcre2path=$withval;
+     ;;
+     esac
+],
+[ pcre2=yes]
+)
+
+if test a"$pcre2" != "ano"; then
+   ICFG_STATE_SAVE(PCRE2)
+   CPPFLAGS="$CPPFLAGS -DPCRE2_CODE_UNIT_WIDTH=8"
+   if test "a$pcre2path" != "a"; then
+       CFLAGS="$CFLAGS -I$pcre2path/include"
+       LDFLAGS="$LDFLAGS -L$pcre2path/lib"
+   fi
+   AC_CHECK_HEADERS(pcre2.h,
+                    AC_CHECK_LIB(pcre2-8, pcre2_match_8,[pcre2=yes],[pcre2=no]),
+                    [pcre2=no]
+   )
+
+   if test "a$pcre2" = "ayes"; then
+       AC_DEFINE(HAVE_PCRE2,1,[Define HAVE_PCRE2 if pcre2 installed])
+       ICFG_BUILD_FLAGS(PCRE2, "$pcre2path", "-lpcre2-8")
+   fi
+   ICFG_STATE_ROLLBACK
+fi
+
 # Check for PCRE regex library
 AC_ARG_WITH(pcre,
 [       --with-pcre     Path to PCRE library],
@@ -727,7 +768,7 @@ case "$withval" in
 [ pcre=yes]
 )
 
-if test a"$pcre" != "ano"; then
+if test a"$pcre" != "ano" -a a"$pcre2" != "ayes"; then
    ICFG_STATE_SAVE(PCRE)
    if test "a$pcrepath" != "a"; then
        CFLAGS="$CFLAGS -I$pcrepath/include"
@@ -775,7 +816,7 @@ AC_CHECK_HEADERS(regex.h,
   )
 
 USE_REGEX=0
-if test "a$pcre" = "ayes" -o "a$posix_regex" = "ayes"; then
+if test "a$pcre2" = "ayes" -o "a$pcre" = "ayes" -o "a$posix_regex" = "ayes"; then
    USE_REGEX=1
 fi
 AC_SUBST(USE_REGEX)
@@ -1197,7 +1238,9 @@ AM_CONDITIONAL(ISCYGWIN,[test a"$iscygwin" != a])
 
 AM_CONDITIONAL(USE_CPLUSPLUS, [test "a$CXX" != "a"])
 AM_CONDITIONAL(USE_OPENSSL, [test a"$openssl" != "ano"])
-AM_CONDITIONAL(USE_REGEX, [test a"$pcre" = "ayes" -o a"$posix_regex" = "ayes"])
+AM_CONDITIONAL(USE_PCRE2, [test a"$pcre2" = "ayes"])
+AM_CONDITIONAL(USE_PCRE, [test a"$pcre" = "ayes"])
+AM_CONDITIONAL(USE_REGEX, [test a"$pcre2" = "ayes" -o a"$pcre" = "ayes" -o a"$posix_regex" = "ayes"])
 AM_CONDITIONAL(USEPERL,[test a"$perlcore" != a])
 AM_CONDITIONAL(USEBDB,   [test a"$libdb" != ano])
 AM_CONDITIONAL(USELMDB,   [test a"$liblmdb" != ano])
