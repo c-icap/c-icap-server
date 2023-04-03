@@ -952,18 +952,42 @@ Service echo srv_echo.so
 #		The cache ttl to use
 #	     cache-item-size=ItemSize[K|M]
 #		The maximum item size
-#	     max-connections=number
-#		The maximum allowed connections to the LDAP server
-#	     idle-ttl=seconds
-#		The TTL to use for idle LDAP connections
-#	
 #	Examples of supported ldap urls:
 #	     ldap://ldap.chtsanti.net?o=chtsanti?cn,uid?uid=%s{cache=memcached}
 #	     ldap://cn=Directory Manager:Apassword@ldap.chtsanti.net?o=chtsanti?mermberUid?(&(objectClass=posixGroup)(cn=%s))
 #	
-#	WARNING: is not enough tested it may contain bugs!
 # Example:
 #	Module common ldap_module.so
+
+# TAG: ldap_module.disable_mempools
+# Format: ldap_module.disable_mempools
+# Description:
+#	By default ldap_module configures openldap library to use the c-icap
+#	memory pools for allocating required memory for ldap queries.
+#	This option disable this feature.
+# Example:
+#	ldap_module.disable_mempools
+# Default:
+#	By default c-icap memory pools are used
+
+# TAG: ldap_module.connections_pool
+# Format: ldap_module.connections_pool ldap_uri [max-connections=num] [idle-ttl=secs]
+# Description:
+#	Define an LDAP server connections pool for use with lookup tables
+#	or sets the maximum allowed connections and idle time for an existing
+#	LDAP connections pool. Allowed parameters:
+#	ldap_uri
+#	    A URI in the form ldap[s]://[username[:password]]@server_hostname
+#	max-connections=num
+#	    Sets the maximum allowed connections to this LDAP server per
+#	    c-icap worker process
+#	idle-ttl=secs
+#	    Sets the maximum time an LDAP connection remains idle in
+#	    the connections pool queue before closed.
+# Example
+#	ldap_module.connections_pool  ldap://cn=Directory Manager:Apassword@ldap.chtsanti.net max_connections=10 idle-ttl=30
+# Default:
+#	None
 
 # End module: ldap_module
 
