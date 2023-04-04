@@ -167,6 +167,8 @@ static int init_ldap_pools()
 
 static void release_ldap_pools()
 {
+    if (!ldap_pools)
+        return;
     struct ldap_connections_pool *pool;
     while((ci_list_pop(ldap_pools, &pool))) {
         ldap_pool_destroy(pool);
@@ -277,35 +279,35 @@ static void free_ldap_connection_list(ci_list_t *list)
 
 static void check_ldap_pools_cmd(const char *name, int type, void *data)
 {
+    if (!ldap_pools)
+        return; //nothing to do
     static ci_list_t *ldap_conn_to_free = NULL;
     if (!ldap_conn_to_free)
         ldap_conn_to_free = ci_list_create(1024, sizeof(struct ldap_connection));
     _CI_ASSERT(ldap_conn_to_free);
     /*No need to lock ldap_pools list*/
-    if (ldap_pools) {
-        time_t current_time;
-        time(&current_time);
-        ci_list_iterator_t it;
-        struct ldap_connections_pool *p = NULL;
-        for (p = ci_list_iterator_first(ldap_pools, &it); p != NULL; p = ci_list_iterator_next(&it)) {
-            struct ldap_connection conn = {NULL, 0, 0};
-            struct ldap_connection *c = NULL;
-            int removed = 0;
-            ci_thread_mutex_lock(&p->mutex);
-            while((c = ci_list_head(p->inactive)) && (c->last_use + p->ttl) < current_time) {
-                ci_list_pop(p->inactive, &conn);
-                _CI_ASSERT(conn.ldap);
-                ci_list_push(ldap_conn_to_free, &conn);
-                memset(&conn, 0, sizeof(conn));
-                p->connections--;
-                removed++;
-            }
-            STAT_INT64_DEC_NL(LDAP_STATS, p->stat_connections, removed);
-            STAT_INT64_DEC_NL(LDAP_STATS, p->stat_idleconnections, removed);
-            ci_thread_mutex_unlock(&p->mutex);
-            if (removed)
-                ci_debug_printf(8, "Periodic check for ldap connections pool removed %d ldap connections after %d secs from pool %s\n", removed, p->ttl, p->ldap_uri);
+    time_t current_time;
+    time(&current_time);
+    ci_list_iterator_t it;
+    struct ldap_connections_pool *p = NULL;
+    for (p = ci_list_iterator_first(ldap_pools, &it); p != NULL; p = ci_list_iterator_next(&it)) {
+        struct ldap_connection conn = {NULL, 0, 0};
+        struct ldap_connection *c = NULL;
+        int removed = 0;
+        ci_thread_mutex_lock(&p->mutex);
+        while((c = ci_list_head(p->inactive)) && (c->last_use + p->ttl) < current_time) {
+            ci_list_pop(p->inactive, &conn);
+            _CI_ASSERT(conn.ldap);
+            ci_list_push(ldap_conn_to_free, &conn);
+            memset(&conn, 0, sizeof(conn));
+            p->connections--;
+            removed++;
         }
+        STAT_INT64_DEC_NL(LDAP_STATS, p->stat_connections, removed);
+        STAT_INT64_DEC_NL(LDAP_STATS, p->stat_idleconnections, removed);
+        ci_thread_mutex_unlock(&p->mutex);
+        if (removed)
+            ci_debug_printf(8, "Periodic check for ldap connections pool removed %d ldap connections after %d secs from pool %s\n", removed, p->ttl, p->ldap_uri);
     }
     ldap_connection_list_close_all(ldap_conn_to_free);
     ci_command_schedule("ldap_module::pools_check", NULL, 1);
