@@ -187,7 +187,7 @@ static int openssl_cert_passphrase_cb(char *buf, int size, int rwflag, void *u)
 
     FILE *f = popen(script, "r");
     int bytes = fread(buf, 1, size, f);
-    fclose(f);
+    pclose(f);
 
     if (bytes <= 0) {
         ci_debug_printf(1, "Error reading key passphrase from '%s'\n", script);
@@ -376,9 +376,11 @@ void ci_tls_init()
         return;
 
     SSL_library_init();
+#if (OPENSSL_VERSION_NUMBER < 0x10100000L)
     ERR_load_BIO_strings();
     ERR_load_crypto_strings();
     ERR_load_SSL_strings();
+#endif
     OpenSSL_add_all_algorithms();
 
     if (!init_openssl_mutexes()) {
