@@ -32,13 +32,14 @@ int run_thread()
 {
     struct timespec start, stop;
     uint64_t tt;
+    int i;
 
     ci_thread_mutex_lock(&CNDMTX);
     ci_thread_cond_wait(&CND, &CNDMTX);
     ci_thread_mutex_unlock(&CNDMTX);
 
     clock_gettime (CLOCK_REALTIME, &start);
-    for(int i = 0; i < LOOPS; i++) {
+    for(i = 0; i < LOOPS; i++) {
         ci_atomic_add_u64(&at_c, 1);
     }
     clock_gettime (CLOCK_REALTIME, &stop);
@@ -53,7 +54,7 @@ int run_thread()
     ci_thread_mutex_unlock(&CNDMTX);
 
     clock_gettime (CLOCK_REALTIME, &start);
-    for(int i = 0; i < LOOPS; i++) {
+    for(i = 0; i < LOOPS; i++) {
         ci_atomic_add_u64_non_inline(&ni_at_c, 1);
     }
     clock_gettime (CLOCK_REALTIME, &stop);
@@ -68,7 +69,7 @@ int run_thread()
     ci_thread_mutex_unlock(&CNDMTX);
 
     clock_gettime (CLOCK_REALTIME, &start);
-    for(int i = 0; i < LOOPS; i++) {
+    for(i = 0; i < LOOPS; i++) {
         ci_atomic_add_u64_non_inline_gl(&ni_at_c_gl, 1);
     }
     clock_gettime (CLOCK_REALTIME, &stop);
@@ -83,7 +84,7 @@ int run_thread()
     ci_thread_mutex_unlock(&CNDMTX);
 
     clock_gettime (CLOCK_REALTIME, &start);
-    for(int i = 0; i < LOOPS; i++) {
+    for(i = 0; i < LOOPS; i++) {
         ci_thread_mutex_lock(&counterMTX);
         simple_c++;
         ci_thread_mutex_unlock(&counterMTX);

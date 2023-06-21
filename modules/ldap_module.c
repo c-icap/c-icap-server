@@ -935,7 +935,8 @@ int ldap_connections_pool_configure(const char *directive, const char **argv, vo
         return 0;
     }
     const char *ldapUri= argv[0];
-    for(int i = 1; argv[i] != NULL; i++) {
+    int i;
+    for(i = 1; argv[i] != NULL; i++) {
         if (strncasecmp(argv[i], "max-connections=", 16) == 0) {
             long int val = strtol(argv[i] + 16, NULL, 10);
             if (val > 0)
