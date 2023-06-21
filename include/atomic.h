@@ -349,10 +349,10 @@ CI_DECLARE_FUNC(__int128) ci_atomic_fetch_sub_i128_non_inline_gl(_CI_ATOMIC_TYPE
     spec void ci_atomic_sub_##name ## _gl(_CI_ATOMIC_TYPE type *counter, type sub) {    \
         ci_atomic_sub_ ## name ## _non_inline_gl(counter, sub);         \
     }                                                                   \
-    spec void ci_atomic_fetch_add_##name ## _gl(_CI_ATOMIC_TYPE type *counter, type add) { \
+    spec type ci_atomic_fetch_add_##name ## _gl(_CI_ATOMIC_TYPE type *counter, type add) { \
         return ci_atomic_fetch_add_ ## name ## _non_inline_gl(counter, add);         \
     }                                                                   \
-    spec void ci_atomic_fetch_sub_##name ## _gl(_CI_ATOMIC_TYPE type *counter, type sub) { \
+    spec type ci_atomic_fetch_sub_##name ## _gl(_CI_ATOMIC_TYPE type *counter, type sub) { \
         return ci_atomic_fetch_sub_ ## name ## _non_inline_gl(counter, sub); \
     }
 
