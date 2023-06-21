@@ -101,4 +101,5 @@ int main(int argc, char *argv[])
         free(fname);
     }
     ci_list_destroy(FILES);
+    return 0;
 }

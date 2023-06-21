@@ -196,4 +196,5 @@ int main(int argc, char *argv[])
         );
 
     ci_shared_mem_destroy(&sid);
+    return 0;
 }
