@@ -54,10 +54,6 @@
 #include "commands.h"
 #include "util.h"
 
-#define MULTICHILD
-//#undef MULTICHILD
-
-
 extern int MAX_KEEPALIVE_REQUESTS;
 extern int MAX_SECS_TO_LINGER;
 extern int MAX_REQUESTS_BEFORE_REALLOCATE_MEM;
@@ -146,10 +142,13 @@ static void sighup_handler_main()
     c_icap_reconfigure = 1;
 }
 
-void child_signals()
+void child_signals(int halt_on_sigint)
 {
     signal(SIGPIPE, sigpipe_handler);
-    signal(SIGINT, SIG_IGN);
+    if (halt_on_sigint)
+        signal(SIGINT, term_handler_child);
+    else
+        signal(SIGINT, SIG_IGN);
     signal(SIGTERM, term_handler_child);
     signal(SIGHUP, empty);
 
@@ -193,14 +192,12 @@ static void exit_normaly()
     ci_tls_cleanup();
 #endif
 
-#ifdef MULTICHILD
     config_destroy();
     commands_destroy();
     ci_acl_destroy();
     ci_mem_exit();
     ci_stat_release();
     child_data = NULL;
-#endif
 }
 
 static void release_thread_i(int i)
@@ -879,7 +876,7 @@ LISTENER_FAILS:
     return;
 }
 
-void child_main(int pipefd)
+void child_main(int pipefd, int single)
 {
     ci_thread_t thread;
     int i, ret;
@@ -917,7 +914,7 @@ void child_main(int pipefd)
     /*set srand for child......*/
     srand(((unsigned int)time(NULL)) + (unsigned int)getpid());
     /*I suppose that all my threads are up now. We can setup our signal handlers */
-    child_signals();
+    child_signals(single);
 
     /* A signal from parent may comes while we are starting.
        Listener will not accept any request in this case, (it checks on
@@ -1019,7 +1016,7 @@ int start_child()
             exit(-3);
         }
         close(pfd[1]);
-        child_main(pfd[0]);
+        child_main(pfd[0], 0);
         exit_normaly();
         dettach_childs_queue(childs_queue);
         exit(0);
@@ -1101,14 +1098,11 @@ void init_commands()
     register_command("test", MONITOR_PROC_CMD | CHILDS_PROC_CMD, test_command);
 }
 
-int start_server()
-{
-    int child_indx, pid, i, ctl_socket;
-    int childs, freeservers, used, ret;
-    int64_t maxrequests;
-    char command_buffer[COMMANDS_BUFFER_SIZE];
-    int user_informed = 0;
 
+
+int initialize_server_objs()
+{
+    int ctl_socket;
     ctl_socket = ci_named_pipe_create(CI_CONF.COMMANDS_SOCKET);
     if (ctl_socket < 0) {
         ci_debug_printf(1,
@@ -1131,8 +1125,19 @@ int start_server()
     }
 
     init_commands();
+    return ctl_socket;
+}
+
+int start_server()
+{
+    int child_indx, pid, i, ctl_socket;
+    int childs, freeservers, used, ret;
+    int64_t maxrequests;
+    char command_buffer[COMMANDS_BUFFER_SIZE];
+    int user_informed = 0;
+
+    ctl_socket = initialize_server_objs();
     pid = 1;
-#ifdef MULTICHILD
     if (CI_CONF.START_SERVERS > CI_CONF.MAX_SERVERS)
         CI_CONF.START_SERVERS = CI_CONF.MAX_SERVERS;
 
@@ -1238,24 +1243,76 @@ int start_server()
         ci_debug_printf(1, "Exiting....\n");
         return 1;
     }
-#else
-    child_data = (child_shared_data_t *) malloc(sizeof(child_shared_data_t));
-    child_data->pid = 0;
-    child_data->servers = CI_CONF.THREADS_PER_CHILD;
-    child_data->usedservers = 0;
-    child_data->requests = 0;
-    child_data->to_be_killed = 0;
-    child_data->father_said = 0;
-    child_data->idle = 1;
-    child_data->stats_size = ci_stat_memblock_size();
-    child_data->stats = malloc(child_data->stats_size);
+    return 1;
+}
+
+
+int thread_signle_server_commands_handler(void *data)
+{
+    int ret;
+    char command_buffer[COMMANDS_BUFFER_SIZE];
+    int ctl_socket = *(int *)data;
+    while (1) {
+        if ((ret = wait_for_commands(ctl_socket, command_buffer, 1)) > 0) {
+            ci_debug_printf(5, "I received the command: %s\n", command_buffer);
+            handle_monitor_process_commands(command_buffer);
+        }
+        if (ret < 0) {  /*Eof received on pipe. Going to reopen ... */
+            ci_named_pipe_close(ctl_socket);
+            ctl_socket = ci_named_pipe_open(CI_CONF.COMMANDS_SOCKET);
+            if (ctl_socket < 0) {
+                ci_debug_printf(1,
+                                "Error opening control socket. We are unstable and going down!");
+                c_icap_going_to_term = 1;
+            }
+        }
+
+        if (child_data->to_be_killed)
+            c_icap_going_to_term = 1;
+
+        if (c_icap_going_to_term)
+            break;
+        if (c_icap_reconfigure) {
+            c_icap_reconfigure = 0;
+            /*
+              if (!server_reconfigure()) {
+              ci_debug_printf(1, "Error while reconfiguring, exiting!\n");
+              break;
+              }*/
+        }
+        commands_exec_scheduled(CI_CMD_MONITOR_ONDEMAND);
+    }
+
+    child_data->father_said = IMMEDIATELY;
+    child_data->to_be_killed = IMMEDIATELY;
+    return 1;
+}
+
+int start_single_server()
+{
+    int ctl_socket = initialize_server_objs();
+    int pfd[2];
+    if (pipe(pfd) < 0) {
+        ci_debug_printf(1, "Error creating pipe for communication with child\n");
+        return -1;
+    }
+    if (fcntl(pfd[0], F_SETFL, O_NONBLOCK) < 0
+        || fcntl(pfd[1], F_SETFL, O_NONBLOCK) < 0) {
+        ci_debug_printf(1, "Error making the child pipe non-blocking\n");
+        close(pfd[0]);
+        close(pfd[1]);
+    }
+    // TODO listen on socket in a separate thread;
+    ci_thread_t cmd_monitor_thread;
+    int ret = ci_thread_create(&cmd_monitor_thread, (void *(*)(void *)) thread_signle_server_commands_handler, (void *)&ctl_socket);
+    _CI_ASSERT(ret == 0);
+    child_data = register_child(childs_queue, getpid(), CI_CONF.THREADS_PER_CHILD, pfd[1]);
+    assert(child_data);
     assert(child_data->stats != NULL);
-    childs_queue->histo_size = ci_stat_histo_mem_size();
-    childs_queue->histo_area = childs_queue->histo_size > 0 ? malloc(childs_queue->histo_size) : NULL;
-    child_main(0);
+    child_main(pfd[0], 1);
+    ci_thread_join(cmd_monitor_thread);
     ci_proc_mutex_destroy(&accept_mutex);
     destroy_childs_queue(childs_queue);
     childs_queue = NULL;
-#endif
     return 1;
 }

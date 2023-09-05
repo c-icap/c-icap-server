@@ -45,6 +45,7 @@ extern int PORT;
 extern int UMASK;
 extern int DAEMON_MODE;
 extern int MAX_SECS_TO_LINGER;
+extern int SINGLE_SERVER;
 char MY_HOSTNAME[CI_MAXHOSTNAMELEN + 1];
 
 void init_conf_tables();
@@ -53,6 +54,7 @@ int config(int, char **);
 void config_destroy();
 int init_server();
 int start_server();
+int start_single_server();
 int store_pid(char *pidfile);
 int clear_pid(char *pidfile);
 int is_icap_running(char *pidfile);
@@ -226,7 +228,10 @@ int main(int argc, char **argv)
         return -1;
     post_init_modules();
     post_init_services();
-    start_server();
+    if (SINGLE_SERVER)
+        start_single_server();
+    else
+        start_server();
     clear_pid(CI_CONF.PIDFILE);
     return 0;
 }
