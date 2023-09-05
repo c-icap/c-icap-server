@@ -74,13 +74,14 @@ static int sysv_proc_mutex_init(ci_proc_mutex_t * mutex, const char *name)
     assert(sysv);
     mutex->data = sysv;
     if ((sysv->id = semget(IPC_PRIVATE, 1, IPC_CREAT | PERMS)) < 0) {
-        ci_debug_printf(1, "Error creating mutex\n");
+        char err[128];
+        ci_debug_printf(1, "Error creating sysv mutex %s: %s\n", name, ci_strerror(errno, err, sizeof(err)));
         return 0;
     }
     arg.val = 0;
     if ((semctl(sysv->id, 0, SETVAL, arg)) < 0) {
-        ci_debug_printf(1, "Error setting default value for mutex, errno:%d\n",
-                        errno);
+        char err[128];
+        ci_debug_printf(1, "Error setting default value for sysv mutex %s: %s\n", name, ci_strerror(errno, err, sizeof(err)));
         return 0;
     }
     strncpy(mutex->name, name, CI_PROC_MUTEX_NAME_SIZE);
@@ -93,7 +94,8 @@ static int sysv_proc_mutex_destroy(ci_proc_mutex_t * mutex)
     struct sysv_data *sysv = (struct sysv_data *)mutex->data;
     assert(sysv);
     if (semctl(sysv->id, 0, IPC_RMID, 0) < 0) {
-        ci_debug_printf(1, "Error removing mutex\n");
+        char err[128];
+        ci_debug_printf(1, "Error removing sysv mutex %s: %s\n", mutex->name, ci_strerror(errno, err, sizeof(err)));
         return 0;
     }
     free(mutex->data);
@@ -106,6 +108,8 @@ static int sysv_proc_mutex_lock(ci_proc_mutex_t * mutex)
     struct sysv_data *sysv = (struct sysv_data *)mutex->data;
     assert(sysv);
     if (semop(sysv->id, (struct sembuf *) &op_lock, 2) < 0) {
+        char err[128];
+        ci_debug_printf(1, "Error locking sysv mutex %s: %s\n", mutex->name, ci_strerror(errno, err, sizeof(err)));
         return 0;
     }
     return 1;
@@ -116,6 +120,8 @@ static int sysv_proc_mutex_unlock(ci_proc_mutex_t * mutex)
     struct sysv_data *sysv = (struct sysv_data *)mutex->data;
     assert(sysv);
     if (semop(sysv->id, (struct sembuf *) &op_unlock, 1) < 0) {
+        char err[128];
+        ci_debug_printf(1, "Error unlocking sysv mutex %s: %s\n", mutex->name, ci_strerror(errno, err, sizeof(err)));
         return 0;
     }
     return 1;
@@ -159,20 +165,22 @@ static int posix_proc_mutex_init(ci_proc_mutex_t * mutex, const char *name)
         if ((posix->sem = sem_open(mutex->name, O_CREAT|O_EXCL, S_IREAD|S_IWRITE|S_IRGRP, 1)) != SEM_FAILED) {
             return 1;
         }
-        if (errno != EEXIST)
-            break;
+        if (errno != EEXIST) {
+            char err[128];
+            ci_debug_printf(1, "Error initializing posix shared mutex '%s': %s\n", mutex->name, ci_strerror(errno, err, sizeof(err)));
+        }
+        // errno == EEXIST continue
     }
-    if (errno == EEXIST) {
-        ci_debug_printf(1, "Error allocation posix proc mutex, to many c-icap mutexes are open!\n");
-    } else {
-        ci_debug_printf(1, "Error allocation posix proc mutex, errno: %d\n", errno);
-    }
+
+    ci_debug_printf(1, "Error allocation posix proc mutex %s, to many c-icap mutexes are open!\n", mutex->name);
     return 0;
 }
 
 static int posix_proc_mutex_destroy(ci_proc_mutex_t * mutex)
 {
     if (sem_unlink(mutex->name) < 0) {
+        char err[128];
+        ci_debug_printf(1, "Error destroying posix mutex %s: %s\n", mutex->name, ci_strerror(errno, err, sizeof(err)));
         return 0;
     }
     free(mutex->data);
@@ -185,7 +193,8 @@ static int posix_proc_mutex_lock(ci_proc_mutex_t * mutex)
     struct posix_data *posix = (struct posix_data *)mutex->data;
     assert(posix);
     if (sem_wait(posix->sem)) {
-        ci_debug_printf(1, "Failed to get lock of posix mutex\n");
+        char err[128];
+        ci_debug_printf(1, "Error locking posix mutex %s: %s\n", mutex->name, ci_strerror(errno, err, sizeof(err)));
         return 0;
     }
     return 1;
@@ -196,7 +205,8 @@ static int posix_proc_mutex_unlock(ci_proc_mutex_t * mutex)
     struct posix_data *posix = (struct posix_data *)mutex->data;
     assert(posix);
     if (sem_post(posix->sem)) {
-        ci_debug_printf(1, "Failed to unlock of posix mutex\n");
+        char err[128];
+        ci_debug_printf(1, "Error unlocking posix mutex %s: %s\n", mutex->name, ci_strerror(errno, err, sizeof(err)));
         return 0;
     }
     return 1;
@@ -245,7 +255,7 @@ static int file_proc_mutex_init(ci_proc_mutex_t * mutex, const char *name)
     if (fd < 0) {
         char buf[512];
         ci_strerror(errno, buf, sizeof(buf));
-        ci_debug_printf(1, "Error creating temporary file for mutex, errno:%d - %s\n", errno, buf);
+        ci_debug_printf(1, "Error creating temporary file for file mutex: %s\n", buf);
         return 0;
     }
     struct file_data *file = (struct file_data *)calloc(1, sizeof(struct file_data));
@@ -261,8 +271,11 @@ static int file_proc_mutex_destroy(ci_proc_mutex_t * mutex)
     struct file_data *file = (struct file_data *)mutex->data;
     assert(file);
     close(file->fd);
-    if (unlink(mutex->name) != 0)
+    if (unlink(mutex->name) != 0) {
+        char err[128];
+        ci_debug_printf(1, "Error removing file mutex %s: %s\n", mutex->name, ci_strerror(errno, err, sizeof(err)));
         return 0;
+    }
     pthread_mutex_destroy(&file->mtx);
     free(mutex->data);
     mutex->data = NULL;
@@ -280,6 +293,8 @@ static int file_proc_mutex_lock(ci_proc_mutex_t * mutex)
     assert(file);
     pthread_mutex_lock(&file->mtx);
     if (fcntl(file->fd, F_SETLKW, &fl) < 0) {
+        char err[128];
+        ci_debug_printf(1, "Error locking file mutex %s: %s\n", mutex->name, ci_strerror(errno, err, sizeof(err)));
         pthread_mutex_unlock(&file->mtx);
         return 0;
     }
@@ -295,8 +310,11 @@ static int file_proc_mutex_unlock(ci_proc_mutex_t * mutex)
     fl.l_len = 0;
     struct file_data *file = (struct file_data *)mutex->data;
     assert(file);
-    if (fcntl(file->fd, F_SETLK, &fl) < 0)
+    if (fcntl(file->fd, F_SETLK, &fl) < 0) {
+        char err[128];
+        ci_debug_printf(1, "Error unlocking file mutex %s: %s\n", mutex->name, ci_strerror(errno, err, sizeof(err)));
         return 0;
+    }
     pthread_mutex_unlock(&file->mtx);
     return 1;
 }
@@ -337,6 +355,11 @@ struct pthread_data {
 static void pthread_proc_mutexes_init_child()
 {
     PThreadSharedMemPtr = ci_shared_mem_attach(&PThreadSharedMemId);
+    if (!PThreadSharedMemPtr) {
+        char buf[128];
+        ci_shared_mem_print_info(&PThreadSharedMemId, buf, sizeof(buf));
+        ci_debug_printf(1, "Failed to attach shared memory id=[%s] for shared pthread locking scheme\n", buf);
+    }
 }
 
 static void pmutex_init(pthread_mutex_t *mtx)
@@ -353,13 +376,19 @@ static int pthread_proc_mutex_init(ci_proc_mutex_t * mutex, const char *name)
 {
     if (PThreadSharedMemPtr == NULL) {
         PThreadSharedMemPtr = (struct mutex_item *)ci_shared_mem_create(&PThreadSharedMemId, "cicap_pthread_proc_mutexes", PThreadMaxMutexes * sizeof(struct mutex_item));
+        if (!PThreadSharedMemPtr) {
+            ci_debug_printf(1, "Failed to allocate shared memory for shared pthread locking scheme\n");
+            return 0;
+        }
         memset(PThreadSharedMemPtr, 0, PThreadMaxMutexes * sizeof(struct mutex_item));
         pthread_atfork(NULL, NULL, pthread_proc_mutexes_init_child);
     }
     int mtx_id;
     for (mtx_id = 0; mtx_id < PThreadMaxMutexes && PThreadSharedMemPtr[mtx_id].state !=  MTX_STATE_UNUSED; mtx_id++);
-    if (mtx_id >= PThreadMaxMutexes)
+    if (mtx_id >= PThreadMaxMutexes) {
+        ci_debug_printf(1, "Failed to create shared pthread mutex %s: maximum allowed shared pthread mutexes are allocated\n", name);
         return 0;
+    }
 
     struct pthread_data *pthread = (struct pthread_data *)malloc(sizeof(struct pthread_data));
     assert(pthread);
@@ -406,7 +435,8 @@ static int pthread_proc_mutex_lock(ci_proc_mutex_t * mutex)
                 ci_usleep(10000); /*wait for 10ms*/
                 continue;
             } else {
-                ci_debug_printf(1, "Shared pthread locking error: %d\n", ret);
+                char err[128];
+                ci_debug_printf(1, "Shared pthread mutex %s locking error: %s\n",  mutex->name, ci_strerror(ret, err, sizeof(err)));
                 return 0;
             }
         }
@@ -512,7 +542,7 @@ int ci_proc_mutex_set_scheme(const char *scheme)
                 else
 #endif
             {
-                ci_debug_printf(1, "Unknown interprocess locking scheme: '%s'", scheme);
+                ci_debug_printf(1, "Unknown interprocess locking scheme: '%s'\n", scheme);
                 return 0;
             }
     return 1;
@@ -520,6 +550,7 @@ int ci_proc_mutex_set_scheme(const char *scheme)
 
 int ci_proc_mutex_init(ci_proc_mutex_t *mutex, const char *name)
 {
+    assert(mutex);
     if (default_mutex_scheme) {
         mutex->scheme = default_mutex_scheme;
         return default_mutex_scheme->proc_mutex_init(mutex, name);
@@ -527,7 +558,7 @@ int ci_proc_mutex_init(ci_proc_mutex_t *mutex, const char *name)
     return 0;
 }
 
-CI_DECLARE_FUNC(int) ci_proc_mutex_init2(ci_proc_mutex_t *mutex, const char *name, const char *scheme)
+int ci_proc_mutex_init2(ci_proc_mutex_t *mutex, const char *name, const char *scheme)
 {
     const ci_proc_mutex_scheme_t *use_scheme = NULL;
 #if defined(USE_SYSV_IPC_MUTEX)
@@ -548,6 +579,7 @@ CI_DECLARE_FUNC(int) ci_proc_mutex_init2(ci_proc_mutex_t *mutex, const char *nam
 
                 use_scheme = NULL;
 
+    assert(mutex);
     if (use_scheme) {
         mutex->scheme = use_scheme;
         return use_scheme->proc_mutex_init(mutex, name);
@@ -557,6 +589,8 @@ CI_DECLARE_FUNC(int) ci_proc_mutex_init2(ci_proc_mutex_t *mutex, const char *nam
 
 int ci_proc_mutex_destroy(ci_proc_mutex_t *mutex)
 {
+    assert(mutex);
+    assert(mutex->scheme);
     if (mutex->scheme)
         return mutex->scheme->proc_mutex_destroy(mutex);
     return 0;
@@ -564,6 +598,8 @@ int ci_proc_mutex_destroy(ci_proc_mutex_t *mutex)
 
 int ci_proc_mutex_lock(ci_proc_mutex_t *mutex)
 {
+    assert(mutex);
+    assert(mutex->scheme);
     if (mutex->scheme)
         return mutex->scheme->proc_mutex_lock(mutex);
     return 0;
@@ -571,6 +607,8 @@ int ci_proc_mutex_lock(ci_proc_mutex_t *mutex)
 
 int ci_proc_mutex_unlock(ci_proc_mutex_t *mutex)
 {
+    assert(mutex);
+    assert(mutex->scheme);
     if (mutex->scheme)
         return mutex->scheme->proc_mutex_unlock(mutex);
     return 0;
@@ -578,6 +616,7 @@ int ci_proc_mutex_unlock(ci_proc_mutex_t *mutex)
 
 int ci_proc_mutex_print_info(ci_proc_mutex_t *mutex, char *buf, size_t size)
 {
+    assert(mutex);
     if (mutex->scheme && mutex->scheme->proc_mutex_print_info)
         return mutex->scheme->proc_mutex_print_info(mutex, buf, size);
     return snprintf(buf, size, "mutex:%s", mutex->name);
