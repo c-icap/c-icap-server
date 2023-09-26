@@ -616,7 +616,7 @@ int cfg_set_logger(const char *directive, const char **argv, void *setdata)
     }
     int i;
     for (i = 0; argv[i] != NULL; ++i) {
-        if (strcasecmp(argv[i], "none")) {
+        if (strcasecmp(argv[i], "none") == 0) {
             log_disable_logs();
             continue;
         }
