@@ -14,7 +14,7 @@ dnl - interfaces have been removed  c:r:a => c:r:0
 
 AC_CONFIG_SRCDIR(aserver.c)
 AM_MAINTAINER_MODE
-AC_CONFIG_HEADER(autoconf.h)
+AC_CONFIG_HEADERS(autoconf.h)
 
 AM_INIT_AUTOMAKE([subdir-objects])
 AC_CONFIG_MACRO_DIR([m4])
@@ -787,7 +787,6 @@ if test a"$pcre" != "ano" -a a"$pcre2" != "ayes"; then
 fi
 
 # Check for header files
-AC_HEADER_STDC
 AC_CHECK_HEADERS(stdio.h strings.h unistd.h sys/stat.h limits.h assert.h)
 
 #Check for glibc versions
