@@ -280,8 +280,12 @@ const char *DEFAULT_LOG_FORMAT = "%tl, %la %a %im %iu %is";
 FILE *logfile_open(const char *fname)
 {
     FILE *f = fopen(fname, "a+");
-    if (f)
-        setvbuf(f, NULL, _IONBF, 0);
+    if (!f) {
+        char buf[128];
+        ci_debug_printf(1, "Can not open file '%s': %s", fname, ci_strerror(errno, buf, sizeof(buf)));
+        return NULL;
+    }
+    setvbuf(f, NULL, _IONBF, 0);
     return f;
 }
 
@@ -302,7 +306,7 @@ int file_log_open()
             lf->log_fmt = (char *)DEFAULT_LOG_FORMAT;
 
         if (ci_thread_rwlock_init(&(lf->rwlock)) != 0) {
-            ci_debug_printf (1, "WARNING! Can not initialize structures for log file: %s\n", lf->file);
+            ci_debug_printf (1, "WARNING! Can not initialize locks/structures for log file: %s\n", lf->file);
             continue;
         }
 
