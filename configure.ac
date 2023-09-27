@@ -160,18 +160,22 @@ fi
 AC_SUBST(INVISIBILITY_CFLAG)
 AC_SUBST(VISIBILITY_ATTR)
 
+AC_MSG_CHECKING([Whether large file support should enabled])
 AC_ARG_ENABLE(large_files,
 [  --enable-large-files	Enable large files support],
 [ if test $enableval = "yes"; then
     large_file_support="yes"
+    AC_MSG_RESULT(yes)
   else
     large_file_support="no"
+    AC_MSG_RESULT(no)
   fi
 ],
-   [ large_file_support="yes" ]
+   [ large_file_support="yes"
+     AC_MSG_RESULT(yes)
+   ]
 )
 
-echo "checking whether large file support should enabled:"$large_file_support
 if test $large_file_support = "yes"; then
    CFLAGS="$CFLAGS -D_FILE_OFFSET_BITS=64"
 #here I must put a check if the -D_FILE_OFFSET_BITS makes the off_t an 64bit integer
@@ -180,39 +184,59 @@ if test $large_file_support = "yes"; then
 #later .......
 fi
 
-USE_IPV6="0"
+AC_MSG_CHECKING([Whether to enable IPv6 support])
 AC_ARG_ENABLE(ipv6,
-[  --enable-ipv6	Enable ipv6 support],
+[  --disable-ipv6	Disable ipv6 support],
 [ if test $enableval = "yes"; then
-    ipv6_support="yes"
-    AC_DEFINE(HAVE_IPV6,1,[Define HAVE_IPV6 if OS supports ipv6])
-    USE_IPV6="1"
+      ipv6_support="yes"
+      AC_MSG_RESULT(yes)
+  else
+      ipv6_support="no"
+      AC_MSG_RESULT(no)
   fi
 ],
-   [ ipv6_support="no" ]
+   [ ipv6_support="yes"
+     AC_MSG_RESULT(yes)
+   ]
 )
+
+USE_IPV6="0"
+if test a"$ipv6_support" = "ayes"; then
+    AC_DEFINE(HAVE_IPV6,1,[Define HAVE_IPV6 if OS supports ipv6])
+    USE_IPV6="1"
+fi
 AC_SUBST(USE_IPV6)
 
+AC_MSG_CHECKING([Whether to use SYSV/IPC])
 AC_ARG_ENABLE(sysvipc,
 [  --enable-sysvipc	Enable SYSV/IPC for shared memory if supported],
 [ if test $enableval = "yes"; then
     sysvipc="yes"
+    AC_MSG_RESULT(yes)
   else
     sysvipc="no"
+    AC_MSG_RESULT(no)
   fi
 ],
-   [ sysvipc="yes" ]
+   [ sysvipc="yes"
+     AC_MSG_RESULT(yes)
+   ]
 )
 
+AC_MSG_CHECKING([Whether to use poll])
 AC_ARG_ENABLE(poll,
 [  --disable-poll	Disable poll(2) support],
 [ if test $enableval = "no"; then
     enablepoll="no"
+    AC_MSG_RESULT(no)
   else
     enablepoll="yes"
+    AC_MSG_RESULT(yes)
   fi
 ],
-   [ enablepoll="yes" ]
+   [ enablepoll="yes"
+     AC_MSG_RESULT(yes)
+   ]
 )
 
 USE_COMPAT="0"
