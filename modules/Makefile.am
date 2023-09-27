@@ -3,9 +3,6 @@
 # lib_LTLIBRARIES=sys_logger.la perl_handler.la
 
 pkglib_LTLIBRARIES= sys_logger.la dnsbl_tables.la shared_cache.la
-if USEPERL
-pkglib_LTLIBRARIES += perl_handler.la
-endif
 
 if USEBDB
 pkglib_LTLIBRARIES += bdb_tables.la
@@ -40,12 +37,6 @@ dnsbl_tables_la_LIBADD = $(MODS_LIB_ADD)
 dnsbl_tables_la_CFLAGS=  @MODULES_CFLAGS@
 dnsbl_tables_la_LDFLAGS= -module -avoid-version @LIBS_LDFLAGS@
 dnsbl_tables_la_SOURCES = dnsbl_tables.c
-
-perl_handler_la_LIBADD = $(MODS_LIB_ADD) @perllib@  -L@perlcore@ -lperl
-perl_handler_la_CFLAGS=  @MODULES_CFLAGS@ @perlccflags@ -I@perlcore@
-perl_handler_la_LDFLAGS= -module -avoid-version @LIBS_LDFLAGS@ @perlldflags@
-perl_handler_la_SOURCES = perl_handler.c
-
 
 bdb_tables_la_LIBADD = $(MODS_LIB_ADD) @BDB_ADD_LDADD@
 bdb_tables_la_CFLAGS=  @MODULES_CFLAGS@ @BDB_ADD_FLAG@

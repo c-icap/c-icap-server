@@ -346,42 +346,6 @@ AC_DEFUN([ICFG_BUILD_FLAGS], [
 
 # Checks for libraries
 
-AC_ARG_WITH(perl,
-[  --with-perl		Path to perl binary],
-[
-case "$withval" in
-  yes)
-       perlbin="perl"
-  ;;			
-  no )
-       perlbin="";
-       perlcore="";
-  ;;
-  * )
-      perlbin=$withval
-  ;;
-  esac
-],
-[
-   perlbin="";
-   perlcore="";
-]
-)
-
-if test a"$perlbin" != a; then
-	perlcore=`$perlbin -MConfig -e 'print $Config{archlib}'`/CORE;
-        perllib=`$perlbin -MConfig -e 'print $Config{libs}'`;
-        perlccflags=`$perlbin -MConfig -e 'print $Config{ccflags}'`;
-	perlldflags=`$perlbin -MConfig -e 'print $Config{ccdlflags}'`;
-fi
-
-
-
-AC_SUBST(perlcore)
-AC_SUBST(perllib)
-AC_SUBST(perlccflags)
-AC_SUBST(perlldflags)
-
 AC_ARG_WITH(openssl,
 [  --with-openssl	Path to openssl],
 [
@@ -1264,7 +1228,6 @@ AM_CONDITIONAL(USE_OPENSSL, [test a"$openssl" != "ano"])
 AM_CONDITIONAL(USE_PCRE2, [test a"$pcre2" = "ayes"])
 AM_CONDITIONAL(USE_PCRE, [test a"$pcre" = "ayes"])
 AM_CONDITIONAL(USE_REGEX, [test a"$pcre2" = "ayes" -o a"$pcre" = "ayes" -o a"$posix_regex" = "ayes"])
-AM_CONDITIONAL(USEPERL,[test a"$perlcore" != a])
 AM_CONDITIONAL(USEBDB,   [test a"$libdb" != ano])
 AM_CONDITIONAL(USELMDB,   [test a"$liblmdb" != ano])
 AM_CONDITIONAL(USELDAP, [test a"$libldap" != ano])
