@@ -394,6 +394,7 @@ static int pthread_proc_mutex_init(ci_proc_mutex_t * mutex, const char *name)
     assert(pthread);
     pthread->mtx_id = mtx_id;
     PThreadSharedMemRegistered++;
+    PThreadSharedMemPtr[pthread->mtx_id].state = MTX_STATE_OK;
     pmutex_init(&PThreadSharedMemPtr[pthread->mtx_id].mtx);
     mutex->data = pthread;
     return 1;
