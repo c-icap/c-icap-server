@@ -1391,7 +1391,7 @@ extern struct keyval _CI_CONF_AUTOCONF[];
 extern struct keyval _CI_CONF_C_ICAP_CONF[];
 static int build_info_web_service(ci_request_t *req)
 {
-    char buf[1024];
+    char buf[4096];
     int i, bytes;
     ci_http_server_response_add_header(req, "Content-Type: text/html");
     ci_http_server_response_add_header(req, "Content-Language: en");
@@ -1399,27 +1399,30 @@ static int build_info_web_service(ci_request_t *req)
     ci_membuf_write(body, HTML_HEAD, sizeof(HTML_HEAD) - 1, 0);
     bytes = snprintf(buf, sizeof(buf),
                      "<H2>Build information</H2>\n"
-                     "c-icap version: %s<BR>\n"
-                     "Configure script options: %s<BR>\n"
+                     "c-icap version: %s<BR>\n", VERSION);
+    ci_membuf_write(body, buf, bytes, 0);
+    bytes = snprintf(buf, sizeof(buf),
+                     "Configure script options: %s<BR>\n",
+                     C_ICAP_CONFIGURE_OPTIONS);
+    ci_membuf_write(body, buf, bytes, 0);
+    bytes = snprintf(buf, sizeof(buf),
                      "Configured for host: %s<BR>\n",
-                     VERSION,
-                     C_ICAP_CONFIGURE_OPTIONS,
                      C_ICAP_CONFIG_HOST_TYPE);
     ci_membuf_write(body, buf, bytes, 0);
-    bytes = snprintf(buf, sizeof(buf), "<H2> autoconf.h options </H2>\n");
+    bytes = snprintf(buf, sizeof(buf), "<H2> autoconf.h options </H2>\n<PRE>\n");
     ci_membuf_write(body, buf, bytes, 0);
-    ci_membuf_write(body, "<PRE>", 5, 0);
     for (i = 0; _CI_CONF_AUTOCONF[i].n != NULL; i++) {
         bytes = snprintf(buf, sizeof(buf), "#define %s %s\n", _CI_CONF_AUTOCONF[i].n, _CI_CONF_AUTOCONF[i].v);
         ci_membuf_write(body, buf, bytes, 0);
     }
-    bytes = snprintf(buf, sizeof(buf), "<H2>c-icap-conf.h </H2>\n");
+    ci_membuf_write(body, "</PRE>\n", 7, 0);
+    bytes = snprintf(buf, sizeof(buf), "<H2>c-icap-conf.h </H2>\n<PRE>\n");
     ci_membuf_write(body, buf, bytes, 0);
     for (i = 0; _CI_CONF_C_ICAP_CONF[i].n != NULL; i++) {
         bytes = snprintf(buf, sizeof(buf), "#define %s %s\n", _CI_CONF_C_ICAP_CONF[i].n, _CI_CONF_C_ICAP_CONF[i].v);
         ci_membuf_write(body, buf, bytes, 0);
     }
-    ci_membuf_write(body, "</PRE>", 6, 0);
+    ci_membuf_write(body, "</PRE>\n", 7, 0);
     ci_membuf_write(body, HTML_END, sizeof(HTML_END) - 1, 1);
     return 1;
 }
