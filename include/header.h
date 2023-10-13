@@ -282,6 +282,8 @@ CI_DECLARE_FUNC(const char *) ci_headers_first_line2(ci_headers_list_t *heads, s
 /*compatibility macro*/
 #define ci_headers_copy_header_bytes ci_headers_pack_to_buffer
 
+CI_DECLARE_FUNC(const char *) ci_print_icap_headers(ci_headers_list_t *heads);
+
 /*The following headers are only used internally */
 CI_DECLARE_FUNC(void) ci_headers_pack(ci_headers_list_t *heads);
 CI_DECLARE_FUNC(int)  ci_headers_unpack(ci_headers_list_t *heads);
