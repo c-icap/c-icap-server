@@ -174,6 +174,7 @@ EXTRA_DIST = RECONF config-w32.h makefile.w32 \
              common.h \
              c-icap-config.in c-icap-libicapapi-config.in c-icap.dox \
              build/c_icap_version.awk \
+             build/c_icap_autoconf.awk \
 	     openssl/build_openssl_opts.pl \
 	     openssl/openssl_options.c
 
