@@ -181,6 +181,7 @@ struct childs_queue *create_childs_queue(int size)
         free(q);
         return NULL;
     }
+    memset(mem, 0, q->shared_mem_size);
     attach_memory_to_childs_queue(q, mem);
     if (!ci_stat_memblock_init(q->stats_history, q->stats_block_size)) {
         ci_shared_mem_destroy(&(q->shmid));
