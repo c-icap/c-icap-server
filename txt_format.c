@@ -57,6 +57,8 @@ int fmt_req_preview_hex(ci_request_t *req_data, char *buf,int len, const char *p
 int fmt_req_preview_len(ci_request_t *req_data, char *buf,int len, const char *param);
 int fmt_logstr(ci_request_t *req_data, char *buf,int len, const char *param);
 int fmt_req_attribute(ci_request_t *req_data, char *buf,int len, const char *param);
+int fmt_req_start_time(ci_request_t *req, char *buf,int len, const char *param);
+int fmt_req_read_time(ci_request_t *req, char *buf,int len, const char *param);
 int fmt_req_response_time(ci_request_t *req, char *buf,int len, const char *param);
 int fmt_req_total_time(ci_request_t *req, char *buf,int len, const char *param);
 int fmt_req_latency_time(ci_request_t *req, char *buf,int len, const char *param);
@@ -95,6 +97,8 @@ int fmt_req_processing_time(ci_request_t *req, char *buf,int len, const char *pa
    * \em "%un": Username \n
    * \em "%Sl": Log string set by service\n
    * \em "%Sa": Attribute value set by service\n
+   * \em "%Ts": Start request time\n
+   * \em "%TR": Request read time\n
    * \em "%Tr": Response time, last request headers byte received to last byte sent \n
    * \em "%Tt": Total time, request accepted to last byte sent \n
    * \em "%Tl": Latency (time), first byte received, to first byte sent\n
@@ -147,6 +151,8 @@ struct ci_fmt_entry GlobalTable [] = {
     {"%Sl", "Service log string", fmt_logstr},
     {"%Sa", "Attribute set by service", fmt_req_attribute},
 
+    {"%Ts", "Request start time in requests since epoch", fmt_req_start_time},
+    {"%TR", "Request read time", fmt_req_read_time},
     {"%Tr", "Response time", fmt_req_response_time},
     {"%Tt", "Total time", fmt_req_total_time},
     {"%Tl", "Latency (first read/first write)", fmt_req_latency_time},
@@ -725,6 +731,38 @@ static int64_t convert_nanosec(int64_t ns, char conv)
         div =1;
     }
     return ns / div;
+}
+
+int fmt_req_start_time(ci_request_t *req, char *buf,int len, const char *param)
+{
+    char prec = 's';
+    if (param && param[0])
+        prec = param[0];
+    switch(prec) {
+    case 's':
+    case 'S':
+        return  snprintf(buf, len, "%" PRIi64, req->start_r_t.tv_sec);
+    case 'm':
+    case 'M':
+        return  snprintf(buf, len, "%" PRIi64 ".%" PRIi64, req->start_r_t.tv_sec, convert_nanosec(req->start_r_t.tv_nsec, 'm'));
+    case 'u':
+    case 'U':
+        return  snprintf(buf, len, "%" PRIi64 ".%" PRIi64, req->start_r_t.tv_sec, convert_nanosec(req->start_r_t.tv_nsec, 'u'));
+    case 'n':
+    case 'N':
+        return  snprintf(buf, len, "%" PRIi64 ".%" PRIi64, req->start_r_t.tv_sec, req->start_r_t.tv_nsec);
+    default:
+        return -1;
+    }
+
+}
+
+int fmt_req_read_time(ci_request_t *req, char *buf,int len, const char *param)
+{
+    char div = 'm';
+    if (param && param[0])
+        div = param[0];
+    return snprintf(buf, len, "%" PRIi64, convert_nanosec(ci_clock_time_diff_nano(&req->stop_r_t, &req->start_r_t), div));
 }
 
 int fmt_req_response_time(ci_request_t *req, char *buf,int len, const char *param)

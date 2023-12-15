@@ -691,6 +691,14 @@ RemoteProxyUserHeaderEncoded on
 #                   module. Accepts as arguments the values 's', 'm', 'u'
 #                   or 'n' to define seconds, milliseconds (the default),
 #                   microseconds or nanoseconds precision.
+#              %TR: Request read time, from the first received byte to the
+#                   last received byte. Accepts as arguments the values 's',
+#                   'm', 'u' or 'n' to define seconds, milliseconds (the default),
+#              %Ts: Similar to %ts but does not report the time the log entry is
+#                   is created but the time the first byte of the request is
+#                   received. Accepts as arguments the values 's', 'm', 'u'
+#                   or 'n' to define seconds (the default), milliseconds,
+#                   microseconds or nanoseconds precision.
 # Default:
 #	None set
 # Example:
