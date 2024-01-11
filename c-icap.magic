@@ -13,7 +13,13 @@
 0:MZ:MSEXE:DOS/W32 executable/library/driver:EXECUTABLE
 0:LZ:DOSEXE:MS-DOS executable:EXECUTABLE
 0:\177ELF:ELF:ELF unix executable:EXECUTABLE
-0:\312\376\272\276:JavaClass:Compiled Java class:EXECUTABLE
+0:\xFE\xED\xFA\xCE:MachO:Mach-O 32bit big endian executable:EXECUTABLE
+0:\xFE\xED\xFA\xCF:MachO:Mach-O 64bit big endian executable:EXECUTABLE
+0:\xCE\xFA\xED\xFE:MachO:Mach-O 32bit little endian executable:EXECUTABLE
+0:\xCF\xFA\xED\xFE:MachO:Mach-O 64bit little endian executable:EXECUTABLE
+# Conflicts with java class:
+# 0:\xCA\xFE\xBA\xBE\0x00\0x00\0x00:MachO:Mach-O universal executable:EXECUTABLE
+0:\xCA\xFE\xBA\xBE:JavaClass:Compiled Java class:EXECUTABLE
 
 #Archives
 0:Rar!:RAR:Rar archive:ARCHIVE
@@ -29,20 +35,33 @@
 0:\170\237\076\042:TNEF:Transport Neutral Encapsulation Format:ARCHIVE
 20:\xDC\xA7\xC4\xFD:ZOO:Zoo archiver:ARCHIVE
 2:-lh:LHA:Lha archiver:ARCHIVE
+0:\x37\x7A\xBC\xAF\x27\x1C:7Z:7-Zip compressed file:ARCHIVE
+0:070707:CPIO:CPIO archive:ARCHIVE
+0:070701:CPIO:CPIO new archive:ARCHIVE
+0:070702:CPIO:CPIO new archive with crc:ARCHIVE
+0:\xC7\x71:CPIO-OLD:CPIO old binary:ARCHIVE
+0:\x71\xC7:CPIO-OLD:CPIO old binary BE:ARCHIVE
+0:\x60\xEA:ARJ:ARJ archive:ARCHIVE
+0:EGGA:EGG: EGG/ALZip archive:ARCHIVE
+8:\x19\x04\x00\x10:SIS:Symbian installation file:ARCHIVE
 #Other type of Archives
 0:ITSF:MSCHM:MS Windows Html Help:ARCHIVE
 0:!<arch>\012debian:debian:Debian package:ARCHIVE
+0:(This file must be converted with BinHex:BinHex:BinHex binary text:ARCHIVE
 
 # Graphics
 0:GIF8:GIF:GIF image data:GRAPHICS
 0:BM:BMP:BMP image data:GRAPHICS
 0:\377\330:JPEG:JPEG image data:GRAPHICS
 0:\211PNG:PNG:PNG image data:GRAPHICS
+0:\x00\x00\x00\x0C\x6A\x50\x20\x20\x0D\x0A\x87\x0A:JPEG2000:JPEG2000 image data:GRAPHICS
 0:\000\000\001\000:ICO:MS Windows icon resource:GRAPHICS
 0:FWS:SWF:Shockwave Flash data:GRAPHICS
 0:CWS:SWF:Shockwave Flash data:GRAPHICS
 8:WEBP:WEBP:WEBP image data:GRAPHICS
 4:ftypavif:AVIF:AV1 Image File Format:GRAPHICS
+0:\x49\x49\x2A\x00:TIFF:TIFF image data:GRAPHICS
+0:\x4D\x4D\x00\x2A:TIFF:TIFF image data:GRAPHICS
 
 #STREAM
 0:\000\000\001\263:MPEG:MPEG video stream:STREAM
@@ -78,12 +97,15 @@
 0:ICY 200 OK:ShouthCast:Shouthcast audio stream:STREAM
 
 #Documents
-0:\320\317\021\340\241\261:MSOFFICE:MS Office Document:DOCUMENT
-0:\376\067\0\043:MSOFFICE:MS Office Document:DOCUMENT
+0:\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1:MSOFFICE:MS Office Document:DOCUMENT
+0:\xD0\xCF\x11\xE0\xA1\xB1\x19\xE1:MSOFFICE:MS Office Document:DOCUMENT
+0:\376\067\000\043:MSOFFICE:MS Office Document:DOCUMENT
 0:\333\245-\000\000\000:MSOFFICE:MS Office Document:DOCUMENT
 0:\208\207\017\224\161\177\026\225\000:MSOFFICE::DOCUMENT
 4:Standard Jet DB:MSOFFICE:MS Access Database:DOCUMENT
+4:Standard ACE DB:MSOFFICE:MS Access Database:DOCUMENT
 0:%PDF-:PDF:PDF document:DOCUMENT
 0:%!:PS:PostScript document:DOCUMENT
 0:\004%!:PS:PostScript document:DOCUMENT
+0:{\134rtf1:RTF:RTF document:DOCUMENT
 
