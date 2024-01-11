@@ -127,3 +127,7 @@
 0:\004%!:PS:PostScript document:DOCUMENT
 0:{\134rtf1:RTF:RTF document:DOCUMENT
 
+# Virtual hard disks
+0:<<< Oracle VM VirtualBox Disk Image >>>:VDI:VirtualBox virtual hard disk:VIRTUALHD
+0:KDM:VMDK:VMWare disk image:VIRTUALHD
+0:QFI:QCOW:QEMU QCOW disk Image:VIRTUALHD
