@@ -1202,6 +1202,9 @@ if test a"$NEEDS_ATOMIC_LIB" = "a1"; then
   EXTRALIBS="$EXTRALIBS -latomic"
 fi
 
+# libicapapi requires linking with math library
+EXTRALIBS="$EXTRALIBS -lm"
+
 ICFG_STATE_ROLLBACK
 
 #We are pouting back real LIBS variable
