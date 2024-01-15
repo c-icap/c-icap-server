@@ -32,6 +32,22 @@
 #include "util.h"
 #include "http_server.h"
 
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <sys/types.h>
+#include <sys/prctl.h>
+#include <sys/wait.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <string.h>
+#include <semaphore.h>
+#include <sys/mman.h>
+#include <assert.h>
+#include <ctype.h>
+#include <regex.h>
+
 int info_init_service(ci_service_xdata_t * srv_xdata,
                       struct ci_server_conf *server_conf);
 int info_post_init_service(ci_service_xdata_t * srv_xdata, struct ci_server_conf *server_conf);
@@ -140,6 +156,282 @@ static void info_monitor_init_cmd(const char *name, int type, void *data);
 static void info_monitor_periodic_cmd(const char *name, int type, void *data);
 static int stats_web_service(ci_request_t *req);
 static int build_info_web_service(ci_request_t *req);
+
+#define ICAP_GLOBAL_STATS
+#ifdef ICAP_GLOBAL_STATS
+
+#define ICAP_STATS_MEM_NAME "/icapstats"
+#define ICAP_SEM_MUTEX_NAME "/icapstatsmutex"
+#define ICAP_STATS_MEM_SIZE 0x100000
+
+void *icap_stats_ptr;
+int *stats_fd;
+int stats_shm;
+sem_t *icap_mutex_sem;
+
+int icap_lock(void)
+{
+	if (!icap_mutex_sem)
+		return -1;
+	if (sem_wait(icap_mutex_sem) == -1)
+		return -2;
+	return 0;
+}
+
+int icap_unlock(void)
+{
+	if (!icap_mutex_sem)
+		return -1;
+	if (sem_post(icap_mutex_sem) == -1)
+		return -2;
+	return 0;
+}
+
+void init_maps(void) 
+{
+	// set umask to 000
+  	umask(0);
+
+	stats_fd = mmap(NULL, sizeof *stats_fd, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+	if (stats_fd == (void *)-1) {
+		stats_fd = NULL;
+		ci_debug_printf(4, "info: mmap failed pid %ld\n", (unsigned long) getpid());
+	}
+	else { 
+		ci_debug_printf(4, "info: mmap success %p pid %ld\n", stats_fd, (unsigned long) getpid());
+	}
+
+	if ((stats_shm = shm_open(ICAP_STATS_MEM_NAME, O_RDWR | O_CREAT, 0644)) == -1) {
+		stats_shm = 0;
+		ci_debug_printf(4, "info: shm_open %s failed pid %ld\n", ICAP_STATS_MEM_NAME, (unsigned long) getpid());
+	}
+	else {
+		ci_debug_printf(4, "info: shm_open %s success %i pid %ld\n", ICAP_STATS_MEM_NAME, stats_shm, (unsigned long) getpid());
+	}
+	if (stats_fd) 
+		*stats_fd = stats_shm;
+
+	if (ftruncate(stats_shm, ICAP_STATS_MEM_SIZE) == -1) {
+		ci_debug_printf(4, "info: ftruncate failed pid %ld\n", (unsigned long) getpid());
+	}
+	else { 
+		ci_debug_printf(4, "info: ftruncate size set to %ld pid %ld\n", (unsigned long)ICAP_STATS_MEM_SIZE, (unsigned long) getpid());	
+	}
+
+	if (stats_shm > 0) {
+		if ((icap_stats_ptr = mmap(NULL, ICAP_STATS_MEM_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, stats_shm, 0)) == MAP_FAILED) {
+			ci_debug_printf(4, "info: mmap failed %p pid %ld\n", icap_stats_ptr, (unsigned long) getpid());
+			icap_stats_ptr = NULL;
+		}
+		else {
+			ci_debug_printf(4, "info: mmap success %p pid %ld\n", icap_stats_ptr, (unsigned long) getpid());
+		}
+	}	
+
+	if ((icap_mutex_sem = sem_open(ICAP_SEM_MUTEX_NAME, O_CREAT, 0666, 1)) == SEM_FAILED) {
+		ci_debug_printf(4, "info: sem_open %s failed %p pid %ld\n", ICAP_SEM_MUTEX_NAME, icap_mutex_sem,
+                                (unsigned long) getpid());
+		icap_mutex_sem = NULL;
+	}
+	else {
+		ci_debug_printf(4, "info: sem_open %s %p pid %ld\n", ICAP_SEM_MUTEX_NAME, icap_mutex_sem, (unsigned long) getpid());
+	}
+}
+
+void close_maps(void) 
+{
+	if (icap_mutex_sem) {
+		if (!sem_close(icap_mutex_sem)) {
+			ci_debug_printf(4, "info: sem_close %p pid %ld\n", icap_mutex_sem, (unsigned long) getpid());
+		}
+		else {
+			ci_debug_printf(4, "info: sem_close failed %p pid %ld\n", icap_mutex_sem, (unsigned long) getpid());
+		}
+
+		if (!sem_unlink(ICAP_SEM_MUTEX_NAME)) {
+			ci_debug_printf(4, "info: sem_unlink %s pid %ld\n", ICAP_SEM_MUTEX_NAME, (unsigned long) getpid());
+		}
+		else {
+			ci_debug_printf(4, "info: sem_unlink failed %s pid %ld\n", ICAP_SEM_MUTEX_NAME, (unsigned long) getpid());
+		}
+		icap_mutex_sem = NULL;
+	}
+
+	if (icap_stats_ptr) {
+		if (munmap(icap_stats_ptr, ICAP_STATS_MEM_SIZE)) {
+			ci_debug_printf(4, "info: munmap failed %p pid %ld\n", icap_stats_ptr, (unsigned long) getpid());
+		}
+		else {
+			ci_debug_printf(4, "info: munmap success %p pid %ld\n", icap_stats_ptr, (unsigned long) getpid());
+		}
+		icap_stats_ptr = NULL;
+	}
+
+	if (stats_fd && *stats_fd) {
+		if ((shm_unlink(ICAP_STATS_MEM_NAME)) == -1) {
+			ci_debug_printf(4, "info: shm_unlink failed %s pid %ld\n", ICAP_STATS_MEM_NAME, (unsigned long) getpid());
+		}
+		else {
+			ci_debug_printf(4, "info: shm_unlink success %s pid %ld\n", ICAP_STATS_MEM_NAME, (unsigned long) getpid());
+			stats_shm = 0;
+			*stats_fd = 0;
+		}
+	}
+
+	if (stats_fd) {
+		if (munmap(stats_fd, sizeof *stats_fd)) {
+			ci_debug_printf(4, "info: munmap failed %p pid %ld\n", stats_fd, (unsigned long) getpid());
+		}
+		else {
+			ci_debug_printf(4, "info: munmap success %p pid %ld\n", stats_fd, (unsigned long) getpid());
+		}
+		stats_fd = NULL;
+	}
+}
+
+#define MAX_PROCESSES 64
+
+unsigned long pidtable[MAX_PROCESSES];
+unsigned long pidindex;
+unsigned long stats_active;
+
+static void icapstats_signal_handler(int signo)
+{
+	switch (signo) {
+	case SIGINT:
+		ci_debug_printf(4, "info: got SIGINT pid %ld\n", (unsigned long) getpid());
+                stats_active = 0;
+		break;
+	case SIGTERM:
+		ci_debug_printf(4, "info: got SIGTERM pid %ld\n", (unsigned long) getpid());
+                stats_active = 0;
+		break;
+	case SIGHUP:
+		ci_debug_printf(4, "info: got SIGHUP pid %ld\n", (unsigned long) getpid());
+                stats_active = 0;
+		break;
+        default:
+		break;
+	}
+}
+
+void process_stats(void)
+{
+    struct info_req_data *info_data;
+
+    info_data = malloc(sizeof(struct info_req_data));
+    info_data->url = NULL;
+    // set to NON-HTML   
+    info_data->body = ci_membuf_new_sized(32*1024);
+    info_data->must_free_body = 1;
+
+    info_data->print_page = PRINT_INFO_MENU;
+    info_data->view_child = -1;
+    info_data->time = 0;
+    info_data->time_str[0] = '\0';
+    info_data->childs = 0;
+    info_data->child_pids = malloc(childs_queue->size * sizeof(int));
+    info_data->free_servers = 0;
+    info_data->used_servers = 0;
+    info_data->closing_childs = 0;
+    info_data->closing_child_pids = malloc(childs_queue->size * sizeof(int));
+    info_data->started_childs = 0;
+    info_data->closed_childs = 0;
+    info_data->crashed_childs = 0;
+    info_data->format = OUT_FMT_HTML;
+    info_data->supports_svg = 0;
+    info_data->tables = NULL;
+    info_data->histos = NULL;
+    info_data->memory_pools_master_group_id = ci_stat_group_find("Memory Pools");
+    // set to view=text
+    info_data->format = OUT_FMT_TEXT;
+    // set to table=*
+    info_data->print_page = PRINT_ALL_TABLES;
+
+    void *mem = malloc(ci_stat_memblock_size());
+    info_data->collect_stats = mem ? ci_stat_memblock_init(mem, ci_stat_memblock_size()) : NULL;
+    if (!info_data->collect_stats) {
+       goto release_allocs;
+    }
+    info_data->info_time_stats = ci_server_shared_memblob(InfoSharedMemId);
+
+    if (info_data->body) {
+        info_data->body->flags |= CI_MEMBUF_NULL_TERMINATED;
+        print_statistics(info_data);
+    	if (info_data->body) {
+		if (icap_stats_ptr) {
+			if (!icap_lock()) {
+				snprintf(icap_stats_ptr,
+					info_data->body->endpos < (ICAP_STATS_MEM_SIZE-1)
+					? info_data->body->endpos : (ICAP_STATS_MEM_SIZE-1),
+					"%s", info_data->body->buf); 
+				icap_unlock();
+			}
+		}
+	}
+    }
+
+release_allocs:;
+    if (info_data->url)
+        ci_buffer_free(info_data->url);
+
+    if (info_data->must_free_body && info_data->body)
+        ci_membuf_free(info_data->body);
+
+    if (info_data->child_pids)
+        free(info_data->child_pids);
+
+    if (info_data->closing_child_pids)
+        free(info_data->closing_child_pids);
+
+    if (info_data->collect_stats)
+        free(info_data->collect_stats);
+
+    if (info_data->tables)
+        ci_str_vector_destroy(info_data->tables);
+
+    if (info_data->histos)
+        ci_str_vector_destroy(info_data->histos);
+
+    free(info_data);
+}
+
+void icap_stats_process(void)
+{
+        register int cpid, j;
+
+        init_maps();
+	for (pidindex=j=0; j < 1; j++) {
+           cpid = fork();
+           if (!cpid) {
+              if (prctl(PR_SET_PDEATHSIG, SIGHUP) < 0)
+  	         ci_debug_printf(4, "info: could not register parent SIGHUP for pid %ld\n", (unsigned long) getpid());
+
+              signal(SIGINT, icapstats_signal_handler);
+              signal(SIGTERM, icapstats_signal_handler);
+              signal(SIGHUP, icapstats_signal_handler);
+
+              if (prctl(PR_SET_NAME, (unsigned long)"icapstats", 0, 0, 0) < 0) {
+  	         ci_debug_printf(4, "info: could not set process name for pid %ld\n", (unsigned long) getpid());
+              }
+  	      ci_debug_printf(4, "info: icapstats process %i started pid %ld\n", j, (unsigned long) getpid());
+              stats_active = 1;
+              while (stats_active) {
+		process_stats();
+                if (sleep(1)) 
+		   break;
+              } 
+              close_maps();
+              exit(0);
+           }
+           else {
+              pidtable[pidindex++] = cpid;                 
+           }
+        }
+}
+#else
+void icap_stats_process(void) {};
+#endif
 
 int info_init_service(ci_service_xdata_t * srv_xdata,
                       struct ci_server_conf *server_conf)
