@@ -1171,12 +1171,17 @@ void *get_content_length(ci_request_t *req, char *param)
     if (clen < 0)
         return NULL;
     clen_p->data = (uint64_t)clen;
-    if (param[0] == '=') {
+    if (!param)
+        clen_p->operator = 0; // by default equal
+    else if (param[0] == '=') {
         clen_p->operator = 0;
     } else if (param[0] == '>') {
         clen_p->operator = 1;
     } else if (param[0] == '<') {
         clen_p->operator = 2;
+    } else {
+        ci_debug_printf(1, "acl content_length wrong operator : '%s'\n", param);
+        return NULL;
     }
     return clen_p;
 }
