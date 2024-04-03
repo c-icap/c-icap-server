@@ -823,6 +823,18 @@ AccessLog @prefix@/var/log/access.log
 #	Service echo srv_echo.so
 Service echo srv_echo.so
 
+# TAG: echo.Mode
+# Format: echo.Mode echo | allow204 | mix
+# Description:
+# 	The moe to use:
+# 	  echo The service reads from client and echo back all of the body data
+#	  allow204 The service responds with allow204 after the headers are recevived
+#	  mix Use echo mode for the half of thre requests and allow204 for the others.
+# Default:
+# 	echo.Mode echo
+
+# End module: echo
+
 # Module: sys_logger
 # Description:
 #	Add support for logging access and server events to syslog server

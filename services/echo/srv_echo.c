@@ -25,6 +25,13 @@
 #include "request_util.h"
 #include "debug.h"
 
+enum srv_echo_mode {mode_echo, mode_allow204, mode_mix};
+static int MODE = mode_echo;
+static int srv_echo_cfg_mode(const char *directive, const char **argv, void *setdata);
+static struct ci_conf_entry conf_variables[] = {
+    {"Mode", NULL, srv_echo_cfg_mode, NULL}
+};
+
 int echo_init_service(ci_service_xdata_t * srv_xdata,
                       struct ci_server_conf *server_conf);
 int echo_check_preview_handler(char *preview_data, int preview_data_len,
@@ -50,7 +57,7 @@ static ci_service_module_t echo_service = {
     echo_check_preview_handler,     /* mod_check_preview_handler */
     echo_end_of_data_handler,       /* mod_end_of_data_handler */
     echo_io,                        /* mod_service_io */
-    NULL,
+    conf_variables,
     NULL
 };
 _CI_DECLARE_SERVICE(echo_service);
@@ -151,35 +158,34 @@ int echo_check_preview_handler(char *preview_data, int preview_data_len,
     ci_debug_printf(9, "We expect to read :%" PRINTF_OFF_T " body data\n",
                     (CAST_OFF_T) content_len);
 
-    /*If there are not body data in HTTP encapsulated object but only headers
-      respond with Allow204 (no modification required) and terminate here the
-      ICAP transaction */
-    if (!ci_req_hasbody(req)) {
-        ci_icap_add_xheader(req, "X-Echo-Action: allow204");
-        return CI_MOD_ALLOW204;
-    }
-
     /*Unlock the request body data so the c-icap server can send data before
       all body data has received */
     ci_req_unlock_data(req);
-
-    /*If there are not preview data tell to the client to continue sending data
-      (http object modification required). */
-    if (!preview_data_len) {
-        ci_icap_add_xheader(req, "X-Echo-Action: continue");
-        return CI_MOD_CONTINUE;
-    }
 
     /* In most real world services we should decide here if we must modify/process
     or not the encupsulated HTTP object and return CI_MOD_CONTINUE or
     CI_MOD_ALLOW204 respectively. The decision can be taken examining the http
     object headers or/and the preview_data buffer.
-
-    In this example service we just use the whattodo static variable to decide
-    if we want to process or not the HTTP object.
-         */
-    if (whattodo == 0) {
-        whattodo = 1;
+    */
+    int useMode;
+    if (MODE == mode_echo)
+        useMode = mode_echo;
+    else if (MODE == mode_allow204)
+        useMode = mode_allow204;
+    else {
+        /*
+          We just use the whattodo static variable to decide
+          if we want to process or not the HTTP object.
+        */
+        if (whattodo == 0) {
+            whattodo = 1;
+            useMode = mode_echo;
+        } else {
+            whattodo = 0;
+            useMode = mode_allow204;
+        }
+    }
+    if (useMode == mode_echo) {
         ci_debug_printf(8, "Echo service will process the request\n");
 
         /*if we have preview data and we want to proceed with the request processing
@@ -192,8 +198,7 @@ int echo_check_preview_handler(char *preview_data, int preview_data_len,
         }
         ci_icap_add_xheader(req, "X-Echo-Action: continue");
         return CI_MOD_CONTINUE;
-    } else {
-        whattodo = 0;
+    } else { /*if (useMode == mode_allow204)*/
         /*Nothing to do just return an allow204 (No modification) to terminate here
          the ICAP transaction */
         ci_debug_printf(8, "Allow 204...\n");
@@ -240,4 +245,20 @@ int echo_io(char *wbuf, int *wlen, char *rbuf, int *rlen, int iseof,
     }
 
     return ret;
+}
+
+
+int srv_echo_cfg_mode(const char *directive, const char **argv, void *setdata)
+{
+    if (strcasecmp(argv[0], "echo") == 0)
+        MODE = mode_echo;
+    else if (strcasecmp(argv[0], "allow204") == 0)
+        MODE= mode_allow204;
+    else if (strcasecmp(argv[0], "mix") == 0)
+        MODE= mode_mix;
+    else {
+        ci_debug_printf(1, "Unknown value '%s' for configuration parameter '%s'\n", argv[0], directive);
+        return 0;
+    }
+    return 1;
 }
