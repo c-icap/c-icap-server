@@ -653,6 +653,9 @@ int ci_magics_db_data_type(const struct ci_magics_db *db, const char *buf, int b
 {
     int ret;
 
+    if (buflen <= 0)
+        return -1;
+
     if ((ret = check_magics(db, buf, buflen)) >= 0)
         return ret;
 
@@ -672,10 +675,10 @@ int ci_filetype(struct ci_magics_db *db, const char *buf, int buflen)
     return ci_magics_db_data_type(db, buf, buflen);
 }
 
+/*return the datatype or -1 if not able to determine the data type*/
 static int extend_object_type(struct ci_magics_db *db, ci_headers_list_t *headers, const char *buf,
                               int len, int *iscompressed)
 {
-    int file_type;
     int unzipped_buf_len = 0;
     char *unzipped_buf = NULL;
     const char *checkbuf = buf;
@@ -685,43 +688,32 @@ static int extend_object_type(struct ci_magics_db *db, ci_headers_list_t *header
     *iscompressed = CI_ENCODE_NONE;
 
     if (len <= 0)
-        return CI_BIN_DATA;
+        return -1;
 
     if (headers) {
         content_encoding = ci_headers_value(headers, "Content-Encoding");
         if (content_encoding) {
             ci_debug_printf(8, "Content-Encoding: %s\n", content_encoding);
             *iscompressed = ci_encoding_method(content_encoding);
-
-            /*
-              Bzip2 comressed data are not usefull on preview data, because ci_uncompress_preview
-              in most cases will not be able to decompress preview data window, because requires
-              large blocks of data to start decompression.
-            */
-            if (*iscompressed == CI_ENCODE_GZIP
-#if 0
-                    || *iscompressed == CI_ENCODE_BZIP2
-#endif
-                    || *iscompressed == CI_ENCODE_DEFLATE
-                    || *iscompressed == CI_ENCODE_BROTLI) {
+            if (*iscompressed >= 0) {
                 unzipped_buf_len = len > 1024 ? len : 1024;
                 if (!(unzipped_buf = ci_buffer_alloc(unzipped_buf_len))) {
-                    ci_debug_printf(1, "Error allocating buffer of size %d for uncompressing previewed object\n", unzipped_buf_len);
-                } else if (ci_uncompress_preview(*iscompressed, buf, len, unzipped_buf, &unzipped_buf_len) != CI_ERROR) {
-                    /* 1) unzip and
-                       2) checkbuf eq to unziped data
-                       3) len eq to unzipped data len
-                     */
-                    checkbuf = unzipped_buf;
-                    len = unzipped_buf_len;
-                } else {
-                    ci_debug_printf(3,"Error uncompressing encoded object\n");
+                    ci_debug_printf(1, "Error allocating buffer of size %d for uncompressing previewed object, for uncompressing data\n", unzipped_buf_len);
+                    return -1;
                 }
+
+                if (ci_uncompress_preview(*iscompressed, buf, len, unzipped_buf, &unzipped_buf_len) == CI_ERROR || unzipped_buf_len <= 0) {
+                    ci_debug_printf(3,"Error uncompressing encoded data using '%s', can not determine datatype\n", ci_encoding_method_str(*iscompressed));
+                    ci_buffer_free(unzipped_buf);
+                    return -1;
+                }
+                checkbuf = unzipped_buf;
+                len = unzipped_buf_len;
             }
         }
     }
 
-    file_type = ci_magics_db_data_type(db, checkbuf, len);
+    int file_type = ci_magics_db_data_type(db, checkbuf, len);
 
     ci_debug_printf(7, "File type returned: %s,%s\n",
                     ci_data_type_name(db, file_type),
@@ -735,16 +727,6 @@ static int extend_object_type(struct ci_magics_db *db, ci_headers_list_t *header
                 || strcasestr(content_type, "text/javascript"))
             file_type = CI_HTML_DATA;
     }
-#ifndef HAVE_ZLIB               /*if we do not have a zlib try to get file info from headers....... */
-    else if (file_type == ci_get_data_type_id(db, "GZip")
-             && content_encoding != NULL) {
-        if (content_type && (strcasestr(content_type, "text/html")
-                             || strcasestr(content_type, "text/css")
-                             || strcasestr(content_type, "text/javascript")))
-            file_type = CI_HTML_DATA;
-    }
-#endif
-
 
     ci_debug_printf(7, "The file type now is: %s,%s\n",
                     ci_data_type_name(db, file_type),
