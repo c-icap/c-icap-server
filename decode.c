@@ -35,6 +35,9 @@
 #include "brotli/types.h"
 #include "brotli/port.h"
 #endif
+#ifdef HAVE_ZSTD
+#include <zstd.h>
+#endif
 
 
 unsigned char base64_table[] = {
@@ -235,7 +238,9 @@ int ci_encoding_method(const char *content_encoding)
     if (strcasestr(content_encoding, "bzip2") != NULL) {
         return CI_ENCODE_BZIP2;
     }
-
+    if (strcasestr(content_encoding, "zstd") != NULL) {
+        return CI_ENCODE_ZSTD;
+    }
     return CI_ENCODE_UNKNOWN;
 }
 
@@ -252,6 +257,8 @@ const char * ci_encoding_method_str(int encoding)
         return "br";
     case CI_ENCODE_BZIP2:
         return "bzip2";
+    case CI_ENCODE_ZSTD:
+        return "zstd";
     case CI_ENCODE_NONE:
     default:
         return "none";
@@ -317,6 +324,11 @@ int ci_decompress_to_membuf(int encoding_format, const char *inbuf, size_t inlen
         return ci_brinflate_to_membuf(inbuf, inlen, outbuf, max_size);
         break;
 #endif
+#ifdef HAVE_ZSTD
+    case CI_ENCODE_ZSTD:
+        return ci_zstd_uncompress_to_membuf(inbuf, inlen, outbuf, max_size);
+        break;
+#endif
     case CI_ENCODE_UNKNOWN:
     default:
         return CI_UNCOMP_ERR_ERROR;
@@ -348,6 +360,12 @@ int ci_decompress_to_simple_file(int encoding_format, const char *inbuf, size_t 
         return ci_brinflate_to_simple_file(inbuf, inlen, outbuf, max_size);
         break;
 #endif
+#ifdef HAVE_ZSTD
+    case CI_ENCODE_ZSTD:
+        return ci_zstd_uncompress_to_simple_file(inbuf, inlen, outbuf, max_size);
+        break;
+#endif
+
     case CI_ENCODE_UNKNOWN:
     default:
         return CI_UNCOMP_ERR_ERROR;
@@ -784,6 +802,112 @@ int ci_bzunzip_to_simple_file(const char *inbuf, size_t inlen, struct ci_simple_
 }
 #endif
 
+#ifdef HAVE_ZSTD
+int ci_mem_zstd_uncompress(const char *inbuf, size_t inlen, void *out_obj, char *(*get_outbuf)(void *obj, unsigned int *len), int (*writefunc)(void *obj, const char *buf, size_t len), ci_off_t max_size)
+{
+    /* Guarantee to successfully flush at least one complete compressed block in all circumstances: */
+    size_t const s_outbuf_size = ZSTD_DStreamOutSize();
+    void*  const s_outbuf = malloc(s_outbuf_size); /*get_outbuf ? NULL : malloc(s_outbuf_size);*/
+    ZSTD_DCtx* const dctx = ZSTD_createDCtx();
+    int result = CI_UNCOMP_OK;
+    if (!dctx) {
+        ci_debug_printf(2, "ZSTD_createDCtx() failed!\n");
+        result = CI_UNCOMP_ERR_ERROR;
+        goto failed;
+    }
+
+    ci_off_t unzipped_size = 0;
+    ZSTD_inBuffer input = { inbuf, inlen, 0 };
+    while (input.pos < input.size) {
+        ZSTD_outBuffer output = { s_outbuf, s_outbuf_size, 0 };
+        size_t const ret = ZSTD_decompressStream(dctx, &output , &input);
+        if (ZSTD_isError(ret)) {
+            ci_debug_printf(2, "zstd data decompression error: %s\n", ZSTD_getErrorName(ret));
+            result = CI_UNCOMP_ERR_ERROR;
+            goto failed;
+        }
+        unzipped_size += output.pos;
+        const ci_off_t can_write_up_to = max_size > 0 ? max_size - unzipped_size : 0;
+        const size_t can_write = (can_write_up_to && can_write_up_to < (ci_off_t)(output.pos)) ? (size_t)can_write_up_to : output.pos;
+        const int written = writefunc(out_obj, s_outbuf, can_write);
+        if (written != can_write) {
+            result = CI_UNCOMP_ERR_OUTPUT;
+            goto failed;
+        }
+        if (max_size > 0 && unzipped_size > max_size) {
+            if ((unzipped_size/inlen) > 100) {
+                ci_debug_printf(1, "data-compression: zstd compression ratio uncompSize/compSize = %"
+                                PRINTF_OFF_T "/%" PRINTF_OFF_T " = %" PRINTF_OFF_T
+                                "! Is it a zip bomb? aborting!\n",
+                                (CAST_OFF_T)unzipped_size,
+                                (CAST_OFF_T)inlen,
+                                (CAST_OFF_T)(unzipped_size/inlen));
+                result = CI_UNCOMP_ERR_BOMB;
+            } else {
+                ci_debug_printf(4, "data-compression: zstd object is bigger than max allowed file\n");
+                result = CI_UNCOMP_ERR_OUTPUT;
+            }
+            goto failed;
+        }
+
+
+    }
+    ZSTD_freeDCtx(dctx);
+    if (s_outbuf)
+        free(s_outbuf);
+    return CI_UNCOMP_OK;
+failed:
+    if (dctx)
+        ZSTD_freeDCtx(dctx);
+    if (s_outbuf)
+        free(s_outbuf);
+    return result;
+}
+
+int ci_zstd_uncompress_to_membuf(const char *inbuf, size_t inlen, ci_membuf_t *outbuf, ci_off_t max_size)
+{
+    int ret = ci_mem_zstd_uncompress(inbuf, inlen, outbuf, NULL, write_membuf_func, max_size);
+    ci_membuf_write(outbuf, "", 0, 1);
+    return ret;
+}
+
+int ci_zstd_uncompress_to_simple_file(const char *inbuf, size_t inlen, struct ci_simple_file *outbuf, ci_off_t max_size)
+{
+    int ret = ci_mem_zstd_uncompress(inbuf, inlen, outbuf, NULL, write_simple_file_func, max_size);
+    ci_simple_file_write(outbuf, "", 0, 1);
+    return ret;
+}
+
+static int zstd_uncompress_step(const char *buf, int len, char *unzipped_buf, int *unzipped_buf_len)
+{
+    struct unzipBuf ub;
+    ub.buf = unzipped_buf;
+    ub.buf_size = *unzipped_buf_len;
+    ub.out_len = 0;
+    int ret = ci_mem_zstd_uncompress(buf, len,  &ub, get_buf_outbuf, write_once_to_outbuf, len);
+    ci_debug_printf(5, "zstd_uncompress_step: retcode %d, unzipped data: %d\n", ret, (int)ub.out_len);
+    if (ub.out_len > 0) {
+        *unzipped_buf_len = ub.out_len;
+        return CI_OK;
+    }
+    return CI_ERROR;
+}
+
+#else
+int ci_zstd_uncompress_to_membuf(const char *inbuf, size_t inlen, ci_membuf_t *outbuf, ci_off_t max_size)
+{
+    ci_debug_printf(1, "zstd uncompressing is not supported.\n");
+    return CI_UNCOMP_ERR_NONE;
+}
+
+int ci_zstd_uncompress_to_simple_file(const char *inbuf, size_t inlen, struct ci_simple_file *outbuf, ci_off_t max_size)
+{
+    ci_debug_printf(1, "zstd uncompressing is not supported.\n");
+    return CI_UNCOMP_ERR_NONE;
+}
+
+#endif
+
 int ci_uncompress_preview(int compress_method, const char *buf, int len, char *unzipped_buf,
                           int *unzipped_buf_len)
 {
@@ -797,8 +921,14 @@ int ci_uncompress_preview(int compress_method, const char *buf, int len, char *u
             return  brotli_inflate_step(buf, len, unzipped_buf, unzipped_buf_len);
         else
 #endif
+#ifdef HAVE_ZSTD
+            if (compress_method == CI_ENCODE_ZSTD)
+                return zstd_uncompress_step(buf, len, unzipped_buf, unzipped_buf_len);
+            else
+#endif
+
 #ifdef HAVE_ZLIB
-            return zlib_inflate_step(buf, len, unzipped_buf, unzipped_buf_len);
+                return zlib_inflate_step(buf, len, unzipped_buf, unzipped_buf_len);
 #endif
     return CI_ERROR;
 }
