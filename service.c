@@ -690,32 +690,30 @@ ci_service_module_t *load_c_service(const char *service_file, const char *argv[]
     }
 
     if (cicap_release_ok) {
+        if (ci_module_sym(service_handle, CI_MOD_DISABLE_FORCE_UNLOAD_STR))
+            forceUnload = 0;
         service = ci_module_sym(service_handle, "service");
         if (!service) {
             if ((service_builder = ci_module_sym(service_handle, "__ci_service_build"))) {
                 ci_debug_printf(3, "New c-icap service initialization procedure\n");
                 if ((service = service_builder()) != NULL) {
-                    service->mod_data = (void *)0x1;
+                    if (forceUnload) {
+                        // When the module dlclosed, the ci_service_t structure  must be released.
+                        service->mod_data = (void *)0x1;
+                    }
                 } else {
                     ci_debug_printf(1, "ERROR: \"__ci_service_build\" return failed/nil\n");
                 }
             }
         }
-        if (!service) {
+        if (service) {
+            ci_dlib_entry((service->mod_name != NULL ? service->mod_name : ""), service_file, service_handle, forceUnload);
+        } else {
             ci_debug_printf(1, "ERROR: Not symbol \"service\" or \"__ci_service_build\" found in library\n");
         }
     }
-
-    if (!service) {
+    if (!service)
         ci_module_unload(service_handle, service_file);
-        return NULL;
-    }
-
-    if (ci_module_sym(service_handle, CI_MOD_DISABLE_FORCE_UNLOAD_STR))
-        forceUnload = 0;
-
-    ci_dlib_entry((service->mod_name != NULL ? service->mod_name : ""),
-                  service_file, service_handle, forceUnload);
     return service;
 }
 
