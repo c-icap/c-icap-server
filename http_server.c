@@ -67,7 +67,6 @@ void http_server_init()
     STAT_WS_BODY_BYTES_IN = request_stat_entry_register("BODY BYTES IN", CI_STAT_KBS_T, "WEB SERVER");
     STAT_WS_BODY_BYTES_OUT = request_stat_entry_register("BODY BYTES OUT", CI_STAT_KBS_T, "WEB SERVER");
     ci_thread_mutex_init(&STAT_MTX);
-    ServiceHandlers = ci_array_new2(1024, sizeof(struct http_service_handler));
     ci_http_server_register_service("/", "The c-icap main web page", main_web_service, 0);
 }
 
@@ -90,6 +89,8 @@ void ci_http_server_register_service(const char *path, const char *descr, int (*
     struct http_service_handler service_handler;
     service_handler.handler = handler;
     snprintf(service_handler.descr, sizeof(service_handler.descr), "%s", descr);
+    if (!ServiceHandlers)
+        ServiceHandlers = ci_array_new2(1024, sizeof(struct http_service_handler));
     ci_array_add(ServiceHandlers, path, &service_handler, sizeof(struct http_service_handler));
 }
 
@@ -225,8 +226,9 @@ static int http_server_request_parse_first_line(ci_request_t *req)
 
 static int http_server_exec_service_handler(ci_request_t *req)
 {
-    const struct http_service_handler *handler;
-    handler = ci_array_search(ServiceHandlers, req->service);
+    if (!ServiceHandlers)
+        return 0;
+    const struct http_service_handler *handler = ci_array_search(ServiceHandlers, req->service);
     if (!handler)
         return 0;
     req->return_code = EC_200;
