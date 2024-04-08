@@ -108,6 +108,9 @@ int BROTLI_WINDOW = -1;
 int ZLIB_WINDOW_SIZE = -1;
 int ZLIB_MEMLEVEL = -1;
 #endif
+#ifdef HAVE_ZSTD
+int ZSTD_LEVEL = -1;
+#endif
 
 extern char *SERVER_LOG_FILE;
 extern char *ACCESS_LOG_FILE;
@@ -232,13 +235,16 @@ static struct ci_conf_entry conf_variables[] = {
     {"Allow204As200okZeroEncaps", &ALLOW204_AS_200OK_ZERO_ENCAPS, intl_cfg_enable, NULL},
     {"FakeAllow204", &FAKE_ALLOW204, intl_cfg_onoff, NULL},
 #ifdef HAVE_BROTLI
-    {"BrotliQuality", CI_CFG_INT_RANGE(CI_BROTLI_QUALITY, 0, 11), intl_cfg_set_int_range, NULL},
-    {"BrotliMaxInputBlock", CI_CFG_INT_RANGE(CI_BROTLI_MAX_INPUT_BLOCK, 16, 24), intl_cfg_set_int_range, NULL},
-    {"BrotliWindowSize", CI_CFG_INT_RANGE(CI_BROTLI_WINDOW, 10, 24), intl_cfg_set_int_range, NULL},
+    {"BrotliQuality", CI_CFG_INT_RANGE(BROTLI_QUALITY, 0, 11), intl_cfg_set_int_range, NULL},
+    {"BrotliMaxInputBlock", CI_CFG_INT_RANGE(BROTLI_MAX_INPUT_BLOCK, 16, 24), intl_cfg_set_int_range, NULL},
+    {"BrotliWindowSize", CI_CFG_INT_RANGE(BROTLI_WINDOW, 10, 24), intl_cfg_set_int_range, NULL},
 #endif
 #ifdef HAVE_ZLIB
     {"ZlibWindowSize", CI_CFG_INT_RANGE(ZLIB_WINDOW_SIZE, 1, 15), intl_cfg_set_int_range, NULL},
     {"ZlibMemLevel", CI_CFG_INT_RANGE(ZLIB_MEMLEVEL, 1, 9), intl_cfg_set_int_range, NULL},
+#endif
+#ifdef HAVE_ZSTD
+    {"ZstdCompressionLevel", CI_CFG_INT_RANGE(ZSTD_LEVEL, 0, 22), intl_cfg_set_int_range, NULL},
 #endif
     {NULL, NULL, NULL, NULL}
 };
@@ -1063,6 +1069,9 @@ void init_config()
     cfg_default_value_store(&CI_ZLIB_WINDOW_SIZE, &CI_ZLIB_WINDOW_SIZE, sizeof(int));
     cfg_default_value_store(&CI_ZLIB_MEMLEVEL, &CI_ZLIB_MEMLEVEL, sizeof(int));
 #endif
+#ifdef HAVE_ZSTD
+    cfg_default_value_store(&CI_ZSTD_LEVEL, &CI_ZSTD_LEVEL, sizeof(int));
+#endif
 }
 
 void post_config()
@@ -1080,6 +1089,10 @@ void post_config()
         CI_ZLIB_WINDOW_SIZE = ZLIB_WINDOW_SIZE;
     if (ZLIB_MEMLEVEL > 0)
         CI_ZLIB_MEMLEVEL = ZLIB_MEMLEVEL;
+#endif
+#ifdef HAVE_ZSTD
+    if (ZSTD_LEVEL != -1)
+        CI_ZSTD_LEVEL = ZSTD_LEVEL;
 #endif
 #ifdef USE_OPENSSL
     if (CI_CONF.TLS_ENABLED)

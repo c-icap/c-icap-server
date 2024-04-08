@@ -54,7 +54,8 @@ enum {
     CI_ENCODE_GZIP,
     CI_ENCODE_DEFLATE,
     CI_ENCODE_BZIP2,
-    CI_ENCODE_BROTLI
+    CI_ENCODE_BROTLI,
+    CI_ENCODE_ZSTD
 };
 
 // Encoding configuration parameters
@@ -97,6 +98,14 @@ CI_DECLARE_DATA extern int CI_BROTLI_MAX_INPUT_BLOCK;
    \ingroup UTILITY
 */
 CI_DECLARE_DATA extern int CI_BROTLI_WINDOW;
+
+/**
+   Zstd compression level to use (between 0 and 22).
+   The higher quality results to a slower compression.
+   The default value is 3.
+   \ingroup UTILITY
+ */
+CI_DECLARE_DATA extern int CI_ZSTD_LEVEL;
 
 /**
  * Return the encoding method integer representation from string.
@@ -245,6 +254,25 @@ CI_DECLARE_FUNC(int) ci_brinflate_to_membuf(const char *inbuf, size_t inlen, str
  */
 CI_DECLARE_FUNC(int) ci_brinflate_to_simple_file(const char *inbuf, size_t inlen, struct ci_simple_file *outbuf, ci_off_t max_size);
 
+/**
+ * Uncompress zstd compressed data and writes the output to the outbuf object
+ \ingroup UTILITY
+ *
+ \param inbuf   is a buffer which holds the zipped data
+ \param inlen is the length of the buffer buf
+ \param outbuf where to put unzipped data
+ \param max_size if it is greater than zero, the output data limit
+ \return CI_UNCOMP_OK on success, CI_UNCOMP_ERR_NONE, if maxsize exceed, an
+ *       CI_UNCOMPRESS_ERRORS code otherwise
+ */
+CI_DECLARE_FUNC(int) ci_zstd_uncompress_to_membuf(const char *inbuf, size_t inlen, struct ci_membuf *outbuf, ci_off_t max_size);
+
+/**
+ \ingroup UTILITY
+ \copydoc ci_zstd_uncompress_to_membuf(char *inbuf, size_t inlen, struct ci_membuf *outbuf, ci_off_t max_size)
+ */
+CI_DECLARE_FUNC(int) ci_zstd_uncompress_to_simple_file(const char *inbuf, size_t inlen, struct ci_simple_file *outbuf, ci_off_t max_size);
+
 /*  Data Compression core functions */
 
 /**
@@ -345,6 +373,25 @@ CI_DECLARE_FUNC(int) ci_brdeflate_to_membuf(const char *inbuf, size_t inlen, str
  \copydoc ci_brdeflate_to_membuf(char *inbuf, size_t inlen, struct ci_membuf *outbuf, ci_off_t max_size)
  */
 CI_DECLARE_FUNC(int) ci_brdeflate_to_simple_file(const char *inbuf, size_t inlen, struct ci_simple_file *outbuf, ci_off_t max_size);
+
+/**
+ * Compress the given data using the zstd compression format and writes the output to the outbuf object
+ \ingroup UTILITY
+ *
+ \param inbuf   is a buffer which holds the unzipped data
+ \param inlen is the length of the buffer buf
+ \param outbuf where to put zipped data
+ \param max_size if it is greater than zero, the output data limit
+ \return CI_COMP_OK on success, CI_COMP_ERR_NONE, if maxsize exceed, an
+ *       CI_COMPRESS_ERRORS code otherwise
+ */
+CI_DECLARE_FUNC(int) ci_zstd_compress_to_membuf(const char *inbuf, size_t inlen, struct ci_membuf *outbuf, ci_off_t max_size);
+
+/**
+ \ingroup UTILITY
+ \copydoc ci_zstd_compress_to_membuf(char *inbuf, size_t inlen, struct ci_membuf *outbuf, ci_off_t max_size)
+ */
+CI_DECLARE_FUNC(int) ci_zstd_compress_to_simple_file(const char *inbuf, size_t inlen, struct ci_simple_file *outbuf, ci_off_t max_size);
 
 /**
  * Decodes a base64 encoded string, and also allocate memory for the result.
