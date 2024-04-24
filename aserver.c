@@ -220,7 +220,9 @@ int main(int argc, char **argv)
         run_as_daemon();
     if (!set_running_permissions(CI_CONF.RUN_USER, CI_CONF.RUN_GROUP))
         exit(-1);
-    store_pid(CI_CONF.PIDFILE);
+    char usePidFile[CI_MAX_PATH];
+    snprintf(usePidFile, sizeof(usePidFile), "%s", CI_CONF.PIDFILE);
+    store_pid(usePidFile);
 #endif
 
     execute_commands_no_lock(CI_CMD_POST_CONFIG);
@@ -232,6 +234,8 @@ int main(int argc, char **argv)
         start_single_server();
     else
         start_server();
-    clear_pid(CI_CONF.PIDFILE);
+#if ! defined(_WIN32)
+    clear_pid(usePidFile);
+#endif
     return 0;
 }
