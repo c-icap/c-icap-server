@@ -469,7 +469,7 @@ static SSL_CTX *create_server_context(ci_port_t *port)
     return ctx;
 }
 
-static int configure_openssl_bios(BIO *bio, SSL_CTX *ctx)
+static int configure_openssl_accept_bios(BIO *bio, SSL_CTX *ctx)
 {
     BIO *secureBio = BIO_new_ssl(ctx, 0);
     SSL *ssl;
@@ -544,6 +544,7 @@ int icap_init_server_tls(ci_port_t *port)
     acpt->bio = BIO_new_accept(portString);
     BIO_set_bind_mode(acpt->bio, BIO_BIND_REUSEADDR);
     BIO_set_nbio_accept(acpt->bio, 1);
+    BIO_set_close(acpt->bio, 0);
 
 
     if (!(acpt->tls_context = create_server_context(port))) {
@@ -551,7 +552,7 @@ int icap_init_server_tls(ci_port_t *port)
         return 0;
     }
 
-    if (!configure_openssl_bios(acpt->bio, acpt->tls_context)) {
+    if (!configure_openssl_accept_bios(acpt->bio, acpt->tls_context)) {
         ci_tls_server_accept_details_free(acpt);
         return 0;
     }
@@ -574,6 +575,8 @@ void icap_close_server_tls(ci_port_t *port)
         ci_tls_server_accept_details_free(port->tls_accept_details);
         port->tls_accept_details = NULL;
     }
+    if (port->accept_socket != CI_SOCKET_INVALID)
+        close(port->accept_socket);
 }
 
 int ci_port_reconfigure_tls(ci_port_t *port)
@@ -586,7 +589,7 @@ int ci_port_reconfigure_tls(ci_port_t *port)
     if (!(acpt->tls_context = create_server_context(port)))
         return 0;
 
-    if (!configure_openssl_bios(acpt->bio, acpt->tls_context))
+    if (!configure_openssl_accept_bios(acpt->bio, acpt->tls_context))
         return 0;
 
     SSL_CTX_free(old_ctx);
@@ -720,7 +723,7 @@ int icap_accept_tls_connection(ci_port_t *port, ci_connection_t *client_conn)
     assert(client_conn && client_conn->tls_conn_pcontext == NULL);
     BIO *client_conn_bio = BIO_pop(port->tls_accept_details->bio);
     _CI_CONN_SET_BIO(client_conn, client_conn_bio);
-
+    assert(BIO_get_close(client_conn_bio) != 0);
     // Check if this is a ssl connection
     SSL *ssl = NULL;
     BIO_get_ssl(client_conn_bio, &ssl);

@@ -849,18 +849,14 @@ void listener_thread(void *unused)
         }
     }
 LISTENER_FAILS_UNLOCKED:
-    /* The code commented out, because causes closing TLS listening ports
-       for all of the kids and parent.
     ci_port_list_release(CI_CONF.PORTS);
-    CI_CONF.PORTS = NULL;*/
+    CI_CONF.PORTS = NULL;
     listener_running = 0;
     return;
 
 LISTENER_FAILS:
-    /* The code commented out, because causes closing TLS listening ports
-       for all of the kids and parent.
     ci_port_list_release(CI_CONF.PORTS);
-    CI_CONF.PORTS = NULL*/
+    CI_CONF.PORTS = NULL;
     listener_running = 0;
     errno = 0;
     while (!ci_proc_mutex_unlock(&accept_mutex)) {
