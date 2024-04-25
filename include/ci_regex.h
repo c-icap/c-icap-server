@@ -83,6 +83,7 @@ CI_DECLARE_FUNC(int) ci_regex_apply(const ci_regex_t regex, const char *str, int
 
 
 CI_DECLARE_FUNC(void) ci_regex_memory_init();
+CI_DECLARE_FUNC(void) ci_regex_memory_destroy();
 
 #ifdef __cplusplus
 }

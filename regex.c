@@ -101,6 +101,16 @@ void ci_regex_memory_init()
 #endif
 }
 
+void ci_regex_memory_destroy()
+{
+#if defined(HAVE_PCRE2)
+    pcre2_match_context_free(pcre2MatchContext);
+    pcre2MatchContext = NULL;
+    pcre2_general_context_free(pcre2GenContext);
+    pcre2GenContext = NULL;
+#endif
+}
+
 char *ci_regex_parse(const char *str, int *flags, int *recursive)
 {
     int slen;

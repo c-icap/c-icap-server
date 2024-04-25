@@ -53,6 +53,7 @@
 #include "cfg_param.h"
 #include "commands.h"
 #include "util.h"
+#include "ci_regex.h"
 
 extern int MAX_KEEPALIVE_REQUESTS;
 extern int MAX_SECS_TO_LINGER;
@@ -191,7 +192,7 @@ static void exit_normaly()
 #ifdef USE_OPENSSL
     ci_tls_cleanup();
 #endif
-
+    ci_regex_memory_destroy();
     config_destroy();
     commands_destroy();
     ci_acl_destroy();
