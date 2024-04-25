@@ -78,11 +78,14 @@ void ci_mem_exit()
 
 void ci_mem_allocator_destroy(ci_mem_allocator_t *allocator)
 {
+    if (allocator->name) {
+        free(allocator->name);
+        allocator->name = NULL;
+    }
     /* The allocator->destroy may release allocator struct */
     int must_free = allocator->must_free;
     void (*destroyer)(struct ci_mem_allocator *);
     destroyer = allocator->destroy;
-
     destroyer(allocator);
     /*space for ci_mem_allocator_t struct is not always allocated
       using malloc */
@@ -606,25 +609,24 @@ static void serial_allocator_reset(ci_mem_allocator_t *allocator)
     /*release any other allocated chunk*/
     while (sa) {
         tmp = (void *)sa;
-        ci_buffer_free(tmp);
         sa = sa->next;
+        ci_buffer_free(tmp);
     }
 }
 
 static void serial_allocator_destroy(ci_mem_allocator_t *allocator)
 {
-    serial_allocator_t *cur, *next;
+    serial_allocator_t *sa;
 
     if (!allocator->data)
         return;
 
-    cur = (serial_allocator_t *)allocator->data;
-    next = cur->next;
-    while (cur) {
-        ci_buffer_free((void *)cur);
-        cur = next;
-        if (next)
-            next = next->next;
+    void *tmp;
+    sa = (serial_allocator_t *)allocator->data;
+    while (sa) {
+        tmp = (void *)sa;
+        sa= sa->next;
+        ci_buffer_free(tmp);
     }
 }
 
