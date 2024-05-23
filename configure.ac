@@ -501,6 +501,41 @@ else
     fi
 fi
 
+AC_ARG_WITH(zstd,
+[  --with-zstd	Path to zstd library],
+[
+case "$withval" in
+     yes)
+	zstd=yes;
+     ;;
+     no)
+	zstd=no;
+     ;;
+     *)
+        zstd=yes;
+	zstdpath=$withval;
+     ;;
+     esac
+],
+[ zstd=yes]
+)
+
+if test "a$zstd" != "ano"; then
+   ICFG_STATE_SAVE(ZSTD)
+   if test "a$zstdpath" != "a"; then
+        CFLAGS="$CFLAGS -I$zstdpath/include"
+        LDFLAGS="$LDFLAGS -L$zstdpath/lib -lzstd"
+   fi
+   AC_CHECK_LIB(zstd,ZSTD_compressStream2,[zstd=yes],[zstd=no])
+   ICFG_STATE_ROLLBACK
+fi
+if test "a$zstd" = "ano"; then
+    AC_MSG_WARN("libzstd required for the c-icap's internal filetype recognizer!")
+else
+    AC_DEFINE(HAVE_ZSTD,1,[Define HAVE_ZSTD if libzstd installed])
+    ICFG_BUILD_FLAGS(ZSTD, "$zstdpath", "-lzstd")
+fi
+
 libdb="yes"
 libdbpath=""
 AC_ARG_WITH(bdb,

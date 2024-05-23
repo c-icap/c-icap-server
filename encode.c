@@ -38,6 +38,9 @@
 #include "brotli/types.h"
 #include "brotli/port.h"
 #endif
+#ifdef HAVE_ZSTD
+#include <zstd.h>
+#endif
 
 /*return CI_DEFLATE_ERRORS
 */
@@ -65,6 +68,11 @@ int ci_compress_to_membuf(int encoding_format, const char *inbuf,
 #ifdef HAVE_BROTLI
     case CI_ENCODE_BROTLI:
         return ci_brdeflate_to_membuf(inbuf, inlen, outbuf, max_size);
+        break;
+#endif
+#ifdef HAVE_ZSTD
+    case CI_ENCODE_ZSTD:
+        return ci_zstd_compress_to_membuf(inbuf, inlen, outbuf, max_size);
         break;
 #endif
     case CI_ENCODE_UNKNOWN:
@@ -105,6 +113,11 @@ int ci_compress_to_simple_file(int encoding_format, const char *inbuf,
     case CI_ENCODE_BROTLI:
         return ci_brdeflate_to_simple_file(inbuf, inlen, outbuf,
                                            max_size);
+        break;
+#endif
+#ifdef HAVE_ZSTD
+    case CI_ENCODE_ZSTD:
+        return ci_zstd_compress_to_simple_file(inbuf, inlen, outbuf, max_size);
         break;
 #endif
     case CI_ENCODE_UNKNOWN:
@@ -505,4 +518,78 @@ int ci_bzzip_to_simple_file(const char *inbuf, size_t inlen,
     ci_debug_printf(1, "bzlib/bzzip is not supported.\n");
     return CI_COMP_ERR_NONE;
 }
+#endif
+
+#ifdef HAVE_ZSTD
+int ci_mem_zstd_compress(const char *inbuf, int inlen, void *outbuf,
+                         char *(*get_outbuf)(void *obj, unsigned int *len),
+                         int (*writefunc)(void *obj, const char *buf, size_t len),
+                         ci_off_t max_size)
+{
+    int result = CI_COMP_ERR_NONE;
+    size_t out_len = ZSTD_CStreamOutSize();
+    unsigned char *out = ci_buffer_alloc(out_len); // ci_buffer_alloc()
+    ZSTD_CCtx* const cctx = ZSTD_createCCtx();
+    if (!cctx) {
+        result = CI_COMP_ERR_ERROR;
+        goto failed;
+    }
+    ZSTD_inBuffer input = { inbuf, inlen, 0 };
+    int finished = 0;
+    do {
+        ZSTD_outBuffer output = { out, out_len, 0 };
+        size_t const remaining = ZSTD_compressStream2(cctx, &output , &input, ZSTD_e_end);
+        if (ZSTD_isError(remaining)) {
+            ci_debug_printf(2, "zstd data compression error: %s\n", ZSTD_getErrorName(remaining));
+            result = CI_COMP_ERR_ERROR;
+            goto failed;
+        }
+        const int written = writefunc(outbuf, (const char *)out, output.pos);
+        if (written != output.pos) {
+            ci_debug_printf(2, "zstd corrupted output file\n");
+            result = CI_COMP_ERR_CORRUPT;
+            goto failed;
+        }
+        finished = (remaining == 0);
+    } while(!finished);
+    ci_buffer_free(out);
+    ZSTD_freeCCtx(cctx);
+    return CI_COMP_OK;
+
+failed:
+    if (out)
+        ci_buffer_free(out);
+    if (cctx)
+        ZSTD_freeCCtx(cctx);
+    return result;
+}
+
+int ci_zstd_compress_to_membuf(const char *inbuf, size_t inlen, struct ci_membuf *outbuf, ci_off_t max_size)
+{
+    int ret = ci_mem_zstd_compress(inbuf, inlen, outbuf, NULL, write_membuf_func, max_size);
+    ci_membuf_write(outbuf, "", 0, 1);
+    return ret;
+}
+
+int ci_zstd_compress_to_simple_file(const char *inbuf, size_t inlen, struct ci_simple_file *outbuf, ci_off_t max_size)
+{
+    int ret = ci_mem_zstd_compress(inbuf, inlen, outbuf, NULL, write_simple_file_func, max_size);
+    ci_simple_file_write(outbuf, "", 0, 1);
+    return ret;
+}
+
+#else
+
+int ci_zstd_compress_to_membuf(const char *inbuf, size_t inlen, struct ci_membuf *outbuf, ci_off_t max_size)
+{
+    ci_debug_printf(1, "zstd compression is not supported.\n");
+    return CI_COMP_ERR_NONE;
+}
+
+int ci_zstd_compress_to_simple_file(const char *inbuf, size_t inlen, struct ci_simple_file *outbuf, ci_off_t max_size)
+{
+    ci_debug_printf(1, "zstd compression is not supported.\n");
+    return CI_COMP_ERR_NONE;
+}
+
 #endif
