@@ -364,6 +364,11 @@ void init_http_auth()
     ci_acl_type_add(&acl_group);
 }
 
+void release_http_auth()
+{
+    group_source_release();
+}
+
 void reset_http_auth()
 {
     group_source_release();

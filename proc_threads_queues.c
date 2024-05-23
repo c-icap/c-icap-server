@@ -702,3 +702,9 @@ void *ci_server_shared_memblob_byname(const char *name)
 
     return ci_server_shared_memblob(*id);
 }
+
+void ci_server_shared_memblob_shutdown()
+{
+    ci_dyn_array_destroy(MemBlobs);
+    MemBlobs = NULL;
+}
