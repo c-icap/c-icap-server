@@ -185,14 +185,18 @@ void thread_signals(int islistener)
 
 /*****************************************************************************/
 /*Functions for handling  operations for events                              */
-
+void release_http_auth();
 static void exit_normaly()
 {
+    if (con_queue)
+        destroy_queue(con_queue);
     system_shutdown();
 #ifdef USE_OPENSSL
     ci_tls_cleanup();
 #endif
     ci_regex_memory_destroy();
+    release_http_auth();
+    ci_server_shared_memblob_shutdown();
     config_destroy();
     commands_destroy();
     ci_acl_destroy();

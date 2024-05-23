@@ -137,6 +137,7 @@ int childs_queue_stats(struct childs_queue *q, int *childs,
                        int *freeservers, int *used, int64_t *maxrequests);
 void dump_queue_statistics(struct childs_queue *q);
 
+void ci_server_shared_memblob_shutdown();
 #ifdef __cplusplus
 }
 #endif
