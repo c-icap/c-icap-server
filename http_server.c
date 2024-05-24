@@ -65,7 +65,6 @@ void http_server_init()
     STAT_WS_BYTES_OUT = request_stat_entry_register("BYTES OUT", STAT_KBS_T, "WEB SERVER");
     STAT_WS_BODY_BYTES_IN = request_stat_entry_register("BODY BYTES IN", STAT_KBS_T, "WEB SERVER");
     STAT_WS_BODY_BYTES_OUT = request_stat_entry_register("BODY BYTES OUT", STAT_KBS_T, "WEB SERVER");
-    ServiceHandlers = ci_array_new2(1024, sizeof(struct http_service_handler));
 }
 
 void http_server_close()
@@ -86,6 +85,8 @@ void ci_http_server_register_service(const char *path, int (*handler)(ci_request
      */
     struct http_service_handler service_handler;
     service_handler.handler = handler;
+    if (!ServiceHandlers)
+        ServiceHandlers = ci_array_new2(1024, sizeof(struct http_service_handler));
     ci_array_add(ServiceHandlers, path, &service_handler, sizeof(struct http_service_handler));
 }
 
@@ -212,8 +213,9 @@ static int http_server_request_parse_first_line(ci_request_t *req)
 
 static int http_server_exec_service_handler(ci_request_t *req)
 {
-    const struct http_service_handler *handler;
-    handler = ci_array_search(ServiceHandlers, req->service);
+    if (!ServiceHandlers)
+        return 0;
+    const struct http_service_handler *handler = ci_array_search(ServiceHandlers, req->service);
     if (!handler)
         return 0;
     req->return_code = EC_200;
