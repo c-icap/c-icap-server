@@ -267,7 +267,7 @@ int ci_write(ci_socket fd, const void *buf, size_t count, int timeout)
             bytes = send(fd, b, remains, 0);
         } while (bytes == SOCKET_ERROR
                  && (err = WSAGetLastError()) == WSAEINTR);
-        printf("OK writing %d bytes %s\n", bytes, b);
+
         if (bytes == SOCKET_ERROR && err == WSAEWOULDBLOCK) {
 
             if (!ci_wait_for_data(fd, timeout, wait_for_write)) {
