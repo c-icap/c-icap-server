@@ -375,14 +375,14 @@ if test "a$openssl" != "ano"; then
    (test -n "$opensslpath" && echo -n "checking for OpenSSL library under $opensslpath... ") || echo -n "checking for OpenSSL library... ";
    AC_LINK_IFELSE(
          [AC_LANG_SOURCE(
-                 [
+                 [[
                    #include <openssl/ssl.h>
                    int main(int argc, char *argv[])
                    {
                       int ret = SSL_library_init();
                       return ret;
                    }
-                 ])
+                 ]])
                ],
          [openssl=yes; echo "yes";],
          [openssl=no; echo "no"]
@@ -596,7 +596,7 @@ if test "a$libdb" != "ano"; then
         LIBS="$usedblib $OLD_LIBS"
         AC_LINK_IFELSE(
                [AC_LANG_SOURCE(
-                 [
+                 [[
                      #include <${incdbdir}db.h>
                      int main(){
                         int major,minor,patch;
@@ -604,7 +604,7 @@ if test "a$libdb" != "ano"; then
                              return -1;
                         return 0;
                      }
-                  ])
+                  ]])
                ],
                [echo yes;libdb="yes";],
                [echo "no";libdb="no";]
@@ -965,7 +965,7 @@ AC_SUBST(POSIX_MAPPED_FILES)
 dnl Checking if union semun exists in this system.
 AC_MSG_CHECKING([if union semun defined])
 AC_COMPILE_IFELSE(
-[AC_LANG_SOURCE([
+[AC_LANG_SOURCE([[
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/sem.h>
@@ -973,7 +973,7 @@ int main(int argc, char *argv[])
 {
    union semun a_semun;
 }
-]
+]]
 )],
 [AC_DEFINE(HAVE_UNION_SEMUN,1,[Define HAVE_UNION_SEMUN if union semun defined in ipc]) AC_MSG_RESULT(yes)],
 [AC_MSG_RESULT(no)]
@@ -982,7 +982,7 @@ int main(int argc, char *argv[])
 dnl Checking if interprocess posix semaphores works....
 AC_CACHE_CHECK([if posix 1003.1b interprocess semaphores works], ac_cv_10031b_ipc_sem,
    [AC_RUN_IFELSE(
-   [AC_LANG_SOURCE([
+   [AC_LANG_SOURCE([[
    #include <semaphore.h>
    #include <sys/wait.h>
 
@@ -1006,7 +1006,7 @@ AC_CACHE_CHECK([if posix 1003.1b interprocess semaphores works], ac_cv_10031b_ip
          sem_destroy(&s);
          exit(0);
    }
-   ]
+   ]]
    )],
    [ac_cv_10031b_ipc_sem=yes],
    [ac_cv_10031b_ipc_sem=no],
@@ -1028,7 +1028,7 @@ AC_SUBST(POSIX_SEMAPHORES)
 dnl Checking for file locking
 AC_CACHE_CHECK([if fcntl file locking works], ac_cv_fcntl,
    [AC_RUN_IFELSE(
-   [AC_LANG_SOURCE([
+   [AC_LANG_SOURCE([[
    #include <unistd.h>
    #include <fcntl.h>
 
@@ -1051,7 +1051,7 @@ AC_CACHE_CHECK([if fcntl file locking works], ac_cv_fcntl,
      close(fd);
      return 0;
    }
-   ])],
+   ]])],
    [ac_cv_fcntl=yes],
    [ac_cv_fcntl=no],
    [AC_MSG_ERROR([cross-compiling,
@@ -1072,7 +1072,7 @@ AC_SUBST(POSIX_FILE_LOCK)
 
 AC_MSG_CHECKING([if posix shared mem works])
 AC_COMPILE_IFELSE([AC_LANG_SOURCE(
-[
+[[
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -1085,7 +1085,7 @@ int main(int argc, char *argv[])
   if (shm_unlink("foo") < 0)
       return 0;
 }
-])],
+]])],
 [
 AC_DEFINE(HAVE_POSIX_SHARED_MEM, 1, [Define HAVE_POSIX_SHARED_MEM if shm_open/shm_unlink functions implemented])
 AC_MSG_RESULT(yes)
@@ -1113,13 +1113,13 @@ AC_SUBST(POSIX_SHARED_MEM)
 PTHREADS_RWLOCK="0"
 AC_MSG_CHECKING([if have pthread_rwlock])
 AC_COMPILE_IFELSE([AC_LANG_SOURCE(
-[
+[[
 #include <pthread.h>
 int main(int argc, char *argv[])
 {
   pthread_rwlock_t lock;
 }
-])],
+]])],
 [
 AC_DEFINE(HAVE_PTHREADS_RWLOCK,1,[Define HAVE_PTHREADS_RWLOCK if pthreads library supports rwlocks])
 PTHREADS_RWLOCK="1"
@@ -1133,7 +1133,7 @@ AC_SUBST(PTHREADS_RWLOCK)
 PTHREADS_PROCESS_SHARED="0"
 AC_MSG_CHECKING([if have PTHREAD_PROCESS_SHARED])
 AC_COMPILE_IFELSE([AC_LANG_SOURCE(
-[
+[[
 #include <pthread.h>
 int main(int argc, char *argv[])
 {
@@ -1142,7 +1142,7 @@ int main(int argc, char *argv[])
    pthread_mutexattr_setpshared(&mtx_attr, PTHREAD_PROCESS_SHARED);
    pthread_mutexattr_setrobust(&mtx_attr, PTHREAD_MUTEX_ROBUST);
 }
-])],
+]])],
 [
 AC_DEFINE(HAVE_PTHREADS_PROCESS_SHARED,1,[Define HAVE_PTHREADS_PROCESS_SHARED if pthreads library supports interprocess shared mutexes])
 PTHREADS_PROCESS_SHARED="1"
@@ -1155,14 +1155,14 @@ AC_SUBST(PTHREADS_PROCESS_SHARED)
 # check for ioctl/TIOCGWINZ/winsize
 AC_MSG_CHECKING([ioctl supports TIOCGWINSZ/winsize])
 AC_COMPILE_IFELSE([AC_LANG_SOURCE(
-[
+[[
 #include <sys/ioctl.h>
 int main(int argc, char *argv[])
 {
  struct winsize ws;
  return ioctl(0, TIOCGWINSZ, &ws);
 }
-])],
+]])],
 [
 AC_DEFINE(HAVE_TIOCGWINSZ,1,[Define HAVE_TIOCGWINSZ if ioctl supports TIOCGWINSZ/winsize])
 AC_MSG_RESULT(yes)
@@ -1173,14 +1173,14 @@ AC_MSG_RESULT(no),
 C11_ATOMICS="0"
 AC_MSG_CHECKING([if have c11 atomics])
 AC_COMPILE_IFELSE([AC_LANG_SOURCE(
-[
+[[
 #include <stdatomic.h>
 int main(int argc, char *argv[])
 {
    long long d = 0;
    atomic_fetch_add(&d, 1);
 }
-])],
+]])],
 [
 AC_DEFINE(HAVE_C11_ATOMICS,1,[Define HAVE_C11_ATOMICS if c11 atomics supported])
 C11_ATOMICS="1"
@@ -1191,14 +1191,14 @@ AC_MSG_RESULT(no)
 
 AC_MSG_CHECKING([if have 128bit atomics])
 AC_COMPILE_IFELSE([AC_LANG_SOURCE(
-[
+[[
 #include <stdatomic.h>
 int main(int argc, char *argv[])
 {
    __int128 d = 0;
    atomic_fetch_add(&d, 1);
 }
-])],
+]])],
 [
 AC_DEFINE(HAVE_128BIT_ATOMICS,1,[Define HAVE_128BIT_ATOMICS if 128bit atomics supported])
 AC_MSG_RESULT(yes)
@@ -1221,12 +1221,12 @@ if test a"$C11_ATOMICS" = "a1"; then
    AC_LINK_IFELSE(
    [
    AC_LANG_SOURCE(
-        [#include <stdatomic.h>
+        [[#include <stdatomic.h>
         int main(int argc, char *argv[])
         {
            long long d;
            atomic_fetch_add(&d, 1);
-        }]
+        }]]
    )],
    NEEDS_ATOMIC_LIB="1"
    AC_MSG_RESULT(yes),
