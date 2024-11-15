@@ -1213,7 +1213,7 @@ AC_COMPILE_IFELSE([AC_LANG_SOURCE(
 #include <stdatomic.h>
 int main(int argc, char *argv[])
 {
-   long long d = 0;
+   _Atomic long long d = 0;
    atomic_fetch_add(&d, 1);
 }
 ]])],
@@ -1231,7 +1231,7 @@ AC_COMPILE_IFELSE([AC_LANG_SOURCE(
 #include <stdatomic.h>
 int main(int argc, char *argv[])
 {
-   __int128 d = 0;
+   _Atomic __int128 d = 0;
    atomic_fetch_add(&d, 1);
 }
 ]])],
