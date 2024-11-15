@@ -74,7 +74,7 @@ int pid_to_int(ci_thread_t id)
 #if defined(_WIN32)|| defined(__CYGWIN__)
     return (int)(uintptr_t)id;
 #else
-    return id;
+    return (int)id;
 #endif
 }
 
