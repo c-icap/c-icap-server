@@ -1558,8 +1558,9 @@ static int do_end_of_data(ci_request_t * req)
     }
 
     if (res != CI_MOD_DONE) {
-        ci_debug_printf(1, "An error occured in end-of-data handler !"
+        ci_debug_printf(1, "An error occured in end-of-data handler! service :%s"
                         "return code : %d, req->allow204=%d, req->allow206=%d\n",
+                        req->service,
                         res, req->allow204, req->allow206);
 
         if (!ci_req_sent_data(req)) {
