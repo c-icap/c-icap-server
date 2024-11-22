@@ -330,7 +330,7 @@ void fill_queue_statistics(struct childs_queue *q, struct info_req_data *info_da
     for (i = 0; i < q->size; i++) {
         if (q->childs[i].pid == 0)
             continue;
-        ci_debug_printf(1, "Check pids %d<>%d\n", q->childs[i].pid, info_data->view_child);
+        ci_debug_printf(8, "Check pids %d<>%d\n", q->childs[i].pid, info_data->view_child);
         if (info_data->view_child > 0 && q->childs[i].pid != info_data->view_child)
             continue;
         if (q->childs[i].to_be_killed == 0) {
