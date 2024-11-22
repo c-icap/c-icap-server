@@ -526,6 +526,7 @@ int ci_mem_inflate(const char *inbuf, size_t inlen, void *out_obj, char *(*get_o
     strm.opaque = Z_NULL;
     strm.avail_in = 0;
     strm.next_in = Z_NULL;
+    // Detect gzip of deflate compressed objects from headers (windowBits = 32+15):
     ret = inflateInit2(&strm, 32 + 15);
     if (ret != Z_OK)
         return CI_UNCOMP_ERR_ERROR;
@@ -559,7 +560,8 @@ do_mem_inflate_retry:
         case Z_NEED_DICT:
         case Z_DATA_ERROR:
             if (retriable) {
-                ret = inflateInit2(&strm, -15);
+                // Retry raw inflate without headers
+                ret = inflateReset2(&strm, -15);
                 retriable = 0;
                 if (ret == Z_OK) {
                     strm.avail_in = inlen;
