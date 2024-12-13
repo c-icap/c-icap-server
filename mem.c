@@ -1008,6 +1008,7 @@ static void pool_allocator_destroy(ci_mem_allocator_t *allocator)
     ci_thread_mutex_destroy(&palloc->mutex);
     free(palloc->name);
     free(palloc);
+    free(allocator->name);
 }
 
 ci_mem_allocator_t *ci_create_pool_allocator(const char *name, int items_size)
