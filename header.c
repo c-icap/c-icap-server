@@ -161,49 +161,122 @@ void ci_headers_reset(ci_headers_list_t * h)
     h->bufused = 0;
 }
 
+
+static int headers_check_space(ci_headers_list_t * h, int new_headers, int new_space)
+{
+    int i;
+    int required_index_space = h->size;
+    while(new_headers > required_index_space - h->used) {
+        required_index_space = required_index_space + HEADERSTARTSIZE;
+        if (required_index_space > 2048)
+            return 0; // just a limit in the case of a bug
+    }
+
+    if (required_index_space > h->size) {
+        char *newspace = realloc(h->headers, required_index_space * sizeof(char *));
+        if (!newspace) {
+            ci_debug_printf(1, "Server Error:Error allocation memory \n");
+            return 0;
+        }
+        h->headers = (char **)newspace;
+        h->size = required_index_space;
+    }
+    int required_mem_space = h->bufsize;
+    while (required_mem_space - h->bufused < new_space + 4 )
+        required_mem_space += HEADSBUFSIZE;
+    if (required_mem_space > h->bufsize) {
+        char *newbuf = realloc(h->buf, required_mem_space * sizeof(char));
+        if (!newbuf) {
+            ci_debug_printf(1, "Server Error:Error allocation memory \n");
+            return 0;
+        }
+        char *old_buf = h->buf;
+        h->buf = newbuf;
+        h->bufsize = required_mem_space;
+        // Rebuild index:
+        for (i = 0; i < h->used; i++) {
+            size_t pos = h->headers[i] - old_buf;
+            h->headers[i] = h->buf + pos;
+        }
+    }
+    return 1;
+}
+
+static int headers_terminated(const ci_headers_list_t *h)
+{
+    if (h->bufused < 4)
+        return 0;
+    int ok =
+        (h->buf[h->bufused - 1] == '\n') &&
+        (h->buf[h->bufused - 2] == '\r') &&
+        (h->buf[h->bufused - 3] == '\n');
+    ok = ok &&
+        ((h->packed && h->buf[h->bufused - 4] == '\r') ||
+         (!h->packed && h->buf[h->bufused - 4] == '\0'));
+    return ok;
+}
+
+static int headers_terminate(ci_headers_list_t *h)
+{
+    if (!h->used) {
+        if (h->bufused)
+            h->bufused = 0;
+        return 1;
+    }
+
+    int needs_fix = h->bufused < 4;
+    if (h->bufused >= 4) {
+        needs_fix = needs_fix ||
+            (h->buf[h->bufused - 1] != '\n') ||
+            (h->buf[h->bufused - 2] != '\r') ||
+            (h->buf[h->bufused - 3] != '\n') ||
+            (h->buf[h->bufused - 4] != '\r' && h->buf[h->bufused - 4] != '\0');
+    }
+    if (!needs_fix)
+        return 1;
+
+    int i = 0;
+    while((h->bufused - i) >= 0 && strchr("\r\n\0", h->buf[h->bufused - i - 1]))
+        i++;
+    if ((h->bufused - i + 4) > h->bufsize)
+        return 0; // Not enough space to terminate
+    h->bufused -= i;
+    h->buf[h->bufused++] = h->packed ? '\r' : '\0';
+    h->buf[h->bufused++] = '\n';
+    h->buf[h->bufused++] = '\r';
+    h->buf[h->bufused++] = '\n';
+    return 1;
+}
+
 const char *ci_headers_add(ci_headers_list_t * h, const char *line)
 {
-    char *newhead, **newspace, *newbuf;
-    int len, linelen;
-    int i = 0;
+    char *newhead;
+    int linelen;
 
     assert(h);
     if (h->packed) { /*Not in edit mode*/
         return NULL;
     }
 
-    if (h->used == h->size) {
-        len = h->size + HEADERSTARTSIZE;
-        newspace = realloc(h->headers, len * sizeof(char *));
-        if (!newspace) {
-            ci_debug_printf(1, "Server Error:Error allocation memory \n");
-            return NULL;
-        }
-        h->headers = newspace;
-        h->size = len;
-    }
     linelen = strlen(line);
-    len = h->bufsize;
-    while ( len - h->bufused < linelen + 4 )
-        len += HEADSBUFSIZE;
-    if (len > h->bufsize) {
-        newbuf = realloc(h->buf, len * sizeof(char));
-        if (!newbuf) {
-            ci_debug_printf(1, "Server Error:Error allocation memory \n");
-            return NULL;
-        }
-        h->buf = newbuf;
-        h->bufsize = len;
-        h->headers[0] = h->buf;
-        for (i = 1; i < h->used; i++)
-            h->headers[i] = h->headers[i - 1] + strlen(h->headers[i - 1]) + 2;
+    if (!headers_check_space(h, 1, linelen + 2))
+        return NULL;
+
+    assert(headers_terminate(h));
+    if (h->used) {
+        assert(h->bufused >= 4);
+        h->bufused -= 2;
+    } else {
+        assert(h->bufused == 0);
     }
     newhead = h->buf + h->bufused;
     memcpy(newhead, line, linelen);
-    newhead[linelen] = '\0';
-    h->bufused += linelen + 2; //2 char size for \r\n at the end of each header
+    newhead[linelen] = h->packed ? '\r' : '\0';
     *(newhead + linelen + 1) = '\n';
+    *(newhead + linelen + 2) = '\r';
     *(newhead + linelen + 3) = '\n';
+    h->bufused = h->bufused + linelen + 4;
+    assert(h->bufused <= h->bufsize);
     if (newhead)
         h->headers[h->used++] = newhead;
 
@@ -213,48 +286,28 @@ const char *ci_headers_add(ci_headers_list_t * h, const char *line)
 
 int ci_headers_addheaders(ci_headers_list_t * h, const ci_headers_list_t * headers)
 {
-    int len, i;
-    char *newbuf, **newspace;
-
+    int i;
     assert(h);
-    if (h->packed) { /*Not in edit mode*/
+    if (h->packed || headers->packed) { /*Not in edit mode*/
         return 0;
     }
-    len = h->size;
-    while ( len - h->used < headers->used )
-        len += HEADERSTARTSIZE;
-
-    if ( len > h->size ) {
-        newspace = realloc(h->headers, len * sizeof(char *));
-        if (!newspace) {
-            ci_debug_printf(1, "Server Error: Error allocating memory \n");
-            return 0;
-        }
-        h->headers = newspace;
-        h->size = len;
+    if (!headers_check_space(h, headers->used, headers->bufused))
+        return 0;
+    assert(headers_terminate(h));
+    if (h->used) {
+        assert(h->bufused >= 4);
+        h->bufused -= 2;
+    } else {
+        assert(h->bufused == 0);
     }
-
-    len = h->bufsize;
-    while (len - h->bufused < headers->bufused + 2)
-        len += HEADSBUFSIZE;
-    if (len > h->bufsize) {
-        newbuf = realloc(h->buf, len * sizeof(char));
-        if (!newbuf) {
-            ci_debug_printf(1, "Server Error: Error allocating memory \n");
-            return 0;
-        }
-        h->buf = newbuf;
-        h->bufsize = len;
-    }
-
-    memcpy(h->buf + h->bufused, headers->buf, headers->bufused + 2);
-
+    char *pos = h->buf + h->bufused;
+    memcpy(pos, headers->buf, headers->bufused);
     h->bufused += headers->bufused;
-    h->used += headers->used;
-
-    h->headers[0] = h->buf;
-    for (i = 1; i < h->used; i++)
-        h->headers[i] = h->headers[i - 1] + strlen(h->headers[i - 1]) + 2;
+    for (i = 0; i < headers->used; ++i) {
+        int hdr_indx = headers->headers[i] - headers->buf;
+        h->headers[h->used++] = pos + hdr_indx;
+    }
+    assert(headers_terminate(h));
     return 1;
 }
 
@@ -389,6 +442,11 @@ int ci_headers_remove(ci_headers_list_t * h, const char *header)
         return 0;
     }
 
+    // The following two lines should not needed
+    // TODO: replace with a simple "headers_terminated" check
+    headers_check_space(h, 0, 0);
+    assert(headers_terminate(h));
+
     h_end = (h->buf + h->bufused);
     header_size = strlen(header);
     for (i = 0; i < h->used; i++) {
@@ -403,28 +461,26 @@ int ci_headers_remove(ci_headers_list_t * h, const char *header)
                 phead = h->headers[i];
                 *phead = '\r';
                 *(phead + 1) = '\n';
-                h->bufused = (phead - h->buf);
+                h->bufused = (phead - h->buf + 2);
+                assert(h->bufused <= h->bufsize);
                 (h->used)--;
-                return 1;
             } else {
                 cur_head_size = h->headers[i + 1] - h->headers[i];
                 rest_len =
                     h->bufused - (h->headers[i] - h->buf) - cur_head_size;
+                assert(rest_len > 0);
                 ci_debug_printf(5, "remove_header : remain len %d\n",
                                 rest_len);
                 memmove(phead, h->headers[i + 1], rest_len);
                 /*reconstruct index..... */
                 h->bufused -= cur_head_size;
                 (h->used)--;
-                for (j = i + 1; j < h->used; j++) {
-                    cur_head_size = strlen(h->headers[j - 1]);
-                    h->headers[j] = h->headers[j - 1] + cur_head_size + 1;
-                    if (h->headers[j][0] == '\n')
-                        (h->headers[j])++;
+                for (j = i; j < h->used; j++) {
+                    h->headers[j] = h->headers[j + 1] - cur_head_size;
                 }
-
-                return 1;
             }
+            assert(headers_terminate(h));
+            return 1;
         }
     }
     return 0;
@@ -471,26 +527,33 @@ int ci_headers_iterate(const ci_headers_list_t * h, void *data, void (*fn)(void 
 void ci_headers_pack(ci_headers_list_t * h)
 {
     /*Put the \r\n sequence at the end of each header before sending...... */
-    int i = 0, len = 0;
+    int i = 0;
     assert(h);
-    for (i = 0; i < h->used; i++) {
-        len = strlen(h->headers[i]);
-        if (h->headers[i][len + 1] == '\n') {
-            h->headers[i][len] = '\r';
-            /*         h->headers[i][len+1] = '\n';*/
-        } else {              /*   handle the case that headers seperated with a '\n' only */
-            h->headers[i][len] = '\n';
-        }
+    if (h->packed)
+        return;
+    if (h->bufused == 0 || h->used == 0)
+        return;
+
+    // The following two lines should not needed
+    // TODO: replace with a simple "headers_terminated" check
+    headers_check_space(h, 0, 0);
+    assert(headers_terminate(h));
+
+    for (i = 1; i < h->used; i++) {
+        size_t hpos =  h->headers[i] - h->buf;
+        assert(hpos < h->bufused);
+        assert(hpos >= 1);
+        if (h->buf[hpos - 1] == '\0')
+            h->buf[hpos - 1] = '\n';
+        if (hpos >= 2 && h->buf[hpos - 2] == '\0')
+            h->buf[hpos - 2] = '\r';
     }
 
-    if (h->buf[h->bufused + 1] == '\n') {
-        h->buf[h->bufused] = '\r';
-        /*    h->buf[h->bufused+1] = '\n';*/
-        h->bufused += 2;
-    } else {                   /*   handle the case that headers seperated with a '\n' only */
-        h->buf[h->bufused] = '\n';
-        h->bufused++;
-    }
+    assert(h->bufused >= 4);
+    assert(h->buf[h->bufused - 1] == '\n');
+    assert(h->buf[h->bufused - 2] == '\r');
+    assert(h->buf[h->bufused - 3] == '\n');
+    h->buf[h->bufused - 4] = '\r';
     h->packed = 1;
 }
 
@@ -502,6 +565,9 @@ int ci_headers_unpack(ci_headers_list_t * h)
     char *ebuf, *str;
 
     assert(h);
+    int unParsed = h->bufused > 0 && h->used == 0;
+    if (!h->packed && !unParsed)
+        return EC_100;
     if (h->bufused < 2)        /*???????????? */
         return EC_400;
 
@@ -514,6 +580,8 @@ int ci_headers_unpack(ci_headers_list_t * h)
                         (unsigned int) *(ebuf + 1));
         return EC_400;        /*Bad request .... */
     }
+    //handle the case the empty header "\r\n\r\n" is already accounted in h->bufused
+    while(ebuf - 1 > h->buf && (*(ebuf - 1) == '\r' || *(ebuf - 1) =='\n')) ebuf--;
     *ebuf = '\0';
 
     h->headers[0] = h->buf;
@@ -546,46 +614,51 @@ int ci_headers_unpack(ci_headers_list_t * h)
                 h->size = len;
             }
             str++;
-            if (*str == '\n')
-                str++;      /*   handle the case that headers seperated with a '\n' only */
+            if (*str == '\n') /* if headers separated with a '\n' only this is false */
+                str++;
             h->headers[h->used] = str;
             h->used++;
         }
     }
     h->packed = 0;
     /*OK headers index construction ...... */
+    headers_check_space(h, 0, 0);
+    assert(headers_terminate(h));
     return EC_100;
 }
 
 size_t ci_headers_pack_to_buffer(const ci_headers_list_t *heads, char *buf, size_t size)
 {
-    size_t n;
     int i;
-    char *pos;
-
     assert(heads);
-    n = heads->bufused;
-    if (!heads->packed)
-        n += 2;
-
-    if (n > size)
+    if (heads->used == 0 || heads->bufused == 0)
         return 0;
-
-    memcpy(buf, heads->buf, heads->bufused);
-
-    if (!heads->packed) {
-        pos = buf;
-        for (i = 0; i < heads->used; ++i) {
-            pos = strchr(pos, '\0');
-            if (pos[1] == '\n')
-                pos[0] = '\r';
-            else
-                pos[0] = '\n';
-        }
-        buf[heads->bufused] = '\r';
-        buf[heads->bufused+1] = '\n';
+    if (!headers_terminated(heads)) {
+        ci_debug_printf(1, "Headers corrupted? can not pack to buffer\n");
+        return 0;
     }
-    return n;
+    if (size < heads->bufused) {
+        ci_debug_printf(1, "Not enough space, can not pack to buffer\n");
+        return 0;
+    }
+    memcpy(buf, heads->buf, heads->bufused);
+    if (!heads->packed) {
+        for (i = 1; i < heads->used; ++i) {
+            size_t hpos =  heads->headers[i] - heads->buf;
+            assert(hpos < heads->bufused);
+            assert(hpos >= 1);
+            if (buf[hpos - 1] == '\0')
+                buf[hpos - 1] = '\n';
+            if (hpos >= 2 && buf[hpos - 2] == '\0')
+                buf[hpos - 2] = '\r';
+        }
+        assert(heads->bufused >= 4);
+        assert(buf[heads->bufused - 1] == '\n');
+        assert(buf[heads->bufused - 2] == '\r');
+        assert(buf[heads->bufused - 3] == '\n');
+        buf[heads->bufused - 4] = '\r';
+    }
+    return heads->bufused;
 }
 
 ci_headers_list_t *ci_headers_clone(const ci_headers_list_t *head)
@@ -672,7 +745,7 @@ int sizeofheader(const ci_headers_list_t * h)
       size+=2;
       return size;
     */
-    return h->bufused + 2;
+    return h->bufused;
 }
 
 int sizeofencaps(const ci_encaps_entity_t * e)

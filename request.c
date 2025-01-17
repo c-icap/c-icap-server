@@ -249,7 +249,7 @@ int ci_read_icap_header(ci_request_t * req, ci_headers_list_t * h, int timeout)
 
         for (i = startsearch; i < bytes - 3; i++) {   /*search for end of header.... */
             if (strncmp(buf_end + i, "\r\n\r\n", 4) == 0) {
-                buf_end = buf_end + i + 2;
+                buf_end = buf_end + i + 4;
                 eoh = 1;
                 break;
             }
@@ -267,9 +267,9 @@ int ci_read_icap_header(ci_request_t * req, ci_headers_list_t * h, int timeout)
     } while (1);
 
     h->bufused = buf_end - h->buf;     /* -1 ; */
-    req->pstrblock_read = buf_end + 2; /*after the \r\n\r\n. We keep the first \r\n and the other dropped.... */
-    req->pstrblock_read_len = readed - h->bufused - 2; /*the 2 of the 4 characters \r\n\r\n and the '\0' character */
-    req->request_bytes_in = h->bufused + 2; /*This is include the "\r\n\r\n" sequence*/
+    req->pstrblock_read = buf_end; /*after the \r\n\r\n */
+    req->pstrblock_read_len = readed - h->bufused;
+    req->request_bytes_in = h->bufused;
     return request_status;
 }
 
@@ -309,10 +309,11 @@ static int read_encaps_header(ci_request_t * req, ci_headers_list_t * h, int siz
 
     h->bufused = buf_end - h->buf;     // -1 ;
     if (strncmp(buf_end - 4, "\r\n\r\n", 4) == 0) {
-        h->bufused -= 2;      /*eat the last 2 bytes of "\r\n\r\n" */
+        /**/;      /*eat the last 2 bytes of "\r\n\r\n" */
     } else if (CHECK_FOR_BUGGY_CLIENT && strncmp(buf_end - 2, "\r\n", 2) != 0) {
         // Some icap clients missing the "\r\n\r\n" after end of headers
         // when null-body is present.
+        assert(h->bufused <= h->bufsize - 2);
         *buf_end = '\r';
         *(buf_end + 1) = '\n';
         h->bufused += 2;
