@@ -977,5 +977,6 @@ void ci_client_library_release()
         free(CI_USER_AGENT);
         CI_USER_AGENT = NULL;
     }
+    ci_cfg_lib_destroy();
     ci_buffers_destroy();
 }
