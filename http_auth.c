@@ -114,7 +114,7 @@ int http_authenticate(ci_request_t * req, char *use_method)
 
     if (res == CI_ACCESS_DENY) {
         char buf[1024];
-        const char *auth_header_value = auth_method->authentication_header(req);
+        char *auth_header_value = auth_method->authentication_header(req);
         const char *auth_header = req->protocol == CI_PROTO_HTTP ? "WWW-Authenticate" : "Proxy-Authenticate";
         snprintf(buf, sizeof(buf), "%s: %s", auth_header, auth_header_value);
         if (auth_method->release_authentication_header)
