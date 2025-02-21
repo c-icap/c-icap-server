@@ -138,7 +138,7 @@ static void sigchld_handler_main(int sig)
     /*Do nothing the signal will be ignored..... */
 }
 
-static void sighup_handler_main()
+static void sighup_handler_main(int sig)
 {
     c_icap_reconfigure = 1;
 }
