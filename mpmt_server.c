@@ -660,12 +660,16 @@ int thread_main(server_decl_t * srv)
 
             ci_debug_printf(8, "Keep-alive:%d\n",
                             srv->current_req->keepalive);
-            if (srv->current_req->keepalive && keepalive_request(srv->current_req)) {
-                ci_debug_printf(8,
-                                "Server %d going to serve new request from client (keep-alive) \n",
-                                srv->srv_id);
-            } else
+            if (!srv->current_req->keepalive)
                 break;
+
+            if (keepalive_request(srv->current_req) <= 0) {
+                /* timeout or error. done with this conn */
+                ci_debug_printf(5, "keepalive request timed-out, or connection closed/errored...\n");
+                request_status = CI_NO_STATUS;
+                break;
+            }
+            ci_debug_printf(8, "Server %d going to serve new request from client (keep-alive) \n", srv->srv_id);
         } while (1);
 
         if (srv->current_req) {
