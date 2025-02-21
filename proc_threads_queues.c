@@ -103,7 +103,7 @@ int get_from_queue(struct connections_queue *q, struct connections_queue_item *c
 
 int wait_for_queue(struct connections_queue *q)
 {
-    ci_debug_printf(7, "Waiting for a request....\n");
+    ci_debug_printf(7, "Waiting for a connection/request....\n");
     if (ci_thread_mutex_lock(&(q->cond_mtx)) != 0)
         return -1;
     if (ci_thread_cond_wait(&(q->queue_cond), &(q->cond_mtx)) != 0) {
