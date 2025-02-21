@@ -96,7 +96,7 @@ typedef struct http_auth_method {
     void *(*create_auth_data)(const char *authorization_header,const char **username);
     void (*release_auth_data)(void *data);
     char *(*authentication_header)();
-    void (*release_authentication_header)();
+    void (*release_authentication_header)(char *);
     struct ci_conf_entry *conf_table;
 } http_auth_method_t;
 
