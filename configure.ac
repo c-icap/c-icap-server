@@ -882,6 +882,7 @@ AC_CACHE_CHECK([if posix 1003.1b interprocess semaphores works], ac_cv_10031b_ip
    [AC_LANG_SOURCE([[
    #include <semaphore.h>
    #include <sys/wait.h>
+   #include <stdlib.h>
 
    int main(int argc,char **argv){
          sem_t s;
