@@ -60,7 +60,7 @@ case "$host_os" in
 	CFLAGS="-D_REENTRANT $CFLAGS"
 	THREADS_LDADD="-lpthread"
 	THREADS_LDFLAGS=""
-	LIBS_LDFLAGS=""
+	LIBS_LDFLAGS="-lm"
      ;;
      solaris2.*)
      	  CFLAGS="-D_REENTRANT -D_POSIX_PTHREAD_SEMANTICS $CFLAGS"
