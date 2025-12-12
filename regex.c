@@ -65,8 +65,9 @@ struct {
     {NULL, 0}
 };
 
-int pcre2_flag_parse(const char **f)
+static int pcre2_flag_parse(const char **f)
 {
+    assert(f);
     const char *s = (*f);
     if (*s != '<')
         return 0;
@@ -198,6 +199,10 @@ char *ci_regex_parse(const char *str, int *flags, int *recursive)
 
 ci_regex_t ci_regex_build(const char *regex_str, int regex_flags)
 {
+    if (!regex_str) {
+        ci_debug_printf(2, "NULL regex expression passed to regex build function\n");
+        return NULL;
+    }
 #if defined(HAVE_PCRE2)
     pcre2_code *re;
     int errcode;
@@ -239,6 +244,8 @@ ci_regex_t ci_regex_build(const char *regex_str, int regex_flags)
 
 void ci_regex_free(ci_regex_t regex)
 {
+    if (!regex)
+        return;
 #if defined(HAVE_PCRE2)
     pcre2_code_free((pcre2_code *)regex);
 #elif defined(HAVE_PCRE)
@@ -260,6 +267,10 @@ int ci_regex_apply(const ci_regex_t regex, const char *str, int len, int recurs,
 
     if (!str || len == 0)
         return 0;
+    if (!regex) {
+        ci_debug_printf(2, "Null ci_regex_t object passed\n");
+        return 0;
+    }
 
 #if defined(HAVE_PCRE2)
     PCRE2_SIZE offset = 0;
