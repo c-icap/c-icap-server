@@ -618,12 +618,36 @@ int ci_connection_write_tls(ci_connection_t *conn, const void *buf, size_t count
     return bytes;
 }
 
+static int tls_ingore_io_errorno(int err)
+{
+    switch(err) {
+    case EINTR:
+    case EAGAIN:
+#if EAGAIN != EWOULDBLOCK
+    case EWOULDBLOCK:
+#endif
+         return 1;
+    default:
+         return 0;
+    }
+    return 0;
+}
+
 int ci_connection_read_nonblock_tls(ci_connection_t *conn, void *buf, size_t count)
 {
     assert(conn && conn->bio);
     int bytes = BIO_read(conn->bio, buf, count);
-    if (bytes <= 0)
-        return BIO_should_retry(conn->bio) ? 0 : -1;
+    
+    if (bytes <= 0) {
+        const int should_retry = BIO_should_retry(conn->bio);
+        if (tls_ingore_io_errorno(errno) && !should_retry) {
+            ci_debug_printf(3, "BIO_read return: %d errno=%d, should retry:%d\n", bytes, errno, BIO_should_retry(conn->bio));
+            BIO_clear_retry_flags(conn->bio);
+            BIO_set_retry_read(conn->bio);
+            return 0;
+        }
+        return should_retry ? 0 : -1;
+    }
     return bytes;
 }
 
@@ -631,8 +655,17 @@ int ci_connection_write_nonblock_tls(ci_connection_t *conn, const void *buf, siz
 {
     assert(conn && conn->bio);
     int bytes = BIO_write(conn->bio, buf, count);
-    if (bytes <= 0)
-        return BIO_should_retry(conn->bio) ? 0 : -1;
+
+    if (bytes <= 0) {
+        const int should_retry = BIO_should_retry(conn->bio);
+        if (tls_ingore_io_errorno(errno) && !should_retry) {
+            ci_debug_printf(3, "BIO_write return: %d errno=%d, should retry:%d\n", bytes, errno, BIO_should_retry(conn->bio));
+            BIO_clear_retry_flags(conn->bio);
+            BIO_set_retry_write(conn->bio);
+            return 0;
+        }
+        return should_retry ? 0 : -1;
+    }
     return bytes;
 }
 
@@ -889,7 +922,15 @@ int ci_tls_connect_nonblock(ci_connection_t *connection, const char *servername,
         BIO_get_fd(connection->bio, &connection->fd);
 
     if (ret <= 0) {
-        if (BIO_should_retry(connection->bio))
+        const int should_retry = BIO_should_retry(connection->bio);
+        if (tls_ingore_io_errorno(errno) && !should_retry) {
+            ci_debug_printf(3, "BIO_do_connect return: %d errno=%d, should retry:%d\n", ret, errno, should_retry);
+            BIO_clear_retry_flags(connection->bio);
+            BIO_set_retry_read(connection->bio);
+            return 0;
+        }
+
+        if (should_retry)
             return 0;
         ci_sockaddr_t_to_host(&(connection->srvaddr), hostname, CI_MAXHOSTNAMELEN);
         ci_debug_printf(1, "Error connecting to host  '%s': %s \n",
