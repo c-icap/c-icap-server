@@ -15,7 +15,7 @@ char *ci_regex_parse(const char *str, int *flags, int *recursive)
     int slen;
     const char *e;
     char *s;
-    if (*str != '/')
+    if (!str || *str != '/')
         return NULL;
     ++str;
     slen = strlen(str);
@@ -28,6 +28,8 @@ char *ci_regex_parse(const char *str, int *flags, int *recursive)
     strncpy(s, str, slen);
     s[slen] = '\0';
 
+    if (!flags)
+        return s;
     *flags = 0;
 #ifdef HAVE_PCRE
     *flags |= PCRE_NEWLINE_ANY;
@@ -65,7 +67,7 @@ char *ci_regex_parse(const char *str, int *flags, int *recursive)
         else if (*e == 'm')
             *flags |= REG_NEWLINE;
 #endif
-        else if (*e == 'g')
+        else if (*e == 'g' && recursive)
             *recursive = 1;
         ++e;
     }
@@ -74,6 +76,10 @@ char *ci_regex_parse(const char *str, int *flags, int *recursive)
 
 ci_regex_t ci_regex_build(const char *regex_str, int regex_flags)
 {
+   if (!regex_str) {
+        ci_debug_printf(2, "NULL regex expression passed to regex build function\n");
+        return NULL;
+    }
 #ifdef HAVE_PCRE
     pcre *re;
     const char *error;
@@ -103,6 +109,8 @@ ci_regex_t ci_regex_build(const char *regex_str, int regex_flags)
 
 void ci_regex_free(ci_regex_t regex)
 {
+    if (!regex)
+        return;
 #ifdef HAVE_PCRE
     pcre_free((pcre *)regex);
 #else
@@ -122,6 +130,10 @@ int ci_regex_apply(const ci_regex_t regex, const char *str, int len, int recurs,
 
     if (!str)
         return 0;
+    if (!regex) {
+        ci_debug_printf(2, "Null ci_regex_t object passed\n");
+        return 0;
+    }
 
 #ifdef HAVE_PCRE
     int ovector[OVECCOUNT];
