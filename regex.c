@@ -117,7 +117,7 @@ char *ci_regex_parse(const char *str, int *flags, int *recursive)
     int slen;
     const char *e;
     char *s;
-    if (*str != '/')
+    if (!str || *str != '/')
         return NULL;
     ++str;
     slen = strlen(str);
@@ -130,6 +130,8 @@ char *ci_regex_parse(const char *str, int *flags, int *recursive)
     strncpy(s, str, slen);
     s[slen] = '\0';
 
+    if (!flags)
+        return s;
     *flags = 0;
 #if defined(HAVE_PCRE2)
     *flags |= PCRE2_NEWLINE_ANY;
@@ -190,7 +192,7 @@ char *ci_regex_parse(const char *str, int *flags, int *recursive)
         else if (*e == 'm')
             *flags |= REG_NEWLINE;
 #endif
-        else if (*e == 'g')
+        else if (*e == 'g' && recursive)
             *recursive = 1;
         ++e;
     }
