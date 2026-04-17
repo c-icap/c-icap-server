@@ -1369,7 +1369,7 @@ int stats_web_service(ci_request_t *req)
     struct info_req_data *info_data = (struct info_req_data *)info_init_request_data(req);
     info_data->supports_svg = 1;
     int url_size = sizeof(req->service) + sizeof(req->args) + 1;
-    info_data->url = ci_buffer_alloc(sizeof(req->service) + sizeof(req->args));
+    info_data->url = ci_buffer_alloc(url_size);
     snprintf(info_data->url, url_size, "%s%s%s", req->service, (req->args[0] != '\0' ? "?" : ""), req->args);
     if (req->args[0] != '\0') {
         parse_info_arguments(info_data, req->args);
