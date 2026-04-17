@@ -280,7 +280,7 @@ void ci_stat_uint64_inc(int ID, uint64_t count)
     if (!STATS || !STATS->mem_block)
         return;
 
-    if (ID < 0 || ID > STATS->mem_block->stats_count)
+    if (ID < 0 || ID >= STATS->mem_block->stats_count)
         return;
 
     ci_atomic_add_u64(&(STATS->mem_block->stats[ID].counter), (uint64_t)count);
@@ -291,7 +291,7 @@ void ci_stat_uint64_dec(int ID, uint64_t count)
     if (!STATS || !STATS->mem_block)
         return;
 
-    if (ID < 0 || ID > STATS->mem_block->stats_count)
+    if (ID < 0 || ID >= STATS->mem_block->stats_count)
         return;
 
     ci_atomic_sub_u64(&(STATS->mem_block->stats[ID].counter), (uint64_t)count);
@@ -302,7 +302,7 @@ void ci_stat_kbs_inc(int ID, uint64_t count)
     if (!STATS || !STATS->mem_block)
         return;
 
-    if (ID < 0 || ID > STATS->mem_block->stats_count)
+    if (ID < 0 || ID >= STATS->mem_block->stats_count)
         return;
 
     ci_kbs_lock_and_update(&(STATS->mem_block->stats[ID].kbs), count);
@@ -313,7 +313,7 @@ void ci_stat_value_set(int ID, uint64_t value)
     if (!STATS || !STATS->mem_block)
         return;
 
-    if (ID < 0 || ID > STATS->mem_block->stats_count)
+    if (ID < 0 || ID >= STATS->mem_block->stats_count)
         return;
 
     /*This is also can set kbs statistic type*/
@@ -327,7 +327,7 @@ void ci_stat_update(const ci_stat_item_t *stats, int num)
         return;
     for (i = 0; i < num; ++i) {
         int id = stats[i].Id;
-        if ( id < 0 || id > STATS->mem_block->stats_count)
+        if ( id < 0 || id >= STATS->mem_block->stats_count)
             continue; /*May print a warning?*/
         switch (stats[i].type) {
         case CI_STAT_INT64_T:

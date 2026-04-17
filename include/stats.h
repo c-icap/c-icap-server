@@ -541,7 +541,7 @@ static inline ci_kbs_t ci_stat_memblock_get_kbs(const ci_stat_memblock_t *block,
 static inline void ci_stat_membock_uint64_inc(ci_stat_memblock_t *mem_block, int ID, uint64_t count)
 {
     _CI_ASSERT(mem_block);
-    if (ID < 0 || ID > mem_block->stats_count)
+    if (ID < 0 || ID >= mem_block->stats_count)
         return;
     STAT_INT64_INC(mem_block, ID, count);
 }
@@ -549,7 +549,7 @@ static inline void ci_stat_membock_uint64_inc(ci_stat_memblock_t *mem_block, int
 static inline void ci_stat_membock_uint64_dec(ci_stat_memblock_t *mem_block, int ID, uint64_t count)
 {
     _CI_ASSERT(mem_block);
-    if (ID < 0 || ID > mem_block->stats_count)
+    if (ID < 0 || ID >= mem_block->stats_count)
         return;
     STAT_INT64_DEC(mem_block, ID, count);
 }
@@ -557,7 +557,7 @@ static inline void ci_stat_membock_uint64_dec(ci_stat_memblock_t *mem_block, int
 static inline void ci_stat_memblock_kbs_inc(ci_stat_memblock_t *mem_block, int ID, uint64_t count)
 {
     _CI_ASSERT(mem_block);
-    if (ID < 0 || ID > mem_block->stats_count)
+    if (ID < 0 || ID >= mem_block->stats_count)
         return;
     STAT_INT64_INC(mem_block, ID, count);
 }
