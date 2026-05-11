@@ -256,7 +256,7 @@ static int parse_record(char *line, struct ci_magic_record *record)
                 num[3] = '\0';
                 c = strtol(num, NULL, 8);
             }
-            if (c > 256 || c < 0) {
+            if (c > 255 || c < 0) {
                 return -1;
             }
             record->blocks[record->blocks_num].magic[i++] = c;
@@ -632,7 +632,7 @@ static int check_unicode(unsigned char *buf, int buflen)
         return -1;
 
     /*The only check we can do is for the ascii characters ...... */
-    for (i = 2; i < buflen; i += 2) {
+    for (i = 2; i + 1 < buflen; i += 2) {
         if (endian) {
             if (buf[i] == 0 && buf[i + 1] < 128
                     && text_chars[buf[i + 1]] != T)

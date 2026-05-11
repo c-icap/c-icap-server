@@ -467,7 +467,7 @@ void release_auth_hash(struct auth_hash *hash)
 authenticator_module_t **get_authenticators_list(struct auth_hash *hash,
         int method_id)
 {
-    if (method_id > hash->hash_size)
+    if (method_id >= hash->hash_size)
         return NULL;
     return hash->hash[method_id];
 }
@@ -475,14 +475,14 @@ authenticator_module_t **get_authenticators_list(struct auth_hash *hash,
 int check_to_add_method_id(struct auth_hash *hash, int method_id)
 {
     authenticator_module_t ***new_mem;
-    if (method_id > MAX_HASH_SIZE || method_id < 0) {
+    if (method_id >= MAX_HASH_SIZE || method_id < 0) {
         ci_debug_printf(1,
                         "Method id is %d. Possible bug, please report it to developers!!!!!!\n",
                         method_id);
         return 0;
     }
 
-    while (hash->hash_size < method_id) {
+    while (hash->hash_size <= method_id) {
         new_mem = realloc(hash->hash, hash->hash_size + STEP);
         if (!new_mem) {
             ci_debug_printf(1,
