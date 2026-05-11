@@ -628,7 +628,7 @@ if test "a$libdb" != "ano"; then
         else
             print_libdbpath="under $libdbpath..."
         fi
-        echo -n "checking for BerleleyDB v$DBVER $print_libdbpath"
+        echo -n "checking for BerkeleyDB v$DBVER $print_libdbpath"
         LIBS="$usedblib $OLD_LIBS"
         AC_LINK_IFELSE(
                [AC_LANG_SOURCE(
