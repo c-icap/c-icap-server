@@ -351,7 +351,7 @@ static const char *do_header_search(ci_headers_list_t * h, const char *header, c
         if (strncasecmp(check_head, header, header_size) == 0) {
             lval = check_head + header_size + 1;
             if (value) {
-                while (lval <= h_end && (*lval == ' ' || *lval == '\t'))
+                while (lval < h_end && (*lval == ' ' || *lval == '\t'))
                     ++(lval);
                 *value = lval;
             }
