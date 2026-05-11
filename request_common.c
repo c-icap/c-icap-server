@@ -457,7 +457,7 @@ char *ci_request_set_log_str(ci_request_t *req, char *logstr)
     if (!req->log_str)
         return NULL;
     strncpy(req->log_str, logstr, size);
-    req->log_str[size] = '\0';
+    req->log_str[size - 1] = '\0';
     return req->log_str;
 }
 
