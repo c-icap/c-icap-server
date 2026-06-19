@@ -1737,3 +1737,34 @@ int process_request(ci_request_t * req)
 
     return res; /*Allow to log even the failed requests*/
 }
+
+void print_http_header(void *d, const char *head, const char *value)
+{
+    if (!head || !*head) {
+        ci_debug_printf(1, "\t%s\n", value);
+    } else {
+        ci_debug_printf(1, "\t%s: %s\n", head, value);
+    }
+}
+
+void ci_print_http_headers(ci_request_t *req)
+{
+    int type;
+    ci_headers_list_t *headers;
+    ci_debug_printf(1, "\n===== Request Headers =====\n");
+    ci_debug_printf(1, "\nICAP HEADERS:\n");
+    ci_headers_iterate(req->response_header, NULL, print_http_header);
+    ci_debug_printf(1, "\n");
+
+    if ((headers = ci_http_response_headers(req)) == NULL) {
+        headers = ci_http_request_headers(req);
+        type = ICAP_REQMOD;
+    } else
+        type = ICAP_RESPMOD;
+
+    if (headers) {
+        ci_debug_printf(1, "%s HEADERS:\n", ci_method_string(type));
+        ci_headers_iterate(headers, NULL, print_http_header);
+        ci_debug_printf(1, "\n");
+    }
+}

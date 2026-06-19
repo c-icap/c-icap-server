@@ -707,3 +707,15 @@ int sizeofencaps(ci_encaps_entity_t * e)
     }
     return 0;
 }
+
+const char *ci_print_icap_headers(ci_headers_list_t *h)
+{
+    int i;
+    const char *header;
+
+    ci_debug_printf(1, "\n===== ICAP Headers =====\n");
+    for (i = 0; i < h->used; i++) {
+        header = h->headers[i];
+        ci_debug_printf(1, "ICAP header: %s\n", header);
+    }
+}

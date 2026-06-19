@@ -271,6 +271,8 @@ CI_DECLARE_FUNC(void) ci_client_library_init();
 
 CI_DECLARE_FUNC(void) ci_client_library_release();
 
+CI_DECLARE_FUNC(void) ci_print_http_headers(ci_request_t *req);
+
 /** Deprecated. Use ci_connect_to declared in net_io.h instead. */
 CI_DECLARE_FUNC(ci_connection_t *)  ci_client_connect_to(char *servername,int port,int proto);
 
