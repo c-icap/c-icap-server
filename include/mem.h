@@ -67,11 +67,13 @@ CI_DECLARE_FUNC(void) ci_buffers_destroy();
 
 CI_DECLARE_FUNC(void *)  ci_buffer_alloc(size_t block_size);
 CI_DECLARE_FUNC(void *)  ci_buffer_alloc2(size_t block_size, size_t *allocated_size);
-CI_DECLARE_FUNC(void *)  ci_buffer_realloc(void *data, size_t block_size);
-CI_DECLARE_FUNC(void *)  ci_buffer_realloc2(void *data, size_t block_size, size_t *allocated_size);
+CI_DECLARE_FUNC(void *)  ci_buffer_realloc(const void *data, size_t block_size);
+CI_DECLARE_FUNC(void *)  ci_buffer_realloc2(const void *data, size_t block_size, size_t *allocated_size);
+CI_DECLARE_FUNC(void *) ci_buffer_realloc3(const void *data, size_t block_size, size_t *old_size);
 CI_DECLARE_FUNC(void)    ci_buffer_free(void *data);
 
 CI_DECLARE_FUNC(size_t)  ci_buffer_size(const void *data);
+CI_DECLARE_FUNC(size_t)  ci_buffer_real_size(const void *data);
 CI_DECLARE_FUNC(int)  ci_buffer_check(const void *data);
 
 CI_DECLARE_FUNC(int)     ci_object_pool_register(const char *name, int size);

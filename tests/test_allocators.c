@@ -18,7 +18,7 @@ int run_allocs()
     void *v;
     for (l = 1; l< 50; l++) {
         for (k = 1; k < 133; k++) {
-            for ( i = k; i < 32768; i = i*2) {
+            for ( i = k; i < 65534; i = i*2) {
                 ci_debug_printf(5, "Alloc buffer for %d bytes\n", i);
                 v = ci_buffer_alloc(i);
                 memset(v, 0x1, i);
@@ -29,7 +29,7 @@ int run_allocs()
         for (k = 11; k < 73; k++) {
             ci_debug_printf(5, "Alloc buffer for realloc for %d bytes\n", k);
             v = ci_buffer_alloc(k);
-            for ( i = 17; i < 32768; i = i*2) {
+            for ( i = 17; i < 65534; i = i*2) {
                 ci_debug_printf(5, "ReAlloc buffer for %d bytes\n", i);
                 v = ci_buffer_realloc(v, i);
                 memset(v, 0x1, i);
@@ -69,9 +69,8 @@ int main(int argc, char *argv[])
     CI_DEBUG_STDOUT = 1;
 
     __log_error = (void (*)(void *, const char *,...)) log_errors;     /*set c-icap library log  function */
-
-    ci_cfg_lib_init();
     ci_mem_init();
+    ci_cfg_lib_init();
 
     if (!ci_args_apply(argc, argv, options)) {
         ci_args_usage(argv[0], options);

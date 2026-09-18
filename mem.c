@@ -111,7 +111,7 @@ static ci_mem_allocator_t *alloc_mem_allocator_struct()
         alc = (ci_mem_allocator_t *) malloc(sizeof(ci_mem_allocator_t));
         alc->must_free = 1;
     } else {
-        alc = ci_object_pool_alloc(MEM_ALLOCATOR_POOL);
+        alc = (ci_mem_allocator_t *) ci_object_pool_alloc(MEM_ALLOCATOR_POOL);
         alc->must_free = 2;
     }
 
@@ -136,12 +136,14 @@ struct mem_buffer_block {
 #define PTR_OFFSET offsetof(struct mem_buffer_block,data.ptr[0])
 
 static ci_mem_allocator_t *short_buffers[16];
-static ci_mem_allocator_t *long_buffers[16];
+static const int short_buffers_length = sizeof(short_buffers)/sizeof(ci_mem_allocator_t *);
+static ci_mem_allocator_t *long_buffers[32];
+static const int long_buffers_length = sizeof(long_buffers)/sizeof(ci_mem_allocator_t *);
 
 enum {
     BUF64_POOL, BUF128_POOL, BUF256_POOL,BUF512_POOL, BUF1024_POOL,
     BUF2048_POOL, BUF4096_POOL, BUF8192_POOL, BUF16384_POOL, BUF32768_POOL,
-    BUF_END_POOL
+    BUF65536_POOL, BUF_END_POOL
 };
 
 static ci_mem_allocator_t *Pools[BUF_END_POOL];
@@ -164,13 +166,14 @@ int ci_buffers_init()
     Pools[BUF8192_POOL] = ci_create_pool_allocator("8Kb", 8192+PTR_OFFSET);
     Pools[BUF16384_POOL] = ci_create_pool_allocator("16Kb", 16384+PTR_OFFSET);
     Pools[BUF32768_POOL] = ci_create_pool_allocator("32Kb", 32768+PTR_OFFSET);
+    Pools[BUF65536_POOL] = ci_create_pool_allocator("64Kb", 65536+PTR_OFFSET);
 
     short_buffers[0] = Pools[BUF64_POOL];
     short_buffers[1] = Pools[BUF128_POOL];
     short_buffers[2] = short_buffers[3] = Pools[BUF256_POOL];
     short_buffers[4] = short_buffers[5] =
                            short_buffers[6] = short_buffers[7] = Pools[BUF512_POOL];
-    for (i = 8; i < 16; i++)
+    for (i = 8; i < short_buffers_length; i++)
         short_buffers[i] = Pools[BUF1024_POOL];
 
     long_buffers[0] = Pools[BUF2048_POOL];
@@ -180,7 +183,8 @@ int ci_buffers_init()
                           long_buffers[6] = long_buffers[7] = Pools[BUF16384_POOL];
     for (i = 8; i < 16; i++)
         long_buffers[i] = Pools[BUF32768_POOL];
-
+    for(i = 16; i < long_buffers_length; i++)
+        long_buffers[i] = Pools[BUF65536_POOL];
     return 1;
 }
 
@@ -192,12 +196,14 @@ static int short_buffer_sizes[16] =  {
     1024, 1024, 1024, 1024, 1024, 1024, 1024, 1024
 };
 
-static int long_buffer_sizes[16] =  {
+static int long_buffer_sizes[32] =  {
     2048,
     4096,
     8192, 8192,
     16384, 16384, 16384, 16384,
-    32768, 32768, 32768, 32768, 32768, 32768, 32768, 32768
+    32768, 32768, 32768, 32768, 32768, 32768, 32768, 32768,
+    65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536,
+    65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536
 };
 
 void ci_buffers_destroy()
@@ -217,19 +223,22 @@ void *ci_buffer_alloc2(size_t block_size, size_t *allocated_size)
     int type;
     size_t mem_size, allocated_buffer_size;
     struct mem_buffer_block *block = NULL;
+    if (block_size == 0)
+        return NULL;
     mem_size = block_size + PTR_OFFSET;
     type = (block_size-1) >> 6;
-    if (type < 16) {
+    if (type < short_buffers_length) {
         assert(short_buffers[type] != NULL);
-        block = short_buffers[type]->alloc(short_buffers[type], mem_size);
+        block = (struct mem_buffer_block *)short_buffers[type]->alloc(short_buffers[type], mem_size);
         allocated_buffer_size = short_buffer_sizes[type];
-    } else if (type < 512) {
+    } else if (type < 1024) {
         int long_sub_type = type >> 5;
+        assert(long_sub_type < long_buffers_length);
         assert(long_buffers[long_sub_type] != NULL);
-        block = long_buffers[long_sub_type]->alloc(long_buffers[long_sub_type], mem_size);
+        block = (struct mem_buffer_block *) long_buffers[long_sub_type]->alloc(long_buffers[long_sub_type], mem_size);
         allocated_buffer_size = long_buffer_sizes[long_sub_type];
     } else {
-        block = (struct mem_buffer_block *)malloc(mem_size);
+        block = (struct mem_buffer_block *) malloc(mem_size);
         allocated_buffer_size = block_size;
     }
 
@@ -275,7 +284,7 @@ CI_DECLARE_FUNC(size_t)  ci_buffer_size(const void *data)
     return block ? block->ID : 0;
 }
 
-static size_t ci_buffer_real_size(const void *data)
+size_t ci_buffer_real_size(const void *data)
 {
     const struct mem_buffer_block *block = to_block(data);
     if (!block)
@@ -284,11 +293,12 @@ static size_t ci_buffer_real_size(const void *data)
     int type;
     size_t buffer_block_size = 0;
     type = (block->ID - 1) >> 6;
-    if (type < 16) {
+    if (type < short_buffers_length) {
         assert(short_buffers[type] != NULL);
         buffer_block_size = short_buffer_sizes[type];
-    } else if (type < 512) {
+    } else if (type < 1024) {
         type = type >> 5;
+        assert(type < long_buffers_length);
         assert(long_buffers[type] != NULL);
         buffer_block_size = long_buffer_sizes[type];
     } else
@@ -296,50 +306,69 @@ static size_t ci_buffer_real_size(const void *data)
     return buffer_block_size;
 }
 
-void *  ci_buffer_realloc2(void *data, size_t new_block_size, size_t *allocated_size)
+void *  ci_buffer_realloc_xxx(const void *old_data, size_t new_block_size, size_t *old_size, size_t *allocated_size)
 {
-    if (!data)
+    if (!old_data) {
+        if (old_size)
+            *old_size = 0;
         return ci_buffer_alloc2(new_block_size, allocated_size);
+    }
 
     size_t current_buffer_size = 0;
-    struct mem_buffer_block *block;
+    struct mem_buffer_block *old_block;
 
-    if (!(block = to_block(data)))
+    if (!(old_block = to_block(old_data))) {
         return NULL;
+    }
 
-    current_buffer_size = ci_buffer_real_size(data);
+    current_buffer_size = ci_buffer_real_size(old_data);
     assert(current_buffer_size > 0);
     ci_debug_printf(9, "Current buffer %p of size for realloc: %d, requested block size: %d. The initial size: %d\n",
-                    data,
-                    (int)current_buffer_size, (int)new_block_size, (int)block->ID);
-
+                    old_data,
+                    (int)current_buffer_size, (int)new_block_size, (int)old_block->ID);
+    if (old_size)
+        *old_size = current_buffer_size;
+    void *new_data = NULL;
     /*If no block_size created than our buffer actual size probably requires a realloc.....*/
     if (new_block_size > current_buffer_size) {
-        data = ci_buffer_alloc2(new_block_size, allocated_size);
-        if (!data)
+        new_data = ci_buffer_alloc2(new_block_size, allocated_size);
+        if (!new_data)
             return NULL;
-        memcpy(data, block->data.ptr, block->ID);
-        ci_buffer_free(block->data.ptr);
+        memcpy(new_data, old_block->data.ptr, old_block->ID);
+        ci_buffer_free(old_block->data.ptr);
+        old_block = NULL;
     } else {
+        new_data = old_block->data.ptr;
         /*we neeed to update block->ID to the new requested size...*/
         if (allocated_size) {
             *allocated_size = current_buffer_size;
-            block->ID = current_buffer_size;
-        } else
-            block->ID = new_block_size;
+            old_block->ID = current_buffer_size;
+        } else {
+            old_block->ID = new_block_size;
+        }
     }
+    ci_debug_printf(9, "New memory buffer %p of size %d, actual reserved buffer of size: %d\n", new_data, (int) new_block_size, (int)ci_buffer_real_size(new_data));
 
-    ci_debug_printf(9, "New memory buffer %p of size %d, actual reserved buffer of size: %d\n", data, (int) new_block_size, (int)ci_buffer_real_size(data));
-
-    return data;
+    return new_data;
 }
 
-void * ci_buffer_realloc(void *data, size_t block_size)
+
+void * ci_buffer_realloc(const void *data, size_t block_size)
 {
-    return ci_buffer_realloc2(data, block_size, NULL);
+    return ci_buffer_realloc_xxx(data, block_size, NULL, NULL);
 }
 
-void ci_buffer_free(void *data)
+void * ci_buffer_realloc2(const void *data, size_t block_size, size_t *allocated_size)
+{
+    return ci_buffer_realloc_xxx(data, block_size, NULL, allocated_size);
+}
+
+void * ci_buffer_realloc3(const void *data, size_t block_size, size_t *old_size)
+{
+    return ci_buffer_realloc_xxx(data, block_size,  old_size, NULL);
+}
+
+void ci_buffer_free2(void *data, size_t *return_block_size)
 {
     int type;
     size_t block_size;
@@ -353,12 +382,15 @@ void ci_buffer_free(void *data)
 
     block_size = block->ID;
     type = (block_size-1) >> 6;
-    if (type < 16) {
+    if (return_block_size)
+        *return_block_size = block_size;
+    if (type < short_buffers_length) {
         assert(short_buffers[type] != NULL);
         short_buffers[type]->free(short_buffers[type], block);
         ci_debug_printf(9, "Store buffer %p (used %d bytes) to short pool %d:%d\n", data, (int)block_size, type, short_buffer_sizes[type]);
-    } else if (type < 512) {
+    } else if (type < 1024) {
         int long_sub_type = type >> 5;
+        assert(long_sub_type < long_buffers_length);
         assert(long_buffers[long_sub_type] != NULL);
         long_buffers[long_sub_type]->free(long_buffers[long_sub_type], block);
         ci_debug_printf(9, "Store buffer %p (used %d bytes) to long pool %d:%d\n", data, (int)block_size, type, long_buffer_sizes[long_sub_type]);
@@ -366,6 +398,11 @@ void ci_buffer_free(void *data)
         ci_debug_printf(9, "Free buffer %p (free at %p, used %d bytes)\n", data, block, (int)block->ID);
         free(block);
     }
+}
+
+void ci_buffer_free(void *data)
+{
+    ci_buffer_free2(data, NULL);
 }
 
 /*******************************************************************/
