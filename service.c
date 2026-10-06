@@ -605,8 +605,8 @@ service_alias_t *add_service_alias(const char *service_alias, const char *servic
     service_aliases[alias_indx].alias[MAX_SERVICE_NAME] = '\0';
     size_t required = snprintf(service_aliases[alias_indx].args, MAX_SERVICE_ARGS,
                                "%s%s%s",
-                               salias && salias->args ? salias->args : "",
-                               (salias && salias->args && strlen(salias->args)) ? "&" : "",
+                               salias ? salias->args : "",
+                               (salias && strlen(salias->args)) ? "&" : "",
                                args ? args : ""
         );
     if (required >= MAX_SERVICE_ARGS) {
