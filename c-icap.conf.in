@@ -102,6 +102,14 @@ ThreadsPerChild     10
 #	MaxRequestsPerChild  0
 MaxRequestsPerChild  0
 
+# TAG: BuffersZeroMem
+# Format: BuffersZeroMem on|off
+# Description:
+#       Whether to zero memory buffers before release them or before store them
+#       to pools. Also resets the buffers while allocating the memory from OS.
+# Default:
+#      BuffersZeroMem on
+
 # TAG: InterProcessSharedMemScheme
 # Format: InterProcessSharedMemScheme posix | mmap | sysv
 # Description:
