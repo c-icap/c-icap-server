@@ -1010,8 +1010,7 @@ int start_child()
         close(pfd[0]);
         close(pfd[1]);
         return -1;
-    }
-    else if (pid == 0) { //A Child .......
+    } else if (pid == 0) { //A Child .......
         MY_PROC_PID = getpid();
         if (!attach_childs_queue(childs_queue)) {
             ci_debug_printf(1, "Can not access shared memory for %d child\n", (int)MY_PROC_PID);
