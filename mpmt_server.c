@@ -1315,6 +1315,7 @@ int start_single_server()
         ci_debug_printf(1, "Error making the child pipe non-blocking\n");
         close(pfd[0]);
         close(pfd[1]);
+        return -1;
     }
     // TODO listen on socket in a separate thread;
     ci_thread_t cmd_monitor_thread;
