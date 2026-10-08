@@ -607,7 +607,7 @@ service_alias_t *add_service_alias(const char *service_alias, const char *servic
                                "%s%s%s",
                                salias ? salias->args : "",
                                (salias && strlen(salias->args)) ? "&" : "",
-                               args
+                               args ? args : ""
         );
     if (required >= MAX_SERVICE_ARGS) {
         ci_debug_printf(1, "Warning: service %s args are truncated", service_aliases[alias_indx].alias);
