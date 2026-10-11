@@ -224,21 +224,33 @@ int ci_wait_ms_for_data(int fd, int msecs, int what_wait)
 
     errno = 0;
     if ((ret = poll(fds, 1, msecs)) > 0) {
-        if (fds[0].revents & (POLLERR | POLLHUP)) {
-            ci_debug_printf(3, "ci_wait_for_data error: the connection is terminated\n");
-            return -1;
-        }
 
         if (fds[0].revents & (POLLNVAL)) {
             ci_debug_printf(1, "ci_wait_for_data error: poll on closed socket?\n");
             return -1;
         }
+
         ret = 0;
         if (fds[0].revents & POLLIN)
             ret = ci_wait_for_read;
+
         if (fds[0].revents & POLLOUT)
             ret = ret | ci_wait_for_write;
-        return ret;
+
+        if (ret)
+            return ret;
+
+        if (fds[0].revents & POLLERR) {
+            ci_debug_printf(3, "ci_wait_for_data error: connection error\n");
+            return -1;
+        }
+
+        if (fds[0].revents & POLLHUP) {
+            ci_debug_printf(3, "ci_wait_for_data error: the connection is terminated\n");
+            return -1;
+        }
+
+        return ret; // is set to 0
     }
 
     if (ret < 0) {
@@ -315,7 +327,7 @@ int ci_read(int fd, void *buf, size_t count, int timeout)
         int ret;
         do {
             ret = ci_wait_for_data(fd, timeout, wait_for_read);
-        } while (ret & ci_wait_should_retry);
+        } while (ret > 0 && (ret & ci_wait_should_retry));
 
         if (ret <= 0)  /*timeout or connection closed*/
             return -1;
@@ -346,7 +358,7 @@ int ci_write(int fd, const void *buf, size_t count, int timeout)
             int ret;
             do {
                 ret = ci_wait_for_data(fd, timeout, wait_for_write);
-            } while (ret & ci_wait_should_retry);
+            } while (ret > 0 && (ret & ci_wait_should_retry));
 
             if (ret <= 0) /*timeout or connection closed*/
                 return -1;
