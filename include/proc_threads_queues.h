@@ -118,7 +118,7 @@ int wait_for_queue(struct connections_queue *q);
 
 struct childs_queue *create_childs_queue(int size);
 int destroy_childs_queue(struct childs_queue *q);
-void announce_child(struct childs_queue *q, process_pid_t pid);
+int announce_child(struct childs_queue *q, process_pid_t pid);
 int attach_childs_queue(struct childs_queue *q);
 int dettach_childs_queue(struct childs_queue *q);
 int childs_queue_is_empty(struct childs_queue *q);

@@ -980,6 +980,38 @@ void child_main(int pipefd, int single)
 }
 
 
+int init_pipe(int pfd[2])
+{
+    if (pipe(pfd) < 0) {
+        ci_debug_printf(1,"ERROR: pipe can not be created: %s\n", strerror(errno));
+        return 0;
+    }
+    if (fcntl(pfd[0], F_SETFL, O_NONBLOCK) < 0
+        || fcntl(pfd[1], F_SETFL, O_NONBLOCK) < 0) {
+        ci_debug_printf(1, "ERROR: fcntl on pipe failed: %s\n", strerror(errno));
+        close(pfd[0]);
+        close(pfd[1]);
+        return 0;
+    }
+    return 1;
+}
+
+void close_pipe(int pfd[2])
+{
+    close(pfd[0]);
+    close(pfd[1]);
+}
+
+void close_pipe_writter(int pfd[2])
+{
+    close(pfd[1]);
+}
+
+void close_pipe_reader(int pfd[2])
+{
+    close(pfd[0]);
+}
+
 /*****************************************************************************************/
 /*Main process functions                                                                 */
 
@@ -987,33 +1019,33 @@ int start_child()
 {
     int pid;
     int pfd[2];
+    int reverse_pfd[2];
     int children_num, free_servers, used_servers;
     int64_t max_requests;
 
-    if (pipe(pfd) < 0) {
+    if (!init_pipe(pfd)) {
         ci_debug_printf(1,
                         "Error creating pipe for communication with child\n");
         return -1;
     }
-    if (fcntl(pfd[0], F_SETFL, O_NONBLOCK) < 0
-            || fcntl(pfd[1], F_SETFL, O_NONBLOCK) < 0) {
-        ci_debug_printf(1, "Error making the child pipe non-blocking\n");
-        close(pfd[0]);
-        close(pfd[1]);
+    if (!init_pipe(reverse_pfd)) {
+        ci_debug_printf(1, "Error creating pipe for getting info from child\n");
+        close_pipe(pfd);
         return -1;
     }
 
-	pid = fork();
+    const int INFORM_PARENT_TIMEOUT = 5;
+    pid = fork();
 
     if (pid < 0) {
-        ci_debug_printf(1, "Error forking child process: %s\n", strerror(errno));
-        close(pfd[0]);
-        close(pfd[1]);
+        ci_debug_printf(1, "ERROR: Failed to fork child process: %s\n", strerror(errno));
+        close_pipe(pfd);
+        close_pipe(reverse_pfd);
         return -1;
     } else if (pid == 0) { //A Child .......
         MY_PROC_PID = getpid();
         if (!attach_childs_queue(childs_queue)) {
-            ci_debug_printf(1, "Can not access shared memory for %d child\n", (int)MY_PROC_PID);
+            ci_debug_printf(1, "ERROR: Can not access shared memory for %d child\n", (int)MY_PROC_PID);
             exit(-2);
         }
         child_data =
@@ -1021,7 +1053,7 @@ int start_child()
         if (!child_data) {
             childs_queue_stats(childs_queue, &children_num, &free_servers,
                                &used_servers, &max_requests);
-            ci_debug_printf(1, "Not available slot in shared memory for %d child (Number of slots: %d, Running children: %d, Free servers: %d, Used servers: %d)!\n", (int)MY_PROC_PID,
+            ci_debug_printf(1, "ERROR: Not available slot in shared memory for %d child (Number of slots: %d, Running children: %d, Free servers: %d, Used servers: %d)!\n", (int)MY_PROC_PID,
                             childs_queue->size,
                             children_num,
                             free_servers,
@@ -1029,16 +1061,48 @@ int start_child()
                            );
             exit(-3);
         }
-        close(pfd[1]);
-        child_main(pfd[0], 0);
-        exit_normaly();
+        close_pipe_reader(reverse_pfd);
+        int ok = 1;
+        if (ci_write(reverse_pfd[1], "y", 1, INFORM_PARENT_TIMEOUT) == 1) {
+            close_pipe_writter(reverse_pfd);
+            close_pipe_writter(pfd);
+            child_main(pfd[0], 0);
+            exit_normaly();
+        } else {
+            ci_debug_printf(1, "ERROR: Failed to inform parent process about my status\n");
+            ok = 0;
+        }
         dettach_childs_queue(childs_queue);
-        exit(0);
+        exit((ok ? 0 : -4));
     } else {
-        close(pfd[0]);
-        announce_child(childs_queue, pid);
-        return pid;
+        // Near impossible for a kid to spent more than the INFORM_PARENT_TIMEOUT time
+        // while trying to attach queue and register it self to queue.
+        // TODO: review 5 seconds time for INFORM_PARENT_TIMEOUT
+        char buf[1];
+        close_pipe_writter(reverse_pfd);
+        const int ret = ci_read(reverse_pfd[0], buf, 1, INFORM_PARENT_TIMEOUT);
+        close_pipe_reader(reverse_pfd);
+        close_pipe_reader(pfd);
+        const int registered = announce_child(childs_queue, pid);
+        if (ret == 1 &&  registered)
+            return pid;
+
+        ci_debug_printf(1, "ERROR: Failed to retrieve status from child with pid: %d\n", pid);
+        if (registered) {
+            child_shared_data_t *child = get_child_data(childs_queue, pid);
+            if (child) {
+                child->father_said = IMMEDIATELY;
+                child->to_be_killed = IMMEDIATELY;
+            }
+            /* remove_child() will close pfd[1]. */
+            return pid;
+        } else {
+            close_pipe_writter(pfd);
+            // TODO: account he pids of failed to register kids and try check for or stalled kids.
+            return -1;
+        }
     }
+    assert(0); //can not reach
 }
 
 void stop_command(const char *name, int type, const char **argv)

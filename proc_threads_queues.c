@@ -319,10 +319,21 @@ child_shared_data_t *register_child(struct childs_queue * q,
     return NULL;
 }
 
-void announce_child(struct childs_queue *q, process_pid_t pid)
+int announce_child(struct childs_queue *q, process_pid_t pid)
 {
-    if (q->childs && pid)
+    assert(q->childs);
+    if (pid < 0) {
+        ci_debug_printf(2, "ERROR: Not a valid pid: %d\n", (int)pid);
+        return 0;
+    }
+
+    if (get_child_data(q, pid) != NULL) {
         q->srv_stats->started_childs++;
+        return 1;
+    }
+
+    ci_debug_printf(2, "ERROR: Child with pid: %d not registered\n", (int)pid);
+    return 0;
 }
 
 int remove_child(struct childs_queue *q, process_pid_t pid, int status)
