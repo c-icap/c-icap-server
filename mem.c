@@ -423,43 +423,41 @@ void ci_object_pools_destroy()
     }
 }
 
-#define STEP 128
+#define STEP 256
 int ci_object_pool_register(const char *name, int size)
 {
-    int ID, i;
-    ID = -1;
+    int ID = -1;
     /*search for an empty position on object_pools and assign here?*/
     if (object_pools == NULL) {
         object_pools = calloc(STEP, sizeof(ci_mem_allocator_t *));
         assert(object_pools);
         object_pools_size = STEP;
         ID = 0;
+        object_pools_used = 1;
     } else {
-        for (i = 0; i < object_pools_used; i++)  {
-            if (object_pools[i] == NULL) {
-                ID = i;
-                break;
-            }
-        }
-        if (ID == -1) {
-            if (object_pools_size == object_pools_used) {
-                const unsigned long old_size = object_pools_size;
-                object_pools_size += STEP;
-                object_pools = realloc(object_pools, object_pools_size*sizeof(ci_mem_allocator_t *));
-                assert(object_pools);
+        if (object_pools_size == object_pools_used) {
+            const unsigned long old_size = object_pools_size;
+            object_pools_size += STEP;
+            void *p = realloc(object_pools, object_pools_size*sizeof(ci_mem_allocator_t *));
+            assert(p); //It is safer to abort immediately
+            if (p) {
+                object_pools = (ci_mem_allocator_t **)p;
                 // zero new allocated memory
                 void *old_end = (void *)object_pools + old_size * sizeof(ci_mem_allocator_t *);
                 memset(old_end, 0, STEP * sizeof(ci_mem_allocator_t *));
+            } else {
+                ci_debug_printf(1, "ERROR: Failed to allocate required memory to store object allocators\n");
+                return -1;
             }
-            ID=object_pools_used;
         }
+        ID = object_pools_used;
+        object_pools_used++;
     }
-    if (object_pools == NULL) //??????
-        return -1;
-
     object_pools[ID] = ci_create_pool_allocator(name, size + MEM_OBJECT_PTR_OFFSET);
-
-    object_pools_used++;
+    if (object_pools[ID] == NULL) {
+        ci_debug_printf(1, "ERROR: Failed to build objects allocator %s\n", name);
+        return -1;
+    }
     return ID;
 }
 
@@ -926,7 +924,7 @@ struct pool_allocator {
     struct mem_block_item *free;
 };
 
-static struct pool_allocator *pool_allocator_build(const char *name, int items_size, int strict)
+static struct pool_allocator *pool_allocator_object_build(const char *name, int items_size, int strict)
 {
     char stat_group[256];
     struct pool_allocator *palloc;
@@ -965,10 +963,20 @@ static struct pool_allocator *pool_allocator_build(const char *name, int items_s
     return palloc;
 }
 
+static void pool_allocator_object_destroy(struct pool_allocator *palloc)
+{
+    if (palloc) {
+        ci_thread_mutex_destroy(&palloc->mutex);
+        free(palloc->name);
+        free(palloc);
+    }
+}
+
 static void *pool_allocator_alloc(ci_mem_allocator_t *allocator,size_t size)
 {
     struct mem_block_item *mem_item;
     struct pool_allocator *palloc = (struct pool_allocator *)allocator->data;
+    assert(palloc);
 
     if (size > palloc->items_size)
         return NULL;
@@ -1009,6 +1017,7 @@ static void pool_allocator_free(ci_mem_allocator_t *allocator,void *p)
 {
     struct mem_block_item *mem_item;
     struct pool_allocator *palloc = (struct pool_allocator *)allocator->data;
+    assert(palloc);
 
     ci_stat_memblock_t *STATS = palloc->disable_stats ? NULL : ci_stat_memblock_get();
     ci_thread_mutex_lock(&palloc->mutex);
@@ -1028,7 +1037,11 @@ static void pool_allocator_free(ci_mem_allocator_t *allocator,void *p)
 static void pool_allocator_reset(ci_mem_allocator_t *allocator)
 {
     struct mem_block_item *mem_item, *cur;
-    struct pool_allocator *palloc = (struct pool_allocator *)allocator->data;
+    struct pool_allocator *palloc;
+    assert(allocator);
+    palloc = (struct pool_allocator *)allocator->data;
+    assert(palloc);
+
     ci_stat_memblock_t *STATS = palloc->disable_stats ? NULL : ci_stat_memblock_get();
     ci_thread_mutex_lock(&palloc->mutex);
     if (palloc->free) {
@@ -1047,14 +1060,11 @@ static void pool_allocator_reset(ci_mem_allocator_t *allocator)
     ci_thread_mutex_unlock(&palloc->mutex);
 }
 
-
 static void pool_allocator_destroy(ci_mem_allocator_t *allocator)
 {
     pool_allocator_reset(allocator);
     struct pool_allocator *palloc = (struct pool_allocator *)allocator->data;
-    ci_thread_mutex_destroy(&palloc->mutex);
-    free(palloc->name);
-    free(palloc);
+    pool_allocator_object_destroy(palloc);
 }
 
 ci_mem_allocator_t *ci_create_pool_allocator(const char *name, int items_size)
@@ -1062,11 +1072,15 @@ ci_mem_allocator_t *ci_create_pool_allocator(const char *name, int items_size)
     struct pool_allocator *palloc;
     ci_mem_allocator_t *allocator;
 
-    palloc = pool_allocator_build(name, items_size, 0);
+    palloc = pool_allocator_object_build(name, items_size, 0);
+    if (!palloc)
+        return NULL;
     /*Use always malloc for ci_mem_alocator struct.*/
     allocator = (ci_mem_allocator_t *) calloc(1, sizeof(ci_mem_allocator_t));
-    if (!allocator)
+    if (!allocator) {
+        pool_allocator_object_destroy(palloc);
         return NULL;
+    }
     allocator->alloc = pool_allocator_alloc;
     allocator->free = pool_allocator_free;
     allocator->reset = pool_allocator_reset;
