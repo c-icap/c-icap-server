@@ -135,7 +135,7 @@ struct mem_buffer_block {
 #if !defined(offsetof)
 #define offsetof(type,member) ((size_t) &((type*)0)->member)
 #endif
-#define PTR_OFFSET offsetof(struct mem_buffer_block,data.ptr[0])
+#define MEM_BUFFER_PTR_OFFSET offsetof(struct mem_buffer_block, data.ptr[0])
 
 static ci_mem_allocator_t *short_buffers[16];
 static const int short_buffers_length = sizeof(short_buffers)/sizeof(ci_mem_allocator_t *);
@@ -157,18 +157,18 @@ int ci_buffers_init()
     memset(short_buffers, 0, sizeof(short_buffers));
     memset(long_buffers, 0, sizeof(long_buffers));
 
-    Pools[BUF64_POOL] = ci_create_pool_allocator("64bytes", 64+PTR_OFFSET);
-    Pools[BUF128_POOL] = ci_create_pool_allocator("128bytes", 128+PTR_OFFSET);
-    Pools[BUF256_POOL] = ci_create_pool_allocator("256bytes", 256+PTR_OFFSET);
-    Pools[BUF512_POOL] = ci_create_pool_allocator("512bytes", 512+PTR_OFFSET);
-    Pools[BUF1024_POOL] = ci_create_pool_allocator("1Kb", 1024+PTR_OFFSET);
+    Pools[BUF64_POOL] = ci_create_pool_allocator("64bytes", 64+MEM_BUFFER_PTR_OFFSET);
+    Pools[BUF128_POOL] = ci_create_pool_allocator("128bytes", 128+MEM_BUFFER_PTR_OFFSET);
+    Pools[BUF256_POOL] = ci_create_pool_allocator("256bytes", 256+MEM_BUFFER_PTR_OFFSET);
+    Pools[BUF512_POOL] = ci_create_pool_allocator("512bytes", 512+MEM_BUFFER_PTR_OFFSET);
+    Pools[BUF1024_POOL] = ci_create_pool_allocator("1Kb", 1024+MEM_BUFFER_PTR_OFFSET);
 
-    Pools[BUF2048_POOL] = ci_create_pool_allocator("2Kb", 2048+PTR_OFFSET);
-    Pools[BUF4096_POOL] = ci_create_pool_allocator("4Kb", 4096+PTR_OFFSET);
-    Pools[BUF8192_POOL] = ci_create_pool_allocator("8Kb", 8192+PTR_OFFSET);
-    Pools[BUF16384_POOL] = ci_create_pool_allocator("16Kb", 16384+PTR_OFFSET);
-    Pools[BUF32768_POOL] = ci_create_pool_allocator("32Kb", 32768+PTR_OFFSET);
-    Pools[BUF65536_POOL] = ci_create_pool_allocator("64Kb", 65536+PTR_OFFSET);
+    Pools[BUF2048_POOL] = ci_create_pool_allocator("2Kb", 2048+MEM_BUFFER_PTR_OFFSET);
+    Pools[BUF4096_POOL] = ci_create_pool_allocator("4Kb", 4096+MEM_BUFFER_PTR_OFFSET);
+    Pools[BUF8192_POOL] = ci_create_pool_allocator("8Kb", 8192+MEM_BUFFER_PTR_OFFSET);
+    Pools[BUF16384_POOL] = ci_create_pool_allocator("16Kb", 16384+MEM_BUFFER_PTR_OFFSET);
+    Pools[BUF32768_POOL] = ci_create_pool_allocator("32Kb", 32768+MEM_BUFFER_PTR_OFFSET);
+    Pools[BUF65536_POOL] = ci_create_pool_allocator("64Kb", 65536+MEM_BUFFER_PTR_OFFSET);
 
     short_buffers[0] = Pools[BUF64_POOL];
     short_buffers[1] = Pools[BUF128_POOL];
@@ -227,7 +227,7 @@ void *ci_buffer_alloc2(size_t block_size, size_t *allocated_size)
     struct mem_buffer_block *block = NULL;
     if (block_size == 0)
         return NULL;
-    mem_size = block_size + PTR_OFFSET;
+    mem_size = block_size + MEM_BUFFER_PTR_OFFSET;
     type = (block_size-1) >> 6;
     if (type < short_buffers_length) {
         assert(short_buffers[type] != NULL);
@@ -269,9 +269,10 @@ void *ci_buffer_alloc(size_t block_size)
 static struct mem_buffer_block *to_block(const void *data)
 {
     struct mem_buffer_block *block;
-    block = (struct mem_buffer_block *)(((char *)data) - PTR_OFFSET);
+    block = (struct mem_buffer_block *)(((char *)data) - MEM_BUFFER_PTR_OFFSET);
     if (block->sig != BUF_SIGNATURE) {
         ci_debug_printf(1,"ci_buffer internal check: ERROR, %p is not a ci_buffer object. This is a bug!!!!\n", data);
+        assert(0 && "not a ci_buffer_object");
         return NULL;
     }
     return block;
@@ -406,6 +407,7 @@ struct mem_object_block {
 ci_mem_allocator_t **object_pools = NULL;
 unsigned long object_pools_size = 0;
 unsigned long object_pools_used = 0;
+#define MEM_OBJECT_PTR_OFFSET offsetof(struct mem_object_block, data.ptr[0])
 
 int ci_object_pools_init()
 {
@@ -455,7 +457,7 @@ int ci_object_pool_register(const char *name, int size)
     if (object_pools == NULL) //??????
         return -1;
 
-    object_pools[ID] = ci_create_pool_allocator(name, size+PTR_OFFSET);
+    object_pools[ID] = ci_create_pool_allocator(name, size + MEM_OBJECT_PTR_OFFSET);
 
     object_pools_used++;
     return ID;
@@ -480,6 +482,7 @@ void *ci_object_pool_alloc(int id)
     if (id >= object_pools_used || id < 0 || !object_pools[id]) {
         /*A error message ....*/
         ci_debug_printf(1, "Invalid object pool %d. This is a BUG!\n", id);
+        assert(0 && "invalid object pool");
         return NULL;
     }
     block = object_pools[id]->alloc(object_pools[id], 1/*A small size smaller than obj size*/);
@@ -495,13 +498,15 @@ void *ci_object_pool_alloc(int id)
 
 void ci_object_pool_free(void *ptr)
 {
-    struct mem_object_block *block = (struct mem_object_block *)((char *)ptr - PTR_OFFSET);
+    struct mem_object_block *block = (struct mem_object_block *)((char *)ptr - MEM_OBJECT_PTR_OFFSET);
     if (block->sig != OBJ_SIGNATURE) {
         ci_debug_printf(1,"ci_object_pool_free: ERROR, %p is not internal buffer. This is a bug!!!!\n", ptr);
+        assert(0 && "not from pool");
         return;
     }
     if ((unsigned long)block->id > object_pools_used || !object_pools[block->id]) {
         ci_debug_printf(1,"ci_object_pool_free: ERROR, %p is pointing to corrupted mem? This is a bug!!!!\n", ptr);
+        assert(0 && "corrupted pool");
         return;
     }
     ci_debug_printf(8, "Storing to objects pool object %d\n", (int)block->id);
