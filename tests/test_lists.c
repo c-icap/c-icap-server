@@ -79,6 +79,63 @@ int cb_remove_anobj(void *data, const void *obj)
     return 0;
 }
 
+const char *words[] = {
+    "General",
+    "discussion",
+    "related",
+    "to",
+    "c-icap",
+    "server:",
+    "c-icap-users@lists.sourceforge.net",
+    "-",
+    "Basic",
+    "installation",
+    "and",
+    "configuration",
+    "instructions:",
+    "https://sourceforge.net/p/c-icap/wiki/configcicap/",
+    "-",
+    "c-icap",
+    "service",
+    "developers",
+    "should",
+    "start",
+    "from",
+    "here:",
+    "https://sourceforge.net/p/c-icap/wiki/Developers/",
+    NULL
+};
+
+int wordcompare(const void *w1, const void *w2, size_t )
+{
+    const char *sw1 = w1;
+    const char *sw2 = w2;
+    return strcasecmp(sw1, sw2);
+}
+
+int test_strings_sort()
+{
+    ci_list_t *lw = ci_list_create(4096, 0);
+    assert(lw);
+    ci_list_cmp_handler(lw, wordcompare);
+    int i;
+    for (i = 0; words[i] != NULL; i++) {
+        ci_list_push(lw, strdup(words[i]));
+    }
+    ci_list_sort(lw);
+    ci_list_iterator_t it;
+    const char *cw = NULL;
+    ci_debug_printf(1, "Sorted words array {\n");
+    for (cw = ci_list_iterator_first(lw, &it); cw != NULL; cw = ci_list_iterator_next(&it)) {
+        ci_debug_printf(1, "\t%s,\n", cw);
+    }
+    ci_debug_printf(1, "}\n");
+    char *w;
+    while (ci_list_pop(lw, &w)) free(w);
+    ci_list_destroy(lw);
+    return 1;
+}
+
 int main(int argc,char *argv[])
 {
     ci_list_t *list;
@@ -87,8 +144,8 @@ int main(int argc,char *argv[])
     int i, k, l;
     char c;
 
-    ci_cfg_lib_init();
     ci_mem_init();
+    ci_cfg_lib_init();
 
     __log_error = (void (*)(void *, const char *,...)) log_errors;     /*set c-icap library log  function */
 
@@ -253,5 +310,7 @@ int main(int argc,char *argv[])
 
     ci_list_destroy(list);
     ci_debug_printf(1, "Test finished!\n");
+
+    test_strings_sort();
     return 0;
 }

@@ -43,8 +43,8 @@ int main(int argc,char *argv[])
     char value[128];
     void *data;
     const char *strdata;
-    ci_cfg_lib_init();
     ci_mem_init();
+    ci_cfg_lib_init();
 
     __log_error = (void (*)(void *, const char *,...)) log_errors;     /*set c-icap library log  function */
 

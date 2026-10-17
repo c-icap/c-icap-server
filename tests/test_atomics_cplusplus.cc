@@ -42,8 +42,8 @@ int main(int argc, char *argv[])
     ci_thread_t *threads;
     CI_DEBUG_STDOUT = 1;
 
-    ci_cfg_lib_init();
     ci_mem_init();
+    ci_cfg_lib_init();
     ci_atomics_init();
 
     if (!ci_args_apply(argc, argv, options)) {

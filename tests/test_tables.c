@@ -238,8 +238,8 @@ void run_test()
 
 int main(int argc,char *argv[])
 {
-    ci_cfg_lib_init();
     ci_mem_init();
+    ci_cfg_lib_init();
     init_internal_lookup_tables();
 
     __log_error = (void (*)(void *, const char *,...)) log_errors;     /*set c-icap library log  function */

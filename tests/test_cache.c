@@ -105,8 +105,8 @@ int main(int argc,char *argv[])
     const char *str;
     size_t v_size;
 
-    ci_cfg_lib_init();
     ci_mem_init();
+    ci_cfg_lib_init();
 
     __log_error = (void (*)(void *, const char *,...)) log_errors; /*set c-icap library log  function */
 
