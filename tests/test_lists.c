@@ -106,33 +106,88 @@ const char *words[] = {
     NULL
 };
 
+void randomize_array(const char *words[])
+{
+    size_t wsize = 0;
+    int i;
+    for (wsize = 0; words[wsize] != NULL; ++wsize);
+    for (i = 0; i < wsize; ++i) {
+        size_t j = rand() % wsize;
+        const char *w = words[i];
+        words[i] = words[j];
+        words[j] = w;
+    }
+    assert(words[wsize] == NULL);
+}
+
 int wordcompare(const void *w1, const void *w2, size_t )
 {
     const char *sw1 = w1;
     const char *sw2 = w2;
-    return strcasecmp(sw1, sw2);
+    return strcmp(sw1, sw2);
 }
+
+int qsort_wordcompare(const void *w1, const void *w2 )
+{
+    const char *sw1 = *(const char **)w1;
+    const char *sw2 = *(const char **)w2;
+    return strcmp(sw1, sw2);
+}
+
 
 int test_strings_sort()
 {
-    ci_list_t *lw = ci_list_create(4096, 0);
-    assert(lw);
-    ci_list_cmp_handler(lw, wordcompare);
+    ci_list_t *sorted = ci_list_create(4096, 0);
+    assert(sorted);
+    ci_list_cmp_handler(sorted, wordcompare);
+
     int i;
     for (i = 0; words[i] != NULL; i++) {
-        ci_list_push(lw, strdup(words[i]));
+        ci_list_push(sorted, words[i]);
     }
-    ci_list_sort(lw);
+    ci_list_sort(sorted);
     ci_list_iterator_t it;
     const char *cw = NULL;
     ci_debug_printf(1, "Sorted words array {\n");
-    for (cw = ci_list_iterator_first(lw, &it); cw != NULL; cw = ci_list_iterator_next(&it)) {
+    for (cw = ci_list_iterator_first(sorted, &it); cw != NULL; cw = ci_list_iterator_next(&it)) {
         ci_debug_printf(1, "\t%s,\n", cw);
     }
     ci_debug_printf(1, "}\n");
-    char *w;
-    while (ci_list_pop(lw, &w)) free(w);
-    ci_list_destroy(lw);
+
+    // check against stdlib qsort function
+    // TODO: more tests with maybe randomly generated words arrays
+    size_t wsize = 0;
+    for (wsize = 0; words[wsize] != NULL; ++wsize);
+    qsort(words, wsize, sizeof(const char *), qsort_wordcompare);
+    for (cw = ci_list_iterator_first(sorted, &it), i = 0; cw != NULL; cw = ci_list_iterator_next(&it), ++i) {
+        assert(words[i] != NULL);
+        assert(strcmp(cw, words[i]) == 0);
+    }
+    assert(i == wsize);
+
+    // Check that the ci_list_sort produces the same order for any input.
+    int tests;
+    for(tests = 0; tests < 100; ++tests) {
+        randomize_array(words);
+        ci_list_t *lw = ci_list_create(4096, 0);
+        assert(lw);
+        ci_list_cmp_handler(lw, wordcompare);
+        for (i = 0; words[i] != NULL; i++) {
+            ci_list_push(lw, words[i]);
+        }
+        ci_list_sort(lw);
+        const char *w1 = NULL;
+        const char *w2 = NULL;
+        ci_list_iterator_t it1, it2;
+        for (w1 = ci_list_iterator_first(sorted, &it1), w2 = ci_list_iterator_first(lw, &it2); w1 != NULL; w1 = ci_list_iterator_next(&it1), w2 = ci_list_iterator_next(&it2)) {
+            assert(w2);
+            assert(strcmp(w2, w1) == 0);
+        }
+        assert(w2 == NULL);
+        ci_list_destroy(lw);
+    }
+    ci_debug_printf(1, "Sorted ci_list_t objects successfully finished\n");
+    ci_list_destroy(sorted);
     return 1;
 }
 
@@ -156,6 +211,8 @@ int main(int argc,char *argv[])
 
     if (USE_DEBUG_LEVEL >= 0)
         CI_DEBUG_LEVEL = USE_DEBUG_LEVEL;
+
+    srand((unsigned int)time(NULL));
 
     list = ci_list_create(4096, sizeof(struct obj));
     if (!list) {
