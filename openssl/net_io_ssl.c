@@ -774,9 +774,19 @@ int icap_accept_tls_connection(ci_port_t *port, ci_connection_t *client_conn)
 
     BIO_set_nbio(client_conn_bio, 1);
     BIO_get_fd(client_conn_bio, &client_conn->fd);
-    ci_debug_printf(8, "SSL connection FD: %d\n", client_conn->fd);
-    /*We need to compute remote client address*/
-    ci_connection_init(client_conn, ci_connection_server_side);
+    socklen_t client_addr_len = sizeof(client_conn->claddr);
+    if (getpeername(client_conn->fd, (struct sockaddr *) &client_conn->claddr, &client_addr_len) == -1) {
+        char error_buffer[128];
+        ci_debug_printf(1, "ERROR: getpeername() failed for fd: %d, error: %s\n", client_conn->fd, ci_strerror(errno, error_buffer, sizeof(error_buffer)));
+        ci_connection_hard_close(client_conn);
+        return -1;
+    }
+
+    if (!ci_connection_init(client_conn, ci_connection_server_side)) {
+        ci_debug_printf(1, "Initializing connection failed, errno:%d\n", errno);
+        ci_connection_hard_close(client_conn);
+        return -1;
+    }
     return 1;
 }
 

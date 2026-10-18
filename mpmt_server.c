@@ -803,6 +803,18 @@ void listener_thread(void *unused)
                             ci_debug_printf(1, "Fatal error while accepting!\n");
                             goto LISTENER_FAILS;
                         } /*else ret is -1 for aborted, or zero for EINTR*/
+                    } else if (CI_DEBUG_LEVEL >= 8) {
+                        char srv[CI_IPLEN + 1], cln[CI_IPLEN + 1];
+#ifdef USE_OPENSSL
+                        const char *conn_type = port->tls_accept_details ? "TLS" : "Plain";
+#else
+                        const char *conn_type = "Plain";
+#endif
+                        ci_debug_printf(CI_DEBUG_LEVEL, "%s connection FD: %d, local address: %s, remote address: %s\n",
+                                        conn_type,
+                                        con.conn.fd,
+                                        ci_sockaddr_t_to_ip(&(con.conn.srvaddr), srv, sizeof(srv)),
+                                        ci_sockaddr_t_to_ip(&(con.conn.claddr), cln, sizeof(cln)));
                     }
                 } while (ret == 0);
 
