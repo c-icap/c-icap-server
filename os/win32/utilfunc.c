@@ -99,7 +99,7 @@ void ci_strntime(char *buf, size_t size)
 void ci_to_strntime(char *buf, size_t size, const time_t *tm)
 {
     assert(size > 0);
-    LONGLONG ll = Int32x32To64(*tm, 10000000) + 116444736000000000;
+    LONGLONG ll = (*tm * 10000000LL) + 116444736000000000LL;
     FILETIME ft;
     ft.dwLowDateTime = (DWORD) ll;
     ft.dwHighDateTime = ll >>32;
@@ -124,7 +124,7 @@ void ci_strntime_rfc822(char *buf, size_t size)
 void ci_to_strntime_rfc822(char *buf, size_t size, const time_t *tm)
 {
     assert(size > 0);
-    LONGLONG ll = Int32x32To64(*tm, 10000000) + 116444736000000000;
+    LONGLONG ll = (*tm * 10000000LL) + 116444736000000000LL;
     FILETIME ft;
     ft.dwLowDateTime = (DWORD) ll;
     ft.dwHighDateTime = ll >>32;
