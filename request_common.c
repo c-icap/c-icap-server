@@ -385,7 +385,7 @@ void ci_request_reset(ci_request_t * req)
     ci_clock_time_reset(&req->stop_w_t);
     req->processing_time = 0;
 
-    for (i = 0; req->entities[i] != NULL; i++) {
+    for (i = 0; i < 5 && req->entities[i] != NULL; i++) {
         ci_request_release_entity(req, i);
     }
 
@@ -409,8 +409,10 @@ void ci_request_destroy(ci_request_t * req)
     ci_headers_destroy(req->request_header);
     ci_headers_destroy(req->response_header);
     ci_headers_destroy(req->xheaders);
-    for (i = 0; req->entities[i] != NULL; i++)
+    for (i = 0; i < 5 && req->entities[i] != NULL; i++) {
         destroy_encaps_entity(req->entities[i]);
+        req->entities[i] = NULL;
+    }
 
     for (i = 0; i < 7; i++) {
         if (req->trash_entities[i])
@@ -500,7 +502,7 @@ int process_encapsulated(ci_request_t * req, const char *buf)
         type = get_encaps_type(pos, &val, &end);
         if (type < 0) /*parse error - return "400 bad request"*/
             return EC_400;
-        if (num > 5)          /*In practice there is an error here .... */
+        if (num >= 4)          /* entities[] has 5 slots; keep index 4 as the NULL terminator the teardown walk relies on */
             break;
         if (type == ICAP_NULL_BODY)
             hasbody = 0;     /*We have not a body */
