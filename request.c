@@ -454,12 +454,11 @@ static int check_request(ci_request_t *req)
     if (req->entities[0] == NULL && req->type != ICAP_OPTIONS) /*No encapsulated header*/
         return EC_400;
 
-    ci_debug_printf(6, "\n type:%d Entities: %d %d %d %d \n",
+    ci_debug_printf(6, "\n type:%d Entities: %d %d %d\n",
                     req->type,
                     req->entities[0] ? req->entities[0]->type : -1,
                     req->entities[1] ? req->entities[1]->type : -1,
-                    req->entities[2] ? req->entities[2]->type : -1,
-                    req->entities[3] ? req->entities[3]->type : -1
+                    req->entities[2] ? req->entities[2]->type : -1
                    );
     if (req->type == ICAP_REQMOD) {
         if (req->entities[2] != NULL)
@@ -476,9 +475,7 @@ static int check_request(ci_request_t *req)
 
         }
     } else if (req->type == ICAP_RESPMOD) {
-        if (req->entities[3] != NULL)
-            return EC_400;
-        else if (req->entities[2] != NULL) {
+        if (req->entities[2] != NULL) {
             assert(req->entities[0]);
             assert(req->entities[1]);
             if (req->entities[0]->type != ICAP_REQ_HDR)
@@ -559,10 +556,11 @@ static int parse_encaps_headers(ci_request_t * req)
 {
     int size, i, request_status = 0;
     ci_encaps_entity_t *e = NULL;
-    for (i = 0; (e = req->entities[i]) != NULL; i++) {
+    for (i = 0; i <=  ICAP_RES_HDR && (e = req->entities[i]) != NULL; i++) {
         if (e->type > ICAP_RES_HDR)   //res_body,req_body or opt_body so the end of the headers.....process_encapsulated
             return EC_100;
 
+        assert(i + 1 < CI_REQ_ENTITIES_MAX);
         if (req->entities[i + 1] == NULL)
             return EC_400;
 
@@ -709,7 +707,7 @@ static int resp_check_body(ci_request_t * req)
 {
     int i;
     ci_encaps_entity_t **e = req->entities;
-    for (i = 0; e[i] != NULL; i++)
+    for (i = 0; i < CI_REQ_ENTITIES_MAX && e[i] != NULL; i++)
         if (e[i]->type == ICAP_NULL_BODY)
             return 0;
     return 1;
@@ -924,6 +922,7 @@ static int update_send_status(ci_request_t * req)
 
     if (status > SEND_RESPHEAD && status < SEND_BODY) {        /*status is SEND_HEAD1 SEND_HEAD2 or SEND_HEAD3    */
         i = status - SEND_HEAD1;      /*We have to send next headers block .... */
+        _CI_ASSERT(i < CI_REQ_ENTITIES_MAX);
         if ((e = req->entities[i]) != NULL
                 && (e->type == ICAP_REQ_HDR || e->type == ICAP_RES_HDR)) {
 

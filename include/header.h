@@ -48,7 +48,8 @@ enum ci_error_codes { EC_100, EC_200, EC_204, EC_206,
 
 enum ci_encapsulated_entities {ICAP_REQ_HDR, ICAP_RES_HDR,
                                ICAP_REQ_BODY, ICAP_RES_BODY,
-                               ICAP_NULL_BODY,ICAP_OPT_BODY
+                               ICAP_NULL_BODY,ICAP_OPT_BODY,
+                               CI_ENC_ENTITY_MAX
                               };
 
 /**

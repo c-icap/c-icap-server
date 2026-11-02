@@ -176,11 +176,7 @@ TODO:
 ci_encaps_entity_t *ci_request_alloc_entity(ci_request_t * req, int type, int val)
 {
     ci_encaps_entity_t *e = NULL;
-
-    if (type > ICAP_OPT_BODY || type < 0) {    //
-        return NULL;
-    }
-
+    _CI_ASSERT(type < CI_ENC_ENTITY_MAX && type >= 0);
     if (req->trash_entities[type]) {
         e = req->trash_entities[type];
         req->trash_entities[type] = NULL;
@@ -204,6 +200,7 @@ ci_encaps_entity_t *ci_request_alloc_entity(ci_request_t * req, int type, int va
 int ci_request_release_entity(ci_request_t * req, int pos)
 {
     int type = 0;
+    _CI_ASSERT(pos < CI_REQ_ENTITIES_MAX && pos >= 0);
     if (!req->entities[pos])
         return 0;
 
@@ -229,7 +226,6 @@ int ci_request_release_entity(ci_request_t * req, int pos)
 ci_request_t *ci_request_alloc(ci_connection_t * connection)
 {
     ci_request_t *req;
-    int i;
     req = (ci_request_t *) malloc(sizeof(ci_request_t));
     if (!req)
         return NULL;
@@ -303,10 +299,8 @@ ci_request_t *ci_request_alloc(ci_connection_t * connection)
     ci_clock_time_reset(&req->stop_w_t);
     req->processing_time = 0;
 
-    for (i = 0; i < 5; i++)    //
-        req->entities[i] = NULL;
-    for (i = 0; i < 7; i++)    //
-        req->trash_entities[i] = NULL;
+    memset(req->entities, 0, sizeof(req->entities));
+    memset(req->trash_entities, 0, sizeof(req->trash_entities));
 
     return req;
 
@@ -395,7 +389,7 @@ void ci_request_reset(ci_request_t * req)
     ci_clock_time_reset(&req->stop_w_t);
     req->processing_time = 0;
 
-    for (i = 0; i < 5 && req->entities[i] != NULL; i++) {
+    for (i = 0; i < CI_REQ_ENTITIES_MAX && req->entities[i] != NULL; i++) {
         ci_request_release_entity(req, i);
     }
 
@@ -423,12 +417,12 @@ void ci_request_destroy(ci_request_t * req)
         ci_headers_destroy(req->xtrailers);
     if (req->trailer_names)
         ci_buffer_free(req->trailer_names);
-    for (i = 0; i < 5 && req->entities[i] != NULL; i++) {
+    for (i = 0; i < CI_REQ_ENTITIES_MAX && req->entities[i] != NULL; i++) {
         destroy_encaps_entity(req->entities[i]);
         req->entities[i] = NULL;
     }
 
-    for (i = 0; i < 7; i++) {
+    for (i = 0; i < CI_ENC_ENTITY_MAX; i++) {
         if (req->trash_entities[i])
             destroy_encaps_entity(req->trash_entities[i]);
     }
@@ -512,19 +506,21 @@ int process_encapsulated(ci_request_t * req, const char *buf)
     pos = start;
     end = (char *)start;
     for (; isspace((int)*pos) && *pos != '\0'; ++pos);
-    while (*pos != '\0') {
+    for (num = 0; *pos != '\0' && num < CI_REQ_ENTITIES_MAX; ++num) {
         type = get_encaps_type(pos, &val, &end);
-        if (type < 0) /*parse error - return "400 bad request"*/
+        if (type < 0)
             return EC_400;
-        if (num >= 4)          /* entities[] has 5 slots; keep index 4 as the NULL terminator the teardown walk relies on */
-            break;
         if (type == ICAP_NULL_BODY)
-            hasbody = 0;     /*We have not a body */
-        req->entities[num++] = ci_request_alloc_entity(req, type, val);
+            hasbody = 0;
+        req->entities[num] = ci_request_alloc_entity(req, type, val);
 
         assert(start != end);
-        pos = end;            /* points after the value of entity.... */
+        pos = end;
         for (; (isspace((int)*pos) || *pos == ',') && *pos != '\0'; ++pos);
+    }
+    if (*pos != '\0') {
+        ci_debug_printf(3, "Malformed Encapsulated header :%s\n", buf);
+        return EC_400;
     }
     req->hasbody = hasbody;
     return EC_100;

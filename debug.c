@@ -79,7 +79,7 @@ void debug_print_request(ci_request_t *req){
      }
      ci_debug_printf(1,"\n\nEncapsulated Entities: \n");
      i = 0;
-     while(req->entities[i] != NULL){
+     while(i < CI_REQ_ENTITIES_MAX && req->entities[i] != NULL){
       ci_debug_printf(1,"\t %s header at %d\n",
                ci_encaps_entity_string_inline(req->entities[i]->type),req->entities[i]->start);
       if(req->entities[i]->type<ICAP_REQ_BODY){

@@ -117,7 +117,7 @@ void ci_client_request_reuse(ci_request_t * req)
     req->body_bytes_in = 0;
     req->body_bytes_out = 0;
 
-    for (i = 0; req->entities[i] != NULL; i++) {
+    for (i = 0; i < CI_REQ_ENTITIES_MAX && req->entities[i] != NULL; i++) {
         ci_request_release_entity(req, i);
     }
 
@@ -219,7 +219,11 @@ static int get_request_options(ci_request_t * req, ci_headers_list_t * h)
 static ci_headers_list_t* get_headers_from_entities(ci_encaps_entity_t** entities, int type)
 {
     ci_encaps_entity_t* e;
-    while ((e = *entities++) != NULL) {
+    int i;
+    _CI_ASSERT(entities);
+    for (i = 0; i <= type && entities[i]; ++i) {
+        _CI_ASSERT(i < CI_REQ_ENTITIES_MAX);
+        e = entities[i];
         if (e->type == type)
             return (ci_headers_list_t*)(e->entity);
     }
@@ -451,7 +455,7 @@ int ci_client_get_server_options_nonblocking(ci_request_t * req)
 
     if (req->status == CLIENT_SEND_HEADERS_FINISHED) {
         // Reset encaps entities to receive new entities from server
-        for (i = 0; req->entities[i] != NULL; i++)
+        for (i = 0; i < CI_REQ_ENTITIES_MAX && req->entities[i] != NULL; i++)
             ci_request_release_entity(req, i);
 
         req->status = CLIENT_PROCESS_DATA;
@@ -554,7 +558,7 @@ static int client_parse_incoming_data(ci_request_t * req, void *data_dest,
         if (3 != sscanf(req->response_header->buf, "ICAP/%d.%d %3d", &v1, &v2, &status))
             return CI_ERROR;
         req->return_code = status;
-        ci_debug_printf(3, "Response was with status:%d \n", status);
+        ci_debug_printf(5, "Response was with status:%d \n", status);
         ci_headers_unpack(req->response_header);
 
         if (ci_req_allow204(req) && status == 204) {
@@ -563,10 +567,14 @@ static int client_parse_incoming_data(ci_request_t * req, void *data_dest,
         }
 
         if ((val = ci_headers_search(req->response_header, "Encapsulated")) == NULL) {
-            ci_debug_printf(1, "No encapsulated entities!\n");
+            ci_debug_printf(3, "No encapsulated entities!\n");
             return CI_ERROR;
         }
-        process_encapsulated(req, val);
+
+        if (process_encapsulated(req, val) != EC_100) {
+            ci_debug_printf(3, "Error parsing encapsulated header\n");
+            return CI_ERROR;
+        }
 
         if (!req->entities[0])
             return CI_ERROR;
@@ -751,7 +759,7 @@ static int client_build_headers(ci_request_t *req, int has_reqhdr, int has_reshd
 {
     int i = 0;
 
-    for (i = 0; i < 4; i++) {
+    for (i = 0; i < CI_REQ_ENTITIES_MAX; i++) {
         if (req->entities[i]) {
             ci_request_release_entity(req, i);
         }
@@ -766,6 +774,7 @@ static int client_build_headers(ci_request_t *req, int has_reqhdr, int has_reshd
         req->entities[i] = ci_request_alloc_entity(req, req->type == ICAP_RESPMOD ? ICAP_RES_BODY : ICAP_REQ_BODY, 0);
     else
         req->entities[i] = ci_request_alloc_entity(req, ICAP_NULL_BODY, 0);
+    _CI_ASSERT(i < CI_REQ_ENTITIES_MAX);
     return 1;
 }
 
@@ -792,10 +801,13 @@ static int ci_client_handle_previewed_response(ci_request_t * req, int *preview_
     } else if ((req->eof_sent && *preview_status == 200) || *preview_status == 206) {
         ci_headers_unpack(req->response_header);
         if ((val = ci_headers_search(req->response_header, "Encapsulated")) == NULL) {
-            ci_debug_printf(1, "No encapsulated entities!\n");
+            ci_debug_printf(3, "No encapsulated entities!\n");
             return CI_ERROR;
         }
-        process_encapsulated(req, val);
+        if (process_encapsulated(req, val) != EC_100) {
+            ci_debug_printf(3, "Error parsing encapsulated header!\n");
+            return CI_ERROR;
+        }
         if (!req->entities[1])   /*Then we have only body */
             req->status = CLIENT_PROCESS_DATA_GET_BODY;
         else
@@ -902,7 +914,7 @@ int ci_client_icapfilter_nonblocking(ci_request_t * req, int io_action,
 
     if (req->status == CLIENT_SEND_HEADERS_FINISHED) {
         // Reset encaps entities to receive new entities from server
-        for (i = 0; req->entities[i] != NULL; i++)
+        for (i = 0; i < CI_REQ_ENTITIES_MAX && req->entities[i] != NULL; i++)
             ci_request_release_entity(req, i);
 
         if (req->preview >= 0) {   /*we must wait for ICAP responce here..... */

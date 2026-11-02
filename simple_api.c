@@ -45,24 +45,12 @@ const char *ci_http_method_string(int method)
     return ci_http_methods_str[method];
 }
 
-/*
-int ci_resp_check_body(ci_request_t *req){
-     int i;
-     ci_encaps_entity_t **e=req->entities;
-     for(i = 0; e[i] != NULL; i++)
-      if(e[i]->type == ICAP_NULL_BODY)
-           return 0;
-     return 1;
-}
-*/
-
-
 ci_headers_list_t * ci_http_response_headers(ci_request_t * req)
 {
     int i;
     ci_encaps_entity_t **e_list;
     e_list = req->entities;
-    for (i = 0; e_list[i] != NULL && i < 3; i++) {     /*It is the first or second ellement */
+    for (i = 0; i < CI_REQ_ENTITIES_MAX && e_list[i] != NULL; i++) {     /*It is the first or second ellement */
         if (e_list[i]->type == ICAP_RES_HDR)
             return (ci_headers_list_t *) e_list[i]->entity;
 
@@ -117,8 +105,7 @@ int ci_http_request_reset_headers(ci_request_t * req)
 int ci_http_response_create(ci_request_t * req, int has_reshdr, int has_body)
 {
     int i = 0;
-
-    for (i = 0; i < 4; i++) {
+    for (i = 0; i < CI_REQ_ENTITIES_MAX; i++) {
         if (req->entities[i]) {
             ci_request_release_entity(req, i);
         }
@@ -139,17 +126,16 @@ int ci_http_request_create(ci_request_t * req, int has_body)
 {
     int i = 0;
 
-    for (i = 0; i < 4; i++) {
+    for (i = 0; i < CI_REQ_ENTITIES_MAX; i++) {
         if (req->entities[i]) {
             ci_request_release_entity(req, i);
         }
     }
-    i = 0;
-    req->entities[i++] = ci_request_alloc_entity(req, ICAP_REQ_HDR, 0);
+    req->entities[0] = ci_request_alloc_entity(req, ICAP_REQ_HDR, 0);
     if (has_body)
-        req->entities[i] = ci_request_alloc_entity(req, ICAP_REQ_BODY, 0);
+        req->entities[1] = ci_request_alloc_entity(req, ICAP_REQ_BODY, 0);
     else
-        req->entities[i] = ci_request_alloc_entity(req, ICAP_NULL_BODY, 0);
+        req->entities[1] = ci_request_alloc_entity(req, ICAP_NULL_BODY, 0);
 
     return 1;
 }

@@ -75,6 +75,8 @@ enum SENDDATA_STATUS {SEND_NOTHING = 0, SEND_RESPHEAD, SEND_HEAD1, SEND_HEAD2, S
 #define MAX_CHUNK_SIZE    4064   /*4096 -EXTRA_CHUNK_SIZE-2*/
 #define MAX_USERNAME_LEN 255
 
+#define CI_REQ_ENTITIES_MAX 3
+
 typedef struct ci_buf {
     char *buf;
     size_t size;
@@ -110,8 +112,8 @@ typedef struct ci_request {
     struct ci_service_module *current_service_mod;
     ci_headers_list_t *request_header;
     ci_headers_list_t *response_header;
-    ci_encaps_entity_t *entities[5];//At most 3 and 1 for termination.....
-    ci_encaps_entity_t *trash_entities[7];
+    ci_encaps_entity_t *entities[CI_REQ_ENTITIES_MAX + 2]; //+2 for padding and backward compatibility
+    ci_encaps_entity_t *trash_entities[CI_ENC_ENTITY_MAX + 1];  //+1 for padding and backward compatibility
     ci_headers_list_t *xheaders;
     ci_headers_list_t *xtrailers;
     char *trailer_names;
