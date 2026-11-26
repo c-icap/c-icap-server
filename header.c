@@ -193,7 +193,10 @@ static int headers_check_space(ci_headers_list_t * h, int new_headers, int new_s
         char *old_buf = h->buf;
         h->buf = newbuf;
         h->bufsize = required_mem_space;
-        // Rebuild index:
+        /*
+         * Preserve offsets across realloc(). This relies on the conventional
+         * representation of stale pointer values after realloc moves the buffer.
+         */
         for (i = 0; i < h->used; i++) {
             size_t pos = h->headers[i] - old_buf;
             h->headers[i] = h->buf + pos;
@@ -236,7 +239,7 @@ static int headers_terminate(ci_headers_list_t *h)
         return 1;
 
     int i = 0;
-    while((h->bufused - i) >= 0 && strchr("\r\n\0", h->buf[h->bufused - i - 1]))
+    while((h->bufused - i) > 0 && strchr("\r\n\0", h->buf[h->bufused - i - 1]))
         i++;
     if ((h->bufused - i + 4) > h->bufsize)
         return 0; // Not enough space to terminate
@@ -262,7 +265,8 @@ const char *ci_headers_add(ci_headers_list_t * h, const char *line)
     if (!headers_check_space(h, 1, linelen + 2))
         return NULL;
 
-    assert(headers_terminate(h));
+    const int ret = headers_terminate(h);
+    _CI_ASSERT(ret);
     if (h->used) {
         assert(h->bufused >= 4);
         h->bufused -= 2;
@@ -293,7 +297,8 @@ int ci_headers_addheaders(ci_headers_list_t * h, const ci_headers_list_t * heade
     }
     if (!headers_check_space(h, headers->used, headers->bufused))
         return 0;
-    assert(headers_terminate(h));
+    int ret = headers_terminate(h);
+    _CI_ASSERT(ret);
     if (h->used) {
         assert(h->bufused >= 4);
         h->bufused -= 2;
@@ -307,7 +312,8 @@ int ci_headers_addheaders(ci_headers_list_t * h, const ci_headers_list_t * heade
         int hdr_indx = headers->headers[i] - headers->buf;
         h->headers[h->used++] = pos + hdr_indx;
     }
-    assert(headers_terminate(h));
+    ret = headers_terminate(h);
+    _CI_ASSERT(ret);
     return 1;
 }
 
@@ -445,7 +451,8 @@ int ci_headers_remove(ci_headers_list_t * h, const char *header)
     // The following two lines should not needed
     // TODO: replace with a simple "headers_terminated" check
     headers_check_space(h, 0, 0);
-    assert(headers_terminate(h));
+    int ret = headers_terminate(h);
+    _CI_ASSERT(ret);
 
     h_end = (h->buf + h->bufused);
     header_size = strlen(header);
@@ -479,7 +486,8 @@ int ci_headers_remove(ci_headers_list_t * h, const char *header)
                     h->headers[j] = h->headers[j + 1] - cur_head_size;
                 }
             }
-            assert(headers_terminate(h));
+            ret = headers_terminate(h);
+            _CI_ASSERT(ret);
             return 1;
         }
     }
@@ -537,7 +545,8 @@ void ci_headers_pack(ci_headers_list_t * h)
     // The following two lines should not needed
     // TODO: replace with a simple "headers_terminated" check
     headers_check_space(h, 0, 0);
-    assert(headers_terminate(h));
+    const int ret = headers_terminate(h);
+    _CI_ASSERT(ret);
 
     for (i = 1; i < h->used; i++) {
         size_t hpos =  h->headers[i] - h->buf;
@@ -623,7 +632,8 @@ int ci_headers_unpack(ci_headers_list_t * h)
     h->packed = 0;
     /*OK headers index construction ...... */
     headers_check_space(h, 0, 0);
-    assert(headers_terminate(h));
+    const int ret = headers_terminate(h);
+    _CI_ASSERT(ret);
     return EC_100;
 }
 
